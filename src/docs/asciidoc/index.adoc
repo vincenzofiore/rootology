@@ -1,0 +1,19 @@
+= Rootology API Reference
+:doctype: book
+:toc: left
+:toclevels: 2
+:sectlinks:
+
+== Overview
+
+Documentazione API generata con Spring REST Docs + Asciidoctor.
+
+== Esempi
+
+Includi qui gli snippet generati dai test (`{snippets}` punta a `target/generated-snippets`), ad esempio:
+
+[source,asciidoc]
+----
+include::{snippets}/some-operation/http-request.adoc[]
+include::{snippets}/some-operation/http-response.adoc[]
+----
