@@ -153,4 +153,6 @@ systems (written up separately as a LinkedIn post).
 
 ## License
 
-Personal experimental project — no license specified yet.
+License
+
+Licensed under the Apache License 2.0 — chosen for consistency with the project's main dependencies (Spring, Apache Jena), both released under the same license.
