@@ -3,4 +3,4 @@
         allowedDependencies = { "ontology", "inference" }
 )
 
-package io.github.vincenzofiore.rootology.experimens;
+package io.github.vincenzofiore.rootology.experiments;
