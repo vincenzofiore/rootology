@@ -37,7 +37,7 @@ boundaries are explicit and verified automatically by tests, without the
 overhead of a multi-module Maven build.
 
 ```
-dev.rootology
+io.github.vincenzofiore.rootology
 ├── RootologyApplication.java
 ├── ontology/       # Domain model: Plant, Pest, Soil, Season, and their
 │                   # declared relationships (companion-of, repels, etc.)
@@ -149,7 +149,7 @@ recorded as the experiment continues.
 This is a personal, exploratory project, not a production system. Its goal
 is to gather first-hand, concrete observations — not to build a reusable
 tool — to inform a broader reflection on providing domain context to AI
-systems (written up separately as a LinkedIn post).
+systems.
 
 ## License
 
