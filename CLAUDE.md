@@ -82,10 +82,27 @@ Design caveat to keep in mind: Jena is both the arbiter and, if reused as the fa
 6. Integrate Jev behind `Decision` (stub first if needed).
 7. Add uncertainty to the inputs (for example noisy or missing readings), since the closed dataset is deterministic and gives a decision layer nothing to estimate. Then run all cases and compare.
 
+## Next plan (agreed 2026-10-31)
+
+Each item is a GitHub issue (label `plan`) on `vincenzofiore/rootology`. Work happens on `develop`; reference the issue in commit messages (for example `refs #1`, or `closes #1` for the last commit of an item).
+
+Constraint: Jev is the decision layer by design. Do not build a Jev-vs-LLM comparison of decision layers (for example Embabel's prompted-LLM decision service as an alternative to Jev).
+
+1. (#1) Skeptical stub as a stronger baseline: a stub that drops UNCONFIRMED readings, compared offline on the same noisy seeds. Shows how much of Jev's advantage is judgment rather than the source tag alone. No paid calls.
+2. (#2) Fix the noise design limit: allow false facts about entities near the subject too, so easy-2 and hard-1 do not get the same two injected facts at every seed.
+3. (#3) Calibrate `MIN_CONFIDENCE` on fresh seeds (see Open questions). Do it after #1 and #2, so the new trials serve all comparisons.
+4. (#4) Replace the hand-written Jev HTTP client with Embabel's own `embabel-agent-starter-typesafe` (1.5.4, `DecisionService` via `context.ai().decisions()`), keeping the `DecisionLayer` interface, the raw-facts input and the saved-judgments format. Verify its API on the jar first.
+5. (#5) UI with Vaadin Flow and Embabel's `vaadin-components`: a comparison view (one question, the arms side by side with confidence and escalation) and an escalation queue where a human answers. This turns the `escalate` flag into a real human-in-the-loop step (Embabel can pause an agent and wait for input).
+6. (#6) Postgres for experiment run history (trials, outcomes, confidences, thresholds), when the UI (#5) needs it. Populated from the pipeline, never a replacement for `OntologyDefinition`. Testcontainers is already in the pom.
+7. (#7) Neo4j as the pipeline's own fact store, populated from `OntologyDefinition`, so the arbiter (Jena) and the pipeline's fact source stop being the same component.
+8. (#8) Re-record the "Claude alone" arms with noise (a degraded skill file), by hand in real Claude Code sessions, to close the comparison under noise.
+9. (#9) Later, only if it fits: Embabel DICE (incubating library, confidence-weighted propositions, Neo4j and Prolog) or Embabel Worlds (a separate docker-compose product, 0.1.0-rc.1, where the LLM explores the graph via "code mode", which conflicts with the pipeline design where Claude never sees the facts).
+10. (#10) Optional cleanup: trim the unused Initializr dependencies (JPA, H2, restdocs, Testcontainers) unless #6 or #7 need them.
+
 ## Open questions
 
 - Resolved: Jev is the TypeSafe System One HTTP API (`POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`); Noul questions return a probability of yes. `JevDecisionLayer` derives confidence as min |2p - 1|.
 - Resolved: Embabel 1.5.4 works on Spring Boot 4.1.0 / Java 25 (built against Boot 4.1.1, Java 21 bytecode; Boot overrides its Kotlin to 2.3.21).
 - Tests tagged `live-api` call Claude and Jev for real and are excluded from a plain `./mvnw test`; run them with `-Plive`.
 - Calibrating `JevDecisionLayer.MIN_CONFIDENCE` (still 0.5). The sweep points to 0.6 (no silent errors, one extra escalation), but it was picked on the same 25 noisy trials it was judged on. Before changing it, validate on fresh seeds (for example 6 to 15) with `NoiseRecordingTest`, then re-run `ThresholdSweepTest`.
-- Whether Embabel Worlds is usable as-is here and which store it needs (Neo4j is one option; FalkorDB and Memgraph are alternatives).
+- Embabel Worlds: checked 2026-10-31. Not a library but a separate product (`embabel-worlds/appliance`, docker compose); see plan item 9.
