@@ -18,6 +18,11 @@ Personal, exploratory Java project. It started as a comparison between a formal 
   - `ontology`: `OntologyDefinition` (the closed dataset, as a Spring component), records `Plant`, `Pest`, enums `Season`, `SoilType`.
   - `inference`: `JenaModelService` (builds an in-memory RDF graph from `OntologyDefinition`, `refresh()` rebuilds it), `Vocabulary` (URIs, namespace `http://rootology.dev/ontology#`), and SPARQL queries `CompanionQuery`, `PestQuery`, `ChainedRelationQuery`, `FactPresenceQuery`.
   - `experiments`: `ExperimentRunner` computes the Jena answers; `ExperimentResult` is a record holding Jena, LLM-with-skill and LLM-without-skill answers plus a `matches` flag. The LLM arms are pasted in by hand from real Claude Code sessions (see `ExperimentRecordingTest`, which is a recording mechanism, not an assertion test).
+  - `inference :: facts` (named interface, sub-package `inference.facts`): `FactSource.allFacts()` returns raw declared triples as `Fact` records. It is the only part of `inference` the pipeline may use (no SPARQL).
+  - `decision`: `Intent` + `QueryKind`, `GraphFacts`, `Decision` (answer, confidence, escalate, reason), interface `DecisionLayer`. `JevDecisionLayer` (TypeSafe System One API, Noul questions per candidate plus an `answerable` check) is used when `ROOTOLOGY_TYPESAFE_API_KEY` is set, otherwise the deterministic `StubDecisionLayer` (see `DecisionLayerConfiguration`).
+  - `pipeline`: Embabel agent `GardenPipelineAgent` (Question -> Intent via Claude -> GraphFacts -> Decision -> PipelineAnswer, phrased by Claude), entry point `GardenPipeline.ask(...)`.
+  - `experiments` also has `PipelineResult`, the sibling record for the pipeline arm, recorded by `PipelineRecordingTest` (real Claude, runs only when `ROOTOLOGY_ANTHROPIC_API_KEY` is set).
+- Embabel 1.5.4 (`embabel-agent-starter-anthropic`), default LLM `claude-sonnet-5-5`. API keys use project-specific env vars (`ROOTOLOGY_ANTHROPIC_API_KEY`, `ROOTOLOGY_TYPESAFE_API_KEY`) so Claude Code itself never picks up `ANTHROPIC_API_KEY`. `GardenPipelineAgentTest` mocks the LLM via `EmbabelMockitoIntegrationTest`.
 - The LLM-side knowledge is `.claude/skills/rootology-garden-companion/SKILL.md`, a prose description of exactly the same dataset.
 - Run the Jena side: `./mvnw test -Dtest=CompanionQueryTest,PestQueryTest,ChainedRelationQueryTest,FactPresenceQueryTest`.
 
@@ -41,6 +46,12 @@ Rules: companions are only what is declared (never inferred from shared soil or 
 - `hard-2`: active season of Mosquito (missing fact: must say "not specified").
 - `hard-3`: companions of Lavender (out of scope entity).
 Observed so far: with the skill loaded the model reported hard-2 as not specified; without it, it guessed seasons from general knowledge.
+Pipeline arm, first real run (2026-10-31): all five intents extracted correctly and all values match Jena (hard-2, hard-3 escalated). In hard-1 the phrasing step contradicted the correct `[Tomato]` decision ("can't identify the companions"). The owner chose to keep the phrasing prompt untuned and record this as a finding.
+Pipeline arm with Jev (2026-10-31, `jev-latest`, threshold 0.5, nothing tuned after seeing results):
+- First two runs used unsorted facts. Jev's answers shifted between runs (easy-1 once included Tomato as its own companion; Mosquito `answerable` was 0.44 in one run and above 0.5 in another). In that easy-1 run the phrasing step silently dropped Tomato from the text, hiding the error: the mirror image of the stub-era hard-1 finding. Values, not text, are the record.
+- `FactSource` now sorts facts. With identical input (`JevStabilityRecordingTest`, 5 runs per case, no Claude) Jev is stable within about ±0.05, but fact order alone had moved some answers across 0.5.
+- Stable picture: easy-1 [Basil, Marigold] correct, but Tomato at p 0.18 to 0.26 puts confidence around the threshold (2 of 5 runs escalated). easy-2 [Nematode] correct, confidence about 0.8. hard-1: Basil and Tomato both near 0.45, answer empty, always escalated (does not resolve the three-hop chain, but knows it). hard-2: `answerable` 0.23 to 0.31, always escalated. hard-3: `answerable` 0.25 to 0.32, always escalated.
+- Full pipeline (Claude + Jev, sorted facts), two runs: same picture, except hard-1 once came out [Tomato] (matching Jena) with confidence 0.17, still escalated. Every hard case escalated in every run; no wrong answer went out un-escalated.
 
 ## New goal: a third contestant
 

@@ -1,28 +1,46 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
-import com.embabel.agent.api.invocation.AgentInvocation;
-import com.embabel.agent.core.AgentPlatform;
+import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Runs the pipeline agent on the real Embabel platform for each experiment case.
- * No LLM call is made yet, so no API key is needed.
+ * Runs the pipeline agent on the real Embabel platform with the LLM mocked and the
+ * deterministic stub decision layer forced, so the wiring is checked without any API call.
  */
-@SpringBootTest
-class GardenPipelineAgentTest {
+@TestPropertySource(properties = "rootology.jev.api-key=")
+class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
-    AgentPlatform agentPlatform;
+    GardenPipeline pipeline;
+
+    @BeforeEach
+    void stubPhrasing() {
+        whenGenerateText(prompt -> prompt.contains("Write a one or two sentence answer"))
+                .thenReturn("phrased answer");
+    }
 
     private PipelineAnswer ask(String id, String text, Intent intent) {
-        return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(new Question(id, text), intent);
+        return pipeline.ask(new Question(id, text), intent);
+    }
+
+    @Test
+    void understandsTheQuestionThroughTheLlm() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "Tomato"));
+
+        var answer = pipeline.ask(new Question("easy-1", "Which plants are companions of Tomato?"));
+
+        assertThat(answer.answer()).containsExactlyInAnyOrder("Basil", "Marigold");
+        assertThat(answer.text()).isEqualTo("phrased answer");
+        verifyCreateObject(prompt -> prompt.contains("companions of Tomato"), Intent.class);
+        verifyGenerateText(prompt -> prompt.contains("Values: [") && prompt.contains("Basil"));
     }
 
     @Test
@@ -60,7 +78,7 @@ class GardenPipelineAgentTest {
 
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.escalated()).isTrue();
-        assertThat(answer.text()).contains("not declared");
+        verifyGenerateText(prompt -> prompt.contains("Reason: active season of Mosquito is not declared"));
     }
 
     @Test
@@ -70,6 +88,13 @@ class GardenPipelineAgentTest {
 
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.escalated()).isTrue();
-        assertThat(answer.text()).contains("not in the dataset");
+        verifyGenerateText(prompt -> prompt.contains("Reason: Lavender is not in the dataset"));
+    }
+
+    @Test
+    void unsupportedQuestionIsEscalated() {
+        var answer = ask("other", "What is the best fertilizer?", Intent.of(QueryKind.OTHER, null));
+
+        assertThat(answer.escalated()).isTrue();
     }
 }

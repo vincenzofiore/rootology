@@ -9,5 +9,7 @@ public enum QueryKind {
     /** hard-1: companions of other plants that repel a pest the subject repels. */
     COMPANIONS_OF_SHARED_REPELLERS,
     /** hard-2: declared active seasons of a pest. */
-    ACTIVE_SEASONS
+    ACTIVE_SEASONS,
+    /** Anything that does not fit the shapes above. Always escalated. */
+    OTHER
 }

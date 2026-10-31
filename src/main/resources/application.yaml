@@ -9,5 +9,13 @@ embabel:
     platform:
       models:
         anthropic:
-          # Placeholder lets the context start without a key; real LLM calls need ANTHROPIC_API_KEY.
-          api-key: ${ANTHROPIC_API_KEY:not-set}
+          # Project-specific name, so the key does not leak into Claude Code itself (which reads ANTHROPIC_API_KEY).
+          # The placeholder lets the context start without a key; real LLM calls need it set.
+          api-key: ${ROOTOLOGY_ANTHROPIC_API_KEY:not-set}
+
+rootology:
+  jev:
+    # Same convention as above. Without a key the deterministic StubDecisionLayer is used.
+    api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
+    base-url: https://api.typesafe.ai
+    model: jev-latest

@@ -1,6 +1,5 @@
 package io.github.vincenzofiore.rootology.decision;
 
-import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -8,13 +7,16 @@ import java.util.Set;
 
 /**
  * Deterministic stand-in for Jev: plain rules over the raw facts, confidence is either 1.0 or 0.0.
- * Escalates when the subject is outside the dataset or the asked fact is not declared.
+ * Escalates when the question shape is unsupported, the subject is outside the dataset,
+ * or the asked fact is not declared.
  */
-@Component
 public class StubDecisionLayer implements DecisionLayer {
 
     @Override
     public Decision decide(Intent intent, GraphFacts facts) {
+        if (intent.kind() == QueryKind.OTHER) {
+            return Decision.escalated("the question does not fit any supported shape");
+        }
         String subject = intent.subject();
         if (!facts.mentions(subject)) {
             return Decision.escalated(subject + " is not in the dataset");
@@ -26,6 +28,7 @@ public class StubDecisionLayer implements DecisionLayer {
             case RELEVANT_PESTS -> relevantPests(subject, intent.season(), facts);
             case COMPANIONS_OF_SHARED_REPELLERS -> companionsOfSharedRepellers(subject, facts);
             case ACTIVE_SEASONS -> activeSeasons(subject, facts);
+            case OTHER -> throw new IllegalStateException("handled above");
         };
     }
 

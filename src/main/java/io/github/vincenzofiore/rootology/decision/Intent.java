@@ -1,8 +1,8 @@
 package io.github.vincenzofiore.rootology.decision;
 
 /**
- * Structured reading of a question. Supplied directly for now; Claude will extract it
- * from the question text in a later step.
+ * Structured reading of a question, extracted from the text by Claude
+ * (or supplied directly to bypass that step).
  *
  * @param season only used by {@link QueryKind#RELEVANT_PESTS}, otherwise null
  */
