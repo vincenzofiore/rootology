@@ -24,7 +24,7 @@ public class JevDecisionLayer implements DecisionLayer {
     /** Below this, a judgment is treated as uncertain and sent to a human. A starting point, not tuned. */
     public static final double MIN_CONFIDENCE = 0.5;
 
-    static final Map<String, String> SOURCES = Map.of(
+    static final Map<String, Object> SOURCES = ordered(
             "CURATED", "From the curated garden dataset.",
             "UNCONFIRMED", "From a single unverified report. It may be wrong.");
 
@@ -64,16 +64,16 @@ public class JevDecisionLayer implements DecisionLayer {
                     and applying `rule`, is "%s" part of the answer to the question described \
                     by `intent`?""".formatted(candidates.get(i))));
         }
-        List<Map<String, String>> stateFacts = facts.readings().stream()
-                .map(r -> Map.of(
+        List<Map<String, Object>> stateFacts = facts.readings().stream()
+                .map(r -> ordered(
                         "subject", r.fact().subject(),
                         "predicate", r.fact().predicate(),
                         "object", r.fact().object(),
                         "source", r.source().name()))
                 .toList();
-        Map<String, Object> request = Map.of(
+        Map<String, Object> request = ordered(
                 "model", model,
-                "state", Map.of(
+                "state", ordered(
                         "intent", intent,
                         "rule", rule(intent.kind()),
                         "sources", SOURCES,
@@ -125,8 +125,21 @@ public class JevDecisionLayer implements DecisionLayer {
         return Math.abs(2 * p - 1);
     }
 
-    private static Map<String, String> noul(String instructions) {
-        return Map.of("type", "noul", "instructions", instructions);
+    private static Map<String, Object> noul(String instructions) {
+        return ordered("type", "noul", "instructions", instructions);
+    }
+
+    /**
+     * A map that keeps the order its keys are written in. Jev reads fields in the order they
+     * are sent and the order can change an answer, while Map.of iterates in a different
+     * order on every JVM run.
+     */
+    private static Map<String, Object> ordered(Object... keysAndValues) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int i = 0; i < keysAndValues.length; i += 2) {
+            map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+        }
+        return map;
     }
 
     /** Exact lookup in code: every entity of the type the answer must have. */

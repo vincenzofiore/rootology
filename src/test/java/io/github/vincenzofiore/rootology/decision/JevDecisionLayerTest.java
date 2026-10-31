@@ -37,6 +37,24 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void sendsStateFieldsInAFixedOrder() {
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(request -> {
+                    String body = ((org.springframework.mock.http.client.MockClientHttpRequest) request).getBodyAsString();
+                    assertThat(body).containsSubsequence(
+                            "\"model\"", "\"state\"", "\"intent\"", "\"rule\"", "\"sources\"",
+                            "\"CURATED\"", "\"UNCONFIRMED\"", "\"facts\"",
+                            "\"subject\"", "\"predicate\"", "\"object\"", "\"source\"", "\"questions\"");
+                })
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.04}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.ACTIVE_SEASONS, "Mosquito"), FACTS);
+
+        server.verify();
+    }
+
+    @Test
     void candidatesArePlantsForCompanionQuestions() {
         assertThat(JevDecisionLayer.candidates(QueryKind.COMPANIONS, FACTS)).containsExactly("Tomato", "Basil");
     }
