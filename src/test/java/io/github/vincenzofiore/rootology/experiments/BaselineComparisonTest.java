@@ -7,6 +7,7 @@ import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
 import io.github.vincenzofiore.rootology.decision.SkepticalStubDecisionLayer;
 import io.github.vincenzofiore.rootology.decision.StubDecisionLayer;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Case;
+import io.github.vincenzofiore.rootology.experiments.NoiseCases.NoiseRun;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Outcome;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Trial;
 import io.github.vincenzofiore.rootology.inference.ChainedRelationQuery;
@@ -19,8 +20,6 @@ import io.github.vincenzofiore.rootology.inference.facts.FactSource;
 import io.github.vincenzofiore.rootology.ontology.OntologyDefinition;
 import io.github.vincenzofiore.rootology.pipeline.NoisyFacts;
 import org.junit.jupiter.api.Test;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
@@ -40,10 +39,7 @@ class BaselineComparisonTest {
 
     @Test
     void recordBaselineComparison() throws Exception {
-        assumeTrue(Files.exists(NoiseCases.JUDGMENTS_FILE), "run NoiseRecordingTest with -Plive first");
-        List<Trial> trials = JsonMapper.builder().build()
-                .readValue(NoiseCases.JUDGMENTS_FILE.toFile(), new TypeReference<List<Trial>>() {});
-
+        assumeTrue(Files.exists(NoiseRun.FIRST.file), "run NoiseRecordingTest with -Plive first");
         var modelService = new JenaModelService(new OntologyDefinition());
         var runner = new ExperimentRunner(new CompanionQuery(modelService), new PestQuery(modelService),
                 new ChainedRelationQuery(modelService), new FactPresenceQuery(modelService));
@@ -51,6 +47,14 @@ class BaselineComparisonTest {
                 .collect(Collectors.toMap(Case::id, Function.identity()));
         List<Fact> clean = new FactSource(modelService).allFacts();
 
+        for (NoiseRun run : NoiseRun.values()) {
+            if (Files.exists(run.file)) {
+                compare(run, NoiseCases.load(run), cases, clean);
+            }
+        }
+    }
+
+    private static void compare(NoiseRun run, List<Trial> trials, Map<String, Case> cases, List<Fact> clean) {
         Map<String, DecisionLayer> stubs = new LinkedHashMap<>();
         stubs.put("naive-stub", new StubDecisionLayer());
         stubs.put("skeptical-stub", new SkepticalStubDecisionLayer());
@@ -58,7 +62,7 @@ class BaselineComparisonTest {
 
         for (Trial t : trials.stream().filter(t -> t.seed() > 0).toList()) {
             Case c = cases.get(t.caseId());
-            GraphFacts facts = new GraphFacts(NoisyFacts.apply(clean, c.intent(), NoiseCases.noise(t.seed())));
+            GraphFacts facts = new GraphFacts(NoisyFacts.apply(clean, c.intent(), run.noise(t.seed())));
             Map<String, Decision> decisions = new LinkedHashMap<>();
             stubs.forEach((name, layer) -> decisions.put(name, layer.decide(c.intent(), facts)));
             decisions.put("jev", JevDecisionLayer.decide(
@@ -67,11 +71,11 @@ class BaselineComparisonTest {
                 Outcome outcome = NoiseCases.outcome(c, d);
                 totals.computeIfAbsent(name, k -> new int[3])[outcome.ordinal()]++;
                 totals.computeIfAbsent(name + " " + c.id(), k -> new int[3])[outcome.ordinal()]++;
-                System.out.printf("BASELINE %s seed=%d %-14s %-9s answer=%s%n",
-                        c.id(), t.seed(), name, outcome, d.answer());
+                System.out.printf("BASELINE %s %s seed=%d %-14s %-9s answer=%s%n",
+                        run, c.id(), t.seed(), name, outcome, d.answer());
             });
         }
-        totals.forEach((key, n) -> System.out.printf("BASELINE-TOTAL %-21s right=%d escalated=%d wrong=%d%n",
-                key, n[0], n[1], n[2]));
+        totals.forEach((key, n) -> System.out.printf("BASELINE-TOTAL %s %-21s right=%d escalated=%d wrong=%d%n",
+                run, key, n[0], n[1], n[2]));
     }
 }

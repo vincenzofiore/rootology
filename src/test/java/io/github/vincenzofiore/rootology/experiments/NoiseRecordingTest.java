@@ -6,6 +6,7 @@ import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
 import io.github.vincenzofiore.rootology.decision.StubDecisionLayer;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Case;
+import io.github.vincenzofiore.rootology.experiments.NoiseCases.NoiseRun;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Outcome;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Trial;
 import io.github.vincenzofiore.rootology.inference.facts.Fact;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +31,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Step 7: the same degraded readings go to the stub (trusts every reading) and to Jev,
  * for every case and several seeds. Jena on the clean dataset is the arbiter. Claude is left
  * out on purpose (fixed intents), so only the decision layer is compared.
- * Jev's raw judgments are saved to {@link NoiseCases#JUDGMENTS_FILE} for ThresholdSweepTest.
+ * Records one {@link NoiseRun}, {@code HOLDOUT} by default ({@code -Dnoise.run=FIRST} for the other), and
+ * saves Jev's raw judgments to its file for ThresholdSweepTest and BaselineComparisonTest.
+ * An existing judgments file is an experiment record and is never overwritten.
  * Recording only, no assertions: read the printed table.
  */
 @Tag("live-api")
@@ -49,6 +53,10 @@ class NoiseRecordingTest {
     @Test
     void recordNoisyCases() throws Exception {
         assumeTrue(decisionLayer instanceof JevDecisionLayer, "Jev is not configured");
+        NoiseRun run = NoiseRun.valueOf(System.getProperty("noise.run", "HOLDOUT"));
+        if (Files.exists(run.file)) {
+            throw new IllegalStateException(run.file + " already exists: it is an experiment record, move it away first");
+        }
         JevDecisionLayer jev = (JevDecisionLayer) decisionLayer;
         DecisionLayer stub = new StubDecisionLayer();
         List<Fact> clean = factSource.allFacts();
@@ -56,8 +64,8 @@ class NoiseRecordingTest {
         Map<String, int[]> totals = new TreeMap<>();
 
         for (Case c : NoiseCases.cases(runner)) {
-            for (long seed = 0; seed <= NoiseCases.SEEDS; seed++) {
-                GraphFacts facts = new GraphFacts(NoisyFacts.apply(clean, c.intent(), NoiseCases.noise(seed)));
+            for (long seed = run.firstSeed; seed <= run.lastSeed; seed++) {
+                GraphFacts facts = new GraphFacts(NoisyFacts.apply(clean, c.intent(), run.noise(seed)));
                 JevDecisionLayer.Judgments judgments = jev.judge(c.intent(), facts);
                 trials.add(new Trial(c.id(), seed, judgments.answerable(), judgments.candidates()));
                 Map<String, Decision> decisions = Map.of(
@@ -77,6 +85,6 @@ class NoiseRecordingTest {
         totals.forEach((key, n) -> System.out.printf("TOTAL %-11s right=%d escalated=%d wrong=%d%n",
                 key, n[0], n[1], n[2]));
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter()
-                .writeValue(NoiseCases.JUDGMENTS_FILE.toFile(), trials);
+                .writeValue(run.file.toFile(), trials);
     }
 }

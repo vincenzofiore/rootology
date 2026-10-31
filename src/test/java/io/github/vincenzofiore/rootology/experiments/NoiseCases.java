@@ -12,10 +12,33 @@ import java.util.List;
 /** Cases, noise settings and outcome classification shared by the step 7 recordings. */
 final class NoiseCases {
 
-    static final int SEEDS = 5;
+    /**
+     * A recorded set of noisy trials and the file holding Jev's raw judgments for it, so thresholds
+     * and baselines can be compared offline. Seed 0, when included, is the clean baseline.
+     */
+    enum NoiseRun {
+        /** First recording (2026-10-31): original noise, used to pick a threshold candidate. */
+        FIRST("jev-noise-judgments.json", 0, 5, false),
+        /** Held-out recording for #3: fresh seeds, noise also near the subject. */
+        HOLDOUT("jev-noise-judgments-holdout.json", 6, 15, true);
 
-    /** Where NoiseRecordingTest stores Jev's raw judgments, so thresholds can be compared offline. */
-    static final Path JUDGMENTS_FILE = Path.of("src/test/resources/experiments/jev-noise-judgments.json");
+        final Path file;
+        final long firstSeed;
+        final long lastSeed;
+        final boolean nearSubject;
+
+        NoiseRun(String file, long firstSeed, long lastSeed, boolean nearSubject) {
+            this.file = Path.of("src/test/resources/experiments", file);
+            this.firstSeed = firstSeed;
+            this.lastSeed = lastSeed;
+            this.nearSubject = nearSubject;
+        }
+
+        /** 15% dropout, 2 false facts, 20% wrong source tags; seed 0 is clean. */
+        NoiseProfile noise(long seed) {
+            return seed == 0 ? NoiseProfile.NONE : new NoiseProfile(0.15, 2, 0.2, nearSubject, seed);
+        }
+    }
 
     enum Outcome { RIGHT, ESCALATED, WRONG }
 
@@ -39,13 +62,9 @@ final class NoiseCases {
                 new Case("hard-3", Intent.of(QueryKind.COMPANIONS, "Lavender"), runner.jenaCompanionsOf("Lavender"), true));
     }
 
-    /**
-     * Seed 0 is clean; seeds 1..SEEDS use 15% dropout, 2 false facts about the subject, 20% wrong source tags.
-     * nearSubject stays false: JUDGMENTS_FILE was recorded with this noise, and the stubs regenerate
-     * the same readings from the seeds. Issue #3 records fresh seeds with nearSubject on.
-     */
-    static NoiseProfile noise(long seed) {
-        return seed == 0 ? NoiseProfile.NONE : new NoiseProfile(0.15, 2, 0.2, false, seed);
+    static List<Trial> load(NoiseRun run) throws java.io.IOException {
+        return tools.jackson.databind.json.JsonMapper.builder().build()
+                .readValue(run.file.toFile(), new tools.jackson.core.type.TypeReference<List<Trial>>() {});
     }
 
     static Outcome outcome(Case c, Decision d) {

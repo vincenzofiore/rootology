@@ -134,10 +134,12 @@ and use the stub. Tests that call Claude and Jev for real are tagged
 ./mvnw test -Plive -Dtest=NoiseRecordingTest          # degraded inputs, stub vs Jev
 ```
 
-`NoiseRecordingTest` also saves Jev's raw judgments to
-`src/test/resources/experiments/jev-noise-judgments.json`; `ThresholdSweepTest`
-re-applies the decision policy to them at several confidence thresholds, offline,
-as part of the normal build.
+`NoiseRecordingTest` also saves Jev's raw judgments under
+`src/test/resources/experiments/`, one file per recorded run (`FIRST`, and the
+held-out `HOLDOUT` used to check the threshold), and never overwrites an existing
+one. `ThresholdSweepTest` and `BaselineComparisonTest` re-use those judgments
+offline, as part of the normal build, to compare confidence thresholds and
+simpler baselines.
 
 Since the closed dataset is deterministic, `NoiseRecordingTest` degrades the
 pipeline's input (missing facts, false facts, unreliable source tags, seeded and
