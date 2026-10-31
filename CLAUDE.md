@@ -90,7 +90,7 @@ Design caveat to keep in mind: Jena is both the arbiter and, if reused as the fa
 
 ## Next plan (agreed 2026-10-31)
 
-Each item is a GitHub issue (label `plan`) on `vincenzofiore/rootology`. Work happens on `develop`; reference the issue in commit messages (for example `refs #1`, or `closes #1` for the last commit of an item).
+Each item is a GitHub issue (label `plan`), listed in working order (list numbers are not issue numbers) on `vincenzofiore/rootology`. Work happens on `develop`; reference the issue in commit messages (for example `refs #1`, or `closes #1` for the last commit of an item).
 
 Constraint: Jev is the decision layer by design. Do not build a Jev-vs-LLM comparison of decision layers (for example Embabel's prompted-LLM decision service as an alternative to Jev).
 
@@ -99,11 +99,13 @@ Constraint: Jev is the decision layer by design. Do not build a Jev-vs-LLM compa
 3. (#3, done: kept at 0.5) Calibrate `MIN_CONFIDENCE` on fresh seeds (see Open questions). Do it after #1 and #2, so the new trials serve all comparisons. Record them with `nearSubject` on, in a new judgments file, so the existing one stays a valid record.
 4. (#4, decision deferred) Choose whether to replace the hand-written Jev HTTP client with a library. Candidates: Embabel's `embabel-agent-starter-typesafe` (1.5.4, `DecisionService` via `context.ai().decisions()`), whose decision input is a `String` sent as `"state": "<text>"` (checked on the jar and on `main`; asked upstream in embabel/embabel-agent#2211, opened 2026-10-31: if declined, structured state is not planned there), while we send a structured JSON state, as TypeSafe recommends; and the community `spring-ai-starter-typesafe` (0.4.0), which accepts a structured state but is not yet tried on this stack. Until then we keep our own client. Whatever the choice, keep the `DecisionLayer` interface, the raw-facts input, a structured state with fixed field order and the saved-judgments format, and compare Jev's probabilities with a recorded run before switching.
 5. (#5, done; Embabel's `vaadin-components` not used: only 0.2.0-SNAPSHOT on Embabel's Artifactory, built on Embabel 1.5.0 with Spring Security) UI with Vaadin Flow and Embabel's `vaadin-components`: a comparison view (one question, the arms side by side with confidence and escalation) and an escalation queue where a human answers. This turns the `escalate` flag into a real human-in-the-loop step (Embabel can pause an agent and wait for input).
-6. (#6) Postgres for experiment run history (trials, outcomes, confidences, thresholds), when the UI (#5) needs it. Populated from the pipeline, never a replacement for `OntologyDefinition`. Testcontainers is already in the pom.
-7. (#7) Neo4j as the pipeline's own fact store, populated from `OntologyDefinition`, so the arbiter (Jena) and the pipeline's fact source stop being the same component.
-8. (#8) Re-record the "Claude alone" arms with noise (a degraded skill file), by hand in real Claude Code sessions, to close the comparison under noise.
-9. (#9) Later, only if it fits: Embabel DICE (incubating library, confidence-weighted propositions, Neo4j and Prolog) or Embabel Worlds (a separate docker-compose product, 0.1.0-rc.1, where the LLM explores the graph via "code mode", which conflicts with the pipeline design where Claude never sees the facts).
-10. (#10) Optional cleanup: trim the unused Initializr dependencies (JPA, H2, restdocs, Testcontainers) unless #6 or #7 need them.
+6. (#11) Login with OAuth2 (GitHub), since the app is meant for the cloud: Spring Security `oauth2Login` with Vaadin, no page visible without login, an allow-list of GitHub accounts, the reviewer who answers an escalation recorded in the answer (so #6 keeps it), client id and secret from `ROOTOLOGY_...` environment variables. Before #6.
+7. (#6) Postgres for experiment run history (trials, outcomes, confidences, thresholds), when the UI (#5) needs it. Populated from the pipeline, never a replacement for `OntologyDefinition`. Testcontainers is already in the pom.
+8. (#7) Neo4j as the pipeline's own fact store, populated from `OntologyDefinition`, so the arbiter (Jena) and the pipeline's fact source stop being the same component.
+9. (#8) Re-record the "Claude alone" arms with noise (a degraded skill file), by hand in real Claude Code sessions, to close the comparison under noise.
+10. (#9) Later, only if it fits: Embabel DICE (incubating library, confidence-weighted propositions, Neo4j and Prolog) or Embabel Worlds (a separate docker-compose product, 0.1.0-rc.1, where the LLM explores the graph via "code mode", which conflicts with the pipeline design where Claude never sees the facts).
+11. (#10) Optional cleanup: trim the unused Initializr dependencies (JPA, H2, restdocs, Testcontainers) unless #6 or #7 need them.
+12. (#12) Deploy to the cloud (provider not chosen yet): container image with Vaadin in production mode, hosting and databases (#6, #7), secrets in the platform's secret store, public URL registered as the OAuth callback (#11).
 
 ## Open questions
 
