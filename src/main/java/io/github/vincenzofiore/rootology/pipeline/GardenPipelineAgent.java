@@ -4,6 +4,8 @@ import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.Agent;
 import com.embabel.agent.api.common.OperationContext;
+import com.embabel.agent.core.hitl.AwaitableResponseException;
+import com.embabel.agent.core.hitl.TypeRequest;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
@@ -11,7 +13,9 @@ import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.inference.facts.FactSource;
 
 /**
- * Third contestant. Blackboard flow: Question (+ NoiseProfile) -> Intent -> GraphFacts -> Decision -> PipelineAnswer.
+ * Third contestant. Blackboard flow:
+ * Question (+ NoiseProfile, ReviewMode) -> Intent -> GraphFacts -> Decision -> Resolution -> PipelineAnswer.
+ * In HUMAN review mode an escalated decision pauses the agent until a person answers.
  * Claude only reads the question and phrases the answer; it never sees the facts and never
  * chooses the answer values, which come from the decision layer.
  */
@@ -49,6 +53,16 @@ public class GardenPipelineAgent {
             Reason: %s
             """;
 
+    static final String HUMAN_PHRASE_PROMPT = """
+            Write a one or two sentence answer to a gardening question.
+            Say that a human reviewer answered it, and use only the values given below.
+            Do not add, remove or rename any plant, pest or season, and do not add gardening advice.
+
+            Question: %s
+            Values: %s
+            Reviewer's note: %s
+            """;
+
     private final FactSource factSource;
     private final DecisionLayer decisionLayer;
 
@@ -73,12 +87,30 @@ public class GardenPipelineAgent {
         return decisionLayer.decide(intent, facts);
     }
 
+    @Action(cost = 1.0, description = "Settle the decision; in HUMAN mode an escalation waits for a person")
+    public Resolution resolve(Decision decision, ReviewMode mode) {
+        if (decision.escalate() && mode == ReviewMode.HUMAN) {
+            // Pauses the agent: the platform puts the request on the blackboard and the process waits.
+            throw new AwaitableResponseException(new TypeRequest<>(HumanAnswer.class,
+                    "Escalated: " + decision.reason() + ". Proposed values: " + decision.answer()));
+        }
+        return Resolution.of(decision);
+    }
+
+    @Action(cost = 0.0, description = "Settle an escalated decision with the person's answer")
+    public Resolution resolveWithHuman(Decision decision, HumanAnswer human) {
+        return Resolution.byHuman(decision, human);
+    }
+
     @AchievesGoal(description = "The question is answered, or escalated to a human")
-    @Action(description = "Phrase the decision as the pipeline's answer")
-    public PipelineAnswer answer(Question question, Decision decision, OperationContext context) {
-        String text = context.ai().withDefaultLlm().generateText(PHRASE_PROMPT.formatted(
-                question.text(), decision.answer(), decision.escalate(), decision.reason()));
-        return new PipelineAnswer(question.id(), decision.answer(), decision.confidence(),
-                decision.escalate(), text);
+    @Action(description = "Phrase the resolution as the pipeline's answer")
+    public PipelineAnswer answer(Question question, Resolution resolution, OperationContext context) {
+        String prompt = resolution.answeredByHuman()
+                ? HUMAN_PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.reason())
+                : PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.escalated(),
+                        resolution.reason());
+        String text = context.ai().withDefaultLlm().generateText(prompt);
+        return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
+                resolution.escalated(), resolution.answeredByHuman(), text);
     }
 }

@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -89,6 +91,46 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.escalated()).isTrue();
         verifyGenerateText(prompt -> prompt.contains("Reason: Lavender is not in the dataset"));
+    }
+
+    @Test
+    void humanReviewPausesTheAgentUntilAPersonAnswers() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Lavender?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "Lavender"));
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it"))
+                .thenReturn("a human answered");
+        var question = new Question("hard-3", "Which plants are companions of Lavender?");
+
+        GardenPipeline.Run run = pipeline.start(question, NoiseProfile.NONE);
+
+        assertThat(run.answer()).isNull();
+        assertThat(run.pending().decision().reason()).isEqualTo("Lavender is not in the dataset");
+        assertThat(pipeline.pending()).extracting(GardenPipeline.PendingReview::processId)
+                .contains(run.pending().processId());
+
+        PipelineAnswer answer = pipeline.respond(run.pending().processId(),
+                new HumanAnswer(List.of(), "Lavender is outside the garden dataset"));
+
+        assertThat(answer.answeredByHuman()).isTrue();
+        assertThat(answer.escalated()).isTrue();
+        assertThat(answer.answer()).isEmpty();
+        assertThat(answer.text()).isEqualTo("a human answered");
+        assertThat(pipeline.pending()).extracting(GardenPipeline.PendingReview::processId)
+                .doesNotContain(run.pending().processId());
+        verifyGenerateText(prompt -> prompt.contains("Reviewer's note: Lavender is outside the garden dataset"));
+    }
+
+    @Test
+    void humanReviewModeAnswersDirectlyWhenNothingIsEscalated() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "Tomato"));
+
+        GardenPipeline.Run run = pipeline.start(
+                new Question("easy-1", "Which plants are companions of Tomato?"), NoiseProfile.NONE);
+
+        assertThat(run.pending()).isNull();
+        assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basil", "Marigold");
+        assertThat(run.answer().answeredByHuman()).isFalse();
     }
 
     @Test

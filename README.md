@@ -51,7 +51,9 @@ io.github.vincenzofiore.rootology
 ├── decision/        # Decision layer: Intent, GraphFacts (readings tagged with a
 │                   # source), Decision; Jev behind DecisionLayer, or a stub
 ├── pipeline/        # Embabel agent: question understanding and phrasing by
-│                   # Claude, facts from the graph, decision from the decision layer
+│                   # Claude, facts from the graph, decision from the decision layer,
+│                   # human in the loop for escalations
+├── ui/              # Vaadin views: comparison of the arms and escalation queue
 └── experiments/     # Comparison harness: records Jena's answers against
                     # answers manually collected from an LLM assistant,
                     # both with and without the skill file loaded, and
@@ -145,6 +147,18 @@ Since the closed dataset is deterministic, `NoiseRecordingTest` degrades the
 pipeline's input (missing facts, false facts, unreliable source tags, seeded and
 reproducible) while Jena keeps arbitrating on the clean data.
 
+## Running the UI
+
+```bash
+./mvnw spring-boot:run      # then open http://localhost:8080
+```
+
+- **Compare**: pick an experiment case and see the arms side by side: Jena,
+  Claude with and without the skill (as recorded by hand), and a live pipeline
+  run, on clean or noisy facts. The pipeline calls Claude and Jev for real.
+- **Escalations**: an escalated question pauses its Embabel agent (human in the
+  loop). Pick it, give the answer, and the agent resumes and finishes.
+
 ## Recording comparisons
 
 The `experiments` module doesn't automate the LLM side — that part is
@@ -204,6 +218,7 @@ layer, never from the text. Detailed notes are in `CLAUDE.md`.
 - Embabel Agent Framework 1.5.4 (`embabel-agent-starter-anthropic`,
   `embabel-agent-test`) — agent orchestration over Claude
 - TypeSafe System One API (Jev), called over HTTP with Spring's `RestClient`
+- Vaadin Flow 25.3 — the experiment UI
 
 ## Status
 

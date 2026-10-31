@@ -8,5 +8,6 @@ public record PipelineAnswer(
         List<String> answer,
         double confidence,
         boolean escalated,
+        boolean answeredByHuman,
         String text) {
 }
