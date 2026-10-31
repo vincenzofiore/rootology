@@ -17,7 +17,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 /** Checks the request sent to Jev and how its answers become a Decision, against a canned response. */
 class JevDecisionLayerTest {
 
-    private static final GraphFacts FACTS = new GraphFacts(List.of(
+    private static final GraphFacts FACTS = GraphFacts.curated(List.of(
             new Fact("Tomato", "companionOf", "Basil"),
             new Fact("Basil", "companionOf", "Tomato"),
             new Fact("Basil", "repels", "Mosquito")));
@@ -30,6 +30,7 @@ class JevDecisionLayerTest {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.model").value("jev-latest"))
                 .andExpect(jsonPath("$.state.facts[0].predicate").value("companionOf"))
+                .andExpect(jsonPath("$.state.facts[0].source").value("CURATED"))
                 .andExpect(jsonPath("$.questions.answerable.type").value("noul"))
                 .andRespond(withSuccess("{\"model\":\"jev-1\",\"answers\":" + answersJson + "}",
                         MediaType.APPLICATION_JSON));

@@ -14,15 +14,19 @@ import java.util.Set;
 
 /**
  * Decision layer backed by TypeSafe Jev (System One API, Noul questions).
- * Code lists the candidate values; Jev judges, from the raw facts and the stated rule,
- * whether the question is answerable and whether each candidate belongs to the answer.
+ * Code lists the candidate values; Jev judges, from the readings (facts tagged with their source)
+ * and the stated rule, whether the question is answerable and whether each candidate belongs to the answer.
  */
 public class JevDecisionLayer implements DecisionLayer {
 
     private static final Logger log = LoggerFactory.getLogger(JevDecisionLayer.class);
 
     /** Below this, a judgment is treated as uncertain and sent to a human. A starting point, not tuned. */
-    static final double MIN_CONFIDENCE = 0.5;
+    public static final double MIN_CONFIDENCE = 0.5;
+
+    static final Map<String, String> SOURCES = Map.of(
+            "CURATED", "From the curated garden dataset.",
+            "UNCONFIRMED", "From a single unverified report. It may be wrong.");
 
     private final RestClient restClient;
     private final String model;
@@ -32,26 +36,48 @@ public class JevDecisionLayer implements DecisionLayer {
         this.model = model;
     }
 
+    /** Jev's raw yes-probabilities, before any threshold is applied. */
+    public record Judgments(double answerable, Map<String, Double> candidates) {
+    }
+
     @Override
     public Decision decide(Intent intent, GraphFacts facts) {
         if (intent.kind() == QueryKind.OTHER) {
             return Decision.escalated("the question does not fit any supported shape");
         }
+        return decide(judge(intent, facts), MIN_CONFIDENCE);
+    }
+
+    /** One call to Jev: is the question answerable, and is each candidate part of the answer. */
+    public Judgments judge(Intent intent, GraphFacts facts) {
         List<String> candidates = candidates(intent.kind(), facts);
 
         Map<String, Object> questions = new LinkedHashMap<>();
         questions.put("answerable", noul("""
-                Using only `facts`, can the question described by `intent` be answered? \
-                Answer no if `intent.subject` does not appear in any fact, or if no fact declares \
-                the relation the question asks about for `intent.subject`."""));
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? Answer no if `intent.subject` \
+                does not appear in any fact, or if no fact declares the relation the question asks \
+                about for `intent.subject`."""));
         for (int i = 0; i < candidates.size(); i++) {
             questions.put("candidate_" + i, noul("""
-                    Using only `facts` and applying `rule`, is "%s" part of the answer \
-                    to the question described by `intent`?""".formatted(candidates.get(i))));
+                    Using only `facts`, weighing each fact by its `source` as described in `sources`, \
+                    and applying `rule`, is "%s" part of the answer to the question described \
+                    by `intent`?""".formatted(candidates.get(i))));
         }
+        List<Map<String, String>> stateFacts = facts.readings().stream()
+                .map(r -> Map.of(
+                        "subject", r.fact().subject(),
+                        "predicate", r.fact().predicate(),
+                        "object", r.fact().object(),
+                        "source", r.source().name()))
+                .toList();
         Map<String, Object> request = Map.of(
                 "model", model,
-                "state", Map.of("intent", intent, "rule", rule(intent.kind()), "facts", facts.facts()),
+                "state", Map.of(
+                        "intent", intent,
+                        "rule", rule(intent.kind()),
+                        "sources", SOURCES,
+                        "facts", stateFacts),
                 "questions", questions);
 
         JevResponse response = restClient.post()
@@ -62,21 +88,34 @@ public class JevDecisionLayer implements DecisionLayer {
 
         double answerable = response.noul("answerable");
         log.info("Jev {} {}: answerable={}", intent.kind(), intent.subject(), answerable);
+        Map<String, Double> judged = new LinkedHashMap<>();
+        for (int i = 0; i < candidates.size(); i++) {
+            double p = response.noul("candidate_" + i);
+            log.info("Jev   {}={}", candidates.get(i), p);
+            judged.put(candidates.get(i), p);
+        }
+        return new Judgments(answerable, judged);
+    }
+
+    /**
+     * The policy, kept apart from the call so thresholds can be compared on the same judgments:
+     * escalate when the facts do not answer, or when any judgment is less confident than minConfidence.
+     */
+    public static Decision decide(Judgments judgments, double minConfidence) {
+        double answerable = judgments.answerable();
         if (answerable < 0.5) {
             return new Decision(List.of(), 1 - answerable, true,
                     "Jev: the facts do not answer this (p=%.2f)".formatted(answerable));
         }
         List<String> answer = new ArrayList<>();
         double confidence = confidence(answerable);
-        for (int i = 0; i < candidates.size(); i++) {
-            double p = response.noul("candidate_" + i);
-            log.info("Jev   {}={}", candidates.get(i), p);
-            if (p > 0.5) {
-                answer.add(candidates.get(i));
+        for (Map.Entry<String, Double> candidate : judgments.candidates().entrySet()) {
+            if (candidate.getValue() > 0.5) {
+                answer.add(candidate.getKey());
             }
-            confidence = Math.min(confidence, confidence(p));
+            confidence = Math.min(confidence, confidence(candidate.getValue()));
         }
-        boolean escalate = confidence < MIN_CONFIDENCE;
+        boolean escalate = confidence < minConfidence;
         return new Decision(answer, confidence, escalate,
                 (escalate ? "Jev: low confidence" : "Jev: confident") + " (%.2f)".formatted(confidence));
     }
@@ -93,7 +132,8 @@ public class JevDecisionLayer implements DecisionLayer {
     /** Exact lookup in code: every entity of the type the answer must have. */
     static List<String> candidates(QueryKind kind, GraphFacts facts) {
         Set<String> result = new LinkedHashSet<>();
-        for (Fact f : facts.facts()) {
+        for (Reading reading : facts.readings()) {
+            Fact f = reading.fact();
             switch (kind) {
                 case COMPANIONS, COMPANIONS_OF_SHARED_REPELLERS -> {
                     if (!f.predicate().equals("activeInSeason")) {

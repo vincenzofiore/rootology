@@ -7,6 +7,7 @@ import java.util.Set;
 
 /**
  * Deterministic stand-in for Jev: plain rules over the raw facts, confidence is either 1.0 or 0.0.
+ * Trusts every reading, whatever its source.
  * Escalates when the question shape is unsupported, the subject is outside the dataset,
  * or the asked fact is not declared.
  */

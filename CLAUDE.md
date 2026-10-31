@@ -52,6 +52,13 @@ Pipeline arm with Jev (2026-10-31, `jev-latest`, threshold 0.5, nothing tuned af
 - `FactSource` now sorts facts. With identical input (`JevStabilityRecordingTest`, 5 runs per case, no Claude) Jev is stable within about ±0.05, but fact order alone had moved some answers across 0.5.
 - Stable picture: easy-1 [Basil, Marigold] correct, but Tomato at p 0.18 to 0.26 puts confidence around the threshold (2 of 5 runs escalated). easy-2 [Nematode] correct, confidence about 0.8. hard-1: Basil and Tomato both near 0.45, answer empty, always escalated (does not resolve the three-hop chain, but knows it). hard-2: `answerable` 0.23 to 0.31, always escalated. hard-3: `answerable` 0.25 to 0.32, always escalated.
 - Full pipeline (Claude + Jev, sorted facts), two runs: same picture, except hard-1 once came out [Tomato] (matching Jena) with confidence 0.17, still escalated. Every hard case escalated in every run; no wrong answer went out un-escalated.
+Step 7, noisy inputs (2026-10-31, `NoiseRecordingTest`, fixed intents, no Claude). Readings now carry a source (CURATED / UNCONFIRMED); the noise is 15% dropout, 2 false facts about the subject, 20% wrong source tags, seeds 1 to 5. Jena stays on the clean data. Outcomes over 25 noisy trials per layer:
+- Stub (trusts every reading): 7 right, 0 escalated, 18 wrong. It never doubts: hard-2 always answers invented Mosquito seasons, hard-3 answers companions of Lavender, easy-2 always loses Nematode to the false "Basil repels Nematode".
+- Jev, two runs: 10 right, 12 escalated, 3 wrong; then 12 right, 12 escalated, 1 wrong. Every wrong one sat right at the threshold (confidence 0.50 to 0.52, two of them on hard-2). hard-3 was escalated in every trial, hard-2 in 8 of 10.
+- The stub is right on hard-1 in every trial, by luck: the injected Tomato facts happen to keep [Tomato] as the answer. Jev escalates hard-1 every time.
+- Cost of the source-aware Jev prompt on clean data: easy-2 dropped from about 0.8 to about 0.4 confidence and now escalates. Nothing was tuned after seeing these results.
+- Threshold sweep (2026-10-31, `ThresholdSweepTest` over the judgments saved in `src/test/resources/experiments/jev-noise-judgments.json`, a third noise run; the file is an experiment record, rewritten only by `NoiseRecordingTest`). Noisy, 25 trials, right / escalated / wrong: 0.3 → 3/10/12, 0.4 → 9/11/5, 0.5 → 10/13/2, 0.6 → 11/14/0, 0.7 → 11/14/0, 0.8 → 10/15/0, 0.9 → 10/15/0. Clean, 5 trials: 3/2/0 up to 0.7, then easy-1 escalates too. 0.6 removes every silent error here for one extra escalation, but it is chosen on the same 25 trials it is judged on; `MIN_CONFIDENCE` was left at 0.5 pending the owner's call.
+- Limit of the noise design: for Basil and Tomato only two false facts are possible, so easy-2 and hard-1 get the same two injected facts at every seed; only dropout and source tags vary there.
 
 ## New goal: a third contestant
 
@@ -65,7 +72,7 @@ Add a pipeline that answers the same questions and gets compared with Jena (arbi
 
 Design caveat to keep in mind: Jena is both the arbiter and, if reused as the fact source, a dependency of the pipeline. To keep the comparison meaningful, the pipeline should receive raw facts (triples or declared lists) and do the reasoning itself, while only the arbiter runs the SPARQL inference.
 
-## Planned steps
+## Planned steps (all done as of 2026-10-31)
 
 1. Baseline: run the existing tests on Java 25 and confirm everything is green, including `ModularityTest`.
 2. Compatibility check before adding any dependency: confirm which Spring Boot and Java versions the current Embabel release supports. This project is on Spring Boot 4.1.0 and Java 25, which may not match. Report the result to the owner before proceeding.
@@ -77,6 +84,8 @@ Design caveat to keep in mind: Jena is both the arbiter and, if reused as the fa
 
 ## Open questions
 
-- Exact Jev API access details and response format (probability? label?). It drives the shape of `Decision`.
-- Embabel version and compatibility with Spring Boot 4.1.0 / Java 25 (step 2).
+- Resolved: Jev is the TypeSafe System One HTTP API (`POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`); Noul questions return a probability of yes. `JevDecisionLayer` derives confidence as min |2p - 1|.
+- Resolved: Embabel 1.5.4 works on Spring Boot 4.1.0 / Java 25 (built against Boot 4.1.1, Java 21 bytecode; Boot overrides its Kotlin to 2.3.21).
+- Tests tagged `live-api` call Claude and Jev for real and are excluded from a plain `./mvnw test`; run them with `-Plive`.
+- Calibrating `JevDecisionLayer.MIN_CONFIDENCE` (still 0.5). The sweep points to 0.6 (no silent errors, one extra escalation), but it was picked on the same 25 noisy trials it was judged on. Before changing it, validate on fresh seeds (for example 6 to 15) with `NoiseRecordingTest`, then re-run `ThresholdSweepTest`.
 - Whether Embabel Worlds is usable as-is here and which store it needs (Neo4j is one option; FalkorDB and Memgraph are alternatives).

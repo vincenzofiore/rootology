@@ -15,15 +15,20 @@ public class GardenPipeline {
         this.agentPlatform = agentPlatform;
     }
 
-    /** Full pipeline: Claude reads the question text. */
+    /** Full pipeline on clean facts: Claude reads the question text. */
     public PipelineAnswer ask(Question question) {
-        return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question);
+        return ask(question, NoiseProfile.NONE);
     }
 
-    /** Skips question understanding: the given intent is used as is. */
+    /** Full pipeline on degraded facts. */
+    public PipelineAnswer ask(Question question, NoiseProfile noise) {
+        return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
+                .invoke(question, noise);
+    }
+
+    /** Skips question understanding: the given intent is used as is, on clean facts. */
     public PipelineAnswer ask(Question question, Intent intent) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, intent);
+                .invoke(question, intent, NoiseProfile.NONE);
     }
 }

@@ -3,7 +3,9 @@
 **Rootology** is a small, hands-on experiment comparing two ways of giving an
 AI system domain knowledge: a formal ontology with a symbolic reasoning
 engine (Apache Jena), and a natural-language "skill file" consumed by an LLM
-coding assistant (Claude Code / GitHub Copilot).
+coding assistant (Claude Code / GitHub Copilot). A third contestant, a layered
+agentic pipeline (Embabel + Claude + TypeSafe Jev), answers the same questions
+from raw facts.
 
 The name is a play on "root" (as in plant roots, and root causes / root
 concepts) and "ontology" — the domain used for the experiment is a small
@@ -42,12 +44,18 @@ io.github.vincenzofiore.rootology
 ├── ontology/       # Domain model: Plant, Pest, Soil, Season, and their
 │                   # declared relationships (companion-of, repels, etc.)
 ├── inference/       # Apache Jena integration: builds an in-memory RDF graph
-│                   # from the ontology module and exposes SPARQL-backed
-│                   # queries (companions, relevant pests, chained relations,
-│                   # explicit fact-presence checks)
+│   │               # from the ontology module and exposes SPARQL-backed
+│   │               # queries (companions, relevant pests, chained relations,
+│   │               # explicit fact-presence checks)
+│   └── facts/       # Narrow named interface: raw declared triples only, no SPARQL
+├── decision/        # Decision layer: Intent, GraphFacts (readings tagged with a
+│                   # source), Decision; Jev behind DecisionLayer, or a stub
+├── pipeline/        # Embabel agent: question understanding and phrasing by
+│                   # Claude, facts from the graph, decision from the decision layer
 └── experiments/     # Comparison harness: records Jena's answers against
                     # answers manually collected from an LLM assistant,
-                    # both with and without the skill file loaded
+                    # both with and without the skill file loaded, and
+                    # against the pipeline
 ```
 
 Module boundaries are declared with `@ApplicationModule` and enforced by a
@@ -68,14 +76,25 @@ ArchUnit, here provided natively by Modulith.
    Probabilistic: the model tends to follow the declared relationships, but
    with no formal guarantee, and only when the skill is actually loaded.
 
-Both describe **the same closed dataset** (three plants, two pests, four
+3. **Agentic pipeline**: an [Embabel](https://github.com/embabel/embabel-agent)
+   agent passes typed objects on its blackboard:
+   `Question → Intent → GraphFacts → Decision → PipelineAnswer`. Claude turns the
+   question text into an `Intent` and phrases the final answer, but never sees
+   the facts and never chooses the answer values. The decision layer gets only
+   raw triples (never the SPARQL inference, which stays with the Jena arbiter)
+   and returns an answer with a confidence and an `escalate` flag. With a
+   TypeSafe key it is [Jev](https://docs.typesafe.ai), asked one yes/no
+   judgment per candidate value; without one, a deterministic stub. Low
+   confidence and out-of-scope questions are escalated to a human.
+
+The first two describe **the same closed dataset** (three plants, two pests, four
 seasons, three soil types) so that answers can be compared question by
 question.
 
 ## Running the Jena side
 
 ```bash
-mvn test -Dtest=CompanionQueryTest,PestQueryTest,ChainedRelationQueryTest,FactPresenceQueryTest
+./mvnw test -Dtest=CompanionQueryTest,PestQueryTest,ChainedRelationQueryTest,FactPresenceQueryTest
 ```
 
 Each test asserts the expected result for a specific relationship (direct
@@ -94,6 +113,35 @@ explicit missing-fact check).
 4. Ask the same question you'd send to the Jena queries, in plain language
    (e.g. *"What pests are relevant for Basil in summer?"*).
 5. Record the answer manually in `ExperimentRecordingTest` (see below).
+
+## Running the pipeline side
+
+The pipeline needs two API keys, read from project-specific environment
+variables (so that Claude Code itself never picks up `ANTHROPIC_API_KEY`):
+
+```bash
+export ROOTOLOGY_ANTHROPIC_API_KEY="..."   # Claude, via Embabel
+export ROOTOLOGY_TYPESAFE_API_KEY="..."    # Jev; without it the stub decision layer is used
+```
+
+A plain `./mvnw test` makes no paid API call: the pipeline tests mock the LLM
+and use the stub. Tests that call Claude and Jev for real are tagged
+`live-api` and run only with the `live` profile:
+
+```bash
+./mvnw test -Plive -Dtest=PipelineRecordingTest       # the five cases, end to end
+./mvnw test -Plive -Dtest=JevStabilityRecordingTest   # same input to Jev, repeated
+./mvnw test -Plive -Dtest=NoiseRecordingTest          # degraded inputs, stub vs Jev
+```
+
+`NoiseRecordingTest` also saves Jev's raw judgments to
+`src/test/resources/experiments/jev-noise-judgments.json`; `ThresholdSweepTest`
+re-applies the decision policy to them at several confidence thresholds, offline,
+as part of the normal build.
+
+Since the closed dataset is deterministic, `NoiseRecordingTest` degrades the
+pipeline's input (missing facts, false facts, unreliable source tags, seeded and
+reproducible) while Jena keeps arbitrating on the clean data.
 
 ## Recording comparisons
 
@@ -136,13 +184,24 @@ of mosquitoes — a concrete, reproducible example of context grounding
 changing model behavior on an identical question. Further cases are being
 recorded as the experiment continues.
 
+The pipeline matches Jena on all five cases with clean facts and the stub, and
+escalates `hard-2` and `hard-3`. With Jev and degraded inputs, the stub (which
+trusts every reading) answered wrongly without escalating in 18 of 25 trials,
+Jev in 1 to 3, all of them right at the confidence threshold. Two findings on
+the phrasing step: Claude once contradicted a correct decision in its text, and
+once silently hid a wrong one, so the recorded values come from the decision
+layer, never from the text. Detailed notes are in `CLAUDE.md`.
+
 ## Dependencies
 
-- Java 17+
-- Spring Boot (starter, no web layer required for the core experiment)
-- Spring Modulith (`spring-modulith-starter-core`, `spring-modulith-starter-test`)
-- Apache Jena (`apache-jena-libs`) — RDF graph construction, SPARQL querying,
+- Java 25
+- Spring Boot 4.1 (starter, no web layer required for the core experiment)
+- Spring Modulith 2.1 (`spring-modulith-starter-core`, `spring-modulith-starter-test`)
+- Apache Jena 6.2 (`apache-jena-libs`) — RDF graph construction, SPARQL querying,
   and rule-based inference
+- Embabel Agent Framework 1.5.4 (`embabel-agent-starter-anthropic`,
+  `embabel-agent-test`) — agent orchestration over Claude
+- TypeSafe System One API (Jev), called over HTTP with Spring's `RestClient`
 
 ## Status
 

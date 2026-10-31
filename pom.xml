@@ -30,6 +30,8 @@
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
+		<!-- Tests tagged live-api call Claude and Jev for real; run them with -Plive -->
+		<excluded.test.groups>live-api</excluded.test.groups>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -225,6 +227,13 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludedGroups>${excluded.test.groups}</excludedGroups>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>
 					<execution>
@@ -265,5 +274,14 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>live</id>
+			<properties>
+				<excluded.test.groups/>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

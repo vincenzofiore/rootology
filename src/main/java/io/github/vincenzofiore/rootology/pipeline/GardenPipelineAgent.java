@@ -11,7 +11,7 @@ import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.inference.facts.FactSource;
 
 /**
- * Third contestant. Blackboard flow: Question -> Intent -> GraphFacts -> Decision -> PipelineAnswer.
+ * Third contestant. Blackboard flow: Question (+ NoiseProfile) -> Intent -> GraphFacts -> Decision -> PipelineAnswer.
  * Claude only reads the question and phrases the answer; it never sees the facts and never
  * chooses the answer values, which come from the decision layer.
  */
@@ -63,9 +63,9 @@ public class GardenPipelineAgent {
                 .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
     }
 
-    @Action(description = "Load the raw declared facts from the knowledge graph")
-    public GraphFacts gatherFacts(Intent intent) {
-        return new GraphFacts(factSource.allFacts());
+    @Action(description = "Load the raw declared facts from the knowledge graph, degraded by the noise profile")
+    public GraphFacts gatherFacts(Intent intent, NoiseProfile noise) {
+        return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));
     }
 
     @Action(description = "Decide the answer and its confidence from the raw facts")
