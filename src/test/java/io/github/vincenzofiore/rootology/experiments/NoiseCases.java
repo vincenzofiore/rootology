@@ -39,9 +39,13 @@ final class NoiseCases {
                 new Case("hard-3", Intent.of(QueryKind.COMPANIONS, "Lavender"), runner.jenaCompanionsOf("Lavender"), true));
     }
 
-    /** Seed 0 is clean; seeds 1..SEEDS use 15% dropout, 2 false facts about the subject, 20% wrong source tags. */
+    /**
+     * Seed 0 is clean; seeds 1..SEEDS use 15% dropout, 2 false facts about the subject, 20% wrong source tags.
+     * nearSubject stays false: JUDGMENTS_FILE was recorded with this noise, and the stubs regenerate
+     * the same readings from the seeds. Issue #3 records fresh seeds with nearSubject on.
+     */
     static NoiseProfile noise(long seed) {
-        return seed == 0 ? NoiseProfile.NONE : new NoiseProfile(0.15, 2, 0.2, seed);
+        return seed == 0 ? NoiseProfile.NONE : new NoiseProfile(0.15, 2, 0.2, false, seed);
     }
 
     static Outcome outcome(Case c, Decision d) {

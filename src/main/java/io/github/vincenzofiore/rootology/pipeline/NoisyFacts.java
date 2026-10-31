@@ -15,7 +15,8 @@ import java.util.Set;
 
 /**
  * Turns clean facts into degraded readings: missing facts, false facts about the
- * question's subject, and imperfect source tags. Deterministic for a given seed.
+ * question's subject (optionally also about its neighbors), and imperfect source tags.
+ * Deterministic for a given seed.
  */
 public final class NoisyFacts {
 
@@ -28,6 +29,11 @@ public final class NoisyFacts {
             }
         }
         List<Fact> pool = falseFactsAbout(intent.subject(), clean);
+        if (noise.nearSubject()) {
+            Set<Fact> wider = new LinkedHashSet<>(pool);
+            neighbors(intent.subject(), clean).forEach(n -> wider.addAll(falseFactsAbout(n, clean)));
+            pool = new ArrayList<>(wider);
+        }
         Collections.shuffle(pool, random);
         for (Fact fact : pool.subList(0, Math.min(noise.spurious(), pool.size()))) {
             readings.add(new Reading(fact, random.nextDouble() < noise.mislabel() ? Source.CURATED : Source.UNCONFIRMED));
@@ -36,6 +42,22 @@ public final class NoisyFacts {
                 .thenComparing(r -> r.fact().predicate())
                 .thenComparing(r -> r.fact().object()));
         return readings;
+    }
+
+    /** Plants and pests that share a declared fact with the subject (seasons and soils are values, not neighbors). */
+    private static Set<String> neighbors(String subject, List<Fact> clean) {
+        Set<String> result = new LinkedHashSet<>();
+        for (Fact f : clean) {
+            if (f.predicate().equals("companionOf") || f.predicate().equals("repels")) {
+                if (f.subject().equals(subject)) {
+                    result.add(f.object());
+                } else if (f.object().equals(subject)) {
+                    result.add(f.subject());
+                }
+            }
+        }
+        result.remove(subject);
+        return result;
     }
 
     /** Plausible but undeclared facts with the subject in subject position, typed by what the subject is. */
