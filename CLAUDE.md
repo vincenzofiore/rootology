@@ -106,7 +106,7 @@ Constraint: Jev is the decision layer by design. Do not build a Jev-vs-LLM compa
 9. (#8) Re-record the "Claude alone" arms with noise (a degraded skill file), by hand in real Claude Code sessions, to close the comparison under noise.
 10. (#9) Later, only if it fits: Embabel DICE (incubating library, confidence-weighted propositions, Neo4j and Prolog) or Embabel Worlds (a separate docker-compose product, 0.1.0-rc.1, where the LLM explores the graph via "code mode", which conflicts with the pipeline design where Claude never sees the facts).
 11. (#10) Optional cleanup: trim the unused Initializr dependencies (JPA, H2, restdocs, Testcontainers) unless #6 or #7 need them.
-12. (#12) Deploy to the cloud (provider not chosen yet): container image with Vaadin in production mode, hosting and databases (#6, #7), secrets in the platform's secret store, public URL registered as the OAuth callback (#11).
+12. (#12) Deploy to the cloud (provider not chosen yet): container image with Vaadin in production mode, hosting and databases (#6, #7), secrets in the platform's secret store, public HTTPS URL registered as the OAuth callback (#11). HTTPS is required there: TLS terminated by the platform, with `server.forward-headers-strategy`, a `Secure` session cookie and HSTS in the app; plain HTTP stays fine on localhost.
 
 ## Open questions
 
