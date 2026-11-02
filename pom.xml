@@ -110,6 +110,11 @@
 			<artifactId>vaadin-dev</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<!-- OAuth2 login with GitHub for the UI -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-client</artifactId>
+		</dependency>
 		<!-- Embabel Agent Framework with Anthropic (Claude) models -->
 		<dependency>
 			<groupId>com.embabel.agent</groupId>
@@ -120,6 +125,11 @@
 			<groupId>com.embabel.agent</groupId>
 			<artifactId>embabel-agent-test</artifactId>
 			<version>${embabel-agent.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

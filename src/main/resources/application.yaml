@@ -1,6 +1,14 @@
 spring:
   application:
     name: rootology
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            # From the GitHub OAuth App. The placeholders let the app start; login needs the real values.
+            client-id: ${ROOTOLOGY_GITHUB_CLIENT_ID:not-set}
+            client-secret: ${ROOTOLOGY_GITHUB_CLIENT_SECRET:not-set}
 
 embabel:
   models:
@@ -19,3 +27,6 @@ rootology:
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
     base-url: https://api.typesafe.ai
     model: jev-latest
+  security:
+    # GitHub accounts (logins, comma-separated) allowed into the UI. Empty means nobody.
+    allowed-github-users: ${ROOTOLOGY_ALLOWED_GITHUB_USERS:}

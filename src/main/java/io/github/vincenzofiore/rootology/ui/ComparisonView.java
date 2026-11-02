@@ -13,6 +13,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import io.github.vincenzofiore.rootology.experiments.ExperimentCase;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
 import io.github.vincenzofiore.rootology.experiments.RecordedLlmAnswers;
@@ -31,6 +32,7 @@ import java.util.Optional;
  */
 @Route(value = "", layout = MainLayout.class)
 @PageTitle("Compare · Rootology")
+@PermitAll
 public class ComparisonView extends VerticalLayout {
 
     private final ExperimentRunner runner;
@@ -101,7 +103,7 @@ public class ComparisonView extends VerticalLayout {
     }
 
     private static Div pipelineCard(PipelineAnswer answer, List<String> jena) {
-        String status = answer.answeredByHuman() ? "answered by a human"
+        String status = answer.answeredByHuman() ? "answered by " + answer.reviewer()
                 : answer.escalated() ? "escalated" : "not escalated";
         return card("Pipeline", values(answer.answer()),
                 matchLabel(answer.answer(), jena) + " · confidence %.2f · %s".formatted(answer.confidence(), status),

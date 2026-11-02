@@ -109,9 +109,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 .contains(run.pending().processId());
 
         PipelineAnswer answer = pipeline.respond(run.pending().processId(),
-                new HumanAnswer(List.of(), "Lavender is outside the garden dataset"));
+                new HumanAnswer(List.of(), "Lavender is outside the garden dataset", "a-reviewer"));
 
         assertThat(answer.answeredByHuman()).isTrue();
+        assertThat(answer.reviewer()).isEqualTo("a-reviewer");
         assertThat(answer.escalated()).isTrue();
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.text()).isEqualTo("a human answered");
@@ -131,6 +132,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.pending()).isNull();
         assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(run.answer().answeredByHuman()).isFalse();
+        assertThat(run.answer().reviewer()).isNull();
     }
 
     @Test

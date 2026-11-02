@@ -153,6 +153,17 @@ reproducible) while Jena keeps arbitrating on the clean data.
 ./mvnw spring-boot:run      # then open http://localhost:8080
 ```
 
+The UI requires a GitHub login (OAuth2). Create a GitHub OAuth App with
+callback URL `http://localhost:8080/login/oauth2/code/github`, then set:
+
+```bash
+export ROOTOLOGY_GITHUB_CLIENT_ID="..."
+export ROOTOLOGY_GITHUB_CLIENT_SECRET="..."
+export ROOTOLOGY_ALLOWED_GITHUB_USERS="your-github-login"   # comma-separated; empty lets nobody in
+```
+
+Whoever answers an escalation is recorded by their GitHub login.
+
 - **Compare**: pick an experiment case and see the arms side by side: Jena,
   Claude with and without the skill (as recorded by hand), and a live pipeline
   run, on clean or noisy facts. The pipeline calls Claude and Jev for real.

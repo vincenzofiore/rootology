@@ -111,6 +111,6 @@ public class GardenPipelineAgent {
                         resolution.reason());
         String text = context.ai().withDefaultLlm().generateText(prompt);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
-                resolution.escalated(), resolution.answeredByHuman(), text);
+                resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text);
     }
 }
