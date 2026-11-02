@@ -1,11 +1,15 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
 import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
+import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import io.github.vincenzofiore.rootology.history.PipelineRunRecord;
+import io.github.vincenzofiore.rootology.history.RunHistory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
@@ -16,11 +20,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Runs the pipeline agent on the real Embabel platform with the LLM mocked and the
  * deterministic stub decision layer forced, so the wiring is checked without any API call.
  */
+@Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = "rootology.jev.api-key=")
 class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     GardenPipeline pipeline;
+
+    @Autowired
+    RunHistory history;
+
+    private PipelineRunRecord stored(String processId) {
+        return history.recent().stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
+    }
 
     @BeforeEach
     void stubPhrasing() {
@@ -119,6 +131,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(pipeline.pending()).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(run.pending().processId());
         verifyGenerateText(prompt -> prompt.contains("Reviewer's note: Lavender is outside the garden dataset"));
+
+        PipelineRunRecord record = stored(run.pending().processId());
+        assertThat(record.getQuestionId()).isEqualTo("hard-3");
+        assertThat(record.isDecisionEscalated()).isTrue();
+        assertThat(record.isAnsweredByHuman()).isTrue();
+        assertThat(record.getReviewer()).isEqualTo("a-reviewer");
+        assertThat(record.getJenaAnswer()).isEmpty();
+        assertThat(record.getMatchesJena()).isTrue();
     }
 
     @Test
@@ -133,6 +153,13 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(run.answer().answeredByHuman()).isFalse();
         assertThat(run.answer().reviewer()).isNull();
+
+        PipelineRunRecord record = history.recent().getFirst();
+        assertThat(record.getQuestionId()).isEqualTo("easy-1");
+        assertThat(record.getAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
+        assertThat(record.getJenaAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
+        assertThat(record.getMatchesJena()).isTrue();
+        assertThat(record.isNoisy()).isFalse();
     }
 
     @Test

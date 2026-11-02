@@ -53,7 +53,8 @@ io.github.vincenzofiore.rootology
 ├── pipeline/        # Embabel agent: question understanding and phrasing by
 │                   # Claude, facts from the graph, decision from the decision layer,
 │                   # human in the loop for escalations
-├── ui/              # Vaadin views: comparison of the arms and escalation queue
+├── history/         # Finished runs stored in Postgres (Flyway), next to Jena's answer
+├── ui/              # Vaadin views: comparison, escalation queue, run history
 └── experiments/     # Comparison harness: records Jena's answers against
                     # answers manually collected from an LLM assistant,
                     # both with and without the skill file loaded, and
@@ -153,6 +154,9 @@ reproducible) while Jena keeps arbitrating on the clean data.
 ./mvnw spring-boot:run      # then open http://localhost:8080
 ```
 
+Docker must be running: Spring Boot starts Postgres from `compose.yaml` (run
+history), and the tests use Testcontainers for the same database.
+
 The UI requires a GitHub login (OAuth2). Create a GitHub OAuth App with
 callback URL `http://localhost:8080/login/oauth2/code/github`, then set:
 
@@ -169,6 +173,8 @@ Whoever answers an escalation is recorded by their GitHub login.
   run, on clean or noisy facts. The pipeline calls Claude and Jev for real.
 - **Escalations**: an escalated question pauses its Embabel agent (human in the
   loop). Pick it, give the answer, and the agent resumes and finishes.
+- **History**: the latest finished runs, stored in Postgres, with the pipeline's
+  answer next to Jena's, confidence, input noise and who answered escalations.
 
 ## Recording comparisons
 
@@ -230,6 +236,8 @@ layer, never from the text. Detailed notes are in `CLAUDE.md`.
   `embabel-agent-test`) — agent orchestration over Claude
 - TypeSafe System One API (Jev), called over HTTP with Spring's `RestClient`
 - Vaadin Flow 25.3 — the experiment UI
+- Spring Security OAuth2 client — GitHub login
+- Postgres 17 with Flyway; Docker Compose for development, Testcontainers for tests
 
 ## Status
 

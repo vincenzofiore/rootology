@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.experiments;
 
+import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.file.Files;
@@ -36,6 +38,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * An existing judgments file is an experiment record and is never overwritten.
  * Recording only, no assertions: read the printed table.
  */
+@Import(TestcontainersConfiguration.class)
 @Tag("live-api")
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "ROOTOLOGY_TYPESAFE_API_KEY", matches = ".+")

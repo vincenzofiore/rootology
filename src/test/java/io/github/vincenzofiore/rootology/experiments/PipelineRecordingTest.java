@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.experiments;
 
+import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.Question;
 import org.junit.jupiter.api.Tag;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
@@ -17,6 +19,7 @@ import java.util.List;
  * Calls Claude for real, so it only runs when ROOTOLOGY_ANTHROPIC_API_KEY is set. Uses Jev when
  * ROOTOLOGY_TYPESAFE_API_KEY is set, otherwise the stub; observed results are summarized in CLAUDE.md.
  */
+@Import(TestcontainersConfiguration.class)
 @Tag("live-api")
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "ROOTOLOGY_ANTHROPIC_API_KEY", matches = ".+")

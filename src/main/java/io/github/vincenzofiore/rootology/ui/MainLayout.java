@@ -29,6 +29,7 @@ public class MainLayout extends AppLayout {
         SideNav nav = new SideNav();
         nav.addItem(new SideNavItem("Compare", ComparisonView.class));
         nav.addItem(new SideNavItem("Escalations", EscalationView.class));
+        nav.addItem(new SideNavItem("History", HistoryView.class));
         addToDrawer(nav);
     }
 }

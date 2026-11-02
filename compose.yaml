@@ -1,0 +1,10 @@
+# Local Postgres for the run history. Spring Boot starts it on ./mvnw spring-boot:run.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: rootology
+      POSTGRES_USER: rootology
+      POSTGRES_PASSWORD: rootology
+    ports:
+      - "5432"

@@ -10,6 +10,7 @@ import com.embabel.agent.core.hitl.TypeRequest;
 import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.Intent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -33,10 +34,12 @@ public class GardenPipeline {
     }
 
     private final AgentPlatform agentPlatform;
+    private final ApplicationEventPublisher events;
     private final Map<String, PendingReview> pending = new ConcurrentHashMap<>();
 
-    public GardenPipeline(AgentPlatform agentPlatform) {
+    public GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events) {
         this.agentPlatform = agentPlatform;
+        this.events = events;
     }
 
     /** Full pipeline on clean facts: Claude reads the question text. */
@@ -56,7 +59,10 @@ public class GardenPipeline {
                 .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC);
     }
 
-    /** Runs in HUMAN review mode: an escalated question pauses its agent and joins {@link #pending()}. */
+    /**
+     * Runs in HUMAN review mode: an escalated question pauses its agent and joins {@link #pending()}.
+     * Every run that finishes publishes a {@link PipelineRunFinished}.
+     */
     public Run start(Question question, NoiseProfile noise) {
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN);
@@ -95,7 +101,10 @@ public class GardenPipeline {
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
-        return new Run(process.resultOfType(PipelineAnswer.class), null);
+        PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
+        events.publishEvent(new PipelineRunFinished(process.getId(), question, process.last(NoiseProfile.class),
+                process.last(Decision.class), answer, Instant.now()));
+        return new Run(answer, null);
     }
 
     private Agent agent() {

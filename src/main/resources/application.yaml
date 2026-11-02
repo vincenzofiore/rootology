@@ -1,6 +1,11 @@
 spring:
   application:
     name: rootology
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway owns the schema (db/migration); Hibernate only checks it.
+      ddl-auto: validate
   security:
     oauth2:
       client:
