@@ -6,7 +6,7 @@ import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
-import io.github.vincenzofiore.rootology.inference.facts.FactSource;
+import io.github.vincenzofiore.rootology.facts.FactSource;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;

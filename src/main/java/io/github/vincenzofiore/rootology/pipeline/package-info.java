@@ -1,5 +1,5 @@
 @org.springframework.modulith.ApplicationModule(
         displayName = "Agentic Pipeline",
-        allowedDependencies = { "decision", "inference :: facts" }
+        allowedDependencies = { "decision", "facts" }
 )
 package io.github.vincenzofiore.rootology.pipeline;

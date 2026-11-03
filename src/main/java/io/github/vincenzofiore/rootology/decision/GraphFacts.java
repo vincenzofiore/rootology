@@ -1,6 +1,6 @@
 package io.github.vincenzofiore.rootology.decision;
 
-import io.github.vincenzofiore.rootology.inference.facts.Fact;
+import io.github.vincenzofiore.rootology.facts.Fact;
 
 import java.util.List;
 import java.util.stream.Stream;

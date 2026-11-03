@@ -1,9 +1,9 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
 import io.github.vincenzofiore.rootology.decision.Intent;
-import io.github.vincenzofiore.rootology.decision.Reading;
 import io.github.vincenzofiore.rootology.decision.Reading.Source;
-import io.github.vincenzofiore.rootology.inference.facts.Fact;
+import io.github.vincenzofiore.rootology.decision.Reading;
+import io.github.vincenzofiore.rootology.facts.Fact;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,6 +1,6 @@
 package io.github.vincenzofiore.rootology.decision;
 
-import io.github.vincenzofiore.rootology.inference.facts.Fact;
+import io.github.vincenzofiore.rootology.facts.Fact;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;

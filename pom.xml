@@ -111,7 +111,12 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- Starts compose.yaml (Postgres) on spring-boot:run; skipped in tests -->
+		<!-- Neo4j: the pipeline's own fact store (driver only, Cypher queries) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-neo4j</artifactId>
+		</dependency>
+		<!-- Starts compose.yaml (Postgres, Neo4j) on spring-boot:run; skipped in tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-docker-compose</artifactId>
@@ -192,6 +197,11 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-neo4j</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

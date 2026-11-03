@@ -43,11 +43,12 @@ io.github.vincenzofiore.rootology
 ├── RootologyApplication.java
 ├── ontology/       # Domain model: Plant, Pest, Soil, Season, and their
 │                   # declared relationships (companion-of, repels, etc.)
-├── inference/       # Apache Jena integration: builds an in-memory RDF graph
-│   │               # from the ontology module and exposes SPARQL-backed
-│   │               # queries (companions, relevant pests, chained relations,
-│   │               # explicit fact-presence checks)
-│   └── facts/       # Narrow named interface: raw declared triples only, no SPARQL
+├── inference/       # Apache Jena integration (the arbiter): builds an in-memory RDF
+│                   # graph from the ontology module and exposes SPARQL-backed
+│                   # queries (companions, relevant pests, chained relations,
+│                   # explicit fact-presence checks)
+├── facts/           # The pipeline's own fact store in Neo4j, loaded from the
+│                   # ontology module: raw declared triples only, no inference
 ├── decision/        # Decision layer: Intent, GraphFacts (readings tagged with a
 │                   # source), Decision; Jev behind DecisionLayer, or a stub
 ├── pipeline/        # Embabel agent: question understanding and phrasing by
@@ -84,7 +85,8 @@ ArchUnit, here provided natively by Modulith.
    `Question → Intent → GraphFacts → Decision → PipelineAnswer`. Claude turns the
    question text into an `Intent` and phrases the final answer, but never sees
    the facts and never chooses the answer values. The decision layer gets only
-   raw triples (never the SPARQL inference, which stays with the Jena arbiter)
+   raw triples, read from its own Neo4j store (never the SPARQL inference, which
+   stays with the Jena arbiter)
    and returns an answer with a confidence and an `escalate` flag. With a
    TypeSafe key it is [Jev](https://docs.typesafe.ai), asked one yes/no
    judgment per candidate value; without one, a deterministic stub. Low
@@ -154,8 +156,9 @@ reproducible) while Jena keeps arbitrating on the clean data.
 ./mvnw spring-boot:run      # then open http://localhost:8080
 ```
 
-Docker must be running: Spring Boot starts Postgres from `compose.yaml` (run
-history), and the tests use Testcontainers for the same database.
+Docker must be running: Spring Boot starts Postgres (run history) and Neo4j
+(the pipeline's facts) from `compose.yaml`, and the tests use Testcontainers
+for the same databases.
 
 The UI requires a GitHub login (OAuth2). Create a GitHub OAuth App with
 callback URL `http://localhost:8080/login/oauth2/code/github`, then set:
@@ -237,7 +240,8 @@ layer, never from the text. Detailed notes are in `CLAUDE.md`.
 - TypeSafe System One API (Jev), called over HTTP with Spring's `RestClient`
 - Vaadin Flow 25.3 — the experiment UI
 - Spring Security OAuth2 client — GitHub login
-- Postgres 17 with Flyway; Docker Compose for development, Testcontainers for tests
+- Postgres 17 with Flyway, and Neo4j 2026.10 (Java driver, Cypher); Docker
+  Compose for development, Testcontainers for tests
 
 ## Status
 

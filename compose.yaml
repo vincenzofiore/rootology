@@ -1,4 +1,4 @@
-# Local Postgres for the run history. Spring Boot starts it on ./mvnw spring-boot:run.
+# Local databases: Postgres (run history) and Neo4j (pipeline facts). Spring Boot starts them on ./mvnw spring-boot:run.
 services:
   postgres:
     image: postgres:17-alpine
@@ -8,3 +8,10 @@ services:
       POSTGRES_PASSWORD: rootology
     ports:
       - "5432"
+  neo4j:
+    # The pipeline's own fact store, rebuilt from OntologyDefinition at startup.
+    image: neo4j:2026.10-community
+    environment:
+      NEO4J_AUTH: neo4j/rootology-dev
+    ports:
+      - "7687"

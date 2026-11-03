@@ -1,5 +1,5 @@
 @org.springframework.modulith.ApplicationModule(
         displayName = "Decision Layer",
-        allowedDependencies = { "inference :: facts" }
+        allowedDependencies = { "facts" }
 )
 package io.github.vincenzofiore.rootology.decision;

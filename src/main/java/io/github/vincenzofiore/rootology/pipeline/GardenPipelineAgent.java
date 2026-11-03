@@ -10,7 +10,7 @@ import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
-import io.github.vincenzofiore.rootology.inference.facts.FactSource;
+import io.github.vincenzofiore.rootology.facts.FactSource;
 
 /**
  * Third contestant. Blackboard flow:

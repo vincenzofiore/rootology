@@ -10,13 +10,13 @@ import io.github.vincenzofiore.rootology.experiments.NoiseCases.Case;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.NoiseRun;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Outcome;
 import io.github.vincenzofiore.rootology.experiments.NoiseCases.Trial;
+import io.github.vincenzofiore.rootology.facts.Fact;
+import io.github.vincenzofiore.rootology.facts.OntologyFacts;
 import io.github.vincenzofiore.rootology.inference.ChainedRelationQuery;
 import io.github.vincenzofiore.rootology.inference.CompanionQuery;
 import io.github.vincenzofiore.rootology.inference.FactPresenceQuery;
 import io.github.vincenzofiore.rootology.inference.JenaModelService;
 import io.github.vincenzofiore.rootology.inference.PestQuery;
-import io.github.vincenzofiore.rootology.inference.facts.Fact;
-import io.github.vincenzofiore.rootology.inference.facts.FactSource;
 import io.github.vincenzofiore.rootology.ontology.OntologyDefinition;
 import io.github.vincenzofiore.rootology.pipeline.NoisyFacts;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class BaselineComparisonTest {
                 new ChainedRelationQuery(modelService), new FactPresenceQuery(modelService));
         Map<String, Case> cases = NoiseCases.cases(runner).stream()
                 .collect(Collectors.toMap(Case::id, Function.identity()));
-        List<Fact> clean = new FactSource(modelService).allFacts();
+        List<Fact> clean = OntologyFacts.from(new OntologyDefinition());
 
         for (NoiseRun run : NoiseRun.values()) {
             if (Files.exists(run.file)) {

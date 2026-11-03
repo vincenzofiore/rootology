@@ -3,9 +3,8 @@ package io.github.vincenzofiore.rootology.pipeline;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.decision.Reading;
-import io.github.vincenzofiore.rootology.inference.JenaModelService;
-import io.github.vincenzofiore.rootology.inference.facts.Fact;
-import io.github.vincenzofiore.rootology.inference.facts.FactSource;
+import io.github.vincenzofiore.rootology.facts.Fact;
+import io.github.vincenzofiore.rootology.facts.OntologyFacts;
 import io.github.vincenzofiore.rootology.ontology.OntologyDefinition;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class NoisyFactsTest {
 
-    private final List<Fact> clean = new FactSource(new JenaModelService(new OntologyDefinition())).allFacts();
+    private final List<Fact> clean = OntologyFacts.from(new OntologyDefinition());
     private final Intent mosquito = Intent.of(QueryKind.ACTIVE_SEASONS, "Mosquito");
 
     @Test
