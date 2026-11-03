@@ -53,12 +53,13 @@ Phase 1, a personal assistant for a few invited users:
 3. #23 Invitations to a shared space, and removing members: single-use expiring links (tokens stored hashed), revocable; accepting one also lets that GitHub account in, so the allow-list moves to the database. No email in the first version.
 4. #14 My garden: plots, crops, coarse location and soil, owned by a space.
 5. #16 Knowledge base v1: real crops, with a source and license for every fact, and an ontology layer designed with the data: a light schema in Neo4j (classes, hierarchies, constraints), AGROVOC identifiers where they fit, explicit and tested inference rules, inferred facts tagged `INFERRED`. Choose the sources with the owner first.
-6. #17 New question types (what to sow now, what not to plant together, pest risk this week, when to harvest).
-7. #18 Local weather from an open service (check terms first).
-8. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
-9. #19 Usage limits per user for Claude and Jev.
-10. #12 Deploy: invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
-11. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+6. #24 Knowledge enrichment: members propose missing facts (names, crops, varieties, pairs, windows) with a source; a curator approves global facts; space-level facts stay in their space; Claude may suggest, never write. Sources and the crop list: `docs/knowledge-sources.md`, `docs/crops-v1-draft.md` (commercial use is a goal, so no non-commercial sources).
+7. #17 New question types (what to sow now, what not to plant together, pest risk this week, when to harvest).
+8. #18 Local weather from an open service (check terms first).
+9. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
+10. #19 Usage limits per user for Claude and Jev.
+11. #12 Deploy: invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
+12. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
