@@ -13,7 +13,8 @@ import java.util.Map;
  * apart from the quality suite's dataset:
  * (:Crop)-[:BELONGS_TO]->(:Family), (:Crop)-[:COMPANION_OF|ANTAGONIST_OF]->(:Crop),
  * (:Organism)-[:AFFECTS]->(:Crop), (:Crop)-[:WINDOW]->(:Zone), and (:Source) nodes.
- * Every relationship carries the ids of its sources.
+ * Every relationship carries the ids of its sources; windows also carry their provenance
+ * (CURATED, or INFERRED with the rule that derived them, see {@link ZoneShiftRule}).
  */
 final class KnowledgeGraphLoader {
 
@@ -46,12 +47,13 @@ final class KnowledgeGraphLoader {
         tx.run("UNWIND $rows AS n MATCH (c:Kb:Crop {id: n.cropId}) SET c += n.needs",
                 rows(k.needs().stream().map(n -> map("cropId", n.cropId(), "needs", needs(n))).toList())).consume();
 
-        tx.run("UNWIND $rows AS w MATCH (c:Kb:Crop {id: w.cropId}) MERGE (z:Kb:Zone {id: w.zone}) "
+        String window = "UNWIND $rows AS w MATCH (c:Kb:Crop {id: w.cropId}) MERGE (z:Kb:Zone {id: w.zone}) "
                 + "CREATE (c)-[:WINDOW {activity: w.activity, fromMonth: w.fromMonth, toMonth: w.toMonth, "
-                + "note: w.note, sources: [w.source], verified: w.verified}]->(z)",
-                rows(k.windows().stream().map(w -> map("cropId", w.cropId(), "zone", w.zone(),
-                        "activity", w.activity(), "fromMonth", w.fromMonth(), "toMonth", w.toMonth(),
-                        "note", w.note(), "source", w.source(), "verified", w.verified())).toList())).consume();
+                + "note: w.note, sources: [w.source], verified: w.verified, provenance: w.provenance, "
+                + "derivedBy: w.derivedBy}]->(z)";
+        tx.run(window, rows(k.windows().stream().map(w -> window(w, "CURATED", null)).toList())).consume();
+        tx.run(window, rows(ZoneShiftRule.infer(k.windows()).stream()
+                .map(i -> window(i.window(), "INFERRED", ZoneShiftRule.ID)).toList())).consume();
 
         for (String relation : KnowledgeValidator.RELATIONS) {
             // The relationship type comes from the validated set, never from the files.
@@ -74,6 +76,12 @@ final class KnowledgeGraphLoader {
                 rows(k.hosts().stream().map(h -> map("organismId", h.organismId(), "cropId", h.cropId(),
                         "fromMonth", h.fromMonth(), "toMonth", h.toMonth(), "note", h.note(),
                         "source", h.source(), "verified", h.verified())).toList())).consume();
+    }
+
+    private static Map<String, Object> window(CuratedKnowledge.WindowRow w, String provenance, String derivedBy) {
+        return map("cropId", w.cropId(), "zone", w.zone(), "activity", w.activity(), "fromMonth", w.fromMonth(),
+                "toMonth", w.toMonth(), "note", w.note(), "source", w.source(), "verified", w.verified(),
+                "provenance", provenance, "derivedBy", derivedBy);
     }
 
     /** Only the values ECOCROP gives; absent ones are not stored as properties. */

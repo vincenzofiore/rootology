@@ -55,6 +55,38 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void anInferredReadingNamesItsRuleAndAddsTheInferredSourceDescription() {
+        var facts = new GraphFacts(List.of(
+                Reading.curated(new Fact("Tomato", "companionOf", "Basil")),
+                Reading.inferred(new Fact("Basil", "companionOf", "Tomato"), "some-rule-v1", List.of("cornell-1999"))));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.INFERRED").exists())
+                .andExpect(jsonPath("$.state.facts[1].source").value("INFERRED"))
+                .andExpect(jsonPath("$.state.facts[1].derivedBy").value("some-rule-v1"))
+                .andExpect(jsonPath("$.state.facts[0].derivedBy").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9},
+                         "candidate_0":{"type":"noul","noul":0.1},
+                         "candidate_1":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), facts);
+
+        server.verify();
+    }
+
+    @Test
+    void withoutInferredReadingsTheRequestIsUnchanged() {
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.INFERRED").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.04}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.ACTIVE_SEASONS, "Mosquito"), FACTS);
+
+        server.verify();
+    }
+
+    @Test
     void candidatesArePlantsForCompanionQuestions() {
         assertThat(JevDecisionLayer.candidates(QueryKind.COMPANIONS, FACTS)).containsExactly("Tomato", "Basil");
     }

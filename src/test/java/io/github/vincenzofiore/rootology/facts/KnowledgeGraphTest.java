@@ -23,7 +23,7 @@ class KnowledgeGraphTest {
         assertThat(knowledge.count("Crop")).isEqualTo(39);
         assertThat(knowledge.count("Family")).isEqualTo(11);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
-        assertThat(knowledge.count("Zone")).isEqualTo(1);
+        assertThat(knowledge.count("Zone")).isEqualTo(3);
         assertThat(knowledge.count("Source")).isEqualTo(9);
     }
 
@@ -39,6 +39,24 @@ class KnowledgeGraphTest {
                     assertThat(p.evidence()).isEqualTo("extension");
                 });
         assertThat(knowledge.pairsOf("basil")).extracting(CropPair::partnerId).doesNotContain("tomato");
+    }
+
+    @Test
+    void windowsCarryTheirProvenance() {
+        assertThat(knowledge.windows("tomato", "NORD")).anySatisfy(w -> {
+            assertThat(w.activity()).isEqualTo("TRANSPLANT");
+            assertThat(w.fromMonth()).isEqualTo(5);
+            assertThat(w.toMonth()).isEqualTo(6);
+            assertThat(w.provenance()).isEqualTo("INFERRED");
+            assertThat(w.derivedBy()).isEqualTo(ZoneShiftRule.ID);
+            assertThat(w.sources()).containsExactly("rootology-editorial");
+        });
+        assertThat(knowledge.windows("broad-bean", "NORD")).filteredOn(w -> w.activity().equals("SOW"))
+                .singleElement().satisfies(w -> {
+                    assertThat(w.provenance()).isEqualTo("CURATED");
+                    assertThat(w.fromMonth()).isEqualTo(2);
+                });
+        assertThat(knowledge.windows("tomato", "CENTRO")).allMatch(w -> w.provenance().equals("CURATED"));
     }
 
     @Test

@@ -15,6 +15,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Gardens, plots and plantings of a shared space. Every method takes the space and the person
@@ -28,14 +29,16 @@ public class GardenService {
     private final GardenRepository gardens;
     private final PlotRepository plots;
     private final PlantingRepository plantings;
+    private final RotationRule rotation;
 
     GardenService(SpaceService spaces, CropCatalog crops, GardenRepository gardens, PlotRepository plots,
-                  PlantingRepository plantings) {
+                  PlantingRepository plantings, RotationRule rotation) {
         this.spaces = spaces;
         this.crops = crops;
         this.gardens = gardens;
         this.plots = plots;
         this.plantings = plantings;
+        this.rotation = rotation;
     }
 
     @Transactional(readOnly = true)
@@ -115,6 +118,16 @@ public class GardenService {
         }
         return summary(plantings.save(new Planting(plot(spaceId, plotId), cropId, method, plantedOn,
                 blankToNull(notes))));
+    }
+
+    /** A rotation warning if this crop would follow one of the same family in the plot (rule family-rotation-v1). */
+    @Transactional(readOnly = true)
+    public Optional<RotationRule.RotationWarning> rotationWarning(long spaceId, String login, long plotId,
+                                                                  String cropId, LocalDate on) {
+        requireMember(spaceId, login);
+        List<PlantingSummary> history = plantings.findByPlotIdOrderByPlantedOnDesc(plot(spaceId, plotId).getId())
+                .stream().map(this::summary).toList();
+        return rotation.check(history, cropId, on);
     }
 
     /** Harvested or removed on that day. */

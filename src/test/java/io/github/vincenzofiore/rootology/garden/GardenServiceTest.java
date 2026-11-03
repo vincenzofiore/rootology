@@ -81,6 +81,25 @@ class GardenServiceTest {
     }
 
     @Test
+    void warnsWhenACropFollowsOneOfTheSameFamilyInThePlot() {
+        long space = spaceOf("lena");
+        GardenSummary garden = gardens.saveGarden(space, "lena", null, "Garden", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, "lena", garden.id(), null, "Bed C", PlotKind.GROUND, Soil.LOAMY, null);
+        LocalDate june = LocalDate.of(2026, 6, 1);
+
+        assertThat(gardens.rotationWarning(space, "lena", bed.id(), "potato", june)).isEmpty();
+        gardens.plant(space, "lena", bed.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 4, 20), null);
+
+        assertThat(gardens.rotationWarning(space, "lena", bed.id(), "potato", june)).hasValueSatisfying(w -> {
+            assertThat(w.rule()).isEqualTo(RotationRule.ID);
+            assertThat(w.family()).isEqualTo("Solanaceae");
+            assertThat(w.previous().cropId()).isEqualTo("tomato");
+        });
+        assertThat(gardens.rotationWarning(space, "lena", bed.id(), "bean", june)).isEmpty();
+        assertThat(gardens.rotationWarning(space, "lena", bed.id(), "potato", LocalDate.of(2026, 4, 1))).isEmpty();
+    }
+
+    @Test
     void refusesInvalidInput() {
         long space = spaceOf("kara");
         GardenSummary garden = gardens.saveGarden(space, "kara", null, "Garden", null, null, null);

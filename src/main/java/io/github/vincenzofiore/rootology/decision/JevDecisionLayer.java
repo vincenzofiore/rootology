@@ -28,6 +28,12 @@ public class JevDecisionLayer implements DecisionLayer {
             "CURATED", "From the curated garden dataset.",
             "UNCONFIRMED", "From a single unverified report. It may be wrong.");
 
+    /** Sent only when some reading is inferred, so requests without inferred facts stay exactly as recorded. */
+    static final Map<String, Object> SOURCES_WITH_INFERRED = ordered(
+            "CURATED", "From the curated garden dataset.",
+            "UNCONFIRMED", "From a single unverified report. It may be wrong.",
+            "INFERRED", "Derived from curated facts by the rule named in `derivedBy`. As reliable as that rule.");
+
     private final RestClient restClient;
     private final String model;
 
@@ -65,18 +71,25 @@ public class JevDecisionLayer implements DecisionLayer {
                     by `intent`?""".formatted(candidates.get(i))));
         }
         List<Map<String, Object>> stateFacts = facts.readings().stream()
-                .map(r -> ordered(
-                        "subject", r.fact().subject(),
-                        "predicate", r.fact().predicate(),
-                        "object", r.fact().object(),
-                        "source", r.source().name()))
+                .map(r -> {
+                    Map<String, Object> fact = ordered(
+                            "subject", r.fact().subject(),
+                            "predicate", r.fact().predicate(),
+                            "object", r.fact().object(),
+                            "source", r.source().name());
+                    if (r.derivedBy() != null) {
+                        fact.put("derivedBy", r.derivedBy());
+                    }
+                    return fact;
+                })
                 .toList();
+        boolean anyInferred = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.INFERRED);
         Map<String, Object> request = ordered(
                 "model", model,
                 "state", ordered(
                         "intent", intent,
                         "rule", rule(intent.kind()),
-                        "sources", SOURCES,
+                        "sources", anyInferred ? SOURCES_WITH_INFERRED : SOURCES,
                         "facts", stateFacts),
                 "questions", questions);
 

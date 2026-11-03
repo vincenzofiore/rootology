@@ -1,7 +1,7 @@
-# Sowing, planting and harvest windows for the CENTRO zone (central Italy, open field), from
+# Sowing, planting and harvest windows (central Italy, open field: CENTRO; NORD only where curated), from
 # docs/crops-v1.md (owner-approved editorial list, not yet verified: verified=no). Months 1-12;
-# from_month > to_month wraps over the new year (Oct-Feb is 10,2). NORD and SUD are derived later
-# by an explicit rule and tagged INFERRED (#16, step 3).
+# from_month > to_month wraps over the new year (Oct-Feb is 10,2). NORD and SUD windows are derived
+# by the rule zone-shift-v1 (ZoneShiftRule) and tagged INFERRED; a curated NORD or SUD row here wins.
 crop_id,zone,activity,from_month,to_month,note,source,verified
 tomato,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
 tomato,CENTRO,TRANSPLANT,4,5,,rootology-editorial,no
@@ -61,6 +61,7 @@ spinach,CENTRO,HARVEST,11,2,,rootology-editorial,no
 lambs-lettuce,CENTRO,SOW,8,10,,rootology-editorial,no
 lambs-lettuce,CENTRO,HARVEST,10,3,,rootology-editorial,no
 broad-bean,CENTRO,SOW,10,11,February in the north,rootology-editorial,no
+broad-bean,NORD,SOW,2,2,from docs/crops-v1.md (north),rootology-editorial,no
 broad-bean,CENTRO,HARVEST,4,6,,rootology-editorial,no
 pea,CENTRO,SOW,10,11,,rootology-editorial,no
 pea,CENTRO,SOW,2,3,,rootology-editorial,no

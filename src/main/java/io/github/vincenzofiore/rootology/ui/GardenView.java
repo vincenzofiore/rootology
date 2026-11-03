@@ -188,8 +188,15 @@ public class GardenView extends VerticalLayout {
         method.setValue(PlantingMethod.TRANSPLANTED);
         DatePicker date = new DatePicker("Date", LocalDate.now());
         TextField notes = new TextField("Notes (optional)");
+        Paragraph rotationWarning = new Paragraph();
+        rotationWarning.getStyle().set("color", "var(--vaadin-error-text-color, #b00020)");
+        Runnable checkRotation = () -> rotationWarning.setText(crop.getValue() == null || date.getValue() == null ? ""
+                : gardens.rotationWarning(spaceId, login, plot.id(), crop.getValue().id(), date.getValue())
+                .map(w -> w.reason() + " (inferred by rule " + w.rule() + ")").orElse(""));
+        crop.addValueChangeListener(e -> checkRotation.run());
+        date.addValueChangeListener(e -> checkRotation.run());
         Dialog dialog = new Dialog("Sow or plant in " + plot.name());
-        dialog.add(new FormLayout(crop, method, date, notes));
+        dialog.add(new FormLayout(crop, method, date, notes), rotationWarning);
         dialog.getFooter().add(new Button("Cancel", e -> dialog.close()), new Button("Save", e -> {
             try {
                 gardens.plant(spaceId, login, plot.id(), crop.getValue() == null ? null : crop.getValue().id(),

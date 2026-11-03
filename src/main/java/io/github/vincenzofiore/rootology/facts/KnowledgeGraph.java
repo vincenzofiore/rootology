@@ -21,6 +21,11 @@ public class KnowledgeGraph {
                             List<String> sources, boolean verified) {
     }
 
+    /** A sowing, planting or harvest window of a crop in a zone, curated or derived by a rule. */
+    public record Window(String cropId, String zone, String activity, int fromMonth, int toMonth, String note,
+                         String provenance, String derivedBy, List<String> sources, boolean verified) {
+    }
+
     private static final Set<String> LABELS = Set.of("Crop", "Family", "Organism", "Zone", "Source");
 
     private final Driver driver;
@@ -57,6 +62,19 @@ public class KnowledgeGraph {
                 r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),
                         r.get("verified").asBoolean()));
+    }
+
+    /** The windows of a crop in a zone, curated ones first. */
+    public List<Window> windows(String cropId, String zone) {
+        return list("MATCH (c:Kb:Crop {id: $id})-[w:WINDOW]->(z:Kb:Zone {id: $zone}) "
+                        + "RETURN w ORDER BY w.provenance, w.activity, w.fromMonth", Map.of("id", cropId, "zone", zone),
+                r -> {
+                    var w = r.get("w").asRelationship();
+                    return new Window(cropId, zone, w.get("activity").asString(), w.get("fromMonth").asInt(),
+                            w.get("toMonth").asInt(), w.get("note").asString(""), w.get("provenance").asString(),
+                            w.get("derivedBy").isNull() ? null : w.get("derivedBy").asString(),
+                            w.get("sources").asList(v -> v.asString()), w.get("verified").asBoolean());
+                });
     }
 
     private org.neo4j.driver.Record single(String query, Map<String, Object> params) {
