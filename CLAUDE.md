@@ -48,15 +48,16 @@ Phase 0, done 2026-11-03: reframe from toy experiment to prototype (this file, `
 Phase 1, a personal assistant for a few invited users:
 
 1. #13 (done) CI with GitHub Actions (offline build on every push).
-2. #15 Per-user data: history and escalations separated by user.
-3. #14 My garden: plots, crops, coarse location and soil per user.
-4. #16 Knowledge base v1: real crops, with a source and license for every fact, and an ontology layer designed with the data: a light schema in Neo4j (classes, hierarchies, constraints), AGROVOC identifiers where they fit, explicit and tested inference rules, inferred facts tagged `INFERRED`. Choose the sources with the owner first.
-5. #17 New question types (what to sow now, what not to plant together, pest risk this week, when to harvest).
-6. #18 Local weather from an open service (check terms first).
-7. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
-8. #19 Usage limits per user for Claude and Jev.
-9. #12 Deploy: invite-only (GitHub allow-list), HTTPS behind the platform, Postgres backups.
-10. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+2. #15 Shared spaces: `app_user`, `space`, `space_member` (`OWNER` / `MEMBER`); a personal space created on first login; runs and escalations owned by a space, with who did what recorded; a current-space switcher; owners add members by GitHub login. The space filter lives in services and repositories, from a single `CurrentUser`.
+3. #23 Invitations to a shared space: single-use expiring links (tokens stored hashed), revocable; accepting one also lets that GitHub account in, so the allow-list moves to the database. No email in the first version.
+4. #14 My garden: plots, crops, coarse location and soil, owned by a space.
+5. #16 Knowledge base v1: real crops, with a source and license for every fact, and an ontology layer designed with the data: a light schema in Neo4j (classes, hierarchies, constraints), AGROVOC identifiers where they fit, explicit and tested inference rules, inferred facts tagged `INFERRED`. Choose the sources with the owner first.
+6. #17 New question types (what to sow now, what not to plant together, pest risk this week, when to harvest).
+7. #18 Local weather from an open service (check terms first).
+8. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
+9. #19 Usage limits per user for Claude and Jev.
+10. #12 Deploy: invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
+11. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
