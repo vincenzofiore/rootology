@@ -116,8 +116,18 @@ public class KnowledgeGraph {
      * it affects and the seasons it is active. Empty when the name is unknown.
      */
     public List<SourcedFact> factsAbout(String name) {
+        return factsAbout(name, null);
+    }
+
+    /**
+     * As {@link #factsAbout(String)}, with the other names in the given language ("it" for Italian,
+     * anything else English); when null, the language the subject was named in.
+     */
+    public List<SourcedFact> factsAbout(String name, String language) {
         // The subject keeps the exact name of the question, so the decision layer can match it.
-        return resolve(name).map(e -> e.kind().equals("CROP") ? cropFacts(e, name.trim()) : organismFacts(e, name.trim()))
+        return resolve(name).map(e -> language == null ? e : new Entity(e.kind(), e.id(), e.italianName(),
+                        e.englishName(), language.equalsIgnoreCase("it")))
+                .map(e -> e.kind().equals("CROP") ? cropFacts(e, name.trim()) : organismFacts(e, name.trim()))
                 .orElse(List.of());
     }
 

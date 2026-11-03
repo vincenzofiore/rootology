@@ -212,6 +212,19 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void aQuestionInItalianGetsValuesAndAnAnswerInItalian() {
+        whenCreateObject(prompt -> prompt.contains("Question: Quali piante sono compagne del pomodoro?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.COMPANIONS, "Tomato", null, "it"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Quali piante sono compagne del pomodoro?"), signedIn("paola"));
+
+        assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basilico", "Cipolla", "Prezzemolo", "Carota");
+        verifyGenerateText(prompt -> prompt.contains("in the language of the question")
+                && prompt.contains("Values: [") && prompt.contains("Basilico"));
+    }
+
+    @Test
     void relevantPestsComeFromWhatAffectsTheCropInTheSeason() {
         whenCreateObject(prompt -> prompt.contains("Question: Which pests are relevant for tomato in summer?"), Intent.class)
                 .thenReturn(new Intent(QueryKind.RELEVANT_PESTS, "tomato", "SUMMER"));

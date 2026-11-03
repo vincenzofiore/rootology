@@ -69,6 +69,9 @@ class KnowledgeGraphTest {
         assertThat(knowledge.factsAbout("Pomodoro")).extracting(SourcedFact::fact)
                 .contains(new Fact("Pomodoro", "companionOf", "Basilico"));
         assertThat(knowledge.factsAbout("Lavender")).isEmpty();
+        assertThat(knowledge.factsAbout("tomato", "it")).extracting(SourcedFact::fact)
+                .contains(new Fact("tomato", "companionOf", "Basilico"), new Fact("Peronospora del pomodoro e della patata",
+                        "affects", "tomato"));
     }
 
     @Test

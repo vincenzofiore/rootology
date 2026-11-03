@@ -75,6 +75,19 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void theQuestionsLanguageNeverReachesJev() {
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.intent.subject").value("Mosquito"))
+                .andExpect(jsonPath("$.state.intent.language").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.04}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(new Intent(QueryKind.ACTIVE_SEASONS, "Mosquito", null, "it"), FACTS);
+
+        server.verify();
+    }
+
+    @Test
     void withoutInferredReadingsTheRequestIsUnchanged() {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.sources.INFERRED").doesNotExist())

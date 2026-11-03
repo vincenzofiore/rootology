@@ -40,15 +40,16 @@ public class GardenPipelineAgent {
             subject: the plant or pest the question is about, as a single capitalized English
             name exactly as named in the question (e.g. "Tomato"). Do not correct or replace it.
             season: SPRING, SUMMER, AUTUMN or WINTER for RELEVANT_PESTS, otherwise null.
+            language: the ISO 639-1 code of the language the question is written in (for example "it" or "en").
             Do not answer the question.
 
             Question: %s
             """;
 
     static final String PHRASE_PROMPT = """
-            Write a one or two sentence answer to a gardening question.
+            Write a one or two sentence answer to a gardening question, in the language of the question.
             Use only the values given below. Do not add, remove or rename any plant, pest or
-            season, and do not add gardening advice.
+            season (season names may be translated), and do not add gardening advice.
             If "escalated" is true, say that the question is being handed to a human and why.
 
             Question: %s
@@ -58,7 +59,7 @@ public class GardenPipelineAgent {
             """;
 
     static final String HUMAN_PHRASE_PROMPT = """
-            Write a one or two sentence answer to a gardening question.
+            Write a one or two sentence answer to a gardening question, in the language of the question.
             Say that a human reviewer answered it, and use only the values given below.
             Do not add, remove or rename any plant, pest or season, and do not add gardening advice.
 
@@ -90,7 +91,7 @@ public class GardenPipelineAgent {
     @Action(description = "Load the raw declared facts from the chosen graph")
     public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope) {
         if (scope == FactScope.KNOWLEDGE_BASE) {
-            return new GraphFacts(knowledge.factsAbout(intent.subject()).stream()
+            return new GraphFacts(knowledge.factsAbout(intent.subject(), intent.languageOrDefault()).stream()
                     .map(f -> new Reading(f.fact(), Reading.Source.CURATED, f.sourceIds(), null))
                     .toList());
         }

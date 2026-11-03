@@ -87,7 +87,8 @@ public class JevDecisionLayer implements DecisionLayer {
         Map<String, Object> request = ordered(
                 "model", model,
                 "state", ordered(
-                        "intent", intent,
+                        // Field by field, so the language (not needed to decide) never changes what Jev sees.
+                        "intent", ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season()),
                         "rule", rule(intent.kind()),
                         "sources", anyInferred ? SOURCES_WITH_INFERRED : SOURCES,
                         "facts", stateFacts),
