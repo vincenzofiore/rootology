@@ -67,4 +67,4 @@ Phase 2, precision agriculture (umbrella #22):
 - Library for Jev calls (#4, deferred): our own client sends a structured state; Embabel's starter sends text only (asked upstream in embabel/embabel-agent#2211); the Spring AI Community starter accepts structured state but is untried here.
 - Which open data sources for the knowledge base, and under which licenses.
 - Cloud provider for the deployment (#12).
-- The owner's weather station: brand, model, and how it exposes its data (#21).
+- The owner's weather station (#21): a Froggit console with EasyWeatherPro firmware (Ecowitt-compatible), registered on ecowitt.net and Weather Underground. Data via the Ecowitt cloud API v3 (proposed first), the WU PWS API, or the console's local "Customized" upload (Ecowitt protocol, plain HTTP). Keep its identifiers and keys out of the repository and public issues.
