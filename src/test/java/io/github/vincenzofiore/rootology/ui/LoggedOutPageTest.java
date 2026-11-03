@@ -40,6 +40,11 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void theSourcesPageIsPublic() throws Exception {
+        assertThat(get("/" + SourcesView.ROUTE).statusCode()).isEqualTo(200);
+    }
+
+    @Test
     void theLoggedOutPageIsPublic() throws Exception {
         HttpResponse<String> response = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)

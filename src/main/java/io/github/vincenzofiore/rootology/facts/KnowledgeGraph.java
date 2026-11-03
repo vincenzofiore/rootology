@@ -26,6 +26,21 @@ public class KnowledgeGraph {
                          String provenance, String derivedBy, List<String> sources, boolean verified) {
     }
 
+    /** A crop or an organism the knowledge base knows, and the language its name was given in. */
+    public record Entity(String kind, String id, String italianName, String englishName, boolean italian) {
+
+        public String name() {
+            return italian ? italianName : englishName;
+        }
+    }
+
+    /** Months of each season, as used by the questions (northern hemisphere). */
+    static final Map<String, Set<Integer>> SEASONS = Map.of(
+            "SPRING", Set.of(3, 4, 5),
+            "SUMMER", Set.of(6, 7, 8),
+            "AUTUMN", Set.of(9, 10, 11),
+            "WINTER", Set.of(12, 1, 2));
+
     private static final Set<String> LABELS = Set.of("Crop", "Family", "Organism", "Zone", "Source");
 
     private final Driver driver;
@@ -75,6 +90,91 @@ public class KnowledgeGraph {
                             w.get("derivedBy").isNull() ? null : w.get("derivedBy").asString(),
                             w.get("sources").asList(v -> v.asString()), w.get("verified").asBoolean());
                 });
+    }
+
+    /**
+     * Finds a crop or a pest or disease by its id, Italian, English or scientific name, ignoring case.
+     */
+    public java.util.Optional<Entity> resolve(String name) {
+        if (name == null || name.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        String n = name.trim().toLowerCase(java.util.Locale.ROOT);
+        return list("MATCH (e:Kb) WHERE (e:Crop OR e:Organism) AND (toLower(e.id) = $n OR toLower(e.italianName) = $n "
+                        + "OR toLower(e.englishName) = $n OR toLower(e.scientificName) = $n) "
+                        + "RETURN CASE WHEN e:Crop THEN 'CROP' ELSE 'ORGANISM' END AS kind, e.id AS id, "
+                        + "e.italianName AS it, e.englishName AS en LIMIT 1", Map.of("n", n),
+                r -> new Entity(r.get("kind").asString(), r.get("id").asString(), r.get("it").asString(),
+                        r.get("en").asString(), r.get("it").asString().equalsIgnoreCase(name.trim())))
+                .stream().findFirst();
+    }
+
+    /**
+     * The facts about a crop or an organism, named in the language the name was given in, each with
+     * its sources: for a crop, its declared companions and antagonists (never the reverse), the pests
+     * and diseases that affect it and the seasons they are active on it; for an organism, the crops
+     * it affects and the seasons it is active. Empty when the name is unknown.
+     */
+    public List<SourcedFact> factsAbout(String name) {
+        // The subject keeps the exact name of the question, so the decision layer can match it.
+        return resolve(name).map(e -> e.kind().equals("CROP") ? cropFacts(e, name.trim()) : organismFacts(e, name.trim()))
+                .orElse(List.of());
+    }
+
+    private List<SourcedFact> cropFacts(Entity crop, String self) {
+        List<SourcedFact> facts = new java.util.ArrayList<>();
+        list("MATCH (:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) "
+                        + "RETURN type(r) AS t, b.italianName AS it, b.englishName AS en, r.sources AS sources ORDER BY b.id",
+                Map.of("id", crop.id()), r -> new SourcedFact(new Fact(self,
+                        r.get("t").asString().equals("COMPANION_OF") ? "companionOf" : "antagonistOf",
+                        crop.italian() ? r.get("it").asString() : r.get("en").asString()),
+                        r.get("sources").asList(v -> v.asString()))).forEach(facts::add);
+        list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
+                        + "RETURN o.italianName AS it, o.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
+                        + "a.sources + o.sources AS sources ORDER BY o.id",
+                Map.of("id", crop.id()), r -> r).forEach(r -> {
+            String organism = crop.italian() ? r.get("it").asString() : r.get("en").asString();
+            List<String> sources = r.get("sources").asList(v -> v.asString());
+            facts.add(new SourcedFact(new Fact(organism, "affects", self), sources));
+            seasons(r.get("f").asInt(), r.get("t").asInt())
+                    .forEach(season -> facts.add(new SourcedFact(new Fact(organism, "activeInSeason", season), sources)));
+        });
+        return dedup(facts);
+    }
+
+    private List<SourcedFact> organismFacts(Entity organism, String self) {
+        List<SourcedFact> facts = new java.util.ArrayList<>();
+        list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) "
+                        + "RETURN c.italianName AS it, c.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
+                        + "a.sources + o.sources AS sources ORDER BY c.id",
+                Map.of("id", organism.id()), r -> r).forEach(r -> {
+            List<String> sources = r.get("sources").asList(v -> v.asString());
+            facts.add(new SourcedFact(new Fact(self, "affects",
+                    organism.italian() ? r.get("it").asString() : r.get("en").asString()), sources));
+            seasons(r.get("f").asInt(), r.get("t").asInt())
+                    .forEach(season -> facts.add(new SourcedFact(new Fact(self, "activeInSeason", season), sources)));
+        });
+        return dedup(facts);
+    }
+
+    /** The seasons a month window (1-12, wrapping over the year) touches, in calendar order. */
+    static List<String> seasons(int from, int to) {
+        Set<Integer> months = new java.util.HashSet<>();
+        for (int m = from; ; m = m % 12 + 1) {
+            months.add(m);
+            if (m == to) {
+                break;
+            }
+        }
+        return java.util.stream.Stream.of("WINTER", "SPRING", "SUMMER", "AUTUMN")
+                .filter(s -> SEASONS.get(s).stream().anyMatch(months::contains)).toList();
+    }
+
+    /** One fact per triple, with the union of its sources, in first-seen order. */
+    private static List<SourcedFact> dedup(List<SourcedFact> facts) {
+        Map<Fact, java.util.LinkedHashSet<String>> merged = new java.util.LinkedHashMap<>();
+        facts.forEach(f -> merged.computeIfAbsent(f.fact(), k -> new java.util.LinkedHashSet<>()).addAll(f.sourceIds()));
+        return merged.entrySet().stream().map(e -> new SourcedFact(e.getKey(), List.copyOf(e.getValue()))).toList();
     }
 
     private org.neo4j.driver.Record single(String query, Map<String, Object> params) {

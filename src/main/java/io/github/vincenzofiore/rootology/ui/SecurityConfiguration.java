@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Every view needs a GitHub login, except the logged-out page and invitation links. Who may sign
+ * Every view needs a GitHub login, except the logged-out page, invitation links and the sources page. Who may sign
  * in is decided by AllowListOAuth2UserService.
  */
 @Configuration
@@ -41,7 +41,8 @@ class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**").permitAll());
+                .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE)
+                .permitAll());
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
         loggedOut.setDefaultTargetUrl("/" + LOGGED_OUT_PAGE);

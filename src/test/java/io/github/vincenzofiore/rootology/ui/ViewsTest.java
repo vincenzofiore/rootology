@@ -5,6 +5,7 @@ import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
+import io.github.vincenzofiore.rootology.facts.SourceCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
@@ -46,11 +47,14 @@ class ViewsTest {
     @Autowired
     CropCatalog crops;
 
+    @Autowired
+    SourceCatalog sourceCatalog;
+
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class)) {
+                GardenView.class, AskView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)).as(view.getSimpleName()).isTrue();
             assertThat(route.layout().isAnnotationPresent(PermitAll.class)).as(route.layout().getSimpleName()).isTrue();
@@ -66,6 +70,9 @@ class ViewsTest {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
         assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardenView(gardens, crops, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer()).getChildren()).isNotEmpty();
+        assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
+        assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
 
     @Test

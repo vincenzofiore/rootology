@@ -10,7 +10,11 @@ import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
+import io.github.vincenzofiore.rootology.decision.Reading;
 import io.github.vincenzofiore.rootology.facts.FactSource;
+import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
+
+import java.util.List;
 
 /**
  * Third contestant. Blackboard flow:
@@ -64,10 +68,12 @@ public class GardenPipelineAgent {
             """;
 
     private final FactSource factSource;
+    private final KnowledgeGraph knowledge;
     private final DecisionLayer decisionLayer;
 
-    public GardenPipelineAgent(FactSource factSource, DecisionLayer decisionLayer) {
+    public GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, DecisionLayer decisionLayer) {
         this.factSource = factSource;
+        this.knowledge = knowledge;
         this.decisionLayer = decisionLayer;
     }
 
@@ -77,8 +83,17 @@ public class GardenPipelineAgent {
                 .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
     }
 
-    @Action(description = "Load the raw declared facts from the knowledge graph, degraded by the noise profile")
-    public GraphFacts gatherFacts(Intent intent, NoiseProfile noise) {
+    /**
+     * SUITE: the quality suite's dataset, degraded by the noise profile. KNOWLEDGE_BASE: the curated
+     * facts about the question's subject, each with its sources (no noise: they are real data).
+     */
+    @Action(description = "Load the raw declared facts from the chosen graph")
+    public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope) {
+        if (scope == FactScope.KNOWLEDGE_BASE) {
+            return new GraphFacts(knowledge.factsAbout(intent.subject()).stream()
+                    .map(f -> new Reading(f.fact(), Reading.Source.CURATED, f.sourceIds(), null))
+                    .toList());
+        }
         return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));
     }
 
@@ -104,13 +119,23 @@ public class GardenPipelineAgent {
 
     @AchievesGoal(description = "The question is answered, or escalated to a human")
     @Action(description = "Phrase the resolution as the pipeline's answer")
-    public PipelineAnswer answer(Question question, Resolution resolution, OperationContext context) {
+    public PipelineAnswer answer(Question question, Resolution resolution, GraphFacts facts, OperationContext context) {
         String prompt = resolution.answeredByHuman()
                 ? HUMAN_PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.reason())
                 : PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.escalated(),
                         resolution.reason());
         String text = context.ai().withDefaultLlm().generateText(prompt);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
-                resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text);
+                resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text,
+                sourcesOf(resolution.answer(), facts));
+    }
+
+    /** The sources of the facts that mention an answer value, in first-seen order. */
+    static List<String> sourcesOf(List<String> answer, GraphFacts facts) {
+        return facts.readings().stream()
+                .filter(r -> answer.contains(r.fact().subject()) || answer.contains(r.fact().object()))
+                .flatMap(r -> r.sourceIds().stream())
+                .distinct()
+                .toList();
     }
 }

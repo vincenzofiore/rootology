@@ -60,6 +60,29 @@ class KnowledgeGraphTest {
     }
 
     @Test
+    void factsAboutACropUseTheQuestionsNameAndKeepTheirSources() {
+        assertThat(knowledge.factsAbout("tomato")).contains(
+                new SourcedFact(new Fact("tomato", "companionOf", "Basil"), java.util.List.of("agronet-basil-2016", "cornell-1999")),
+                new SourcedFact(new Fact("tomato", "antagonistOf", "Potato"), java.util.List.of("purdue-bp80", "cornell-1999")),
+                new SourcedFact(new Fact("Late blight", "affects", "tomato"), java.util.List.of("rootology-editorial", "eppo-codes")))
+                .extracting(SourcedFact::fact).contains(new Fact("Late blight", "activeInSeason", "SUMMER"));
+        assertThat(knowledge.factsAbout("Pomodoro")).extracting(SourcedFact::fact)
+                .contains(new Fact("Pomodoro", "companionOf", "Basilico"));
+        assertThat(knowledge.factsAbout("Lavender")).isEmpty();
+    }
+
+    @Test
+    void factsAboutAPestGiveItsSeasonsAndHosts() {
+        assertThat(knowledge.factsAbout("Carrot fly")).extracting(SourcedFact::fact).contains(
+                new Fact("Carrot fly", "activeInSeason", "SPRING"),
+                new Fact("Carrot fly", "activeInSeason", "SUMMER"),
+                new Fact("Carrot fly", "activeInSeason", "AUTUMN"),
+                new Fact("Carrot fly", "affects", "Carrot"))
+                .doesNotContain(new Fact("Carrot fly", "activeInSeason", "WINTER"));
+        assertThat(KnowledgeGraph.seasons(10, 2)).containsExactly("WINTER", "AUTUMN");
+    }
+
+    @Test
     void pestsAreActiveOnlyInTheirMonths() {
         assertThat(knowledge.affecting("carrot", 5)).extracting(Affecting::organismId).contains("PSILRO");
         assertThat(knowledge.affecting("carrot", 7)).extracting(Affecting::organismId).doesNotContain("PSILRO");

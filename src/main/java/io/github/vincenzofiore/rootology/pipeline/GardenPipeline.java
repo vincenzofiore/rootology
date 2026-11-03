@@ -49,13 +49,13 @@ public class GardenPipeline {
     /** Full pipeline on degraded facts. Escalations are only recorded, never wait. */
     public PipelineAnswer ask(Question question, NoiseProfile noise) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, noise, ReviewMode.AUTOMATIC);
+                .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE);
     }
 
     /** Skips question understanding: the given intent is used as is, on clean facts. */
     public PipelineAnswer ask(Question question, Intent intent) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC);
+                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC, FactScope.SUITE);
     }
 
     /**
@@ -63,8 +63,17 @@ public class GardenPipeline {
      * Every run that finishes publishes a {@link PipelineRunFinished}.
      */
     public Run start(Question question, NoiseProfile noise, RunContext context) {
+        return start(question, noise, context, FactScope.SUITE);
+    }
+
+    /** A real question from a person, answered from the curated knowledge base. */
+    public Run askKnowledgeBase(Question question, RunContext context) {
+        return start(question, NoiseProfile.NONE, context, FactScope.KNOWLEDGE_BASE);
+    }
+
+    private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
         AgentProcess process = agentPlatform.createAgentProcessFrom(
-                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN);
+                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope);
         return settle(process.run(), question, context);
     }
 

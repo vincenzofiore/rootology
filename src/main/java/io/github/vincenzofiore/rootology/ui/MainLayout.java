@@ -38,11 +38,13 @@ public class MainLayout extends AppLayout {
         addToNavbar(space, who, logout);
 
         SideNav nav = new SideNav();
+        nav.addItem(new SideNavItem("Ask", AskView.class));
         nav.addItem(new SideNavItem("Garden", GardenView.class));
         nav.addItem(new SideNavItem("Compare", ComparisonView.class));
         nav.addItem(new SideNavItem("Escalations", EscalationView.class));
         nav.addItem(new SideNavItem("History", HistoryView.class));
         nav.addItem(new SideNavItem("Space", SpaceView.class));
+        nav.addItem(new SideNavItem("Sources", SourcesView.class));
         addToDrawer(nav);
     }
 }

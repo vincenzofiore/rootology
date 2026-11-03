@@ -162,7 +162,7 @@ public class JevDecisionLayer implements DecisionLayer {
             Fact f = reading.fact();
             switch (kind) {
                 case COMPANIONS, COMPANIONS_OF_SHARED_REPELLERS -> {
-                    if (!f.predicate().equals("activeInSeason")) {
+                    if (!f.predicate().equals("activeInSeason") && !f.predicate().equals("affects")) {
                         result.add(f.subject());
                     }
                     if (f.predicate().equals("companionOf")) {

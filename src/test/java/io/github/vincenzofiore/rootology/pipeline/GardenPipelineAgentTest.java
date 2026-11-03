@@ -200,6 +200,43 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void realQuestionsAreAnsweredFromTheKnowledgeBaseWithSources() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Which plants are companions of tomato?"), signedIn("maria"));
+
+        assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basil", "Onion", "Parsley", "Carrot");
+        assertThat(run.answer().sources()).contains("agronet-basil-2016", "cornell-1999");
+    }
+
+    @Test
+    void relevantPestsComeFromWhatAffectsTheCropInTheSeason() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which pests are relevant for tomato in summer?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.RELEVANT_PESTS, "tomato", "SUMMER"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Which pests are relevant for tomato in summer?"), signedIn("nora"));
+
+        assertThat(run.answer().answer()).contains("Late blight", "Colorado potato beetle", "Tomato leafminer")
+                .doesNotContain("Carrot fly");
+        assertThat(run.answer().sources()).contains("eppo-codes", "rootology-editorial");
+    }
+
+    @Test
+    void anUnknownCropInARealQuestionWaitsForAPerson() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Which plants are companions of lavender?"), signedIn("omar"));
+
+        assertThat(run.answer()).isNull();
+        assertThat(run.pending().decision().reason()).isEqualTo("lavender is not in the dataset");
+    }
+
+    @Test
     void unsupportedQuestionIsEscalated() {
         var answer = ask("other", "What is the best fertilizer?", Intent.of(QueryKind.OTHER, null));
 
