@@ -34,7 +34,7 @@ public record GraphFacts(List<Reading> readings) {
         return facts().anyMatch(f -> f.subject().equals(entity) || f.object().equals(entity));
     }
 
-    private Stream<Fact> facts() {
+    public Stream<Fact> facts() {
         return readings.stream().map(Reading::fact);
     }
 }

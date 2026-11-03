@@ -49,8 +49,9 @@ public class AskView extends VerticalLayout {
         add(new H3("Ask the knowledge base"),
                 new Paragraph("Ask about companions and antagonists of a crop, when to sow or harvest it, "
                         + "what can be sown now or in a given month, the pests and diseases relevant for a crop "
-                        + "in a season, or when a pest is active. Say north, centre or south of Italy if it matters "
-                        + "(centre by default)."),
+                        + "in a season, or when a pest is active. About your garden: what grows now, which pests "
+                        + "threaten it this month, what to sow in one of your plots (respecting rotation). Say north, "
+                        + "centre or south of Italy if it matters; otherwise your garden's location, or the centre."),
                 form, result);
     }
 
@@ -78,11 +79,16 @@ public class AskView extends VerticalLayout {
                 + " · confidence %.2f".formatted(answer.confidence())));
         if (!answer.sources().isEmpty()) {
             Div list = new Div(new Paragraph("Sources:"));
-            answer.sources().forEach(id -> sources.byId(id).ifPresent(s -> {
-                Anchor link = new Anchor(s.url(), s.title());
-                link.setTarget("_blank");
-                list.add(new Div(link));
-            }));
+            answer.sources().forEach(id -> {
+                if (id.equals("garden")) {
+                    list.add(new Div(new Span("Your garden (this space's plots and plantings)")));
+                }
+                sources.byId(id).ifPresent(s -> {
+                    Anchor link = new Anchor(s.url(), s.title());
+                    link.setTarget("_blank");
+                    list.add(new Div(link));
+                });
+            });
             result.add(list);
         }
     }

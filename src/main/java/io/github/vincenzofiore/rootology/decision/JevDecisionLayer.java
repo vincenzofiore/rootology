@@ -59,10 +59,10 @@ public class JevDecisionLayer implements DecisionLayer {
         List<String> candidates = candidates(intent.kind(), facts);
 
         Map<String, Object> questions = new LinkedHashMap<>();
-        questions.put("answerable", noul(intent.kind() == QueryKind.SOW_NOW ? """
+        questions.put("answerable", noul(SUBJECTLESS.contains(intent.kind()) ? """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
-                can the question described by `intent` be answered? Answer no if no fact says that \
-                a crop is sown or planted in `intent.month`.""" : """
+                can the question described by `intent` be answered? Answer no if the facts do not \
+                contain the relation the question asks about.""" : """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
                 can the question described by `intent` be answered? Answer no if `intent.subject` \
                 does not appear in any fact, or if no fact declares the relation the question asks \
@@ -159,6 +159,9 @@ public class JevDecisionLayer implements DecisionLayer {
         return map;
     }
 
+    /** Kinds whose question has no subject to look for in the facts. */
+    static final Set<QueryKind> SUBJECTLESS = Set.of(QueryKind.SOW_NOW, QueryKind.GROWING_NOW, QueryKind.PEST_RISK);
+
     /** Kind, subject and season as always; zone and month only when set, so suite requests are unchanged. */
     private static Map<String, Object> intent(Intent intent) {
         Map<String, Object> map = ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season());
@@ -208,8 +211,18 @@ public class JevDecisionLayer implements DecisionLayer {
                         result.add(f.object());
                     }
                 }
-                case SOW_NOW -> {
+                case SOW_NOW, SOW_IN_PLOT -> {
                     if (f.predicate().equals("sowIn") || f.predicate().equals("plantIn")) {
+                        result.add(f.subject());
+                    }
+                }
+                case GROWING_NOW -> {
+                    if (f.predicate().equals("grows")) {
+                        result.add(f.object());
+                    }
+                }
+                case PEST_RISK -> {
+                    if (f.predicate().equals("threatens")) {
                         result.add(f.subject());
                     }
                 }
@@ -239,6 +252,11 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "`intent.zone`.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
                     + "(X, plantIn, `intent.month`) is a fact for `intent.zone`.";
+            case GROWING_NOW -> "The answer is every crop X such that (P, grows, X) is a fact for some plot P.";
+            case PEST_RISK -> "The answer is every pest or disease X such that (X, threatens, C) is a fact for some "
+                    + "crop C growing now.";
+            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact.";
             case OTHER -> "";
         };
     }

@@ -153,6 +153,45 @@ public class GardenService {
                 .toList();
     }
 
+    /**
+     * The zone of Italy the space's first located garden lies in (NORD, CENTRO or SUD), for the
+     * knowledge base's sowing windows. Coarse on purpose: north of about 44° N is NORD (Emilia-Romagna
+     * and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands), CENTRO in between.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> zone(long spaceId, String login) {
+        requireMember(spaceId, login);
+        return gardens.findBySpaceIdOrderById(spaceId).stream()
+                .filter(g -> g.getLatitude() != null)
+                .findFirst()
+                .map(g -> zoneOf(g.getLatitude().doubleValue()));
+    }
+
+    static String zoneOf(double latitude) {
+        return latitude >= 44.0 ? "NORD" : latitude >= 41.5 ? "CENTRO" : "SUD";
+    }
+
+    /** A plot of the space by name, ignoring case; a unique partial match ("B" for "Bed B") also works. */
+    @Transactional(readOnly = true)
+    public Optional<PlotSummary> plotByName(long spaceId, String login, String name) {
+        requireMember(spaceId, login);
+        if (name == null || name.isBlank()) {
+            return Optional.empty();
+        }
+        String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
+        List<PlotSummary> all = gardens.findBySpaceIdOrderById(spaceId).stream()
+                .flatMap(g -> plots.findByGardenIdOrderByName(g.getId()).stream())
+                .map(GardenService::summary).toList();
+        Optional<PlotSummary> exact = all.stream()
+                .filter(p -> p.name().toLowerCase(java.util.Locale.ROOT).equals(wanted)).findFirst();
+        if (exact.isPresent()) {
+            return exact;
+        }
+        List<PlotSummary> partial = all.stream().filter(p -> java.util.Arrays.asList(
+                p.name().toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
+        return partial.size() == 1 ? Optional.of(partial.getFirst()) : Optional.empty();
+    }
+
     private void requireMember(long spaceId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);

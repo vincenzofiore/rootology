@@ -4,6 +4,10 @@ import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import io.github.vincenzofiore.rootology.garden.GardenService;
+import io.github.vincenzofiore.rootology.garden.PlantingMethod;
+import io.github.vincenzofiore.rootology.garden.PlotKind;
+import io.github.vincenzofiore.rootology.garden.Soil;
 import io.github.vincenzofiore.rootology.history.PipelineRunRecord;
 import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
@@ -35,6 +39,23 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     SpaceService spaces;
+
+    @Autowired
+    GardenService gardens;
+
+    /** A space with a garden in Milan (zone NORD): bed B with a tomato since April 2026, an old pea ended. */
+    private RunContext withGarden(String login) {
+        RunContext run = signedIn(login);
+        var garden = gardens.saveGarden(run.spaceId(), login, null, "Balcony", "Milano",
+                new java.math.BigDecimal("45.46"), new java.math.BigDecimal("9.19"));
+        var bed = gardens.savePlot(run.spaceId(), login, garden.id(), null, "Bed B", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.plant(run.spaceId(), login, bed.id(), "tomato", PlantingMethod.TRANSPLANTED,
+                java.time.LocalDate.of(2026, 4, 20), null);
+        var peas = gardens.plant(run.spaceId(), login, bed.id(), "pea", PlantingMethod.SOWN,
+                java.time.LocalDate.of(2026, 2, 1), null);
+        gardens.endPlanting(run.spaceId(), login, peas.id(), java.time.LocalDate.of(2026, 4, 1));
+        return run;
+    }
 
     /** A person with their personal space, as after their first login. */
     private RunContext signedIn(String login) {
@@ -295,6 +316,53 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(now.month()).isEqualTo(java.time.LocalDate.now(GardenPipelineAgent.ITALY).getMonth().name());
         assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato")))
                 .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));
+    }
+
+    @Test
+    void growingNowListsTheSpacesCropsInGround() {
+        whenCreateObject(prompt -> prompt.contains("Question: What do I grow now?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.GROWING_NOW, null, null, "en"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", "What do I grow now?"), withGarden("tina"));
+
+        assertThat(run.answer().answer()).containsExactly("Tomato");
+        assertThat(run.answer().sources()).containsExactly("garden");
+    }
+
+    @Test
+    void pestRiskIsWhatThreatensWhatGrowsInTheMonth() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which pests threaten my garden in August?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.PEST_RISK, null, null, "en", null, "AUGUST"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Which pests threaten my garden in August?"), withGarden("ugo"));
+
+        assertThat(run.answer().answer()).contains("Late blight", "Tomato leafminer").doesNotContain("Carrot fly");
+        assertThat(run.answer().sources()).contains("eppo-codes");
+    }
+
+    @Test
+    void sowInPlotUsesTheGardensZoneAndSkipsCropsAgainstRotation() {
+        whenCreateObject(prompt -> prompt.contains("Question: What can I sow in plot B in March?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.SOW_IN_PLOT, "B", null, "en", null, "MARCH"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "What can I sow in plot B in March?"), withGarden("vera"));
+
+        // Lettuce is sowable in March in the north; tomato and eggplant would follow the tomato (Solanaceae);
+        // basil starts in March in the centre but in April in the north, so the garden's zone was used.
+        assertThat(run.answer().answer()).contains("Lettuce").doesNotContain("Tomato", "Eggplant", "Basil");
+    }
+
+    @Test
+    void anUnknownPlotWaitsForAPerson() {
+        whenCreateObject(prompt -> prompt.contains("Question: What can I sow in plot Z?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.SOW_IN_PLOT, "Z", null, "en", null, "MARCH"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", "What can I sow in plot Z?"),
+                withGarden("walt"));
+
+        assertThat(run.answer()).isNull();
     }
 
     @Test

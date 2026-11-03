@@ -18,6 +18,12 @@ public enum QueryKind {
     HARVEST_TIME,
     /** Knowledge base: crops that can be sown or planted in a month (now by default), in a zone. */
     SOW_NOW,
+    /** My garden: crops growing now in the asking person's space. */
+    GROWING_NOW,
+    /** My garden: pests and diseases that threaten the crops growing now, in a month (now by default). */
+    PEST_RISK,
+    /** My garden: crops that can be sown in a plot (the subject) in a month, minus those against rotation. */
+    SOW_IN_PLOT,
     /** Anything that does not fit the shapes above. Always escalated. */
     OTHER
 }

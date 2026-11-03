@@ -1,5 +1,7 @@
 package io.github.vincenzofiore.rootology.decision;
 
+import io.github.vincenzofiore.rootology.facts.Fact;
+
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,6 +23,21 @@ public class StubDecisionLayer implements DecisionLayer {
         if (intent.kind() == QueryKind.SOW_NOW) {
             return sowNow(intent.month(), facts);
         }
+        if (intent.kind() == QueryKind.GROWING_NOW) {
+            List<String> growing = facts.facts().filter(f -> f.predicate().equals("grows"))
+                    .map(Fact::object).distinct().toList();
+            return growing.isEmpty() ? Decision.escalated("nothing is recorded as growing in this space's gardens")
+                    : Decision.certain(growing, "crops growing now in this space's gardens");
+        }
+        if (intent.kind() == QueryKind.PEST_RISK) {
+            List<String> threats = facts.facts().filter(f -> f.predicate().equals("threatens"))
+                    .map(Fact::subject).distinct().toList();
+            if (facts.facts().noneMatch(f -> f.predicate().equals("grows"))) {
+                return Decision.escalated("nothing is recorded as growing in this space's gardens");
+            }
+            return Decision.certain(threats, "pests and diseases active in " + intent.month()
+                    + " on the crops growing now");
+        }
         String subject = intent.subject();
         if (!facts.mentions(subject)) {
             return Decision.escalated(subject + " is not in the dataset");
@@ -36,7 +53,8 @@ public class StubDecisionLayer implements DecisionLayer {
                     "declared antagonists of " + subject);
             case SOWING_TIME -> months(subject, facts, List.of("sowIn", "plantIn"), "sowing or planting");
             case HARVEST_TIME -> months(subject, facts, List.of("harvestIn"), "harvest");
-            case SOW_NOW, OTHER -> throw new IllegalStateException("handled above");
+            case SOW_IN_PLOT -> sowInPlot(subject, intent.month(), facts);
+            case SOW_NOW, GROWING_NOW, PEST_RISK, OTHER -> throw new IllegalStateException("handled above");
         };
     }
 
@@ -67,6 +85,16 @@ public class StubDecisionLayer implements DecisionLayer {
             return Decision.escalated(what + " months of " + crop + " are not declared");
         }
         return Decision.certain(months, what + " months of " + crop);
+    }
+
+    private Decision sowInPlot(String plot, String month, GraphFacts facts) {
+        Decision sowable = sowNow(month, facts);
+        if (sowable.escalate()) {
+            return sowable;
+        }
+        List<String> avoided = facts.subjects("avoidIn", plot);
+        return Decision.certain(sowable.answer().stream().filter(c -> !avoided.contains(c)).toList(),
+                "crops to sow or plant in " + month + " in " + plot + ", minus those against rotation");
     }
 
     private Decision sowNow(String month, GraphFacts facts) {

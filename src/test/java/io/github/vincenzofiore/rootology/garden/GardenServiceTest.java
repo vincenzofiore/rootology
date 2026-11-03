@@ -100,6 +100,17 @@ class GardenServiceTest {
     }
 
     @Test
+    void theZoneFollowsTheGardensLatitude() {
+        assertThat(GardenService.zoneOf(45.46)).isEqualTo("NORD");
+        assertThat(GardenService.zoneOf(41.90)).isEqualTo("CENTRO");
+        assertThat(GardenService.zoneOf(38.12)).isEqualTo("SUD");
+        long space = spaceOf("mia");
+        assertThat(gardens.zone(space, "mia")).isEmpty();
+        gardens.saveGarden(space, "mia", null, "Garden", "Palermo", new BigDecimal("38.12"), new BigDecimal("13.36"));
+        assertThat(gardens.zone(space, "mia")).contains("SUD");
+    }
+
+    @Test
     void refusesInvalidInput() {
         long space = spaceOf("kara");
         GardenSummary garden = gardens.saveGarden(space, "kara", null, "Garden", null, null, null);

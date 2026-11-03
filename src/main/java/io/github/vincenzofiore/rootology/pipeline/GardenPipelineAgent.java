@@ -41,6 +41,9 @@ public class GardenPipelineAgent {
             - SOWING_TIME: when to sow or plant a plant
             - HARVEST_TIME: when to harvest a plant
             - SOW_NOW: what can be sown or planted now, or in a given month (no subject)
+            - GROWING_NOW: what is growing in my garden now (no subject)
+            - PEST_RISK: which pests or diseases threaten what I grow, now or in a given month (no subject)
+            - SOW_IN_PLOT: what can I sow or plant in one of my plots (subject: the plot's name, as written)
             - OTHER: anything else
 
             subject: the plant or pest the question is about, as a single capitalized English
@@ -79,11 +82,14 @@ public class GardenPipelineAgent {
 
     private final FactSource factSource;
     private final KnowledgeGraph knowledge;
+    private final GardenFacts garden;
     private final DecisionLayer decisionLayer;
 
-    public GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, DecisionLayer decisionLayer) {
+    public GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden,
+                               DecisionLayer decisionLayer) {
         this.factSource = factSource;
         this.knowledge = knowledge;
+        this.garden = garden;
         this.decisionLayer = decisionLayer;
     }
 
@@ -91,22 +97,28 @@ public class GardenPipelineAgent {
     static final java.time.ZoneId ITALY = java.time.ZoneId.of("Europe/Rome");
 
     @Action(description = "Turn the question text into a structured intent")
-    public Intent understand(Question question, OperationContext context) {
-        return withDefaults(context.ai().withDefaultLlm()
-                .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class));
+    public Intent understand(Question question, RunContext run, OperationContext context) {
+        Intent intent = context.ai().withDefaultLlm()
+                .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
+        // The question's zone first, then the zone of the asking space's garden, then CENTRO.
+        if (intent.zone() == null && run.hasSpace() && NEEDS_ZONE.contains(intent.kind())) {
+            String gardenZone = garden.zone(run.spaceId(), run.startedBy()).orElse(null);
+            intent = intent.withZoneAndMonth(gardenZone, intent.month());
+        }
+        return withDefaults(intent);
     }
 
-    /** Zone CENTRO unless the question says otherwise; for SOW_NOW, the current month in Italy. */
+    static final java.util.Set<QueryKind> NEEDS_ZONE = java.util.Set.of(QueryKind.SOWING_TIME, QueryKind.HARVEST_TIME,
+            QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
+
+    /** Zone CENTRO unless already set; for the kinds about a month, the current month in Italy. */
     static Intent withDefaults(Intent intent) {
-        boolean needsZone = switch (intent.kind()) {
-            case SOWING_TIME, HARVEST_TIME, SOW_NOW -> true;
-            default -> false;
-        };
-        if (!needsZone) {
+        if (!NEEDS_ZONE.contains(intent.kind())) {
             return intent;
         }
         String zone = intent.zone() == null ? "CENTRO" : intent.zone();
-        String month = intent.month() != null || intent.kind() != QueryKind.SOW_NOW ? intent.month()
+        String month = intent.month() != null || intent.kind() == QueryKind.SOWING_TIME
+                || intent.kind() == QueryKind.HARVEST_TIME ? intent.month()
                 : java.time.LocalDate.now(ITALY).getMonth().name();
         return intent.withZoneAndMonth(zone, month);
     }
@@ -116,12 +128,16 @@ public class GardenPipelineAgent {
      * facts about the question's subject, each with its sources (no noise: they are real data).
      */
     @Action(description = "Load the raw declared facts from the chosen graph")
-    public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope) {
+    public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope, RunContext run) {
         if (scope == FactScope.KNOWLEDGE_BASE) {
             Intent full = withDefaults(intent);
             List<SourcedFact> facts = switch (full.kind()) {
                 case SOWING_TIME, HARVEST_TIME -> knowledge.windowFacts(full.subject(), full.zone());
                 case SOW_NOW -> knowledge.sowingFacts(full.month(), full.zone(), full.languageOrDefault());
+                case GROWING_NOW -> garden.growing(run, full.languageOrDefault());
+                case PEST_RISK -> garden.threats(run, full.month(), full.languageOrDefault());
+                case SOW_IN_PLOT -> garden.sowableIn(run, full.subject(), full.month(), full.zone(),
+                        full.languageOrDefault());
                 default -> knowledge.factsAbout(full.subject(), full.languageOrDefault());
             };
             return new GraphFacts(facts.stream()

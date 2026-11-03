@@ -49,13 +49,13 @@ public class GardenPipeline {
     /** Full pipeline on degraded facts. Escalations are only recorded, never wait. */
     public PipelineAnswer ask(Question question, NoiseProfile noise) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE);
+                .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE);
     }
 
     /** Skips question understanding: the given intent is used as is, on clean facts. */
     public PipelineAnswer ask(Question question, Intent intent) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC, FactScope.SUITE);
+                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE);
     }
 
     /**
@@ -73,7 +73,7 @@ public class GardenPipeline {
 
     private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
         AgentProcess process = agentPlatform.createAgentProcessFrom(
-                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope);
+                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
         return settle(process.run(), question, context);
     }
 

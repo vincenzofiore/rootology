@@ -17,8 +17,8 @@ public class KnowledgeGraph {
     }
 
     /** A pest or disease that affects a crop in a given month. */
-    public record Affecting(String organismId, String italianName, String kind, int fromMonth, int toMonth,
-                            List<String> sources, boolean verified) {
+    public record Affecting(String organismId, String italianName, String englishName, String kind, int fromMonth,
+                            int toMonth, List<String> sources, boolean verified) {
     }
 
     /** A sowing, planting or harvest window of a crop in a zone, curated or derived by a rule. */
@@ -71,10 +71,12 @@ public class KnowledgeGraph {
         return list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
                         + "WHERE (a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
                         + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth)) "
-                        + "RETURN o.id AS id, o.italianName AS name, o.kind AS kind, a.fromMonth AS f, a.toMonth AS t, "
-                        + "a.sources AS sources, a.verified AS verified ORDER BY o.id",
+                        + "RETURN o.id AS id, o.italianName AS name, o.englishName AS en, o.kind AS kind, "
+                        + "a.fromMonth AS f, a.toMonth AS t, "
+                        + "a.sources + o.sources AS sources, a.verified AS verified ORDER BY o.id",
                 Map.of("id", cropId, "m", month),
-                r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("kind").asString(),
+                r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("en").asString(),
+                        r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),
                         r.get("verified").asBoolean()));
     }
