@@ -6,6 +6,7 @@ import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
 import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
+import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import jakarta.annotation.security.PermitAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,9 @@ class ViewsTest {
     @Autowired
     RunHistory history;
 
+    @Autowired
+    InvitationService invitations;
+
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
@@ -51,7 +55,7 @@ class ViewsTest {
     @Test
     void historyAndSpaceViewsBuild() {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
-        assertThat(new SpaceView(spaces, viewer()).getChildren()).isNotEmpty();
+        assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
     }
 
     @Test

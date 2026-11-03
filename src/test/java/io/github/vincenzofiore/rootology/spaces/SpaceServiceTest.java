@@ -69,6 +69,38 @@ class SpaceServiceTest {
     }
 
     @Test
+    void ownersRemoveMembersAndMembersLeaveButNobodyLeavesTheirPersonalSpace() {
+        spaces.signedIn("ada");
+        long garden = spaces.spacesOf("ada").getFirst().id();
+        spaces.addMember(garden, "ada", "bea", Role.MEMBER);
+        spaces.addMember(garden, "ada", "cid", Role.MEMBER);
+
+        spaces.removeMember(garden, "ada", "bea");
+        assertThat(spaces.isMember(garden, "bea")).isFalse();
+
+        assertThatThrownBy(() -> spaces.removeMember(garden, "cid", "ada")).isInstanceOf(SpaceAccessException.class);
+        spaces.removeMember(garden, "cid", "cid");
+        assertThat(spaces.isMember(garden, "cid")).isFalse();
+
+        assertThatThrownBy(() -> spaces.removeMember(garden, "ada", "ada")).isInstanceOf(SpaceAccessException.class);
+        assertThat(spaces.spacesOf("ada").getFirst().personal()).isTrue();
+    }
+
+    @Test
+    void aSpaceAlwaysKeepsAnOwner() {
+        spaces.signedIn("dan");
+        spaces.signedIn("eve");
+        long shared = spaces.spacesOf("dan").getFirst().id();
+        spaces.addMember(shared, "dan", "eve", Role.OWNER);
+
+        spaces.changeRole(shared, "eve", "dan", Role.MEMBER);
+        assertThatThrownBy(() -> spaces.changeRole(shared, "eve", "eve", Role.MEMBER))
+                .isInstanceOf(SpaceAccessException.class);
+        assertThat(spaces.membersOf(shared, "dan")).extracting(Member::githubLogin, Member::role)
+                .containsExactlyInAnyOrder(tuple("dan", Role.MEMBER), tuple("eve", Role.OWNER));
+    }
+
+    @Test
     void onlyOwnersAddMembersAndOnlyMembersSeeTheList() {
         spaces.signedIn("heidi");
         spaces.signedIn("ivan");

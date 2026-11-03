@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -13,40 +14,58 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AllowListOAuth2UserServiceTest {
+
+    private final SpaceService spaces = mock(SpaceService.class);
+    private final InvitationService invitations = mock(InvitationService.class);
 
     private static OAuth2User githubUser(String login) {
         return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"), Map.of("login", login), "login");
     }
 
-    @Test
-    void letsAllowListedUsersIn() {
-        var service = new AllowListOAuth2UserService(Set.of("alice"), mock(SpaceService.class));
+    private AllowListOAuth2UserService service(String... allowed) {
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations);
+    }
 
-        assertThat(service.requireAllowed(githubUser("alice")).getName()).isEqualTo("alice");
+    @Test
+    void letsTheBootstrapAllowListIn() {
+        assertThat(service("alice").requireAllowed(githubUser("alice"), null)).isEqualTo("alice");
     }
 
     @Test
     void ignoresTheCaseOfTheLogin() {
-        var service = new AllowListOAuth2UserService(Set.of("Alice"), mock(SpaceService.class));
+        assertThat(service("Alice").requireAllowed(githubUser("ALICE"), null)).isEqualTo("alice");
+    }
 
-        assertThat(service.requireAllowed(githubUser("ALICE")).getName()).isEqualTo("ALICE");
+    @Test
+    void letsInAnyoneWhoAlreadyBelongsToASpace() {
+        when(spaces.belongsToAnySpace("bob")).thenReturn(true);
+
+        assertThat(service().requireAllowed(githubUser("bob"), null)).isEqualTo("bob");
+    }
+
+    @Test
+    void letsInSomeoneWithAValidInvitation() {
+        when(invitations.admits("token", "carol")).thenReturn(true);
+
+        assertThat(service().requireAllowed(githubUser("carol"), "token")).isEqualTo("carol");
     }
 
     @Test
     void refusesEveryoneElse() {
-        var service = new AllowListOAuth2UserService(Set.of("alice"), mock(SpaceService.class));
+        when(invitations.admits("token", "mallory")).thenReturn(false);
 
-        assertThatThrownBy(() -> service.requireAllowed(githubUser("mallory")))
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), null))
+                .isInstanceOf(OAuth2AuthenticationException.class);
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), "token"))
                 .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
     @Test
-    void anEmptyAllowListLetsNobodyIn() {
-        var service = new AllowListOAuth2UserService(Set.of(), mock(SpaceService.class));
-
-        assertThatThrownBy(() -> service.requireAllowed(githubUser("alice")))
+    void anEmptyAllowListLetsNobodyInOnItsOwn() {
+        assertThatThrownBy(() -> service().requireAllowed(githubUser("alice"), null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
     }
 }

@@ -1,9 +1,12 @@
 package io.github.vincenzofiore.rootology.spaces;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -20,12 +23,23 @@ class Space {
     private String name;
     private Instant createdAt;
 
+    /** Set for a person's personal space, which they cannot leave. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "personal_of")
+    private AppUser personalOf;
+
     protected Space() {
     }
 
-    Space(String name, Instant createdAt) {
+    Space(String name, Instant createdAt, AppUser personalOf) {
         this.name = name;
         this.createdAt = createdAt;
+        this.personalOf = personalOf;
+    }
+
+    /** True if this is the given person's personal space. */
+    boolean isPersonalSpaceOf(AppUser user) {
+        return personalOf != null && personalOf.getId().equals(user.getId());
     }
 
     Long getId() {

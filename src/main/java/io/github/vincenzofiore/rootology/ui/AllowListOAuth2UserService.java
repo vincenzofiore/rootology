@@ -1,5 +1,7 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import io.github.vincenzofiore.rootology.spaces.InvitationService;
+import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -11,33 +13,57 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Loads the GitHub user and refuses anyone not on the allow-list. Without it, any GitHub
- * account could sign in. An empty allow-list lets nobody in.
+ * Loads the GitHub user and lets in only: the bootstrap allow-list (environment variable),
+ * anyone who already belongs to a space, or someone holding a valid invitation in their session.
+ * Without it, any GitHub account could sign in.
  */
 class AllowListOAuth2UserService extends DefaultOAuth2UserService {
 
     private final Set<String> allowedLogins;
     private final SpaceService spaces;
+    private final InvitationService invitations;
 
-    AllowListOAuth2UserService(Set<String> allowedLogins, SpaceService spaces) {
+    AllowListOAuth2UserService(Set<String> allowedLogins, SpaceService spaces, InvitationService invitations) {
         this.allowedLogins = allowedLogins.stream().map(SpaceService::normalizeLogin).collect(Collectors.toSet());
         this.spaces = spaces;
+        this.invitations = invitations;
     }
 
-    /** Allowed users are registered on sign-in: the first time, they get their personal space. */
+    /** Accepts a pending invitation first, then registers the person (personal space on first login). */
     @Override
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
-        OAuth2User user = requireAllowed(super.loadUser(request));
-        spaces.signedIn(String.valueOf(user.<Object>getAttribute("login")));
+        OAuth2User user = super.loadUser(request);
+        String token = PendingInvitation.current();
+        String login = requireAllowed(user, token);
+        if (token != null && invitations.admits(token, login)) {
+            try {
+                invitations.accept(token, login);
+            } catch (SpaceAccessException e) {
+                throw denied(e.getMessage());
+            }
+            PendingInvitation.clear();
+        }
+        spaces.signedIn(login);
         return user;
     }
 
-    OAuth2User requireAllowed(OAuth2User user) {
-        Object login = user.getAttribute("login");
-        if (login == null || !allowedLogins.contains(SpaceService.normalizeLogin(login.toString()))) {
-            throw new OAuth2AuthenticationException(new OAuth2Error("access_denied"),
-                    "GitHub account " + login + " is not allowed");
+    /** The user's login if they may sign in; token is a pending invitation, or null. */
+    String requireAllowed(OAuth2User user, String token) {
+        Object attribute = user.getAttribute("login");
+        if (attribute == null) {
+            throw denied("GitHub returned no login");
         }
-        return user;
+        String login = SpaceService.normalizeLogin(attribute.toString());
+        boolean allowed = allowedLogins.contains(login)
+                || spaces.belongsToAnySpace(login)
+                || (token != null && invitations.admits(token, login));
+        if (!allowed) {
+            throw denied("GitHub account " + login + " is not allowed");
+        }
+        return login;
+    }
+
+    private static OAuth2AuthenticationException denied(String reason) {
+        return new OAuth2AuthenticationException(new OAuth2Error("access_denied"), reason);
     }
 }

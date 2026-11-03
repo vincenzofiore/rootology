@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
+import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +15,10 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Every view needs a GitHub login, and only allow-listed GitHub accounts get in. */
+/**
+ * Every view needs a GitHub login, except the logged-out page and invitation links. Who may sign
+ * in is decided by AllowListOAuth2UserService.
+ */
 @Configuration
 class SecurityConfiguration {
 
@@ -25,17 +29,19 @@ class SecurityConfiguration {
 
     @Bean
     AllowListOAuth2UserService allowListOAuth2UserService(
-            @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces) {
+            @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces,
+            InvitationService invitations) {
         Set<String> allowed = Arrays.stream(allowedUsers.split(","))
                 .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed, spaces);
+        return new AllowListOAuth2UserService(allowed, spaces, invitations);
     }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService) throws Exception {
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/" + LOGGED_OUT_PAGE).permitAll());
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**").permitAll());
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
         loggedOut.setDefaultTargetUrl("/" + LOGGED_OUT_PAGE);

@@ -56,4 +56,8 @@ class SpaceMember {
     Role getRole() {
         return role;
     }
+
+    void changeRole(Role role) {
+        this.role = role;
+    }
 }

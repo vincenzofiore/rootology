@@ -39,7 +39,7 @@ public class SpaceService {
             return;
         }
         user.markFirstLogin(now);
-        Space personal = spaces.save(new Space(login + "'s garden", now));
+        Space personal = spaces.save(new Space(login + "'s garden", now, user));
         members.save(new SpaceMember(personal, user, Role.OWNER, now));
     }
 
@@ -48,7 +48,8 @@ public class SpaceService {
     public List<SpaceSummary> spacesOf(String githubLogin) {
         return users.findByGithubLogin(normalizeLogin(githubLogin))
                 .map(user -> members.findByUserOrderBySpaceId(user).stream()
-                        .map(m -> new SpaceSummary(m.getSpace().getId(), m.getSpace().getName(), m.getRole()))
+                        .map(m -> new SpaceSummary(m.getSpace().getId(), m.getSpace().getName(), m.getRole(),
+                                m.getSpace().isPersonalSpaceOf(user)))
                         .toList())
                 .orElse(List.of());
     }
@@ -88,6 +89,76 @@ public class SpaceService {
         AppUser user = users.findByGithubLogin(login)
                 .orElseGet(() -> users.save(new AppUser(login, Instant.now())));
         members.save(new SpaceMember(owner.getSpace(), user, role, Instant.now()));
+    }
+
+    /** True if this person belongs to at least one space, which lets them sign in. */
+    @Transactional(readOnly = true)
+    public boolean belongsToAnySpace(String githubLogin) {
+        return members.existsByUserGithubLogin(normalizeLogin(githubLogin));
+    }
+
+    /**
+     * Removes a member. An OWNER may remove anyone; a member may remove themselves (leave).
+     * A personal space cannot be left, and a space always keeps at least one OWNER.
+     * What the space holds stays with the space.
+     */
+    @Transactional
+    public void removeMember(long spaceId, String requester, String githubLogin) {
+        String login = normalizeLogin(githubLogin);
+        SpaceMember actor = requireMember(spaceId, requester);
+        boolean leaving = actor.getUser().getGithubLogin().equals(login);
+        if (!leaving && actor.getRole() != Role.OWNER) {
+            throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
+        }
+        SpaceMember target = requireMember(spaceId, login);
+        if (target.getSpace().isPersonalSpaceOf(target.getUser())) {
+            throw new SpaceAccessException("Nobody can be removed from their own personal space");
+        }
+        requireAnotherOwnerIfOwner(spaceId, target);
+        members.delete(target);
+    }
+
+    /** An OWNER changes a member's role; the last OWNER cannot be demoted. */
+    @Transactional
+    public void changeRole(long spaceId, String requester, String githubLogin, Role role) {
+        SpaceMember owner = requireMember(spaceId, requester);
+        if (owner.getRole() != Role.OWNER) {
+            throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
+        }
+        SpaceMember target = requireMember(spaceId, githubLogin);
+        if (role == Role.MEMBER) {
+            requireAnotherOwnerIfOwner(spaceId, target);
+        }
+        target.changeRole(role);
+    }
+
+    /** Adds someone who accepted an invitation; does nothing if they are already a member. */
+    @Transactional
+    void join(long spaceId, String githubLogin, Role role) {
+        String login = normalizeLogin(githubLogin);
+        if (members.findBySpaceIdAndUserGithubLogin(spaceId, login).isPresent()) {
+            return;
+        }
+        AppUser user = users.findByGithubLogin(login).orElseGet(() -> users.save(new AppUser(login, Instant.now())));
+        members.save(new SpaceMember(spaces.getReferenceById(spaceId), user, role, Instant.now()));
+    }
+
+    SpaceMember requireOwner(long spaceId, String githubLogin) {
+        SpaceMember member = requireMember(spaceId, githubLogin);
+        if (member.getRole() != Role.OWNER) {
+            throw new SpaceAccessException(githubLogin + " is not an owner of space " + spaceId);
+        }
+        return member;
+    }
+
+    private void requireAnotherOwnerIfOwner(long spaceId, SpaceMember target) {
+        if (target.getRole() == Role.OWNER && countOwners(spaceId) == 1) {
+            throw new SpaceAccessException("A space must keep at least one owner");
+        }
+    }
+
+    private long countOwners(long spaceId) {
+        return members.countBySpaceIdAndRole(spaceId, Role.OWNER);
     }
 
     private SpaceMember requireMember(long spaceId, String githubLogin) {

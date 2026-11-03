@@ -14,8 +14,9 @@ import java.net.http.HttpResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * The page logout lands on is served without a login, by the real Vaadin servlet (MockMvc has none).
- * If it were protected, the browser would go straight back through GitHub and log the user in again.
+ * Public pages, served without a login by the real Vaadin servlet (MockMvc has none): the page
+ * logout lands on (if it were protected, the browser would go straight back through GitHub and
+ * log the user in again), and invitation links (the invited person has no account yet).
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -23,6 +24,20 @@ class LoggedOutPageTest {
 
     @LocalServerPort
     int port;
+
+    private HttpResponse<String> get(String path) throws Exception {
+        return HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build()
+                .send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).build(),
+                        HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void invitationLinksArePublic() throws Exception {
+        // The invited person has no account yet; the page itself decides whether the token is valid.
+        assertThat(get("/" + InvitationView.ROUTE + "/some-token").statusCode()).isEqualTo(200);
+    }
 
     @Test
     void theLoggedOutPageIsPublic() throws Exception {

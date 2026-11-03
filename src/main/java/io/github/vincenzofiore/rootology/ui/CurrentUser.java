@@ -42,10 +42,17 @@ public class CurrentUser {
         return login;
     }
 
-    /** The current space, re-read so a role change shows up. */
+    /**
+     * The current space, re-read so a role change shows up. If the person was removed from it,
+     * falls back to their first space (their personal space).
+     */
     public SpaceSummary space() {
-        return spaces().stream().filter(s -> s.id() == spaceId).findFirst()
-                .orElseThrow(() -> new SpaceAccessException(login + " is no longer a member of space " + spaceId));
+        List<SpaceSummary> mine = spaces();
+        return mine.stream().filter(s -> s.id() == spaceId).findFirst().orElseGet(() -> {
+            SpaceSummary first = mine.getFirst();
+            spaceId = first.id();
+            return first;
+        });
     }
 
     public List<SpaceSummary> spaces() {
