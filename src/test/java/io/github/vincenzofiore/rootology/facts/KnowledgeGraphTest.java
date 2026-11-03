@@ -86,6 +86,30 @@ class KnowledgeGraphTest {
     }
 
     @Test
+    void windowFactsGiveMonthsWithTheirProvenance() {
+        assertThat(knowledge.windowFacts("tomato", "CENTRO")).contains(
+                new SourcedFact(new Fact("tomato", "sowIn", "FEBRUARY"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "harvestIn", "AUGUST"), java.util.List.of("rootology-editorial")));
+        assertThat(knowledge.windowFacts("tomato", "NORD")).contains(
+                new SourcedFact(new Fact("tomato", "plantIn", "JUNE"), java.util.List.of("rootology-editorial"), ZoneShiftRule.ID));
+        assertThat(knowledge.windowFacts("Fava", "NORD")).filteredOn(f -> f.fact().predicate().equals("sowIn"))
+                .singleElement().satisfies(f -> {
+                    assertThat(f.fact().object()).isEqualTo("FEBRUARY");
+                    assertThat(f.derivedBy()).isNull();
+                });
+        assertThat(KnowledgeGraph.months(11, 2)).containsExactly(11, 12, 1, 2);
+    }
+
+    @Test
+    void sowingFactsListWhatCanBeSownInAMonth() {
+        assertThat(knowledge.sowingFacts("MARCH", "CENTRO", "it")).extracting(SourcedFact::fact).contains(
+                new Fact("Pomodoro", "sowIn", "MARCH"), new Fact("Patata", "plantIn", "MARCH"))
+                .doesNotContain(new Fact("Zucchina", "sowIn", "MARCH"));
+        assertThat(knowledge.sowingFacts("NOT-A-MONTH", "CENTRO", "en")).isEmpty();
+    }
+
+    @Test
     void pestsAreActiveOnlyInTheirMonths() {
         assertThat(knowledge.affecting("carrot", 5)).extracting(Affecting::organismId).contains("PSILRO");
         assertThat(knowledge.affecting("carrot", 7)).extracting(Affecting::organismId).doesNotContain("PSILRO");

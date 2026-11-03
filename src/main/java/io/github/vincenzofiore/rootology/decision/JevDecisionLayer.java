@@ -59,7 +59,10 @@ public class JevDecisionLayer implements DecisionLayer {
         List<String> candidates = candidates(intent.kind(), facts);
 
         Map<String, Object> questions = new LinkedHashMap<>();
-        questions.put("answerable", noul("""
+        questions.put("answerable", noul(intent.kind() == QueryKind.SOW_NOW ? """
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? Answer no if no fact says that \
+                a crop is sown or planted in `intent.month`.""" : """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
                 can the question described by `intent` be answered? Answer no if `intent.subject` \
                 does not appear in any fact, or if no fact declares the relation the question asks \
@@ -88,7 +91,7 @@ public class JevDecisionLayer implements DecisionLayer {
                 "model", model,
                 "state", ordered(
                         // Field by field, so the language (not needed to decide) never changes what Jev sees.
-                        "intent", ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season()),
+                        "intent", intent(intent),
                         "rule", rule(intent.kind()),
                         "sources", anyInferred ? SOURCES_WITH_INFERRED : SOURCES,
                         "facts", stateFacts),
@@ -156,17 +159,29 @@ public class JevDecisionLayer implements DecisionLayer {
         return map;
     }
 
+    /** Kind, subject and season as always; zone and month only when set, so suite requests are unchanged. */
+    private static Map<String, Object> intent(Intent intent) {
+        Map<String, Object> map = ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season());
+        if (intent.zone() != null) {
+            map.put("zone", intent.zone());
+        }
+        if (intent.month() != null) {
+            map.put("month", intent.month());
+        }
+        return map;
+    }
+
     /** Exact lookup in code: every entity of the type the answer must have. */
     static List<String> candidates(QueryKind kind, GraphFacts facts) {
         Set<String> result = new LinkedHashSet<>();
         for (Reading reading : facts.readings()) {
             Fact f = reading.fact();
             switch (kind) {
-                case COMPANIONS, COMPANIONS_OF_SHARED_REPELLERS -> {
+                case COMPANIONS, COMPANIONS_OF_SHARED_REPELLERS, ANTAGONISTS -> {
                     if (!f.predicate().equals("activeInSeason") && !f.predicate().equals("affects")) {
                         result.add(f.subject());
                     }
-                    if (f.predicate().equals("companionOf")) {
+                    if (f.predicate().equals("companionOf") || f.predicate().equals("antagonistOf")) {
                         result.add(f.object());
                     }
                 }
@@ -181,6 +196,21 @@ public class JevDecisionLayer implements DecisionLayer {
                 case ACTIVE_SEASONS -> {
                     if (f.predicate().equals("activeInSeason") || f.predicate().equals("growsInSeason")) {
                         result.add(f.object());
+                    }
+                }
+                case SOWING_TIME -> {
+                    if (f.predicate().equals("sowIn") || f.predicate().equals("plantIn")) {
+                        result.add(f.object());
+                    }
+                }
+                case HARVEST_TIME -> {
+                    if (f.predicate().equals("harvestIn")) {
+                        result.add(f.object());
+                    }
+                }
+                case SOW_NOW -> {
+                    if (f.predicate().equals("sowIn") || f.predicate().equals("plantIn")) {
+                        result.add(f.subject());
                     }
                 }
                 case OTHER -> { }
@@ -201,6 +231,14 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "declared as companionOf of such a Q.";
             case ACTIVE_SEASONS -> "The answer is every season S such that the fact (subject, activeInSeason, S) "
                     + "is declared. Seasons are never guessed.";
+            case ANTAGONISTS -> "The answer is every plant X such that the fact (subject, antagonistOf, X) is "
+                    + "declared. Antagonists are never inferred, and companions are not antagonists.";
+            case SOWING_TIME -> "The answer is every month M such that (subject, sowIn, M) or (subject, plantIn, M) "
+                    + "is a fact for `intent.zone`.";
+            case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact for "
+                    + "`intent.zone`.";
+            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
+                    + "(X, plantIn, `intent.month`) is a fact for `intent.zone`.";
             case OTHER -> "";
         };
     }

@@ -18,6 +18,9 @@ public class StubDecisionLayer implements DecisionLayer {
         if (intent.kind() == QueryKind.OTHER) {
             return Decision.escalated("the question does not fit any supported shape");
         }
+        if (intent.kind() == QueryKind.SOW_NOW) {
+            return sowNow(intent.month(), facts);
+        }
         String subject = intent.subject();
         if (!facts.mentions(subject)) {
             return Decision.escalated(subject + " is not in the dataset");
@@ -29,7 +32,11 @@ public class StubDecisionLayer implements DecisionLayer {
             case RELEVANT_PESTS -> relevantPests(subject, intent.season(), facts);
             case COMPANIONS_OF_SHARED_REPELLERS -> companionsOfSharedRepellers(subject, facts);
             case ACTIVE_SEASONS -> activeSeasons(subject, facts);
-            case OTHER -> throw new IllegalStateException("handled above");
+            case ANTAGONISTS -> Decision.certain(facts.objects(subject, "antagonistOf"),
+                    "declared antagonists of " + subject);
+            case SOWING_TIME -> months(subject, facts, List.of("sowIn", "plantIn"), "sowing or planting");
+            case HARVEST_TIME -> months(subject, facts, List.of("harvestIn"), "harvest");
+            case SOW_NOW, OTHER -> throw new IllegalStateException("handled above");
         };
     }
 
@@ -52,6 +59,23 @@ public class StubDecisionLayer implements DecisionLayer {
         }
         return Decision.certain(List.copyOf(companions),
                 "companions of other plants repelling a pest " + plant + " repels");
+    }
+
+    private Decision months(String crop, GraphFacts facts, List<String> predicates, String what) {
+        List<String> months = predicates.stream().flatMap(p -> facts.objects(crop, p).stream()).distinct().toList();
+        if (months.isEmpty()) {
+            return Decision.escalated(what + " months of " + crop + " are not declared");
+        }
+        return Decision.certain(months, what + " months of " + crop);
+    }
+
+    private Decision sowNow(String month, GraphFacts facts) {
+        List<String> crops = java.util.stream.Stream.concat(facts.subjects("sowIn", month).stream(),
+                facts.subjects("plantIn", month).stream()).distinct().toList();
+        if (crops.isEmpty()) {
+            return Decision.escalated("nothing is declared to sow or plant in " + month);
+        }
+        return Decision.certain(crops, "crops to sow or plant in " + month);
     }
 
     private Decision activeSeasons(String pest, GraphFacts facts) {

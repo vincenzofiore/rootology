@@ -12,7 +12,9 @@ import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.Reading;
 import io.github.vincenzofiore.rootology.facts.FactSource;
+import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
+import io.github.vincenzofiore.rootology.facts.SourcedFact;
 
 import java.util.List;
 
@@ -35,12 +37,19 @@ public class GardenPipelineAgent {
             - RELEVANT_PESTS: which pests are relevant for a plant in a given season
             - COMPANIONS_OF_SHARED_REPELLERS: companions of the plants that repel the same pest as a plant
             - ACTIVE_SEASONS: in which seasons a pest is active
+            - ANTAGONISTS: which plants should not be planted next to a plant
+            - SOWING_TIME: when to sow or plant a plant
+            - HARVEST_TIME: when to harvest a plant
+            - SOW_NOW: what can be sown or planted now, or in a given month (no subject)
             - OTHER: anything else
 
             subject: the plant or pest the question is about, as a single capitalized English
             name exactly as named in the question (e.g. "Tomato"). Do not correct or replace it.
             season: SPRING, SUMMER, AUTUMN or WINTER for RELEVANT_PESTS, otherwise null.
             language: the ISO 639-1 code of the language the question is written in (for example "it" or "en").
+            zone: NORD, CENTRO or SUD if the question names the north, centre or south of Italy (or a place
+            there), otherwise null.
+            month: JANUARY to DECEMBER if the question names a month, otherwise null.
             Do not answer the question.
 
             Question: %s
@@ -78,10 +87,28 @@ public class GardenPipelineAgent {
         this.decisionLayer = decisionLayer;
     }
 
+    /** Italy is where the knowledge base's windows apply; zones and the current month follow it. */
+    static final java.time.ZoneId ITALY = java.time.ZoneId.of("Europe/Rome");
+
     @Action(description = "Turn the question text into a structured intent")
     public Intent understand(Question question, OperationContext context) {
-        return context.ai().withDefaultLlm()
-                .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
+        return withDefaults(context.ai().withDefaultLlm()
+                .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class));
+    }
+
+    /** Zone CENTRO unless the question says otherwise; for SOW_NOW, the current month in Italy. */
+    static Intent withDefaults(Intent intent) {
+        boolean needsZone = switch (intent.kind()) {
+            case SOWING_TIME, HARVEST_TIME, SOW_NOW -> true;
+            default -> false;
+        };
+        if (!needsZone) {
+            return intent;
+        }
+        String zone = intent.zone() == null ? "CENTRO" : intent.zone();
+        String month = intent.month() != null || intent.kind() != QueryKind.SOW_NOW ? intent.month()
+                : java.time.LocalDate.now(ITALY).getMonth().name();
+        return intent.withZoneAndMonth(zone, month);
     }
 
     /**
@@ -91,8 +118,15 @@ public class GardenPipelineAgent {
     @Action(description = "Load the raw declared facts from the chosen graph")
     public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope) {
         if (scope == FactScope.KNOWLEDGE_BASE) {
-            return new GraphFacts(knowledge.factsAbout(intent.subject(), intent.languageOrDefault()).stream()
-                    .map(f -> new Reading(f.fact(), Reading.Source.CURATED, f.sourceIds(), null))
+            Intent full = withDefaults(intent);
+            List<SourcedFact> facts = switch (full.kind()) {
+                case SOWING_TIME, HARVEST_TIME -> knowledge.windowFacts(full.subject(), full.zone());
+                case SOW_NOW -> knowledge.sowingFacts(full.month(), full.zone(), full.languageOrDefault());
+                default -> knowledge.factsAbout(full.subject(), full.languageOrDefault());
+            };
+            return new GraphFacts(facts.stream()
+                    .map(f -> new Reading(f.fact(), f.derivedBy() == null ? Reading.Source.CURATED
+                            : Reading.Source.INFERRED, f.sourceIds(), f.derivedBy()))
                     .toList());
         }
         return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));
@@ -100,7 +134,7 @@ public class GardenPipelineAgent {
 
     @Action(description = "Decide the answer and its confidence from the raw facts")
     public Decision decide(Intent intent, GraphFacts facts) {
-        return decisionLayer.decide(intent, facts);
+        return decisionLayer.decide(withDefaults(intent), facts);
     }
 
     @Action(cost = 1.0, description = "Settle the decision; in HUMAN mode an escalation waits for a person")

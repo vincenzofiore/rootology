@@ -167,6 +167,63 @@ public class KnowledgeGraph {
         return dedup(facts);
     }
 
+    static final List<String> MONTHS = List.of("JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY",
+            "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER");
+
+    /** The predicate a window activity becomes in the facts. */
+    static String predicate(String activity) {
+        return switch (activity) {
+            case "SOW", "SOW_SEEDBED" -> "sowIn";
+            case "PLANT", "TRANSPLANT" -> "plantIn";
+            default -> "harvestIn";
+        };
+    }
+
+    /**
+     * The sowing, planting and harvest months of a crop in a zone, as facts (crop, sowIn|plantIn|harvestIn,
+     * MONTH). Windows derived by a rule keep its name in derivedBy. Empty when the crop is unknown.
+     */
+    public List<SourcedFact> windowFacts(String name, String zone) {
+        return resolve(name).map(crop -> dedup(windows(crop.id(), zone).stream()
+                .flatMap(w -> months(w.fromMonth(), w.toMonth()).stream().map(m -> new SourcedFact(
+                        new Fact(name.trim(), predicate(w.activity()), MONTHS.get(m - 1)), w.sources(), w.derivedBy())))
+                .toList())).orElse(List.of());
+    }
+
+    /**
+     * The crops that can be sown or planted in a month (JANUARY to DECEMBER) in a zone, as facts
+     * (crop, sowIn|plantIn, MONTH), named in the given language ("it" for Italian, otherwise English).
+     */
+    public List<SourcedFact> sowingFacts(String month, String zone, String language) {
+        int m = MONTHS.indexOf(month) + 1;
+        if (m == 0) {
+            return List.of();
+        }
+        boolean italian = "it".equalsIgnoreCase(language);
+        return dedup(list("MATCH (c:Kb:Crop)-[w:WINDOW]->(:Kb:Zone {id: $zone}) "
+                        + "WHERE w.activity IN ['SOW', 'SOW_SEEDBED', 'PLANT', 'TRANSPLANT'] "
+                        + "AND ((w.fromMonth <= w.toMonth AND $m >= w.fromMonth AND $m <= w.toMonth) "
+                        + "  OR (w.fromMonth > w.toMonth AND ($m >= w.fromMonth OR $m <= w.toMonth))) "
+                        + "RETURN c.italianName AS it, c.englishName AS en, w.activity AS activity, w.sources AS sources, "
+                        + "w.derivedBy AS derivedBy ORDER BY c.id",
+                Map.of("zone", zone, "m", m), r -> new SourcedFact(
+                        new Fact(italian ? r.get("it").asString() : r.get("en").asString(),
+                                predicate(r.get("activity").asString()), month),
+                        r.get("sources").asList(v -> v.asString()),
+                        r.get("derivedBy").isNull() ? null : r.get("derivedBy").asString())));
+    }
+
+    /** The months of a window (1-12, wrapping over the year), in order. */
+    static List<Integer> months(int from, int to) {
+        List<Integer> months = new java.util.ArrayList<>();
+        for (int m = from; ; m = m % 12 + 1) {
+            months.add(m);
+            if (m == to) {
+                return months;
+            }
+        }
+    }
+
     /** The seasons a month window (1-12, wrapping over the year) touches, in calendar order. */
     static List<String> seasons(int from, int to) {
         Set<Integer> months = new java.util.HashSet<>();
@@ -180,11 +237,24 @@ public class KnowledgeGraph {
                 .filter(s -> SEASONS.get(s).stream().anyMatch(months::contains)).toList();
     }
 
-    /** One fact per triple, with the union of its sources, in first-seen order. */
+    /**
+     * One fact per triple, with the union of its sources, in first-seen order. A fact that is curated
+     * anywhere stays curated; it is inferred only if every occurrence was inferred.
+     */
     private static List<SourcedFact> dedup(List<SourcedFact> facts) {
-        Map<Fact, java.util.LinkedHashSet<String>> merged = new java.util.LinkedHashMap<>();
-        facts.forEach(f -> merged.computeIfAbsent(f.fact(), k -> new java.util.LinkedHashSet<>()).addAll(f.sourceIds()));
-        return merged.entrySet().stream().map(e -> new SourcedFact(e.getKey(), List.copyOf(e.getValue()))).toList();
+        Map<Fact, java.util.LinkedHashSet<String>> sources = new java.util.LinkedHashMap<>();
+        Map<Fact, String> derivedBy = new java.util.HashMap<>();
+        java.util.Set<Fact> curated = new java.util.HashSet<>();
+        for (SourcedFact f : facts) {
+            sources.computeIfAbsent(f.fact(), k -> new java.util.LinkedHashSet<>()).addAll(f.sourceIds());
+            if (f.derivedBy() == null) {
+                curated.add(f.fact());
+            } else {
+                derivedBy.putIfAbsent(f.fact(), f.derivedBy());
+            }
+        }
+        return sources.entrySet().stream().map(e -> new SourcedFact(e.getKey(), List.copyOf(e.getValue()),
+                curated.contains(e.getKey()) ? null : derivedBy.get(e.getKey()))).toList();
     }
 
     private org.neo4j.driver.Record single(String query, Map<String, Object> params) {

@@ -250,6 +250,54 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void antagonistsAreWhatNotToPlantNearby() {
+        whenCreateObject(prompt -> prompt.contains("Question: What should I not plant next to tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.ANTAGONISTS, "tomato"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "What should I not plant next to tomato?"), signedIn("quentin"));
+
+        assertThat(run.answer().answer()).contains("Potato", "Florence fennel", "Cabbage").doesNotContain("Basil");
+        assertThat(run.answer().sources()).contains("purdue-bp80");
+    }
+
+    @Test
+    void sowingTimeDefaultsToTheCentreAndUsesInferredWindowsElsewhere() {
+        whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.SOWING_TIME, "tomato"));
+        whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato in the north?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.SOWING_TIME, "tomato", null, "en", "NORD", null));
+
+        GardenPipeline.Run centre = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"), signedIn("rosa"));
+        GardenPipeline.Run north = pipeline.askKnowledgeBase(
+                new Question("ask", "When do I sow tomato in the north?"), signedIn("rosa"));
+
+        assertThat(centre.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(north.answer().answer()).containsExactlyInAnyOrder("MARCH", "APRIL", "MAY", "JUNE");
+    }
+
+    @Test
+    void sowNowListsTheCropsOfTheMonthInTheQuestionsLanguage() {
+        whenCreateObject(prompt -> prompt.contains("Question: Cosa posso seminare a marzo?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it", null, "MARCH"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", "Cosa posso seminare a marzo?"),
+                signedIn("sara"));
+
+        assertThat(run.answer().answer()).contains("Pomodoro", "Patata", "Basilico").doesNotContain("Zucchina");
+    }
+
+    @Test
+    void defaultsGiveTheCentreAndTheCurrentMonth() {
+        Intent now = GardenPipelineAgent.withDefaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null));
+
+        assertThat(now.zone()).isEqualTo("CENTRO");
+        assertThat(now.month()).isEqualTo(java.time.LocalDate.now(GardenPipelineAgent.ITALY).getMonth().name());
+        assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato")))
+                .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));
+    }
+
+    @Test
     void unsupportedQuestionIsEscalated() {
         var answer = ask("other", "What is the best fertilizer?", Intent.of(QueryKind.OTHER, null));
 

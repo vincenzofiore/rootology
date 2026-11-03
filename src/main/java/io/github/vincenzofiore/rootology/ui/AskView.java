@@ -47,8 +47,10 @@ public class AskView extends VerticalLayout {
         form.setWrap(true);
 
         add(new H3("Ask the knowledge base"),
-                new Paragraph("Questions about companions and antagonists of a crop, the pests and diseases "
-                        + "relevant for a crop in a season, or when a pest is active. More kinds are coming."),
+                new Paragraph("Ask about companions and antagonists of a crop, when to sow or harvest it, "
+                        + "what can be sown now or in a given month, the pests and diseases relevant for a crop "
+                        + "in a season, or when a pest is active. Say north, centre or south of Italy if it matters "
+                        + "(centre by default)."),
                 form, result);
     }
 
