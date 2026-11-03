@@ -1,6 +1,6 @@
-# Crops for the knowledge base v1: draft for review (#16)
+# Crops for the knowledge base v1 (#16)
 
-DRAFT, 2026-11-03, written from general Italian horticultural practice, not yet checked against a source. To be reviewed by the owner, then verified crop by crop (for example the temperature ranges in FAO ECOCROP) before it becomes the curated list.
+The crop selection was approved by the owner on 2026-11-03. It was written from general Italian horticultural practice: the **choice of crops is final**, while the **months and families are still to be verified** crop by crop against the sources (for example the temperature ranges in FAO ECOCROP, families in Wikidata) when they are loaded into the knowledge base. New crops arrive through knowledge enrichment (#24).
 
 Months are indicative for central Italy, open field. In the north, sowing and planting usually come 2 to 4 weeks later; in the south and on the coast, earlier. "Seedbed" means sown in a protected seedbed and transplanted later. The botanical family drives rotation rules in the ontology layer.
 
@@ -68,8 +68,8 @@ Months are indicative for central Italy, open field. In the north, sowing and pl
 | Rosmarino | Rosemary | *Salvia rosmarinus* | Lamiaceae | Plant in spring or autumn | All year |
 | Salvia | Sage | *Salvia officinalis* | Lamiaceae | Plant in spring or autumn | All year |
 
-## Notes for the review
+## Notes
 
-- 39 crops in 9 families. Easy to cut down to the ones that matter first (for example the owner's terrace).
-- Possible additions: asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
+- 39 crops in 9 families.
+- Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become ranges by climate zone, refined with the weather (#18) and, later, sensor readings (#21).

@@ -35,5 +35,5 @@ Every fact keeps its source and license in the curated files, so the attribution
 ## Decisions (owner, 2026-11-03)
 
 - **Commercial use is a goal.** Even if what is sold is mainly support (setup, sensors) rather than the app itself, the data serves a paid service, so it is treated as commercial use: non-commercial sources (PFAF, the non-commercial parts of Practical Plants) are out, and FAO material under a non-commercial licence needs a licence request.
-- **Crops**: a list of typical Italian crops across the four seasons, drafted in `docs/crops-v1-draft.md`, to be reviewed by the owner before it becomes final.
+- **Crops**: a list of typical Italian crops across the four seasons, listed in `docs/crops-v1.md` (39 crops, approved by the owner; months and families still to be verified against the sources on import).
 - **Names and missing data**: no external source is final. The knowledge base must be enrichable over time (missing names, crops, varieties, pairs), with provenance and review: see #24.
