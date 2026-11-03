@@ -14,6 +14,8 @@ class CropCatalogTest {
         assertThat(catalog.byId("tomato")).hasValueSatisfying(c -> {
             assertThat(c.italianName()).isEqualTo("Pomodoro");
             assertThat(c.family()).isEqualTo("Solanaceae");
+            assertThat(c.wikidataId()).isEqualTo("Q23501");
+            assertThat(c.ecocropId()).isEqualTo("1379");
         });
     }
 

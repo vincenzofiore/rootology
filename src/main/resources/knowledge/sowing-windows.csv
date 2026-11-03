@@ -1,0 +1,97 @@
+# Sowing, planting and harvest windows for the CENTRO zone (central Italy, open field), from
+# docs/crops-v1.md (owner-approved editorial list, not yet verified: verified=no). Months 1-12;
+# from_month > to_month wraps over the new year (Oct-Feb is 10,2). NORD and SUD are derived later
+# by an explicit rule and tagged INFERRED (#16, step 3).
+crop_id,zone,activity,from_month,to_month,note,source,verified
+tomato,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+tomato,CENTRO,TRANSPLANT,4,5,,rootology-editorial,no
+tomato,CENTRO,HARVEST,7,9,,rootology-editorial,no
+sweet-pepper,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+sweet-pepper,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
+sweet-pepper,CENTRO,HARVEST,7,10,,rootology-editorial,no
+chili-pepper,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+chili-pepper,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
+chili-pepper,CENTRO,HARVEST,7,10,,rootology-editorial,no
+eggplant,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+eggplant,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
+eggplant,CENTRO,HARVEST,7,9,,rootology-editorial,no
+potato,CENTRO,PLANT,3,4,tubers,rootology-editorial,no
+potato,CENTRO,HARVEST,6,7,,rootology-editorial,no
+zucchini,CENTRO,SOW,4,6,,rootology-editorial,no
+zucchini,CENTRO,HARVEST,6,9,,rootology-editorial,no
+cucumber,CENTRO,SOW,4,6,,rootology-editorial,no
+cucumber,CENTRO,HARVEST,7,9,,rootology-editorial,no
+melon,CENTRO,SOW,4,5,,rootology-editorial,no
+melon,CENTRO,HARVEST,7,8,,rootology-editorial,no
+watermelon,CENTRO,SOW,4,5,,rootology-editorial,no
+watermelon,CENTRO,HARVEST,7,8,,rootology-editorial,no
+winter-squash,CENTRO,SOW,4,5,,rootology-editorial,no
+winter-squash,CENTRO,HARVEST,9,10,,rootology-editorial,no
+bean,CENTRO,SOW,4,7,,rootology-editorial,no
+bean,CENTRO,HARVEST,6,9,,rootology-editorial,no
+basil,CENTRO,SOW,3,5,,rootology-editorial,no
+basil,CENTRO,HARVEST,6,9,,rootology-editorial,no
+cauliflower,CENTRO,SOW_SEEDBED,5,7,,rootology-editorial,no
+cauliflower,CENTRO,TRANSPLANT,7,8,,rootology-editorial,no
+cauliflower,CENTRO,HARVEST,10,2,,rootology-editorial,no
+broccoli,CENTRO,SOW_SEEDBED,6,7,,rootology-editorial,no
+broccoli,CENTRO,TRANSPLANT,8,8,,rootology-editorial,no
+broccoli,CENTRO,HARVEST,10,12,,rootology-editorial,no
+tuscan-kale,CENTRO,SOW_SEEDBED,5,7,,rootology-editorial,no
+tuscan-kale,CENTRO,HARVEST,10,3,,rootology-editorial,no
+savoy-cabbage,CENTRO,SOW_SEEDBED,5,7,,rootology-editorial,no
+savoy-cabbage,CENTRO,HARVEST,10,2,,rootology-editorial,no
+cabbage,CENTRO,SOW_SEEDBED,3,7,spring and autumn types,rootology-editorial,no
+cabbage,CENTRO,HARVEST,6,12,,rootology-editorial,no
+turnip-tops,CENTRO,SOW,8,9,,rootology-editorial,no
+turnip-tops,CENTRO,HARVEST,10,1,,rootology-editorial,no
+fennel,CENTRO,SOW,6,8,,rootology-editorial,no
+fennel,CENTRO,HARVEST,10,1,,rootology-editorial,no
+radicchio,CENTRO,SOW,6,7,,rootology-editorial,no
+radicchio,CENTRO,HARVEST,10,2,,rootology-editorial,no
+endive,CENTRO,SOW,6,8,,rootology-editorial,no
+endive,CENTRO,HARVEST,9,1,,rootology-editorial,no
+leek,CENTRO,SOW_SEEDBED,2,4,,rootology-editorial,no
+leek,CENTRO,TRANSPLANT,5,7,,rootology-editorial,no
+leek,CENTRO,HARVEST,10,3,,rootology-editorial,no
+spinach,CENTRO,SOW,2,3,,rootology-editorial,no
+spinach,CENTRO,SOW,9,10,,rootology-editorial,no
+spinach,CENTRO,HARVEST,4,5,,rootology-editorial,no
+spinach,CENTRO,HARVEST,11,2,,rootology-editorial,no
+lambs-lettuce,CENTRO,SOW,8,10,,rootology-editorial,no
+lambs-lettuce,CENTRO,HARVEST,10,3,,rootology-editorial,no
+broad-bean,CENTRO,SOW,10,11,February in the north,rootology-editorial,no
+broad-bean,CENTRO,HARVEST,4,6,,rootology-editorial,no
+pea,CENTRO,SOW,10,11,,rootology-editorial,no
+pea,CENTRO,SOW,2,3,,rootology-editorial,no
+pea,CENTRO,HARVEST,4,6,,rootology-editorial,no
+garlic,CENTRO,PLANT,10,12,cloves,rootology-editorial,no
+garlic,CENTRO,HARVEST,6,7,,rootology-editorial,no
+onion,CENTRO,SOW,9,10,autumn types,rootology-editorial,no
+onion,CENTRO,SOW,2,3,,rootology-editorial,no
+onion,CENTRO,HARVEST,5,8,,rootology-editorial,no
+artichoke,CENTRO,PLANT,8,9,offshoots; perennial,rootology-editorial,no
+artichoke,CENTRO,HARVEST,11,5,,rootology-editorial,no
+strawberry,CENTRO,PLANT,8,10,,rootology-editorial,no
+strawberry,CENTRO,HARVEST,4,6,,rootology-editorial,no
+lettuce,CENTRO,SOW,2,9,staggered every few weeks,rootology-editorial,no
+lettuce,CENTRO,HARVEST,3,11,most of the year except hard winter,rootology-editorial,no
+rocket,CENTRO,SOW,3,9,,rootology-editorial,no
+rocket,CENTRO,HARVEST,4,11,,rootology-editorial,no
+radish,CENTRO,SOW,2,10,,rootology-editorial,no
+radish,CENTRO,HARVEST,3,11,,rootology-editorial,no
+carrot,CENTRO,SOW,2,7,,rootology-editorial,no
+carrot,CENTRO,HARVEST,5,11,,rootology-editorial,no
+chard,CENTRO,SOW,3,9,,rootology-editorial,no
+chard,CENTRO,HARVEST,5,12,,rootology-editorial,no
+celery,CENTRO,SOW_SEEDBED,2,4,,rootology-editorial,no
+celery,CENTRO,TRANSPLANT,5,6,,rootology-editorial,no
+celery,CENTRO,HARVEST,8,12,,rootology-editorial,no
+parsley,CENTRO,SOW,2,8,,rootology-editorial,no
+parsley,CENTRO,HARVEST,1,12,most of the year,rootology-editorial,no
+rosemary,CENTRO,PLANT,3,5,spring,rootology-editorial,no
+rosemary,CENTRO,PLANT,9,11,autumn,rootology-editorial,no
+rosemary,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no
+sage,CENTRO,PLANT,3,5,spring,rootology-editorial,no
+sage,CENTRO,PLANT,9,11,autumn,rootology-editorial,no
+sage,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no

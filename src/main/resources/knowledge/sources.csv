@@ -1,0 +1,6 @@
+# Every fact in the knowledge base points to one of these sources (#16). Only sources that allow
+# commercial use (commercial=yes) may be used: commercial use is a goal (docs/knowledge-sources.md).
+id,title,url,license,commercial,retrieved_on
+wikidata,Wikidata,https://www.wikidata.org,CC0 1.0,yes,2026-11-03
+fao-ecocrop,FAO ECOCROP - crop environmental requirements,https://ecocrop.apps.fao.org/ecocrop/srv/en/home,CC BY 4.0 (attribution to FAO),yes,2026-11-03
+rootology-editorial,Rootology editorial: general Italian horticultural practice (approved by the owner; to be verified),https://github.com/vincenzofiore/rootology/blob/develop/docs/crops-v1.md,CC BY 4.0,yes,2026-11-03

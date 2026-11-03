@@ -16,7 +16,7 @@ import java.util.Optional;
 
 /**
  * The crops of the knowledge base, from the curated file `knowledge/crops-v1.csv`
- * (approved list, docs/crops-v1.md). #16 extends it with sources and loads it into Neo4j.
+ * (approved list, docs/crops-v1.md), with their Wikidata and FAO ECOCROP records.
  */
 @Component
 public class CropCatalog {
@@ -45,10 +45,11 @@ public class CropCatalog {
             List<String> lines = reader.lines().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
             for (String line : lines.subList(1, lines.size())) {
                 String[] f = line.split(",", -1);
-                if (f.length != 5) {
+                if (f.length != 8) {
                     throw new IllegalStateException("Malformed line in " + RESOURCE + ": " + line);
                 }
-                Crop crop = new Crop(f[0].trim(), f[1].trim(), f[2].trim(), f[3].trim(), f[4].trim());
+                Crop crop = new Crop(f[0].trim(), f[1].trim(), f[2].trim(), f[3].trim(), f[4].trim(),
+                        f[5].trim(), f[6].isBlank() ? null : f[6].trim());
                 if (result.put(crop.id(), crop) != null) {
                     throw new IllegalStateException("Duplicate crop id in " + RESOURCE + ": " + crop.id());
                 }
