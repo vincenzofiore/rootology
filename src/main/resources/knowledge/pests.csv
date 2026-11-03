@@ -1,0 +1,27 @@
+# Pests and diseases (docs/pests-v1.md), approved 2026-11-03. id is the EPPO code (Contains EPPO Codes,
+# www.eppo.int, downloaded 2026-11-03); names and kinds from the same review.
+id,italian,english,scientific,kind,source
+1APHIF,Afidi,Aphids,Aphididae,INSECT,eppo-codes
+LPTNDE,Dorifora,Colorado potato beetle,Leptinotarsa decemlineata,INSECT,eppo-codes
+PIERBR,Cavolaia,Large white butterfly,Pieris brassicae,INSECT,eppo-codes
+PLUTMA,Tignola delle crucifere,Diamondback moth,Plutella xylostella,INSECT,eppo-codes
+1PHYEG,Altiche,Flea beetles,Phyllotreta,INSECT,eppo-codes
+PSILRO,Mosca della carota,Carrot fly,Chamaepsila rosae,INSECT,eppo-codes
+HYLEAN,Mosca della cipolla,Onion fly,Delia antiqua,INSECT,eppo-codes
+THRITB,Tripide della cipolla,Onion thrips,Thrips tabaci,INSECT,eppo-codes
+FRANOC,Tripide occidentale,Western flower thrips,Frankliniella occidentalis,INSECT,eppo-codes
+TRIAVA,Mosca bianca delle serre,Greenhouse whitefly,Trialeurodes vaporariorum,INSECT,eppo-codes
+BEMITA,Mosca bianca del tabacco,Tobacco whitefly,Bemisia tabaci,INSECT,eppo-codes
+TETRUR,Ragnetto rosso,Two-spotted spider mite,Tetranychus urticae,MITE,eppo-codes
+HELIAR,Nottua del pomodoro,Cotton bollworm,Helicoverpa armigera,INSECT,eppo-codes
+GNORAB,Tignola del pomodoro (Tuta),Tomato leafminer,Phthorimaea absoluta,INSECT,eppo-codes
+1AGRIG,Elateridi (ferretti),Wireworms,Agriotes,INSECT,eppo-codes
+DERORE,Limaccia grigia,Grey field slug,Deroceras reticulatum,MOLLUSC,eppo-codes
+PHYTIN,Peronospora del pomodoro e della patata,Late blight,Phytophthora infestans,DISEASE,eppo-codes
+PSPECU,Peronospora delle cucurbitacee,Cucurbit downy mildew,Pseudoperonospora cubensis,DISEASE,eppo-codes
+BREMLA,Peronospora della lattuga,Lettuce downy mildew,Bremia lactucae,DISEASE,eppo-codes
+PODOXA,Oidio delle cucurbitacee,Cucurbit powdery mildew,Podosphaera xanthii,DISEASE,eppo-codes
+BOTRCI,Muffa grigia,Grey mould,Botrytis cinerea,DISEASE,eppo-codes
+ALTESO,Alternariosi,Early blight,Alternaria solani,DISEASE,eppo-codes
+PUCCAL,Ruggine dell'aglio e del porro,Leek rust,Puccinia allii,DISEASE,eppo-codes
+PLADBR,Ernia del cavolo,Clubroot,Plasmodiophora brassicae,DISEASE,eppo-codes

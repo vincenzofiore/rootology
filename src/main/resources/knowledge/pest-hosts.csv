@@ -1,0 +1,159 @@
+# Which crops each pest or disease affects, and when (central Italy, open field). Editorial practice,
+# to be verified (verified=no); months 1-12, from_month > to_month wraps over the new year.
+pest_id,crop_id,from_month,to_month,note,source,verified
+1APHIF,lettuce,4,6,,rootology-editorial,no
+1APHIF,lettuce,9,10,,rootology-editorial,no
+1APHIF,cauliflower,4,6,,rootology-editorial,no
+1APHIF,cauliflower,9,10,,rootology-editorial,no
+1APHIF,broccoli,4,6,,rootology-editorial,no
+1APHIF,broccoli,9,10,,rootology-editorial,no
+1APHIF,tuscan-kale,4,6,,rootology-editorial,no
+1APHIF,tuscan-kale,9,10,,rootology-editorial,no
+1APHIF,savoy-cabbage,4,6,,rootology-editorial,no
+1APHIF,savoy-cabbage,9,10,,rootology-editorial,no
+1APHIF,cabbage,4,6,,rootology-editorial,no
+1APHIF,cabbage,9,10,,rootology-editorial,no
+1APHIF,bean,4,6,,rootology-editorial,no
+1APHIF,bean,9,10,,rootology-editorial,no
+1APHIF,broad-bean,4,6,,rootology-editorial,no
+1APHIF,broad-bean,9,10,,rootology-editorial,no
+1APHIF,pea,4,6,,rootology-editorial,no
+1APHIF,pea,9,10,,rootology-editorial,no
+1APHIF,sweet-pepper,4,6,,rootology-editorial,no
+1APHIF,sweet-pepper,9,10,,rootology-editorial,no
+1APHIF,eggplant,4,6,,rootology-editorial,no
+1APHIF,eggplant,9,10,,rootology-editorial,no
+1APHIF,potato,4,6,,rootology-editorial,no
+1APHIF,potato,9,10,,rootology-editorial,no
+1APHIF,zucchini,4,6,,rootology-editorial,no
+1APHIF,zucchini,9,10,,rootology-editorial,no
+1APHIF,cucumber,4,6,,rootology-editorial,no
+1APHIF,cucumber,9,10,,rootology-editorial,no
+1APHIF,melon,4,6,,rootology-editorial,no
+1APHIF,melon,9,10,,rootology-editorial,no
+LPTNDE,potato,5,8,,rootology-editorial,no
+LPTNDE,eggplant,5,8,,rootology-editorial,no
+LPTNDE,tomato,5,8,,rootology-editorial,no
+PIERBR,cauliflower,5,10,,rootology-editorial,no
+PIERBR,broccoli,5,10,,rootology-editorial,no
+PIERBR,tuscan-kale,5,10,,rootology-editorial,no
+PIERBR,savoy-cabbage,5,10,,rootology-editorial,no
+PIERBR,cabbage,5,10,,rootology-editorial,no
+PIERBR,turnip-tops,5,10,,rootology-editorial,no
+PLUTMA,cauliflower,5,10,,rootology-editorial,no
+PLUTMA,broccoli,5,10,,rootology-editorial,no
+PLUTMA,tuscan-kale,5,10,,rootology-editorial,no
+PLUTMA,savoy-cabbage,5,10,,rootology-editorial,no
+PLUTMA,cabbage,5,10,,rootology-editorial,no
+PLUTMA,rocket,5,10,,rootology-editorial,no
+PLUTMA,radish,5,10,,rootology-editorial,no
+1PHYEG,rocket,4,9,young plants above all,rootology-editorial,no
+1PHYEG,radish,4,9,young plants above all,rootology-editorial,no
+1PHYEG,turnip-tops,4,9,young plants above all,rootology-editorial,no
+1PHYEG,cauliflower,4,9,young plants above all,rootology-editorial,no
+1PHYEG,broccoli,4,9,young plants above all,rootology-editorial,no
+1PHYEG,tuscan-kale,4,9,young plants above all,rootology-editorial,no
+1PHYEG,savoy-cabbage,4,9,young plants above all,rootology-editorial,no
+1PHYEG,cabbage,4,9,young plants above all,rootology-editorial,no
+PSILRO,carrot,5,6,,rootology-editorial,no
+PSILRO,carrot,8,10,,rootology-editorial,no
+PSILRO,celery,5,6,,rootology-editorial,no
+PSILRO,celery,8,10,,rootology-editorial,no
+PSILRO,parsley,5,6,,rootology-editorial,no
+PSILRO,parsley,8,10,,rootology-editorial,no
+HYLEAN,onion,4,6,,rootology-editorial,no
+HYLEAN,onion,8,9,,rootology-editorial,no
+HYLEAN,leek,4,6,,rootology-editorial,no
+HYLEAN,leek,8,9,,rootology-editorial,no
+HYLEAN,garlic,4,6,,rootology-editorial,no
+HYLEAN,garlic,8,9,,rootology-editorial,no
+THRITB,onion,5,9,,rootology-editorial,no
+THRITB,leek,5,9,,rootology-editorial,no
+THRITB,garlic,5,9,,rootology-editorial,no
+THRITB,cabbage,5,9,,rootology-editorial,no
+FRANOC,sweet-pepper,5,9,,rootology-editorial,no
+FRANOC,tomato,5,9,,rootology-editorial,no
+FRANOC,lettuce,5,9,,rootology-editorial,no
+FRANOC,strawberry,5,9,,rootology-editorial,no
+FRANOC,cucumber,5,9,,rootology-editorial,no
+TRIAVA,tomato,6,10,,rootology-editorial,no
+TRIAVA,eggplant,6,10,,rootology-editorial,no
+TRIAVA,bean,6,10,,rootology-editorial,no
+TRIAVA,zucchini,6,10,,rootology-editorial,no
+TRIAVA,cucumber,6,10,,rootology-editorial,no
+BEMITA,tomato,7,10,,rootology-editorial,no
+BEMITA,eggplant,7,10,,rootology-editorial,no
+BEMITA,sweet-pepper,7,10,,rootology-editorial,no
+BEMITA,melon,7,10,,rootology-editorial,no
+TETRUR,bean,6,9,hot and dry weather,rootology-editorial,no
+TETRUR,cucumber,6,9,hot and dry weather,rootology-editorial,no
+TETRUR,melon,6,9,hot and dry weather,rootology-editorial,no
+TETRUR,eggplant,6,9,hot and dry weather,rootology-editorial,no
+TETRUR,tomato,6,9,hot and dry weather,rootology-editorial,no
+TETRUR,strawberry,6,9,hot and dry weather,rootology-editorial,no
+HELIAR,tomato,7,9,,rootology-editorial,no
+HELIAR,sweet-pepper,7,9,,rootology-editorial,no
+GNORAB,tomato,5,10,,rootology-editorial,no
+GNORAB,eggplant,5,10,,rootology-editorial,no
+GNORAB,potato,5,10,,rootology-editorial,no
+1AGRIG,potato,3,6,,rootology-editorial,no
+1AGRIG,potato,9,10,,rootology-editorial,no
+1AGRIG,carrot,3,6,,rootology-editorial,no
+1AGRIG,carrot,9,10,,rootology-editorial,no
+1AGRIG,lettuce,3,6,,rootology-editorial,no
+1AGRIG,lettuce,9,10,,rootology-editorial,no
+DERORE,lettuce,3,6,young plants above all,rootology-editorial,no
+DERORE,lettuce,9,11,young plants above all,rootology-editorial,no
+DERORE,strawberry,3,6,young plants above all,rootology-editorial,no
+DERORE,strawberry,9,11,young plants above all,rootology-editorial,no
+DERORE,cauliflower,3,6,young plants above all,rootology-editorial,no
+DERORE,cauliflower,9,11,young plants above all,rootology-editorial,no
+DERORE,broccoli,3,6,young plants above all,rootology-editorial,no
+DERORE,broccoli,9,11,young plants above all,rootology-editorial,no
+DERORE,tuscan-kale,3,6,young plants above all,rootology-editorial,no
+DERORE,tuscan-kale,9,11,young plants above all,rootology-editorial,no
+DERORE,savoy-cabbage,3,6,young plants above all,rootology-editorial,no
+DERORE,savoy-cabbage,9,11,young plants above all,rootology-editorial,no
+DERORE,cabbage,3,6,young plants above all,rootology-editorial,no
+DERORE,cabbage,9,11,young plants above all,rootology-editorial,no
+DERORE,bean,3,6,young plants above all,rootology-editorial,no
+DERORE,bean,9,11,young plants above all,rootology-editorial,no
+PHYTIN,tomato,5,9,in wet periods,rootology-editorial,no
+PHYTIN,potato,5,9,in wet periods,rootology-editorial,no
+PSPECU,cucumber,7,9,,rootology-editorial,no
+PSPECU,melon,7,9,,rootology-editorial,no
+PSPECU,zucchini,7,9,,rootology-editorial,no
+PSPECU,watermelon,7,9,,rootology-editorial,no
+PSPECU,winter-squash,7,9,,rootology-editorial,no
+BREMLA,lettuce,3,5,,rootology-editorial,no
+BREMLA,lettuce,9,11,,rootology-editorial,no
+PODOXA,zucchini,6,9,,rootology-editorial,no
+PODOXA,cucumber,6,9,,rootology-editorial,no
+PODOXA,melon,6,9,,rootology-editorial,no
+PODOXA,watermelon,6,9,,rootology-editorial,no
+PODOXA,winter-squash,6,9,,rootology-editorial,no
+BOTRCI,strawberry,3,6,in humid weather,rootology-editorial,no
+BOTRCI,strawberry,9,11,in humid weather,rootology-editorial,no
+BOTRCI,lettuce,3,6,in humid weather,rootology-editorial,no
+BOTRCI,lettuce,9,11,in humid weather,rootology-editorial,no
+BOTRCI,tomato,3,6,in humid weather,rootology-editorial,no
+BOTRCI,tomato,9,11,in humid weather,rootology-editorial,no
+BOTRCI,bean,3,6,in humid weather,rootology-editorial,no
+BOTRCI,bean,9,11,in humid weather,rootology-editorial,no
+ALTESO,tomato,6,9,,rootology-editorial,no
+ALTESO,potato,6,9,,rootology-editorial,no
+ALTESO,eggplant,6,9,,rootology-editorial,no
+PUCCAL,garlic,4,6,,rootology-editorial,no
+PUCCAL,garlic,9,10,,rootology-editorial,no
+PUCCAL,leek,4,6,,rootology-editorial,no
+PUCCAL,leek,9,10,,rootology-editorial,no
+PUCCAL,onion,4,6,,rootology-editorial,no
+PUCCAL,onion,9,10,,rootology-editorial,no
+PLADBR,cauliflower,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,broccoli,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,tuscan-kale,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,savoy-cabbage,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,cabbage,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,turnip-tops,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,radish,8,11,soil-borne; acid and wet soils,rootology-editorial,no
+PLADBR,rocket,8,11,soil-borne; acid and wet soils,rootology-editorial,no

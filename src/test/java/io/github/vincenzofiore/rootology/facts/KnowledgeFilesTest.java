@@ -97,6 +97,47 @@ class KnowledgeFilesTest {
         }
     }
 
+    @Test
+    void pairsAreBetweenKnownCropsWithKnownSourcesAndNeverContradict() throws IOException {
+        Set<String> sources = sourceIds();
+        List<Map<String, String>> pairs = read("crop-pairs.csv");
+        assertThat(pairs).isNotEmpty().allSatisfy(row -> {
+            assertThat(catalog.byId(row.get("crop_id"))).as(row.get("crop_id")).isPresent();
+            assertThat(catalog.byId(row.get("partner_id"))).as(row.get("partner_id")).isPresent();
+            assertThat(row.get("crop_id")).isNotEqualTo(row.get("partner_id"));
+            assertThat(row.get("relation")).isIn("COMPANION", "ANTAGONIST");
+            assertThat(row.get("evidence")).isIn("study", "extension", "traditional");
+            assertThat(sources).containsAll(List.of(row.get("sources").split(";")));
+        });
+        Set<String> unordered = pairs.stream()
+                .map(r -> Set.of(r.get("crop_id"), r.get("partner_id")) + r.get("relation"))
+                .collect(Collectors.toSet());
+        assertThat(pairs).noneMatch(r -> unordered.contains(Set.of(r.get("crop_id"), r.get("partner_id"))
+                + ("COMPANION".equals(r.get("relation")) ? "ANTAGONIST" : "COMPANION")));
+    }
+
+    @Test
+    void pestsAreIdentifiedByEppoCodesAndAffectKnownCrops() throws IOException {
+        Set<String> sources = sourceIds();
+        List<Map<String, String>> pests = read("pests.csv");
+        assertThat(pests).allSatisfy(row -> {
+            assertThat(row.get("id")).matches("[0-9A-Z]{5,6}");
+            assertThat(row.get("kind")).isIn("INSECT", "MITE", "MOLLUSC", "DISEASE");
+            assertThat(sources).contains(row.get("source"));
+        });
+        Set<String> pestIds = pests.stream().map(r -> r.get("id")).collect(Collectors.toSet());
+        assertThat(pestIds).hasSize(pests.size());
+        List<Map<String, String>> hosts = read("pest-hosts.csv");
+        assertThat(hosts).allSatisfy(row -> {
+            assertThat(pestIds).contains(row.get("pest_id"));
+            assertThat(catalog.byId(row.get("crop_id"))).as(row.get("crop_id")).isPresent();
+            assertThat(Integer.parseInt(row.get("from_month"))).isBetween(1, 12);
+            assertThat(Integer.parseInt(row.get("to_month"))).isBetween(1, 12);
+            assertThat(sources).contains(row.get("source"));
+        });
+        assertThat(hosts).extracting(r -> r.get("pest_id")).containsAll(pestIds);
+    }
+
     /** Non-empty values must not decrease from left to right. */
     private static void assertOrdered(String what, String... values) {
         double[] numbers = Arrays.stream(values).filter(v -> v != null && !v.isEmpty())

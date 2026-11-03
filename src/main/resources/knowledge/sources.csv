@@ -4,3 +4,9 @@ id,title,url,license,commercial,retrieved_on
 wikidata,Wikidata,https://www.wikidata.org,CC0 1.0,yes,2026-11-03
 fao-ecocrop,FAO ECOCROP - crop environmental requirements,https://ecocrop.apps.fao.org/ecocrop/srv/en/home,CC BY 4.0 (attribution to FAO),yes,2026-11-03
 rootology-editorial,Rootology editorial: general Italian horticultural practice (approved by the owner; to be verified),https://github.com/vincenzofiore/rootology/blob/develop/docs/crops-v1.md,CC BY 4.0,yes,2026-11-03
+cornell-1999,Cornell Cooperative Extension Chemung County - Companion Planting (1999; traditional advice explicitly not proven),https://www.midway.k-state.edu/lawn-and-garden/vegetablegardening/documents/COMPANION%20-%20Cornell.pdf,citation of facts (no text reused),yes,2026-11-03
+uvah-coaker-1984,Uvah and Coaker - Effect of mixed cropping on some insect pests of carrots and onions - Entomologia Experimentalis et Applicata (1984),https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1570-7458.1984.tb03422.x,citation of facts (no text reused),yes,2026-11-03
+rosemary-pepper,Intercropping rosemary with sweet pepper reduces major pest population densities without impacting natural enemy populations,https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7830198/,citation of facts (no text reused),yes,2026-11-03
+agronet-basil-2016,Synergistic effects of agronet covers and companion cropping on reducing whitefly infestation - Agronomy 6(3):42 (2016),https://doi.org/10.3390/agronomy6030042,citation of facts (no text reused),yes,2026-11-03
+purdue-bp80,Purdue Extension - Late Blight of Tomato and Potato (BP-80),https://www.extension.purdue.edu/extmedia/bp/bp-80-w.pdf,citation of facts (no text reused),yes,2026-11-03
+eppo-codes,EPPO Codes - European and Mediterranean Plant Protection Organization,https://gd.eppo.int,EPPO Codes Open Data Licence (attribution to EPPO with download date),yes,2026-11-03

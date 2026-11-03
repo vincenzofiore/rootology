@@ -28,7 +28,8 @@ What the knowledge base needs: crops with taxonomy (family, for rotation rules) 
 1. Wikidata (CC0) for crop identity, families and Italian names.
 2. FAO ECOCROP (CC BY 4.0) for environmental requirements, with attribution in the UI and docs.
 3. The rescued OpenFarm records (CC0) plus hand-curated pairs, each with a source, for companions and antagonists.
-4. EPPO codes for pests and diseases, after reading the Open Data Licence terms.
+4. EPPO codes for pests and diseases. Checked 2026-11-03: the EPPO Codes Open Data Licence allows commercial use with attribution to EPPO and the download date; it covers the codes only, not EPPO datasheet content.
+5. For companion pairs: Cornell Cooperative Extension's chart (traditional advice, cited as such), plus the few peer-reviewed studies and extension recommendations found; each pair keeps its evidence level (`docs/crop-pairs-v1.md`).
 
 Every fact keeps its source and license in the curated files, so the attribution page can be generated from them.
 
