@@ -50,7 +50,7 @@ Phase 1, a personal assistant for a few invited users:
 1. #13 (done) CI with GitHub Actions (offline build on every push).
 2. #15 Per-user data: history and escalations separated by user.
 3. #14 My garden: plots, crops, coarse location and soil per user.
-4. #16 Knowledge base v1: real crops, with a source and license for every fact. Choose the sources with the owner first.
+4. #16 Knowledge base v1: real crops, with a source and license for every fact, and an ontology layer designed with the data: a light schema in Neo4j (classes, hierarchies, constraints), AGROVOC identifiers where they fit, explicit and tested inference rules, inferred facts tagged `INFERRED`. Choose the sources with the owner first.
 5. #17 New question types (what to sow now, what not to plant together, pest risk this week, when to harvest).
 6. #18 Local weather from an open service (check terms first).
 7. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
@@ -60,7 +60,7 @@ Phase 1, a personal assistant for a few invited users:
 
 Phase 2, precision agriculture (umbrella #22):
 
-1. #21 The owner's weather station on their terrace as the first real sensor and test bed: ingest its readings, show them next to the forecast, feed one decision (for example frost or watering), treat gaps and outliers as uncertain readings.
+1. #21 The owner's weather station on their terrace as the first real sensor and test bed: ingest its readings, show them next to the forecast, feed one decision (for example frost or watering), treat gaps and outliers as uncertain readings. Model sensors and readings on SOSA/SSN (W3C).
 2. Then split #22: field sensors (soil moisture and temperature) as time series with per-sensor reliability, and operational decisions (irrigation, disease risk) that escalate when readings are missing or uncertain. #9 (Embabel DICE, confidence-weighted propositions) may fit here.
 
 ## Open questions
