@@ -59,8 +59,12 @@ Phase 1, a personal assistant for a few invited users:
 8. #18 Local weather from an open service (check terms first).
 9. #20 Quality suite: golden questions in CI, failing on silent wrong answers.
 10. #19 Usage limits per user for Claude and Jev.
-11. #12 Deploy: invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
-12. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+11. #25 Send email: SMTP (Gmail app password or a transactional service, terms checked first), Mailpit in development, invitations by email bound to a verified address.
+12. #26 Notifications: in-app and email, starting with escalations; per-person preferences; Telegram, web push or ntfy later for sensors.
+13. #27 Observability: structured logs, domain metrics (escalation rate, confidence, Claude/Jev latency and errors, cost per user), traces through the agent, health checks, alerts; no personal data in logs or traces.
+14. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
+15. #28 Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
+16. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
@@ -71,5 +75,5 @@ Phase 2, precision agriculture (umbrella #22):
 
 - Library for Jev calls (#4, deferred): our own client sends a structured state; Embabel's starter sends text only (asked upstream in embabel/embabel-agent#2211); the Spring AI Community starter accepts structured state but is untried here.
 - Which open data sources for the knowledge base, and under which licenses.
-- Cloud provider for the deployment (#12).
+- Hosting for the deployment (#12): likely a small cloud server; the owner's NAS (DS225+, 2 GB) is not enough without a RAM upgrade.
 - The owner's weather station (#21): a Froggit console with EasyWeatherPro firmware (Ecowitt-compatible), registered on ecowitt.net and Weather Underground. Data via the Ecowitt cloud API v3 (proposed first), the WU PWS API, or the console's local "Customized" upload (Ecowitt protocol, plain HTTP). Keep its identifiers and keys out of the repository and public issues.
