@@ -1,0 +1,51 @@
+package io.github.vincenzofiore.rootology.facts;
+
+import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
+import io.github.vincenzofiore.rootology.facts.KnowledgeGraph.Affecting;
+import io.github.vincenzofiore.rootology.facts.KnowledgeGraph.CropPair;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/** The knowledge base loaded into Neo4j at startup, next to (and apart from) the suite's dataset. */
+@Import(TestcontainersConfiguration.class)
+@SpringBootTest
+class KnowledgeGraphTest {
+
+    @Autowired
+    KnowledgeGraph knowledge;
+
+    @Test
+    void holdsTheCuratedKnowledge() {
+        assertThat(knowledge.count("Crop")).isEqualTo(39);
+        assertThat(knowledge.count("Family")).isEqualTo(11);
+        assertThat(knowledge.count("Organism")).isEqualTo(24);
+        assertThat(knowledge.count("Zone")).isEqualTo(1);
+        assertThat(knowledge.count("Source")).isEqualTo(9);
+    }
+
+    @Test
+    void pairsKeepTheirEvidenceAndSourcesAndAreNeverReversed() {
+        assertThat(knowledge.pairsOf("tomato")).contains(
+                new CropPair("tomato", "basil", "COMPANION",
+                        "Less whitefly when combined with insect nets; basil alone not shown", "study",
+                        java.util.List.of("agronet-basil-2016", "cornell-1999")))
+                .anySatisfy(p -> {
+                    assertThat(p.partnerId()).isEqualTo("potato");
+                    assertThat(p.relation()).isEqualTo("ANTAGONIST");
+                    assertThat(p.evidence()).isEqualTo("extension");
+                });
+        assertThat(knowledge.pairsOf("basil")).extracting(CropPair::partnerId).doesNotContain("tomato");
+    }
+
+    @Test
+    void pestsAreActiveOnlyInTheirMonths() {
+        assertThat(knowledge.affecting("carrot", 5)).extracting(Affecting::organismId).contains("PSILRO");
+        assertThat(knowledge.affecting("carrot", 7)).extracting(Affecting::organismId).doesNotContain("PSILRO");
+        assertThat(knowledge.affecting("tomato", 8)).extracting(Affecting::organismId)
+                .contains("PHYTIN", "GNORAB", "TRIAVA");
+    }
+}

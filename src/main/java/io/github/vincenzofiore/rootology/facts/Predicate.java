@@ -2,7 +2,10 @@ package io.github.vincenzofiore.rootology.facts;
 
 import java.util.Arrays;
 
-/** How each fact predicate is stored in Neo4j: relationship type and the labels of its two ends. */
+/**
+ * How each fact of the quality suite's dataset is stored in Neo4j: relationship type and the
+ * labels of its two ends. Suite nodes also carry the `Suite` label, apart from the knowledge base.
+ */
 enum Predicate {
 
     COMPANION_OF("companionOf", "Plant", "Plant"),
@@ -32,7 +35,7 @@ enum Predicate {
 
     /** Labels and the relationship type come from this enum, never from input, so the query is safe to build. */
     String mergeQuery() {
-        return "MERGE (s:%s {name: $subject}) MERGE (o:%s {name: $object}) MERGE (s)-[:%s]->(o)"
+        return "MERGE (s:Suite:%s {name: $subject}) MERGE (o:Suite:%s {name: $object}) MERGE (s)-[:%s]->(o)"
                 .formatted(subjectLabel, objectLabel, name());
     }
 }
