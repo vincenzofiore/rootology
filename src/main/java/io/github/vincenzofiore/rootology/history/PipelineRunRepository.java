@@ -6,7 +6,5 @@ import java.util.List;
 
 public interface PipelineRunRepository extends JpaRepository<PipelineRunRecord, Long> {
 
-    List<PipelineRunRecord> findTop100ByOrderByFinishedAtDesc();
-
-    List<PipelineRunRecord> findByQuestionIdOrderByFinishedAtDesc(String questionId);
+    List<PipelineRunRecord> findTop100BySpaceIdOrderByFinishedAtDesc(Long spaceId);
 }

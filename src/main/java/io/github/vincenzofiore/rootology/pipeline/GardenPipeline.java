@@ -14,7 +14,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -25,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class GardenPipeline {
 
-    /** An escalated question whose agent is paused, waiting for a person. */
-    public record PendingReview(String processId, Question question, Decision decision) {
+    /** An escalated question whose agent is paused, waiting for a member of its space. */
+    public record PendingReview(String processId, RunContext context, Question question, Decision decision) {
     }
 
     /** Outcome of a run in HUMAN review mode: an answer, or a review waiting for a person. */
@@ -63,38 +62,42 @@ public class GardenPipeline {
      * Runs in HUMAN review mode: an escalated question pauses its agent and joins {@link #pending()}.
      * Every run that finishes publishes a {@link PipelineRunFinished}.
      */
-    public Run start(Question question, NoiseProfile noise) {
+    public Run start(Question question, NoiseProfile noise, RunContext context) {
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN);
-        return settle(process.run(), question);
+        return settle(process.run(), question, context);
     }
 
-    /** Escalated questions waiting for a person, oldest first. */
-    public List<PendingReview> pending() {
-        return new ArrayList<>(pending.values());
+    /** Escalated questions of one space waiting for a person. */
+    public List<PendingReview> pending(long spaceId) {
+        return pending.values().stream().filter(r -> r.context().spaceId() == spaceId).toList();
     }
 
-    /** Hands a person's answer to a paused agent and lets it finish. */
-    public PipelineAnswer respond(String processId, HumanAnswer human) {
-        PendingReview review = pending.remove(processId);
-        if (review == null) {
-            throw new NoSuchElementException("No review waiting for process " + processId);
+    /**
+     * Hands a person's answer to a paused agent and lets it finish. The review must belong to
+     * the given space, so nobody can answer another space's escalation by guessing its id.
+     */
+    public PipelineAnswer respond(String processId, long spaceId, HumanAnswer human) {
+        PendingReview review = pending.get(processId);
+        if (review == null || review.context().spaceId() != spaceId) {
+            throw new NoSuchElementException("No review waiting for process " + processId + " in this space");
         }
+        pending.remove(processId);
         AgentProcess process = agentPlatform.getAgentProcess(processId);
         @SuppressWarnings("unchecked")
         TypeRequest<HumanAnswer> request = process.last(TypeRequest.class);
         request.onResponse(new TypeResponse<>(human, request.getId(), UUID.randomUUID().toString(),
                 Instant.now(), false), process);
-        Run run = settle(process.run(), review.question());
+        Run run = settle(process.run(), review.question(), review.context());
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }
         return run.answer();
     }
 
-    private Run settle(AgentProcess process, Question question) {
+    private Run settle(AgentProcess process, Question question, RunContext context) {
         if (process.getStatus() == AgentProcessStatusCode.WAITING) {
-            PendingReview review = new PendingReview(process.getId(), question, process.last(Decision.class));
+            PendingReview review = new PendingReview(process.getId(), context, question, process.last(Decision.class));
             pending.put(process.getId(), review);
             return new Run(null, review);
         }
@@ -102,7 +105,7 @@ public class GardenPipeline {
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
-        events.publishEvent(new PipelineRunFinished(process.getId(), question, process.last(NoiseProfile.class),
+        events.publishEvent(new PipelineRunFinished(process.getId(), context, question, process.last(NoiseProfile.class),
                 process.last(Decision.class), answer, Instant.now()));
         return new Run(answer, null);
     }

@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,12 +25,12 @@ class SecurityConfiguration {
 
     @Bean
     AllowListOAuth2UserService allowListOAuth2UserService(
-            @Value("${rootology.security.allowed-github-users:}") String allowedUsers) {
+            @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces) {
         Set<String> allowed = Arrays.stream(allowedUsers.split(","))
-                .map(String::trim)
+                .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed);
+        return new AllowListOAuth2UserService(allowed, spaces);
     }
 
     @Bean

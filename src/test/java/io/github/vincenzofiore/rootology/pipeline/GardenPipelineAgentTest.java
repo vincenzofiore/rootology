@@ -6,6 +6,7 @@ import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.history.PipelineRunRecord;
 import io.github.vincenzofiore.rootology.history.RunHistory;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +14,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Runs the pipeline agent on the real Embabel platform with the LLM mocked and the
@@ -30,8 +33,17 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Autowired
     RunHistory history;
 
-    private PipelineRunRecord stored(String processId) {
-        return history.recent().stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
+    @Autowired
+    SpaceService spaces;
+
+    /** A person with their personal space, as after their first login. */
+    private RunContext signedIn(String login) {
+        spaces.signedIn(login);
+        return new RunContext(spaces.spacesOf(login).getFirst().id(), login);
+    }
+
+    private PipelineRunRecord stored(long spaceId, String processId) {
+        return history.recent(spaceId).stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
     }
 
     @BeforeEach
@@ -112,15 +124,16 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it"))
                 .thenReturn("a human answered");
         var question = new Question("hard-3", "Which plants are companions of Lavender?");
+        RunContext alice = signedIn("alice");
 
-        GardenPipeline.Run run = pipeline.start(question, NoiseProfile.NONE);
+        GardenPipeline.Run run = pipeline.start(question, NoiseProfile.NONE, alice);
 
         assertThat(run.answer()).isNull();
         assertThat(run.pending().decision().reason()).isEqualTo("Lavender is not in the dataset");
-        assertThat(pipeline.pending()).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId())).extracting(GardenPipeline.PendingReview::processId)
                 .contains(run.pending().processId());
 
-        PipelineAnswer answer = pipeline.respond(run.pending().processId(),
+        PipelineAnswer answer = pipeline.respond(run.pending().processId(), alice.spaceId(),
                 new HumanAnswer(List.of(), "Lavender is outside the garden dataset", "a-reviewer"));
 
         assertThat(answer.answeredByHuman()).isTrue();
@@ -128,12 +141,13 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.escalated()).isTrue();
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.text()).isEqualTo("a human answered");
-        assertThat(pipeline.pending()).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId())).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(run.pending().processId());
         verifyGenerateText(prompt -> prompt.contains("Reviewer's note: Lavender is outside the garden dataset"));
 
-        PipelineRunRecord record = stored(run.pending().processId());
+        PipelineRunRecord record = stored(alice.spaceId(), run.pending().processId());
         assertThat(record.getQuestionId()).isEqualTo("hard-3");
+        assertThat(record.getStartedBy()).isEqualTo("alice");
         assertThat(record.isDecisionEscalated()).isTrue();
         assertThat(record.isAnsweredByHuman()).isTrue();
         assertThat(record.getReviewer()).isEqualTo("a-reviewer");
@@ -146,20 +160,43 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Tomato?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "Tomato"));
 
+        RunContext bob = signedIn("bob");
         GardenPipeline.Run run = pipeline.start(
-                new Question("easy-1", "Which plants are companions of Tomato?"), NoiseProfile.NONE);
+                new Question("easy-1", "Which plants are companions of Tomato?"), NoiseProfile.NONE, bob);
 
         assertThat(run.pending()).isNull();
         assertThat(run.answer().answer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(run.answer().answeredByHuman()).isFalse();
         assertThat(run.answer().reviewer()).isNull();
 
-        PipelineRunRecord record = history.recent().getFirst();
+        PipelineRunRecord record = history.recent(bob.spaceId()).getFirst();
         assertThat(record.getQuestionId()).isEqualTo("easy-1");
         assertThat(record.getAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(record.getJenaAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(record.getMatchesJena()).isTrue();
         assertThat(record.isNoisy()).isFalse();
+    }
+
+    @Test
+    void spacesNeverSeeEachOthersEscalationsOrHistory() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Lavender?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "Lavender"));
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        RunContext carol = signedIn("carol");
+        RunContext dave = signedIn("dave");
+
+        GardenPipeline.Run run = pipeline.start(
+                new Question("hard-3", "Which plants are companions of Lavender?"), NoiseProfile.NONE, carol);
+        String processId = run.pending().processId();
+
+        assertThat(pipeline.pending(dave.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+                .doesNotContain(processId);
+        assertThatThrownBy(() -> pipeline.respond(processId, dave.spaceId(), new HumanAnswer(List.of(), "", "dave")))
+                .isInstanceOf(NoSuchElementException.class);
+
+        pipeline.respond(processId, carol.spaceId(), new HumanAnswer(List.of(), "", "carol"));
+        assertThat(history.recent(carol.spaceId())).extracting(PipelineRunRecord::getProcessId).contains(processId);
+        assertThat(history.recent(dave.spaceId())).extracting(PipelineRunRecord::getProcessId).doesNotContain(processId);
     }
 
     @Test

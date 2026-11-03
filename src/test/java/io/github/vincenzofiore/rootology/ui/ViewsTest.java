@@ -2,10 +2,11 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.spring.security.AuthenticationContext;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
+import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import jakarta.annotation.security.PermitAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,26 +29,39 @@ class ViewsTest {
     GardenPipeline pipeline;
 
     @Autowired
-    AuthenticationContext authentication;
+    SpaceService spaces;
+
+    @Autowired
+    RunHistory history;
 
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
-        for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class)) {
+        for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)).as(view.getSimpleName()).isTrue();
             assertThat(route.layout().isAnnotationPresent(PermitAll.class)).as(route.layout().getSimpleName()).isTrue();
         }
     }
 
+    private CurrentUser viewer() {
+        return new CurrentUser(spaces, "views-test-user");
+    }
+
+    @Test
+    void historyAndSpaceViewsBuild() {
+        assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
+        assertThat(new SpaceView(spaces, viewer()).getChildren()).isNotEmpty();
+    }
+
     @Test
     void comparisonViewBuilds() {
-        assertThat(new ComparisonView(runner, pipeline).getChildren()).isNotEmpty();
+        assertThat(new ComparisonView(runner, pipeline, viewer()).getChildren()).isNotEmpty();
     }
 
     @Test
     void escalationViewListsPendingReviews() {
-        EscalationView view = new EscalationView(pipeline, authentication);
+        EscalationView view = new EscalationView(pipeline, viewer());
 
         assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isTrue();
     }

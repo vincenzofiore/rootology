@@ -37,11 +37,13 @@ public class ComparisonView extends VerticalLayout {
 
     private final ExperimentRunner runner;
     private final GardenPipeline pipeline;
+    private final CurrentUser currentUser;
     private final FlexLayout arms = new FlexLayout();
 
-    public ComparisonView(ExperimentRunner runner, GardenPipeline pipeline) {
+    public ComparisonView(ExperimentRunner runner, GardenPipeline pipeline, CurrentUser currentUser) {
         this.runner = runner;
         this.pipeline = pipeline;
+        this.currentUser = currentUser;
 
         ComboBox<ExperimentCase> caseBox = new ComboBox<>("Case", ExperimentCase.values());
         caseBox.setItemLabelGenerator(c -> c.id() + " · " + c.question());
@@ -87,7 +89,8 @@ public class ComparisonView extends VerticalLayout {
         arms.add(recorded("Claude with skill", RecordedLlmAnswers.withSkill(experimentCase), jena));
         arms.add(recorded("Claude without skill", RecordedLlmAnswers.withoutSkill(experimentCase), jena));
         try {
-            GardenPipeline.Run run = pipeline.start(new Question(experimentCase.id(), experimentCase.question()), noise);
+            GardenPipeline.Run run = pipeline.start(new Question(experimentCase.id(), experimentCase.question()), noise,
+                    currentUser.runContext());
             arms.add(run.answer() != null ? pipelineCard(run.answer(), jena)
                     : card("Pipeline", "Waiting for a human",
                     "Escalated: " + run.pending().decision().reason() + ". Answer it in Escalations."));

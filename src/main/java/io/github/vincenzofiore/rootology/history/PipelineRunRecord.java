@@ -22,6 +22,8 @@ public class PipelineRunRecord {
     private Long id;
 
     private String processId;
+    private Long spaceId;
+    private String startedBy;
     private String questionId;
     private String question;
 
@@ -53,13 +55,15 @@ public class PipelineRunRecord {
     protected PipelineRunRecord() {
     }
 
-    PipelineRunRecord(String processId, String questionId, String question,
+    PipelineRunRecord(String processId, long spaceId, String startedBy, String questionId, String question,
                       double noiseDropout, int noiseSpurious, double noiseMislabel, boolean noiseNearSubject,
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
                       boolean answeredByHuman, String reviewer, String answerText,
                       List<String> jenaAnswer, Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
+        this.spaceId = spaceId;
+        this.startedBy = startedBy;
         this.questionId = questionId;
         this.question = question;
         this.noiseDropout = noiseDropout;
@@ -82,6 +86,8 @@ public class PipelineRunRecord {
 
     public Long getId() { return id; }
     public String getProcessId() { return processId; }
+    public Long getSpaceId() { return spaceId; }
+    public String getStartedBy() { return startedBy; }
     public String getQuestionId() { return questionId; }
     public String getQuestion() { return question; }
     public double getNoiseDropout() { return noiseDropout; }

@@ -35,17 +35,18 @@ public class RunHistory {
         NoiseProfile noise = run.noise();
         List<String> jena = experimentCase(run.question().id()).map(runner::jenaAnswer).orElse(null);
         Boolean matches = jena == null ? null : new HashSet<>(jena).equals(new HashSet<>(answer.answer()));
-        repository.save(new PipelineRunRecord(run.processId(), run.question().id(), run.question().text(),
+        repository.save(new PipelineRunRecord(run.processId(), run.context().spaceId(), run.context().startedBy(),
+                run.question().id(), run.question().text(),
                 noise.dropout(), noise.spurious(), noise.mislabel(), noise.nearSubject(), noise.seed(),
                 decision.answer(), decision.confidence(), decision.escalate(), decision.reason(),
                 answer.answer(), answer.answeredByHuman(), answer.reviewer(), answer.text(),
                 jena, matches, run.finishedAt()));
     }
 
-    /** The most recent runs, newest first. */
+    /** The most recent runs of one space, newest first. */
     @Transactional(readOnly = true)
-    public List<PipelineRunRecord> recent() {
-        return repository.findTop100ByOrderByFinishedAtDesc();
+    public List<PipelineRunRecord> recent(long spaceId) {
+        return repository.findTop100BySpaceIdOrderByFinishedAtDesc(spaceId);
     }
 
     private static Optional<ExperimentCase> experimentCase(String questionId) {
