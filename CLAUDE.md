@@ -36,6 +36,7 @@ Sensors fit this design directly: missing and noisy readings are what the decisi
   - `ui` (Vaadin, http://localhost:8080): Compare, Escalations, History; GitHub OAuth2 login with an allow-list (`ROOTOLOGY_ALLOWED_GITHUB_USERS`), which works as invite-only access for the prototype.
 - Secrets and settings come from project-specific environment variables: `ROOTOLOGY_ANTHROPIC_API_KEY`, `ROOTOLOGY_TYPESAFE_API_KEY`, `ROOTOLOGY_GITHUB_CLIENT_ID`, `ROOTOLOGY_GITHUB_CLIENT_SECRET`, `ROOTOLOGY_ALLOWED_GITHUB_USERS` (never `ANTHROPIC_API_KEY`, which Claude Code itself would pick up).
 - `./mvnw spring-boot:run` starts Postgres and Neo4j from `compose.yaml` (needs Docker). Spring tests import `TestcontainersConfiguration`. A plain `./mvnw test` makes no paid call; tests tagged `live-api` call Claude and Jev and run with `-Plive`.
+- CI (#13): `.github/workflows/build.yml` runs `./mvnw test` on every push to `develop` and `main` and on pull requests, on a pinned `ubuntu-26.04` runner with Java 25 (Temurin); no secrets, Testcontainers uses the runner's Docker. The README badge shows the `develop` status.
 - `.claude/skills/rootology-garden-companion/SKILL.md` is the prose version of the original dataset, used only by the experiment's "Claude with skill" arm.
 
 ## Roadmap
@@ -46,7 +47,7 @@ Phase 0, done 2026-11-03: reframe from toy experiment to prototype (this file, `
 
 Phase 1, a personal assistant for a few invited users:
 
-1. #13 CI with GitHub Actions (offline build on every push).
+1. #13 (done) CI with GitHub Actions (offline build on every push).
 2. #15 Per-user data: history and escalations separated by user.
 3. #14 My garden: plots, crops, coarse location and soil per user.
 4. #16 Knowledge base v1: real crops, with a source and license for every fact. Choose the sources with the owner first.

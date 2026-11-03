@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned, so the CI environment changes only when we decide (ubuntu-latest moves on its own).
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
