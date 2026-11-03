@@ -1,5 +1,7 @@
 # Rootology
 
+[![build](https://github.com/vincenzofiore/rootology/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/vincenzofiore/rootology/actions/workflows/build.yml)
+
 **Rootology** is a small, hands-on experiment comparing two ways of giving an
 AI system domain knowledge: a formal ontology with a symbolic reasoning
 engine (Apache Jena), and a natural-language "skill file" consumed by an LLM

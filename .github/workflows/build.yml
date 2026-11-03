@@ -1,0 +1,32 @@
+# Offline build and tests on every push and pull request (#13).
+# No secrets: a plain `./mvnw test` makes no paid call (live-api tests are excluded),
+# and the Testcontainers tests (Postgres, Neo4j) use the runner's Docker.
+name: build
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Build and test
+        run: ./mvnw -B -ntp test
+      - name: Keep test reports when something fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
