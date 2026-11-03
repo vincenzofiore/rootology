@@ -1,0 +1,42 @@
+# Crops of the knowledge base v1 (docs/crops-v1.md), approved 2026-11-03.
+# Families are still to be verified against Wikidata when the knowledge base is loaded (#16).
+id,italian,english,scientific,family
+tomato,Pomodoro,Tomato,Solanum lycopersicum,Solanaceae
+sweet-pepper,Peperone,Sweet pepper,Capsicum annuum,Solanaceae
+chili-pepper,Peperoncino,Chili pepper,Capsicum annuum / C. frutescens,Solanaceae
+eggplant,Melanzana,Eggplant,Solanum melongena,Solanaceae
+potato,Patata,Potato,Solanum tuberosum,Solanaceae
+zucchini,Zucchina,Zucchini,Cucurbita pepo,Cucurbitaceae
+cucumber,Cetriolo,Cucumber,Cucumis sativus,Cucurbitaceae
+melon,Melone,Melon,Cucumis melo,Cucurbitaceae
+watermelon,Anguria,Watermelon,Citrullus lanatus,Cucurbitaceae
+winter-squash,Zucca,Winter squash,Cucurbita maxima / C. moschata,Cucurbitaceae
+bean,Fagiolo,Bean,Phaseolus vulgaris,Fabaceae
+basil,Basilico,Basil,Ocimum basilicum,Lamiaceae
+cauliflower,Cavolfiore,Cauliflower,Brassica oleracea var. botrytis,Brassicaceae
+broccoli,Broccolo,Broccoli,Brassica oleracea var. italica,Brassicaceae
+tuscan-kale,Cavolo nero,Tuscan kale,Brassica oleracea var. palmifolia,Brassicaceae
+savoy-cabbage,Cavolo verza,Savoy cabbage,Brassica oleracea var. sabauda,Brassicaceae
+cabbage,Cavolo cappuccio,Cabbage,Brassica oleracea var. capitata,Brassicaceae
+turnip-tops,Cime di rapa,Turnip tops,Brassica rapa,Brassicaceae
+fennel,Finocchio,Florence fennel,Foeniculum vulgare var. azoricum,Apiaceae
+radicchio,Radicchio,Radicchio,Cichorium intybus,Asteraceae
+endive,Indivia e scarola,Endive and escarole,Cichorium endivia,Asteraceae
+leek,Porro,Leek,Allium porrum,Amaryllidaceae
+spinach,Spinacio,Spinach,Spinacia oleracea,Amaranthaceae
+lambs-lettuce,Valerianella (songino),Lamb's lettuce,Valerianella locusta,Caprifoliaceae
+broad-bean,Fava,Broad bean,Vicia faba,Fabaceae
+pea,Pisello,Pea,Pisum sativum,Fabaceae
+garlic,Aglio,Garlic,Allium sativum,Amaryllidaceae
+onion,Cipolla,Onion,Allium cepa,Amaryllidaceae
+artichoke,Carciofo,Artichoke,Cynara cardunculus var. scolymus,Asteraceae
+strawberry,Fragola,Strawberry,Fragaria x ananassa,Rosaceae
+lettuce,Lattuga,Lettuce,Lactuca sativa,Asteraceae
+rocket,Rucola,Rocket,Eruca vesicaria,Brassicaceae
+radish,Ravanello,Radish,Raphanus sativus,Brassicaceae
+carrot,Carota,Carrot,Daucus carota,Apiaceae
+chard,Bietola,Chard,Beta vulgaris var. cicla,Amaranthaceae
+celery,Sedano,Celery,Apium graveolens,Apiaceae
+parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae
+rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae
+sage,Salvia,Sage,Salvia officinalis,Lamiaceae
