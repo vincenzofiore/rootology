@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 /** Uses Jev when a TypeSafe API key is configured, otherwise the deterministic stub. */
 @Configuration
@@ -22,7 +25,12 @@ class DecisionLayerConfiguration {
             return new StubDecisionLayer();
         }
         log.info("Using JevDecisionLayer with model {}", model);
+        // Explicit timeouts: the JDK default would wait forever on a silent server (#29).
+        SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
+        timeouts.setConnectTimeout(Duration.ofSeconds(3));
+        timeouts.setReadTimeout(Duration.ofSeconds(20));
         RestClient restClient = RestClient.builder()
+                .requestFactory(timeouts)
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();

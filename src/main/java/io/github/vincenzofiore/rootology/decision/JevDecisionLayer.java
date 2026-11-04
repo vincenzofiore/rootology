@@ -1,6 +1,7 @@
 package io.github.vincenzofiore.rootology.decision;
 
 import io.github.vincenzofiore.rootology.facts.Fact;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestClient;
@@ -44,10 +45,16 @@ public class JevDecisionLayer implements DecisionLayer {
 
     private final RestClient restClient;
     private final String model;
+    private final CircuitBreaker breaker;
 
     public JevDecisionLayer(RestClient restClient, String model) {
+        this(restClient, model, new CircuitBreaker("Jev"));
+    }
+
+    public JevDecisionLayer(RestClient restClient, String model, CircuitBreaker breaker) {
         this.restClient = restClient;
         this.model = model;
+        this.breaker = breaker;
     }
 
     static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast) {
@@ -74,7 +81,20 @@ public class JevDecisionLayer implements DecisionLayer {
         if (intent.kind() == QueryKind.OTHER) {
             return Decision.escalated("the question does not fit any supported shape");
         }
-        return decide(judge(intent, facts), MIN_CONFIDENCE);
+        // When Jev cannot be reached, a person decides: the human in the loop is the fallback (#29).
+        if (!breaker.allowsCall()) {
+            return Decision.escalated("the decision layer is not available right now");
+        }
+        Judgments judgments;
+        try {
+            judgments = judge(intent, facts);
+            breaker.success();
+        } catch (RuntimeException e) {
+            breaker.failure();
+            log.warn("Jev call failed: {}", e.getMessage());
+            return Decision.escalated("the decision layer did not answer");
+        }
+        return decide(judgments, MIN_CONFIDENCE);
     }
 
     /** One call to Jev: is the question answerable, and is each candidate part of the answer. */

@@ -48,6 +48,48 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Autowired
     KnowledgeContributions contributions;
 
+    @Autowired
+    ClaudeCircuit claude;
+
+    @org.junit.jupiter.api.AfterEach
+    void closeClaudesCircuit() {
+        claude.breaker.success();
+    }
+
+    @Test
+    void whenClaudeCannotUnderstandTheQuestionThePersonIsToldClearly() {
+        whenCreateObject(prompt -> prompt.contains("Question: Is Claude down?"), Intent.class)
+                .thenThrow(new IllegalStateException("overloaded"));
+
+        assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Is Claude down?"), signedIn("dora")))
+                .isInstanceOf(io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException.class)
+                .hasMessageContaining("Claude is not available");
+    }
+
+    @Test
+    void anOpenCircuitRefusesAtOnce() {
+        for (int i = 0; i < io.github.vincenzofiore.rootology.resilience.CircuitBreaker.FAILURE_THRESHOLD; i++) {
+            claude.breaker.failure();
+        }
+
+        assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Anything?"), signedIn("ezra")))
+                .isInstanceOf(io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException.class);
+        verifyNoInteractions();
+    }
+
+    @Test
+    void whenClaudeCannotPhraseTheAnswerThePlainValuesAreShown() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of tomato?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+        whenGenerateText(prompt -> prompt.contains("Question: Which plants are companions of tomato?"))
+                .thenThrow(new IllegalStateException("overloaded"));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(
+                new Question("ask", "Which plants are companions of tomato?"), signedIn("fede"));
+
+        assertThat(run.answer().text()).startsWith("Answer: ").contains("Basil");
+    }
+
     /** Never the real service in tests: by default it has no forecast, as when MET Norway is down. */
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     io.github.vincenzofiore.rootology.weather.WeatherService weatherService;

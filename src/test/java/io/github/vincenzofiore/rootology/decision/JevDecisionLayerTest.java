@@ -96,6 +96,24 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void whenJevFailsAPersonDecidesAndRepeatedFailuresStopTheCalls() {
+        for (int i = 0; i < io.github.vincenzofiore.rootology.resilience.CircuitBreaker.FAILURE_THRESHOLD; i++) {
+            server.expect(requestTo("https://jev.test/v1/systemone"))
+                    .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withServerError());
+        }
+
+        Decision first = layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), FACTS);
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), FACTS);
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), FACTS);
+        Decision open = layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), FACTS);
+
+        assertThat(first.escalate()).isTrue();
+        assertThat(first.reason()).isEqualTo("the decision layer did not answer");
+        assertThat(open.reason()).isEqualTo("the decision layer is not available right now");
+        server.verify(); // exactly three calls: the fourth was not made
+    }
+
+    @Test
     void theQuestionsLanguageNeverReachesJev() {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.intent.subject").value("Mosquito"))

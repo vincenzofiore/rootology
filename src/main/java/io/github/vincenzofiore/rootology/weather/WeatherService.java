@@ -1,5 +1,7 @@
 package io.github.vincenzofiore.rootology.weather;
 
+import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,16 +34,18 @@ public class WeatherService {
     private final MetNorwayClient client;
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final CircuitBreaker breaker;
 
     @Autowired
     WeatherService(MetNorwayClient client, JdbcClient jdbc) {
-        this(client, jdbc, Clock.systemUTC());
+        this(client, jdbc, Clock.systemUTC(), new CircuitBreaker("MET Norway"));
     }
 
-    WeatherService(MetNorwayClient client, JdbcClient jdbc, Clock clock) {
+    WeatherService(MetNorwayClient client, JdbcClient jdbc, Clock clock, CircuitBreaker breaker) {
         this.client = client;
         this.jdbc = jdbc;
         this.clock = clock;
+        this.breaker = breaker;
     }
 
     /** The last three days and the coming ones, or empty when there is no usable forecast. */
@@ -58,6 +62,10 @@ public class WeatherService {
             return Optional.of(read(lat, lon, now, cached.get().fetchedAt(), false));
         }
         try {
+            if (!breaker.allowsCall()) {
+                // Recently failing: do not wait for another timeout (#29).
+                throw new ServiceUnavailableException("MET Norway circuit is open");
+            }
             MetNorwayClient.Response response = client.fetch(lat.doubleValue(), lon.doubleValue(),
                     cached.map(Cached::lastModified).orElse(null));
             if (!response.notModified()) {
@@ -68,12 +76,21 @@ public class WeatherService {
                             + "fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at, "
                             + "last_modified = EXCLUDED.last_modified")
                     .params(lat, lon, ts(now), ts(response.expires()), response.lastModified()).update();
+            breaker.success();
             return Optional.of(read(lat, lon, now, now, false));
+        } catch (ServiceUnavailableException e) {
+            return fallback(cached, lat, lon, now);
         } catch (RuntimeException e) {
+            breaker.failure();
             log.warn("Weather service unavailable for {},{}: {}", lat, lon, e.getMessage());
-            return cached.filter(c -> Duration.between(c.fetchedAt(), now).compareTo(STALE_LIMIT) < 0)
-                    .map(c -> read(lat, lon, now, c.fetchedAt(), true));
+            return fallback(cached, lat, lon, now);
         }
+    }
+
+    /** A copy fetched less than a day ago, marked stale; otherwise no weather. */
+    private Optional<Forecast> fallback(Optional<Cached> cached, BigDecimal lat, BigDecimal lon, Instant now) {
+        return cached.filter(c -> Duration.between(c.fetchedAt(), now).compareTo(STALE_LIMIT) < 0)
+                .map(c -> read(lat, lon, now, c.fetchedAt(), true));
     }
 
     private void store(BigDecimal lat, BigDecimal lon, List<ForecastHour> hours, Instant now) {

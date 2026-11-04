@@ -20,8 +20,22 @@ embabel:
     default-llm: claude-sonnet-5-5
   agent:
     platform:
+      # Each action runs once: by default Embabel retries a failing action up to 5 times over minutes,
+      # which keeps a person waiting while a service is down; Claude's calls retry briefly below (#29).
+      action-qos:
+        default:
+          max-attempts: 1
+      llm-operations:
+        prompts:
+          default-timeout: 30s
       models:
         anthropic:
+          # Few, short retries: with the defaults (10 attempts, backoff from 5 s up to 3 min) a question
+          # could wait for many minutes while Anthropic is down (#29).
+          max-attempts: 3
+          backoff-millis: 1000
+          backoff-multiplier: 2
+          backoff-max-interval: 4000
           # Project-specific name, so the key does not leak into Claude Code itself (which reads ANTHROPIC_API_KEY).
           # The placeholder lets the context start without a key; real LLM calls need it set.
           api-key: ${ROOTOLOGY_ANTHROPIC_API_KEY:not-set}

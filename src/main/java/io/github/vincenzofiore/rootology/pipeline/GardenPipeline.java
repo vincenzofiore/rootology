@@ -10,6 +10,8 @@ import com.embabel.agent.core.hitl.TypeRequest;
 import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.Intent;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -35,10 +37,19 @@ public class GardenPipeline {
     private final AgentPlatform agentPlatform;
     private final ApplicationEventPublisher events;
     private final Map<String, PendingReview> pending = new ConcurrentHashMap<>();
+    private final ClaudeCircuit claude;
 
-    public GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events) {
+    GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude) {
         this.agentPlatform = agentPlatform;
         this.events = events;
+        this.claude = claude;
+    }
+
+    /** Fails at once while Claude's circuit is open, instead of waiting for Claude's retries (#29). */
+    private void requireClaude() {
+        if (claude.breaker.state() == CircuitBreaker.State.OPEN) {
+            throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE);
+        }
     }
 
     /** Full pipeline on clean facts: Claude reads the question text. */
@@ -48,6 +59,7 @@ public class GardenPipeline {
 
     /** Full pipeline on degraded facts. Escalations are only recorded, never wait. */
     public PipelineAnswer ask(Question question, NoiseProfile noise) {
+        requireClaude();
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
                 .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE);
     }
@@ -72,6 +84,7 @@ public class GardenPipeline {
     }
 
     private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
+        requireClaude();
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
         return settle(process.run(), question, context);
@@ -111,6 +124,9 @@ public class GardenPipeline {
             return new Run(null, review);
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
+            if (claude.breaker.failing()) {
+                throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE);
+            }
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);

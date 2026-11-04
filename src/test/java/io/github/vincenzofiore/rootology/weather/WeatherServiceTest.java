@@ -91,6 +91,27 @@ class WeatherServiceTest {
     }
 
     @Test
+    void anOpenCircuitSkipsTheServiceAndUsesTheStoredCopy() {
+        io.github.vincenzofiore.rootology.resilience.CircuitBreaker breaker =
+                new io.github.vincenzofiore.rootology.resilience.CircuitBreaker("test MET");
+        WeatherService service = new WeatherService(client, jdbc, java.time.Clock.systemUTC(), breaker);
+        when(client.fetch(eq(43.77), eq(11.25), isNull())).thenReturn(new MetNorwayClient.Response(comingHours(),
+                Instant.now().plusSeconds(1800), null));
+        service.around(new BigDecimal("43.77"), new BigDecimal("11.25"));
+        expire("43.77", "11.25");
+        when(client.fetch(eq(43.77), eq(11.25), isNull())).thenThrow(new IllegalStateException("down"));
+
+        for (int i = 0; i < 5; i++) {
+            assertThat(service.around(new BigDecimal("43.77"), new BigDecimal("11.25"))).get()
+                    .extracting(Forecast::stale).isEqualTo(true);
+        }
+
+        // One successful call, then three failures; the last two questions did not call MET Norway.
+        verify(client, times(4)).fetch(eq(43.77), eq(11.25), isNull());
+        assertThat(breaker.state()).isEqualTo(io.github.vincenzofiore.rootology.resilience.CircuitBreaker.State.OPEN);
+    }
+
+    @Test
     void withoutAnyCopyAFailureMeansNoWeather() {
         when(client.fetch(anyDouble(), anyDouble(), isNull())).thenThrow(new IllegalStateException("down"));
 

@@ -16,6 +16,7 @@ import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
 
+import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import io.github.vincenzofiore.rootology.weather.Forecast;
 
 import java.util.List;
@@ -94,14 +95,18 @@ public class GardenPipelineAgent {
     private final GardenFacts garden;
     private final WeatherFacts weather;
     private final DecisionLayer decisionLayer;
+    private final ClaudeCircuit claude;
 
-    public GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden,
-                               WeatherFacts weather, DecisionLayer decisionLayer) {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GardenPipelineAgent.class);
+
+    GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden, WeatherFacts weather,
+                        DecisionLayer decisionLayer, ClaudeCircuit claude) {
         this.factSource = factSource;
         this.knowledge = knowledge;
         this.garden = garden;
         this.weather = weather;
         this.decisionLayer = decisionLayer;
+        this.claude = claude;
     }
 
     /** Italy is where the knowledge base's windows apply; zones and the current month follow it. */
@@ -109,8 +114,19 @@ public class GardenPipelineAgent {
 
     @Action(description = "Turn the question text into a structured intent")
     public Intent understand(Question question, RunContext run, OperationContext context) {
-        Intent intent = context.ai().withDefaultLlm()
-                .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
+        // Without Claude the question cannot be understood: fail at once and clearly (#29).
+        if (!claude.breaker.allowsCall()) {
+            throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE);
+        }
+        Intent intent;
+        try {
+            intent = context.ai().withDefaultLlm()
+                    .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class);
+            claude.breaker.success();
+        } catch (RuntimeException e) {
+            claude.breaker.failure();
+            throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE, e);
+        }
         // The question's zone first, then the zone of the asking space's garden, then CENTRO.
         if (intent.zone() == null && run.hasSpace() && NEEDS_ZONE.contains(intent.kind())) {
             String gardenZone = garden.zone(run.spaceId(), run.startedBy()).orElse(null);
@@ -202,10 +218,32 @@ public class GardenPipelineAgent {
             // Only when present, so the suite's prompts stay exactly as recorded.
             prompt += NOTES_PROMPT.formatted(String.join(" ", facts.notes()));
         }
-        String text = context.ai().withDefaultLlm().generateText(prompt);
+        String text = phrase(prompt, resolution, facts, context);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
                 resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text,
                 sourcesOf(resolution.answer(), facts), facts.notes());
+    }
+
+    /** Claude's phrasing, or a plain sentence from the values when Claude is not available (#29). */
+    private String phrase(String prompt, Resolution resolution, GraphFacts facts, OperationContext context) {
+        if (claude.breaker.allowsCall()) {
+            try {
+                String text = context.ai().withDefaultLlm().generateText(prompt);
+                claude.breaker.success();
+                return text;
+            } catch (RuntimeException e) {
+                claude.breaker.failure();
+                log.warn("Claude could not phrase the answer: {}", e.getMessage());
+            }
+        }
+        return plainText(resolution, facts);
+    }
+
+    static String plainText(Resolution resolution, GraphFacts facts) {
+        String main = resolution.escalated() ? "Not sure enough to answer: " + resolution.reason() + "."
+                : resolution.answer().isEmpty() ? "No values found." : "Answer: " + String.join(", ", resolution.answer()) + ".";
+        return String.join(" ", java.util.stream.Stream.concat(java.util.stream.Stream.of(main), facts.notes().stream())
+                .toList());
     }
 
     /**
