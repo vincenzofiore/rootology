@@ -50,6 +50,20 @@ class GardenServiceTest {
     }
 
     @Test
+    void zonesAndCalendarsApplyToGardensInItalyOnly() {
+        long abroad = spaceOf("lea");
+        gardens.saveGarden(abroad, "lea", null, "Allotment", "Lyon", new BigDecimal("45.76"), new BigDecimal("4.84"), "FR");
+        long legacy = spaceOf("max");
+        gardens.saveGarden(legacy, "max", null, "Balcony", "Milano", new BigDecimal("45.46"), new BigDecimal("9.19"));
+
+        assertThat(gardens.zone(abroad, "lea")).contains(GardenService.OUTSIDE_ITALY);
+        assertThat(gardens.zone(legacy, "max")).as("no country: saved before #30, in Italy").contains("NORD");
+        assertThat(gardens.gardens(abroad, "lea").getFirst().countryCode()).isEqualTo("FR");
+        assertThatThrownBy(() -> gardens.saveGarden(abroad, "lea", null, "Bad", null, null, null, "France"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void growingOnLeavesOutWhatIsHarvestedOrNotYetPlanted() {
         long space = spaceOf("hugo");
         GardenSummary garden = gardens.saveGarden(space, "hugo", null, "Allotment", null, null, null);

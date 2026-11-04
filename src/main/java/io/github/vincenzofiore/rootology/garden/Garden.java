@@ -23,22 +23,30 @@ class Garden {
     private String town;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private String countryCode;
     private Instant createdAt;
 
     protected Garden() {
     }
 
-    Garden(long spaceId, String name, String town, BigDecimal latitude, BigDecimal longitude, Instant createdAt) {
+    Garden(long spaceId, String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
+           Instant createdAt) {
         this.spaceId = spaceId;
         this.createdAt = createdAt;
-        update(name, town, latitude, longitude);
+        update(name, town, latitude, longitude, countryCode);
     }
 
-    void update(String name, String town, BigDecimal latitude, BigDecimal longitude) {
+    void update(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode) {
         this.name = name;
         this.town = town;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.countryCode = countryCode;
+    }
+
+    /** Gardens saved before the country was recorded (#30) were all in Italy. */
+    boolean inItaly() {
+        return countryCode == null || countryCode.equals("IT");
     }
 
     Long getId() { return id; }
@@ -47,4 +55,5 @@ class Garden {
     String getTown() { return town; }
     BigDecimal getLatitude() { return latitude; }
     BigDecimal getLongitude() { return longitude; }
+    String getCountryCode() { return countryCode; }
 }

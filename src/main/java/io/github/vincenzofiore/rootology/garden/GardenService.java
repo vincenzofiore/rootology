@@ -51,14 +51,25 @@ public class GardenService {
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
                                     BigDecimal latitude, BigDecimal longitude) {
+        return saveGarden(spaceId, login, gardenId, name, town, latitude, longitude, null);
+    }
+
+    /** countryCode: ISO 3166-1 alpha-2 (for example "IT"), or null when not known. */
+    @Transactional
+    public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
+                                    BigDecimal latitude, BigDecimal longitude, String countryCode) {
         requireMember(spaceId, login);
+        String country = blankToNull(countryCode);
+        if (country != null && !country.matches("[A-Z]{2}")) {
+            throw new IllegalArgumentException("A country is a two-letter ISO code, not " + countryCode);
+        }
         String cleanName = required(name, "A garden needs a name");
         BigDecimal lat = coarse(latitude, 90, "Latitude");
         BigDecimal lon = coarse(longitude, 180, "Longitude");
         Garden garden = gardenId == null
-                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, Instant.now())
+                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, Instant.now())
                 : garden(spaceId, gardenId);
-        garden.update(cleanName, blankToNull(town), lat, lon);
+        garden.update(cleanName, blankToNull(town), lat, lon, country);
         return summary(gardens.save(garden));
     }
 
@@ -164,8 +175,11 @@ public class GardenService {
         return gardens.findBySpaceIdOrderById(spaceId).stream()
                 .filter(g -> g.getLatitude() != null)
                 .findFirst()
-                .map(g -> zoneOf(g.getLatitude().doubleValue()));
+                .map(g -> g.inItaly() ? zoneOf(g.getLatitude().doubleValue()) : OUTSIDE_ITALY);
     }
+
+    /** The zone of a garden abroad: the knowledge base's calendars cover Italy only. */
+    public static final String OUTSIDE_ITALY = "OUTSIDE_ITALY";
 
     static String zoneOf(double latitude) {
         return latitude >= 44.0 ? "NORD" : latitude >= 41.5 ? "CENTRO" : "SUD";
@@ -235,7 +249,8 @@ public class GardenService {
     }
 
     private static GardenSummary summary(Garden g) {
-        return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude());
+        return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude(),
+                g.getCountryCode());
     }
 
     private static PlotSummary summary(Plot p) {

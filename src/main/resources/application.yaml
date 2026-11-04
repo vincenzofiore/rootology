@@ -46,6 +46,10 @@ rootology:
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
     base-url: https://api.typesafe.ai
     model: jev-latest
+  geonames:
+    # A free GeoNames account with "free web services" enabled; empty means place search is not offered.
+    base-url: https://secure.geonames.org
+    username: ${ROOTOLOGY_GEONAMES_USERNAME:}
   weather:
     # MET Norway asks every app to identify itself, with a way to reach its maintainer.
     base-url: https://api.met.no

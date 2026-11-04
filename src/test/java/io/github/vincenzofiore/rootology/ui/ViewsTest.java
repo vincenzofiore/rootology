@@ -48,6 +48,9 @@ class ViewsTest {
     CropCatalog crops;
 
     @Autowired
+    io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
+
+    @Autowired
     SourceCatalog sourceCatalog;
 
     @Autowired
@@ -75,7 +78,7 @@ class ViewsTest {
     void historyAndSpaceViewsBuild() {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
         assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardenView(gardens, crops, viewer()).getChildren()).isNotEmpty();
+        assertThat(new GardenView(gardens, crops, geoNames, viewer()).getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();

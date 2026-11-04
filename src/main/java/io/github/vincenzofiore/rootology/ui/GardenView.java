@@ -19,6 +19,8 @@ import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.facts.Crop;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
+import io.github.vincenzofiore.rootology.geocoding.GeoNames;
+import io.github.vincenzofiore.rootology.geocoding.Place;
 import io.github.vincenzofiore.rootology.garden.GardenViews.GardenSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlantingSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlotSummary;
@@ -38,6 +40,7 @@ public class GardenView extends VerticalLayout {
 
     private final GardenService gardens;
     private final CropCatalog crops;
+    private final GeoNames geoNames;
     private final long spaceId;
     private final String login;
 
@@ -47,9 +50,10 @@ public class GardenView extends VerticalLayout {
     private final Grid<PlantingSummary> plantingGrid = new Grid<>();
     private final H4 plantingTitle = new H4("Select a plot");
 
-    public GardenView(GardenService gardens, CropCatalog crops, CurrentUser currentUser) {
+    public GardenView(GardenService gardens, CropCatalog crops, GeoNames geoNames, CurrentUser currentUser) {
         this.gardens = gardens;
         this.crops = crops;
+        this.geoNames = geoNames;
         this.spaceId = currentUser.space().id();
         this.login = currentUser.login();
 
@@ -106,9 +110,14 @@ public class GardenView extends VerticalLayout {
         }
         String where = garden.town() == null ? "no town" : garden.town();
         String coords = garden.latitude() == null ? "" : " (" + garden.latitude() + ", " + garden.longitude() + ")";
-        gardenInfo.setText(where + coords);
+        String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
+        gardenInfo.setText(where + inCountry + coords);
         plotGrid.setItems(gardens.plots(spaceId, login, garden.id()));
         showPlantings(null);
+    }
+
+    private static java.math.BigDecimal coarse(double degrees) {
+        return java.math.BigDecimal.valueOf(degrees).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     private void showPlantings(PlotSummary plot) {
@@ -121,19 +130,79 @@ public class GardenView extends VerticalLayout {
         TextField town = new TextField("Town");
         BigDecimalField latitude = new BigDecimalField("Latitude (optional)");
         BigDecimalField longitude = new BigDecimalField("Longitude (optional)");
+        TextField country = new TextField("Country (ISO code, optional)");
+        country.setMaxLength(2);
+        country.setPattern("[A-Za-z]{2}");
         if (existing != null) {
             name.setValue(existing.name());
             town.setValue(existing.town() == null ? "" : existing.town());
             latitude.setValue(existing.latitude());
             longitude.setValue(existing.longitude());
+            country.setValue(existing.countryCode() == null ? "" : existing.countryCode());
         }
+
+        // A place found by name fills in the town, the coordinates and the country (#30).
+        String language = getLocale() == null ? "en" : getLocale().getLanguage();
+        ComboBox<Place> place = new ComboBox<>("Find the place");
+        place.setPlaceholder("Type at least 3 letters");
+        place.setItemLabelGenerator(Place::label);
+        place.setItems(query -> geoNames.search(query.getFilter().orElse(""), language).stream()
+                .skip(query.getOffset()).limit(query.getLimit()));
+        place.addValueChangeListener(e -> {
+            Place p = e.getValue();
+            if (p != null) {
+                town.setValue(p.name());
+                latitude.setValue(coarse(p.latitude()));
+                longitude.setValue(coarse(p.longitude()));
+                country.setValue(p.countryCode() == null ? "" : p.countryCode());
+            }
+        });
+        place.setVisible(geoNames.enabled());
+
+        // The browser asks the person first; it works on localhost and over HTTPS only.
+        Button here = new Button("Use my position", e -> getElement().executeJs("""
+                return new Promise((resolve, reject) => navigator.geolocation
+                    ? navigator.geolocation.getCurrentPosition(
+                        p => resolve(p.coords.latitude + ',' + p.coords.longitude),
+                        err => reject(err.message), {timeout: 10000})
+                    : reject('not supported'))""")
+                .then(String.class, position -> {
+                    String[] parts = position.split(",");
+                    double lat = Double.parseDouble(parts[0]);
+                    double lon = Double.parseDouble(parts[1]);
+                    latitude.setValue(coarse(lat));
+                    longitude.setValue(coarse(lon));
+                    // The nearest town and its country, as when a place is chosen from the search.
+                    geoNames.nearestPlace(lat, lon, language).ifPresent(p -> {
+                        town.setValue(p.name());
+                        country.setValue(p.countryCode());
+                    });
+                }, error -> Notification.show("Position not available: " + error)));
+
         Dialog dialog = new Dialog(existing == null ? "New garden" : "Edit garden");
-        dialog.add(new FormLayout(name, town, latitude, longitude),
-                new Paragraph("Only a coarse location is kept: coordinates are rounded to about 1 km."));
+        dialog.add(new FormLayout(name, place, town, latitude, longitude, country), here,
+                new Paragraph("Only a coarse location is kept: coordinates are rounded to about 1 km. "
+                        + "Sowing calendars cover Italy only for now; the weather works everywhere."
+                        + (geoNames.enabled() ? " Place search by GeoNames (CC BY 4.0)." : "")));
         dialog.getFooter().add(new Button("Cancel", e -> dialog.close()), new Button("Save", e -> {
             try {
+                String countryCode = country.getValue().trim().toUpperCase(java.util.Locale.ROOT);
+                if ((countryCode.isEmpty() || town.getValue().isBlank())
+                        && latitude.getValue() != null && longitude.getValue() != null) {
+                    // Typed coordinates: fill what is missing from the nearest town; without GeoNames, save anyway.
+                    var nearest = geoNames.nearestPlace(latitude.getValue().doubleValue(),
+                            longitude.getValue().doubleValue(), language);
+                    if (nearest.isPresent()) {
+                        if (countryCode.isEmpty()) {
+                            countryCode = nearest.get().countryCode();
+                        }
+                        if (town.getValue().isBlank()) {
+                            town.setValue(nearest.get().name());
+                        }
+                    }
+                }
                 GardenSummary saved = gardens.saveGarden(spaceId, login, existing == null ? null : existing.id(),
-                        name.getValue(), town.getValue(), latitude.getValue(), longitude.getValue());
+                        name.getValue(), town.getValue(), latitude.getValue(), longitude.getValue(), countryCode);
                 dialog.close();
                 reloadGardens(saved.id());
             } catch (RuntimeException ex) {

@@ -182,7 +182,12 @@ public class GardenPipelineAgent {
                             f.sourceIds(), f.derivedBy()))
                     .toList());
             readings.addAll(local.readings());
-            return new GraphFacts(readings, local.notes());
+            List<String> notes = new java.util.ArrayList<>(local.notes());
+            if (io.github.vincenzofiore.rootology.garden.GardenService.OUTSIDE_ITALY.equals(full.zone())) {
+                // No window matches this zone, so the question escalates; say why (#30).
+                notes.add(0, "The sowing and harvest calendars cover Italy only, and your garden is outside Italy.");
+            }
+            return new GraphFacts(readings, notes);
         }
         return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));
     }

@@ -6,7 +6,9 @@ import java.time.LocalDate;
 /** What the garden module hands out: plain records, never entities. */
 public final class GardenViews {
 
-    public record GardenSummary(long id, String name, String town, BigDecimal latitude, BigDecimal longitude) {
+    /** countryCode: ISO 3166-1 alpha-2, or null when not known (gardens saved before #30, all in Italy). */
+    public record GardenSummary(long id, String name, String town, BigDecimal latitude, BigDecimal longitude,
+                                String countryCode) {
     }
 
     public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2) {

@@ -346,6 +346,20 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void aGardenAbroadGetsNoItalianCalendarAndIsToldWhy() {
+        RunContext run = signedIn("gino");
+        gardens.saveGarden(run.spaceId(), "gino", null, "Allotment", "Lyon", new java.math.BigDecimal("45.76"),
+                new java.math.BigDecimal("4.84"), "FR");
+        whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.SOWING_TIME, "tomato", null, "en"));
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"), run);
+
+        assertThat(asked.answer()).isNull();
+        assertThat(asked.pending()).isNotNull();
+    }
+
+    @Test
     void anUnknownCropInARealQuestionWaitsForAPerson() {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));

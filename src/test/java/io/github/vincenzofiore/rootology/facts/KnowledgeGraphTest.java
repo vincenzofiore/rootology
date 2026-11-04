@@ -24,7 +24,7 @@ class KnowledgeGraphTest {
         assertThat(knowledge.count("Family")).isEqualTo(11);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         assertThat(knowledge.count("Zone")).isEqualTo(3);
-        assertThat(knowledge.count("Source")).isEqualTo(10);
+        assertThat(knowledge.count("Source")).isEqualTo(11);
     }
 
     @Test
