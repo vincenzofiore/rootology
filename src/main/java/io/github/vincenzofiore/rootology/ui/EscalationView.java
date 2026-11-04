@@ -57,7 +57,12 @@ public class EscalationView extends VerticalLayout {
         HorizontalLayout form = new HorizontalLayout(values, note, submit, refresh);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
-        add(new Paragraph("Each row is a paused agent. Pick one, give the answer, and the agent resumes."), grid, form);
+        // A guest sees the open questions but does not answer them (#33).
+        form.setVisible(currentUser.canContribute());
+        add(new Paragraph(currentUser.canContribute()
+                ? "Each row is a paused agent. Pick one, give the answer, and the agent resumes."
+                : "Each row is a question waiting for a member of this space. As a guest you can follow them."),
+                grid, form);
         refresh();
     }
 

@@ -58,7 +58,7 @@ public class GardenService {
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
                                     BigDecimal latitude, BigDecimal longitude, String countryCode) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         String country = blankToNull(countryCode);
         if (country != null && !country.matches("[A-Z]{2}")) {
             throw new IllegalArgumentException("A country is a two-letter ISO code, not " + countryCode);
@@ -75,7 +75,7 @@ public class GardenService {
 
     @Transactional
     public void deleteGarden(long spaceId, String login, long gardenId) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         gardens.delete(garden(spaceId, gardenId));
     }
 
@@ -89,7 +89,7 @@ public class GardenService {
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
                                 PlotKind kind, Soil soil, BigDecimal areaM2) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         String cleanName = required(name, "A plot needs a name");
         if (kind == null || soil == null) {
             throw new IllegalArgumentException("A plot needs a kind and a soil");
@@ -105,7 +105,7 @@ public class GardenService {
 
     @Transactional
     public void deletePlot(long spaceId, String login, long plotId) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         plots.delete(plot(spaceId, plotId));
     }
 
@@ -120,7 +120,7 @@ public class GardenService {
     @Transactional
     public PlantingSummary plant(long spaceId, String login, long plotId, String cropId, PlantingMethod method,
                                  LocalDate plantedOn, String notes) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         if (cropId == null || crops.byId(cropId).isEmpty()) {
             throw new IllegalArgumentException("Unknown crop: " + cropId);
         }
@@ -144,13 +144,13 @@ public class GardenService {
     /** Harvested or removed on that day. */
     @Transactional
     public void endPlanting(long spaceId, String login, long plantingId, LocalDate endedOn) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         planting(spaceId, plantingId).end(endedOn);
     }
 
     @Transactional
     public void deletePlanting(long spaceId, String login, long plantingId) {
-        requireMember(spaceId, login);
+        requireContributor(spaceId, login);
         plantings.delete(planting(spaceId, plantingId));
     }
 
@@ -204,6 +204,11 @@ public class GardenService {
         List<PlotSummary> partial = all.stream().filter(p -> java.util.Arrays.asList(
                 p.name().toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
         return partial.size() == 1 ? Optional.of(partial.getFirst()) : Optional.empty();
+    }
+
+    /** Changes need an OWNER or MEMBER: a GUEST only looks (#33). */
+    private void requireContributor(long spaceId, String login) {
+        spaces.requireContributor(spaceId, login);
     }
 
     private void requireMember(long spaceId, String login) {

@@ -54,9 +54,6 @@ rootology:
     # MET Norway asks every app to identify itself, with a way to reach its maintainer.
     base-url: https://api.met.no
     user-agent: rootology/0.1 (+https://github.com/vincenzofiore/rootology)
-  knowledge:
-    # GitHub logins (comma-separated) who review facts proposed for everyone (#24). Empty means nobody.
-    curators: ${ROOTOLOGY_CURATORS:}
   security:
     # GitHub accounts (logins, comma-separated) allowed into the UI. Empty means nobody.
     allowed-github-users: ${ROOTOLOGY_ALLOWED_GITHUB_USERS:}

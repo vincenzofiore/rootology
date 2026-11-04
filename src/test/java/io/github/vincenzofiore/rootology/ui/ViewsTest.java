@@ -48,6 +48,9 @@ class ViewsTest {
     CropCatalog crops;
 
     @Autowired
+    io.github.vincenzofiore.rootology.roles.RoleService roles;
+
+    @Autowired
     io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
 
     @Autowired
@@ -63,9 +66,10 @@ class ViewsTest {
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class, AskView.class, KnowledgeView.class)) {
+                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class)) {
             Route route = view.getAnnotation(Route.class);
-            assertThat(view.isAnnotationPresent(PermitAll.class)).as(view.getSimpleName()).isTrue();
+            assertThat(view.isAnnotationPresent(PermitAll.class)
+                    || view.isAnnotationPresent(jakarta.annotation.security.RolesAllowed.class)).as(view.getSimpleName()).isTrue();
             assertThat(route.layout().isAnnotationPresent(PermitAll.class)).as(route.layout().getSimpleName()).isTrue();
         }
     }
@@ -82,12 +86,37 @@ class ViewsTest {
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
+        assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
+                .containsExactly("ADMIN");
+
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
 
     @Test
-    void comparisonViewBuilds() {
+    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
+    void adminViewShowsPeopleAndHistoryToAnAdmin() {
+        assertThat(new AdminView(roles, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+    }
+
+    @Test
+    void comparisonViewBuildsAndIsForQaOnly() {
         assertThat(new ComparisonView(runner, pipeline, viewer()).getChildren()).isNotEmpty();
+        assertThat(ComparisonView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
+                .containsExactly("QA");
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "QA")
+    void historyShowsTheArbiterToQaOnly() {
+        long suiteColumnsForQa = new HistoryView(history, viewer()).getChildren().filter(Grid.class::isInstance)
+                .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
+                .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        long columnsForMember = new HistoryView(history, viewer()).getChildren().filter(Grid.class::isInstance)
+                .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
+                .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
+
+        assertThat(suiteColumnsForQa - columnsForMember).isEqualTo(3);
     }
 
     @Test

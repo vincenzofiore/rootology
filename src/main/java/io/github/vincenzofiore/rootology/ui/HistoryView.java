@@ -7,13 +7,14 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.history.PipelineRunRecord;
 import io.github.vincenzofiore.rootology.history.RunHistory;
+import io.github.vincenzofiore.rootology.roles.AppRole;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/** The latest finished pipeline runs of the current space, stored in Postgres, next to the arbiter's answer. */
+/** The latest finished pipeline runs of the current space, stored in Postgres; QA also sees the arbiter's answer. */
 @Route(value = "history", layout = MainLayout.class)
 @PageTitle("History · Rootology")
 @PermitAll
@@ -26,11 +27,16 @@ public class HistoryView extends VerticalLayout {
         long spaceId = currentUser.space().id();
         Grid<PipelineRunRecord> grid = new Grid<>();
         grid.addColumn(r -> TIME.format(r.getFinishedAt())).setHeader("Finished").setAutoWidth(true);
-        grid.addColumn(PipelineRunRecord::getQuestionId).setHeader("Case").setAutoWidth(true);
+        // Suite columns (case, noise, arbiter) are for QA (#32); everyone sees their questions and answers.
+        boolean qa = currentUser.hasRole(AppRole.QA);
+        grid.addColumn(PipelineRunRecord::getQuestionId).setHeader("Case").setAutoWidth(true).setVisible(qa);
         grid.addColumn(PipelineRunRecord::getStartedBy).setHeader("Asked by").setAutoWidth(true);
-        grid.addColumn(r -> r.isNoisy() ? "noisy, seed " + r.getNoiseSeed() : "clean").setHeader("Input").setAutoWidth(true);
+        grid.addColumn(PipelineRunRecord::getQuestion).setHeader("Question").setFlexGrow(2);
+        grid.addColumn(r -> r.isNoisy() ? "noisy, seed " + r.getNoiseSeed() : "clean").setHeader("Input").setAutoWidth(true)
+                .setVisible(qa);
         grid.addColumn(r -> values(r.getAnswer())).setHeader("Pipeline").setFlexGrow(1);
-        grid.addColumn(r -> r.getJenaAnswer() == null ? "-" : values(r.getJenaAnswer())).setHeader("Jena").setFlexGrow(1);
+        grid.addColumn(r -> r.getJenaAnswer() == null ? "-" : values(r.getJenaAnswer())).setHeader("Jena").setFlexGrow(1)
+                .setVisible(qa);
         grid.addColumn(r -> r.getMatchesJena() == null ? "-" : r.getMatchesJena() ? "yes" : "no")
                 .setHeader("Matches").setAutoWidth(true);
         grid.addColumn(r -> "%.2f".formatted(r.getDecisionConfidence())).setHeader("Confidence").setAutoWidth(true);

@@ -20,13 +20,15 @@ class AllowListOAuth2UserServiceTest {
 
     private final SpaceService spaces = mock(SpaceService.class);
     private final InvitationService invitations = mock(InvitationService.class);
+    private final io.github.vincenzofiore.rootology.roles.RoleService roles =
+            mock(io.github.vincenzofiore.rootology.roles.RoleService.class);
 
     private static OAuth2User githubUser(String login) {
         return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"), Map.of("login", login), "login");
     }
 
     private AllowListOAuth2UserService service(String... allowed) {
-        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations);
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles);
     }
 
     @Test
@@ -67,5 +69,16 @@ class AllowListOAuth2UserServiceTest {
     void anEmptyAllowListLetsNobodyInOnItsOwn() {
         assertThatThrownBy(() -> service().requireAllowed(githubUser("alice"), null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
+    }
+
+    @Test
+    void appRolesBecomeAuthoritiesAtSignIn() {
+        when(roles.rolesOf("alice")).thenReturn(java.util.EnumSet.of(io.github.vincenzofiore.rootology.roles.AppRole.QA));
+
+        OAuth2User user = service("alice").withRoles(githubUser("alice"), "alice", "login");
+
+        assertThat(user.getAuthorities()).extracting(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .containsExactlyInAnyOrder("OAUTH2_USER", "ROLE_QA");
+        assertThat(user.getName()).isEqualTo("alice");
     }
 }

@@ -7,20 +7,17 @@ import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Proposals, reviews and the facts they add to the knowledge graph. Members of a space propose; the
- * curators (GitHub logins in `rootology.knowledge.curators`) review the global ones.
+ * curators (app role CURATOR, #32, checked with method security) review the global ones.
  */
 @Service
 public class KnowledgeEnrichment {
@@ -30,19 +27,11 @@ public class KnowledgeEnrichment {
     private final KnowledgeProposalRepository proposals;
     private final KnowledgeContributions graph;
     private final SpaceService spaces;
-    private final Set<String> curators;
 
-    KnowledgeEnrichment(KnowledgeProposalRepository proposals, KnowledgeContributions graph, SpaceService spaces,
-                        @Value("${rootology.knowledge.curators:}") String curators) {
+    KnowledgeEnrichment(KnowledgeProposalRepository proposals, KnowledgeContributions graph, SpaceService spaces) {
         this.proposals = proposals;
         this.graph = graph;
         this.spaces = spaces;
-        this.curators = Arrays.stream(curators.split(",")).map(String::trim).filter(s -> !s.isEmpty())
-                .map(SpaceService::normalizeLogin).collect(Collectors.toUnmodifiableSet());
-    }
-
-    public boolean isCurator(String login) {
-        return login != null && curators.contains(SpaceService.normalizeLogin(login));
     }
 
     /**
@@ -53,7 +42,7 @@ public class KnowledgeEnrichment {
     @Transactional
     public ProposalSummary propose(long spaceId, String login, ProposalScope scope, Contribution contribution,
                                    String citation) {
-        requireMember(spaceId, login);
+        spaces.requireContributor(spaceId, login);
         String cited = citation == null || citation.isBlank() ? null : citation.trim();
         List<String> problems = new java.util.ArrayList<>(
                 graph.problems(contribution, scope == ProposalScope.SPACE ? spaceId : null));
@@ -97,9 +86,9 @@ public class KnowledgeEnrichment {
     }
 
     /** The global proposals waiting for a curator, oldest first. */
+    @PreAuthorize("hasRole(\'CURATOR\')")
     @Transactional(readOnly = true)
     public List<ProposalSummary> pending(String login) {
-        requireCurator(login);
         return proposals.findByStatusOrderById(ProposalStatus.PENDING).stream().map(KnowledgeProposal::summary)
                 .toList();
     }
@@ -110,7 +99,7 @@ public class KnowledgeEnrichment {
      */
     @Transactional
     public ProposalSummary withdraw(long spaceId, String login, long proposalId) {
-        requireMember(spaceId, login);
+        spaces.requireContributor(spaceId, login);
         KnowledgeProposal proposal = proposals.findById(proposalId).filter(p -> p.getSpaceId() == spaceId)
                 .orElseThrow(() -> new IllegalArgumentException("No proposal " + proposalId + " in this space"));
         if (!proposal.canBeWithdrawn()) {
@@ -125,6 +114,7 @@ public class KnowledgeEnrichment {
     }
 
     /** Approves a global proposal, checking it again against today's knowledge, and adds it for everyone. */
+    @PreAuthorize("hasRole(\'CURATOR\')")
     @Transactional
     public ProposalSummary approve(String login, long proposalId, String note) {
         KnowledgeProposal proposal = pendingProposal(login, proposalId);
@@ -137,6 +127,7 @@ public class KnowledgeEnrichment {
         return proposal.summary();
     }
 
+    @PreAuthorize("hasRole(\'CURATOR\')")
     @Transactional
     public ProposalSummary reject(String login, long proposalId, String note) {
         KnowledgeProposal proposal = pendingProposal(login, proposalId);
@@ -164,7 +155,6 @@ public class KnowledgeEnrichment {
     }
 
     private KnowledgeProposal pendingProposal(String login, long proposalId) {
-        requireCurator(login);
         KnowledgeProposal proposal = proposals.findById(proposalId)
                 .orElseThrow(() -> new IllegalArgumentException("No proposal " + proposalId));
         if (proposal.getStatus() != ProposalStatus.PENDING) {
@@ -176,12 +166,6 @@ public class KnowledgeEnrichment {
     private void requireMember(long spaceId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
-        }
-    }
-
-    private void requireCurator(String login) {
-        if (!isCurator(login)) {
-            throw new SpaceAccessException(login + " is not a knowledge curator");
         }
     }
 

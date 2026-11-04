@@ -206,10 +206,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 .contains(run.pending().processId());
 
         PipelineAnswer answer = pipeline.respond(run.pending().processId(), alice.spaceId(),
-                new HumanAnswer(List.of(), "Lavender is outside the garden dataset", "a-reviewer"));
+                new HumanAnswer(List.of(), "Lavender is outside the garden dataset", "alice"));
 
         assertThat(answer.answeredByHuman()).isTrue();
-        assertThat(answer.reviewer()).isEqualTo("a-reviewer");
+        assertThat(answer.reviewer()).isEqualTo("alice");
         assertThat(answer.escalated()).isTrue();
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.text()).isEqualTo("a human answered");
@@ -222,7 +222,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(record.getStartedBy()).isEqualTo("alice");
         assertThat(record.isDecisionEscalated()).isTrue();
         assertThat(record.isAnsweredByHuman()).isTrue();
-        assertThat(record.getReviewer()).isEqualTo("a-reviewer");
+        assertThat(record.getReviewer()).isEqualTo("alice");
         assertThat(record.getJenaAnswer()).isEmpty();
         assertThat(record.getMatchesJena()).isTrue();
     }
@@ -357,6 +357,18 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(asked.answer()).isNull();
         assertThat(asked.pending()).isNotNull();
+    }
+
+    @Test
+    void aGuestCannotAskInTheSpace() {
+        RunContext owner = signedIn("ugne");
+        spaces.signedIn("vito");
+        spaces.addMember(owner.spaceId(), "ugne", "vito", io.github.vincenzofiore.rootology.spaces.Role.GUEST);
+
+        assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Anything?"),
+                new RunContext(owner.spaceId(), "vito")))
+                .isInstanceOf(io.github.vincenzofiore.rootology.spaces.SpaceAccessException.class);
+        verifyNoInteractions();
     }
 
     @Test

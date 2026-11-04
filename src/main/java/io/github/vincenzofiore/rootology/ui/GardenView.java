@@ -61,6 +61,10 @@ public class GardenView extends VerticalLayout {
         gardenBox.addValueChangeListener(e -> showGarden(e.getValue()));
         Button newGarden = new Button("New garden", e -> gardenDialog(null));
         Button editGarden = new Button("Edit garden", e -> gardenDialog(gardenBox.getValue()));
+        // A guest only looks (#33): every button that changes the garden is hidden.
+        boolean contributor = currentUser.canContribute();
+        newGarden.setVisible(contributor);
+        editGarden.setVisible(contributor);
         HorizontalLayout top = new HorizontalLayout(gardenBox, newGarden, editGarden);
         top.setDefaultVerticalComponentAlignment(Alignment.END);
 
@@ -70,7 +74,8 @@ public class GardenView extends VerticalLayout {
         plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader("Area");
         plotGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button("Edit", e -> plotDialog(p)),
-                new Button("Delete", e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))));
+                new Button("Delete", e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))))
+                .setVisible(contributor);
         plotGrid.setAllRowsVisible(true);
         plotGrid.asSingleSelect().addValueChangeListener(e -> showPlantings(e.getValue()));
 
@@ -82,11 +87,14 @@ public class GardenView extends VerticalLayout {
         plantingGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button("Harvested today", e -> act(() ->
                         gardens.endPlanting(spaceId, login, p.id(), LocalDate.now()))),
-                new Button("Delete", e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))));
+                new Button("Delete", e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))))
+                .setVisible(contributor);
         plantingGrid.setAllRowsVisible(true);
 
         Button addPlot = new Button("Add plot", e -> plotDialog(null));
         Button addPlanting = new Button("Sow or plant", e -> plantingDialog());
+        addPlot.setVisible(contributor);
+        addPlanting.setVisible(contributor);
 
         add(new H3("My garden"), top, gardenInfo,
                 new HorizontalLayout(new H4("Plots"), addPlot), plotGrid,

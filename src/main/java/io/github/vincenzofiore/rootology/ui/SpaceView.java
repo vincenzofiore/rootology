@@ -52,12 +52,19 @@ public class SpaceView extends VerticalLayout {
         members.addColumn(Member::githubLogin).setHeader("GitHub login");
         members.addColumn(m -> m.role().name()).setHeader("Role").setAutoWidth(true);
         if (owner) {
-            members.addComponentColumn(m -> new HorizontalLayout(
-                    new Button(m.role() == Role.OWNER ? "Make member" : "Make owner", e -> act(() ->
-                            spaces.changeRole(space.id(), currentUser.login(), m.githubLogin(),
-                                    m.role() == Role.OWNER ? Role.MEMBER : Role.OWNER))),
-                    new Button("Remove", e -> act(() ->
-                            spaces.removeMember(space.id(), currentUser.login(), m.githubLogin())))))
+            members.addComponentColumn(m -> {
+                        ComboBox<Role> roleBox = new ComboBox<>(null, Role.values());
+                        roleBox.setValue(m.role());
+                        roleBox.setWidth("9rem");
+                        roleBox.addValueChangeListener(e -> {
+                            if (e.isFromClient() && e.getValue() != null && e.getValue() != m.role()) {
+                                act(() -> spaces.changeRole(space.id(), currentUser.login(), m.githubLogin(), e.getValue()));
+                            }
+                        });
+                        return new HorizontalLayout(roleBox,
+                                new Button("Remove", e -> act(() ->
+                                        spaces.removeMember(space.id(), currentUser.login(), m.githubLogin()))));
+                    })
                     .setHeader("Actions").setAutoWidth(true);
         }
         members.setAllRowsVisible(true);

@@ -8,6 +8,8 @@ import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.spaces.SpaceSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import io.github.vincenzofiore.rootology.roles.AppRole;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -42,10 +44,22 @@ public class CurrentUser {
         return login;
     }
 
+    /** An app role (#32) of the signed-in person, from the authorities given at sign-in. */
+    public boolean hasRole(AppRole role) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(role.authority()));
+    }
+
     /**
      * The current space, re-read so a role change shows up. If the person was removed from it,
      * falls back to their first space (their personal space).
      */
+    /** False for a GUEST of the current space (#33): they look, and every change is hidden from them. */
+    public boolean canContribute() {
+        return space().role().contributes();
+    }
+
     public SpaceSummary space() {
         List<SpaceSummary> mine = spaces();
         return mine.stream().filter(s -> s.id() == spaceId).findFirst().orElseGet(() -> {

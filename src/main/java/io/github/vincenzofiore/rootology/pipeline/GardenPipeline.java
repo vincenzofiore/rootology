@@ -11,6 +11,7 @@ import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -38,11 +39,14 @@ public class GardenPipeline {
     private final ApplicationEventPublisher events;
     private final Map<String, PendingReview> pending = new ConcurrentHashMap<>();
     private final ClaudeCircuit claude;
+    private final SpaceService spaces;
 
-    GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude) {
+    GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
+                   SpaceService spaces) {
         this.agentPlatform = agentPlatform;
         this.events = events;
         this.claude = claude;
+        this.spaces = spaces;
     }
 
     /** Fails at once while Claude's circuit is open, instead of waiting for Claude's retries (#29). */
@@ -84,6 +88,10 @@ public class GardenPipeline {
     }
 
     private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
+        if (context.hasSpace()) {
+            // A guest only looks: no questions in the space (#33).
+            spaces.requireContributor(context.spaceId(), context.startedBy());
+        }
         requireClaude();
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
@@ -100,6 +108,7 @@ public class GardenPipeline {
      * the given space, so nobody can answer another space's escalation by guessing its id.
      */
     public PipelineAnswer respond(String processId, long spaceId, HumanAnswer human) {
+        spaces.requireContributor(spaceId, human.reviewer());
         PendingReview review = pending.get(processId);
         if (review == null || review.context().spaceId() != spaceId) {
             throw new NoSuchElementException("No review waiting for process " + processId + " in this space");

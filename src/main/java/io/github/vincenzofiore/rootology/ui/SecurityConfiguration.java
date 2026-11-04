@@ -2,11 +2,13 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
+import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
  * in is decided by AllowListOAuth2UserService.
  */
 @Configuration
+@EnableMethodSecurity
 class SecurityConfiguration {
 
     static final String GITHUB_LOGIN_PAGE = "/oauth2/authorization/github";
@@ -30,12 +33,12 @@ class SecurityConfiguration {
     @Bean
     AllowListOAuth2UserService allowListOAuth2UserService(
             @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces,
-            InvitationService invitations) {
+            InvitationService invitations, RoleService roles) {
         Set<String> allowed = Arrays.stream(allowedUsers.split(","))
                 .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed, spaces, invitations);
+        return new AllowListOAuth2UserService(allowed, spaces, invitations, roles);
     }
 
     @Bean

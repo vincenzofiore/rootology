@@ -60,6 +60,21 @@ public class SpaceService {
         return members.findBySpaceIdAndUserGithubLogin(spaceId, normalizeLogin(githubLogin)).isPresent();
     }
 
+    /** True for an OWNER or MEMBER of the space; a GUEST only looks (#33). */
+    @Transactional(readOnly = true)
+    public boolean canContribute(long spaceId, String githubLogin) {
+        return members.findBySpaceIdAndUserGithubLogin(spaceId, normalizeLogin(githubLogin))
+                .map(m -> m.getRole().contributes()).orElse(false);
+    }
+
+    /** Refuses a guest or a non-member; for every change made in a space. */
+    public void requireContributor(long spaceId, String githubLogin) {
+        if (!canContribute(spaceId, githubLogin)) {
+            throw new SpaceAccessException(githubLogin + " may not change space " + spaceId
+                    + (isMember(spaceId, githubLogin) ? " as a guest" : ""));
+        }
+    }
+
     /** The members of a space; only its members may list them. */
     @Transactional(readOnly = true)
     public List<Member> membersOf(long spaceId, String requester) {
@@ -89,6 +104,12 @@ public class SpaceService {
         AppUser user = users.findByGithubLogin(login)
                 .orElseGet(() -> users.save(new AppUser(login, Instant.now())));
         members.save(new SpaceMember(owner.getSpace(), user, role, Instant.now()));
+    }
+
+    /** Every person the app knows (signed in, or added to a space), by login. */
+    @Transactional(readOnly = true)
+    public List<String> people() {
+        return users.findAll().stream().map(AppUser::getGithubLogin).sorted().toList();
     }
 
     /** True if this person belongs to at least one space, which lets them sign in. */
@@ -126,7 +147,8 @@ public class SpaceService {
             throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
         }
         SpaceMember target = requireMember(spaceId, githubLogin);
-        if (role == Role.MEMBER) {
+        if (role != Role.OWNER) {
+            // Also when an owner becomes a guest: a space keeps at least one owner.
             requireAnotherOwnerIfOwner(spaceId, target);
         }
         target.changeRole(role);

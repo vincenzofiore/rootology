@@ -79,6 +79,23 @@ class GardenServiceTest {
     }
 
     @Test
+    void aGuestSeesTheGardenButChangesNothing() {
+        long space = spaceOf("pia");
+        spaces.signedIn("quentin");
+        spaces.addMember(space, "pia", "quentin", io.github.vincenzofiore.rootology.spaces.Role.GUEST);
+        GardenSummary garden = gardens.saveGarden(space, "pia", null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, "pia", garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
+
+        assertThat(gardens.gardens(space, "quentin")).extracting(GardenSummary::name).containsExactly("Orto");
+        assertThat(gardens.plots(space, "quentin", garden.id())).hasSize(1);
+        assertThatThrownBy(() -> gardens.saveGarden(space, "quentin", null, "Mine", null, null, null))
+                .isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> gardens.deletePlot(space, "quentin", bed.id())).isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> gardens.plant(space, "quentin", bed.id(), "tomato", PlantingMethod.SOWN,
+                LocalDate.of(2026, 4, 1), null)).isInstanceOf(SpaceAccessException.class);
+    }
+
+    @Test
     void anotherSpaceNeitherSeesNorChangesTheGarden() {
         long mine = spaceOf("ines");
         long theirs = spaceOf("jack");

@@ -101,6 +101,25 @@ class SpaceServiceTest {
     }
 
     @Test
+    void aGuestLooksButDoesNotContributeAndTheLastOwnerCannotBecomeOne() {
+        spaces.signedIn("olga");
+        spaces.signedIn("gus");
+        long shared = spaces.spacesOf("olga").getFirst().id();
+        spaces.addMember(shared, "olga", "gus", Role.GUEST);
+
+        assertThat(spaces.isMember(shared, "gus")).isTrue();
+        assertThat(spaces.canContribute(shared, "gus")).isFalse();
+        assertThat(spaces.canContribute(shared, "olga")).isTrue();
+        assertThatThrownBy(() -> spaces.requireContributor(shared, "gus"))
+                .isInstanceOf(SpaceAccessException.class).hasMessageContaining("as a guest");
+        assertThatThrownBy(() -> spaces.changeRole(shared, "olga", "olga", Role.GUEST))
+                .isInstanceOf(SpaceAccessException.class);
+
+        spaces.changeRole(shared, "olga", "gus", Role.MEMBER);
+        assertThat(spaces.canContribute(shared, "gus")).isTrue();
+    }
+
+    @Test
     void onlyOwnersAddMembersAndOnlyMembersSeeTheList() {
         spaces.signedIn("heidi");
         spaces.signedIn("ivan");

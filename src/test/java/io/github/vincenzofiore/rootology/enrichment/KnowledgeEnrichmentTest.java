@@ -10,6 +10,8 @@ import io.github.vincenzofiore.rootology.facts.KnowledgeGraph.CropPair;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph.Entity;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraphLoaded;
 import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.context.support.WithMockUser;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.Driver;
@@ -22,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = "rootology.knowledge.curators=Cora")
+@SpringBootTest
 class KnowledgeEnrichmentTest {
 
     @Autowired
@@ -42,6 +44,7 @@ class KnowledgeEnrichmentTest {
 
     @Autowired
     ApplicationEventPublisher events;
+
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
@@ -69,6 +72,7 @@ class KnowledgeEnrichmentTest {
     }
 
     @Test
+    @WithMockUser(username = "cora", roles = "CURATOR")
     void aGlobalFactNeedsACitationAndACurator() {
         long space = spaceOf("ugo");
         Alias alias = new Alias("tomato", "Pummarola", "it");
@@ -81,8 +85,6 @@ class KnowledgeEnrichmentTest {
         assertThat(proposed.status()).isEqualTo(ProposalStatus.PENDING);
         assertThat(knowledge.resolve("pummarola")).isEmpty();
 
-        assertThatThrownBy(() -> enrichment.pending("ugo")).isInstanceOf(SpaceAccessException.class);
-        assertThatThrownBy(() -> enrichment.approve("ugo", proposed.id(), null)).isInstanceOf(SpaceAccessException.class);
         assertThat(enrichment.pending("cora")).extracting(ProposalSummary::id).contains(proposed.id());
 
         ProposalSummary approved = enrichment.approve("CORA", proposed.id(), "fine");
@@ -97,6 +99,19 @@ class KnowledgeEnrichmentTest {
     }
 
     @Test
+    @WithMockUser(username = "ugo")
+    void onlyACuratorReviews() {
+        long space = spaceOf("ugo");
+        ProposalSummary proposed = enrichment.propose(space, "ugo", ProposalScope.GLOBAL,
+                new Alias("basil", "basilico genovese", "it"), "Seed catalogue");
+
+        assertThatThrownBy(() -> enrichment.pending("ugo")).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> enrichment.approve("ugo", proposed.id(), null)).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> enrichment.reject("ugo", proposed.id(), null)).isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @WithMockUser(username = "cora", roles = "CURATOR")
     void aRejectedProposalStaysInTheHistoryAndChangesNothing() {
         long space = spaceOf("vera");
         Pair pair = new Pair("zucchini", "cucumber", "ANTAGONIST", "Compete for space");
@@ -111,6 +126,7 @@ class KnowledgeEnrichmentTest {
     }
 
     @Test
+    @WithMockUser(username = "cora", roles = "CURATOR")
     void aMemberWithdrawsASpaceFactButNotAnApprovedGlobalOne() {
         long space = spaceOf("xena");
         Pair pair = new Pair("garlic", "lettuce", "ANTAGONIST", "Lettuce did badly next to garlic");
@@ -131,6 +147,20 @@ class KnowledgeEnrichmentTest {
         assertThat(enrichment.source(space, "xena", "proposal-" + global.id())).isPresent();
         assertThat(enrichment.source(space, "xena", "proposal-" + added.id())).isEmpty();
         assertThat(enrichment.source(space, "xena", "cornell-1999")).isEmpty();
+    }
+
+    @Test
+    void aGuestSeesTheProposalsButDoesNotPropose() {
+        long space = spaceOf("rosa");
+        spaces.signedIn("sid");
+        spaces.addMember(space, "rosa", "sid", io.github.vincenzofiore.rootology.spaces.Role.GUEST);
+        Pair pair = new Pair("basil", "rocket", "COMPANION", "Fine together");
+        ProposalSummary added = enrichment.propose(space, "rosa", ProposalScope.SPACE, pair, null);
+
+        assertThat(enrichment.ofSpace(space, "sid")).extracting(ProposalSummary::id).containsExactly(added.id());
+        assertThatThrownBy(() -> enrichment.propose(space, "sid", ProposalScope.SPACE,
+                new Pair("basil", "sage", "COMPANION", "x"), null)).isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> enrichment.withdraw(space, "sid", added.id())).isInstanceOf(SpaceAccessException.class);
     }
 
     @Test

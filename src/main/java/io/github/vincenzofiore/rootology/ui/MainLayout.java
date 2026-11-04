@@ -9,6 +9,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.spring.security.AuthenticationContext;
+import io.github.vincenzofiore.rootology.roles.AppRole;
 import io.github.vincenzofiore.rootology.spaces.SpaceSummary;
 import jakarta.annotation.security.PermitAll;
 
@@ -40,12 +41,17 @@ public class MainLayout extends AppLayout {
         SideNav nav = new SideNav();
         nav.addItem(new SideNavItem("Ask", AskView.class));
         nav.addItem(new SideNavItem("Garden", GardenView.class));
-        nav.addItem(new SideNavItem("Compare", ComparisonView.class));
         nav.addItem(new SideNavItem("Escalations", EscalationView.class));
         nav.addItem(new SideNavItem("History", HistoryView.class));
         nav.addItem(new SideNavItem("Knowledge", KnowledgeView.class));
         nav.addItem(new SideNavItem("Space", SpaceView.class));
         nav.addItem(new SideNavItem("Sources", SourcesView.class));
+        if (currentUser.hasRole(AppRole.QA)) {
+            nav.addItem(new SideNavItem("Compare", ComparisonView.class));
+        }
+        if (currentUser.hasRole(AppRole.ADMIN)) {
+            nav.addItem(new SideNavItem("Admin", AdminView.class));
+        }
         addToDrawer(nav);
     }
 }

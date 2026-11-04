@@ -13,6 +13,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouterLink;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
@@ -27,6 +28,7 @@ import jakarta.annotation.security.PermitAll;
  * An escalated question waits in Escalations, like the others.
  */
 @Route(value = "ask", layout = MainLayout.class)
+@RouteAlias(value = "", layout = MainLayout.class)
 @PageTitle("Ask · Rootology")
 @PermitAll
 public class AskView extends VerticalLayout {
@@ -60,6 +62,12 @@ public class AskView extends VerticalLayout {
                         + "threaten it this month, what to sow in one of your plots (respecting rotation). Say north, "
                         + "centre or south of Italy if it matters; otherwise your garden's location, or the centre."),
                 form, result);
+        // A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member.
+        if (!currentUser.canContribute()) {
+            form.setVisible(false);
+            add(new Paragraph("You are a guest in this space: you can look at its garden, history and knowledge, "
+                    + "but not ask questions."));
+        }
     }
 
     private void ask(String text) {

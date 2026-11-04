@@ -22,6 +22,7 @@ import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.enrichment.ProposalStatus;
 import io.github.vincenzofiore.rootology.enrichment.ProposalSummary;
 import io.github.vincenzofiore.rootology.facts.Contribution;
+import io.github.vincenzofiore.rootology.roles.AppRole;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import jakarta.annotation.security.PermitAll;
@@ -80,7 +81,11 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
                 new Paragraph("Is a name, a crop pair or a pest missing? Add it for this space, where it applies "
                         + "at once and is marked as proposed in the answers, or propose it for everyone with a "
                         + "source: a curator reviews it first."),
-                askedAbout, form());
+                askedAbout);
+        // A guest only looks (#33): no proposals, no withdrawals.
+        if (currentUser.canContribute()) {
+            add(form());
+        }
 
         mine.addColumn(this::describe).setHeader("Fact").setFlexGrow(3);
         mine.addColumn(p -> p.scope() == ProposalScope.SPACE ? "This space" : "Everyone").setHeader("For")
@@ -91,14 +96,14 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         mine.addComponentColumn(p -> {
             Button withdraw = new Button("Withdraw", e -> act(() ->
                     enrichment.withdraw(currentUser.space().id(), currentUser.login(), p.id())));
-            withdraw.setVisible(p.status() == ProposalStatus.PENDING
-                    || (p.status() == ProposalStatus.APPROVED && p.scope() == ProposalScope.SPACE));
+            withdraw.setVisible(currentUser.canContribute() && (p.status() == ProposalStatus.PENDING
+                    || (p.status() == ProposalStatus.APPROVED && p.scope() == ProposalScope.SPACE)));
             return withdraw;
         }).setAutoWidth(true);
         mine.setAllRowsVisible(true);
         add(new H4("Proposed in this space"), mine);
 
-        if (enrichment.isCurator(currentUser.login())) {
+        if (currentUser.hasRole(AppRole.CURATOR)) {
             add(curatorSection());
         }
         refresh();
@@ -203,7 +208,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
 
     private void refresh() {
         mine.setItems(enrichment.ofSpace(currentUser.space().id(), currentUser.login()));
-        if (enrichment.isCurator(currentUser.login())) {
+        if (currentUser.hasRole(AppRole.CURATOR)) {
             queue.setItems(enrichment.pending(currentUser.login()));
         }
     }

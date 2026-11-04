@@ -13,7 +13,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import io.github.vincenzofiore.rootology.experiments.ExperimentCase;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
 import io.github.vincenzofiore.rootology.experiments.RecordedLlmAnswers;
@@ -30,9 +30,9 @@ import java.util.Optional;
  * One experiment case with the arms side by side: Jena (the arbiter), Claude with and without
  * the skill (recorded by hand), and the pipeline, run live in HUMAN review mode.
  */
-@Route(value = "", layout = MainLayout.class)
+@Route(value = "compare", layout = MainLayout.class)
 @PageTitle("Compare · Rootology")
-@PermitAll
+@RolesAllowed("QA")
 public class ComparisonView extends VerticalLayout {
 
     private final ExperimentRunner runner;
