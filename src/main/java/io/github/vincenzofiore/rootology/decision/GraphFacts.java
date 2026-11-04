@@ -9,7 +9,17 @@ import java.util.stream.Stream;
  * Readings handed to the decision layer, with plain lookups and no inference.
  * The lookups ignore the source: whether to trust a reading is the decision layer's call.
  */
-public record GraphFacts(List<Reading> readings) {
+public record GraphFacts(List<Reading> readings, List<String> notes) {
+
+    /** notes: what the person should know about these facts (for example a missing forecast); never sent to Jev. */
+    public GraphFacts {
+        readings = List.copyOf(readings);
+        notes = List.copyOf(notes);
+    }
+
+    public GraphFacts(List<Reading> readings) {
+        this(readings, List.of());
+    }
 
     public static GraphFacts curated(List<Fact> facts) {
         return new GraphFacts(facts.stream().map(Reading::curated).toList());

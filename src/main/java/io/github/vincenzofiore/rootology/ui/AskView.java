@@ -87,6 +87,7 @@ public class AskView extends VerticalLayout {
         result.add(new Paragraph(answer.text()));
         result.add(new Span((answer.answer().isEmpty() ? "No values" : String.join(", ", answer.answer()))
                 + " · confidence %.2f".formatted(answer.confidence())));
+        answer.notes().forEach(note -> result.add(new Paragraph(note)));
         if (!answer.sources().isEmpty()) {
             Div list = new Div(new Paragraph("Sources:"));
             answer.sources().forEach(id -> {

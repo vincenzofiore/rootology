@@ -68,6 +68,14 @@ public class KnowledgeGraph {
                         r.get("kind").asString()));
     }
 
+    /** The temperature that kills young plants of each crop (ECOCROP), for the crops that have one. */
+    public Map<String, Double> killingTemperatures() {
+        Map<String, Double> result = new java.util.TreeMap<>();
+        list("MATCH (c:Kb:Crop) WHERE c.tempKillEarly IS NOT NULL RETURN c.id AS id, c.tempKillEarly AS t", Map.of(),
+                r -> r).forEach(r -> result.put(r.get("id").asString(), r.get("t").asDouble()));
+        return result;
+    }
+
     /** The pairs declared from this crop (the reverse direction is never inferred). */
     public List<CropPair> pairsOf(String cropId) {
         return list("MATCH (a:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE r.spaceId IS NULL "

@@ -102,6 +102,7 @@ final class KnowledgeGraphLoader {
         put(m, "soilTexture", n.soilTexture());
         put(m, "soilDrainage", n.soilDrainage());
         put(m, "light", n.light());
+        put(m, "tempKillEarly", n.tempKillEarly());
         m.put("needsSources", List.of(n.source()));
         return m;
     }

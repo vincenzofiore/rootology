@@ -38,3 +38,16 @@ Every fact keeps its source and license in the curated files, so the attribution
 - **Commercial use is a goal.** Even if what is sold is mainly support (setup, sensors) rather than the app itself, the data serves a paid service, so it is treated as commercial use: non-commercial sources (PFAF, the non-commercial parts of Practical Plants) are out, and FAO material under a non-commercial licence needs a licence request.
 - **Crops**: a list of typical Italian crops across the four seasons, listed in `docs/crops-v1.md` (39 crops, approved by the owner; months and families still to be verified against the sources on import).
 - **Names and missing data**: no external source is final. The knowledge base must be enrichable over time (missing names, crops, varieties, pairs), with provenance and review: see #24.
+
+## Weather (#18), checked 2026-11-04
+
+| Service | Commercial use | Data license | Notes |
+|---|---|---|---|
+| [MET Norway Locationforecast 2.0](https://api.met.no/doc/License) | Yes | CC BY 4.0 / NLOD 2.0 ("Data from MET Norway") | Global, 9 days, hourly near term; free; identify the app in the User-Agent, respect `Expires` and `If-Modified-Since`, up to 20 requests per second. No past observations. **Chosen.** |
+| [Open-Meteo](https://open-meteo.com/en/terms) | Only with a paid plan | CC BY 4.0 | The free API is for non-commercial use only. |
+| [Aeronautica Militare (meteoam)](https://www.meteoam.it/) | No | CC BY-NC-SA, as found | No documented public API found. |
+| [Weather Underground PWS key](https://trust.weather.com/en-US/privacy/terms-of-use) | No | TWC terms, section 18 | "Personal, non-commercial purposes" only, no derivative works; 5-day forecast, 1500 calls per day. Not used, also not for the owner's station (#21: read the console or the Ecowitt API instead). |
+
+Owner's decisions (2026-11-04): MET Norway; the recent past is estimated from stored forecasts until the station's observations (#21); first rules frost-risk-v1 and smith-period-v1; a garden without coordinates gets no weather, with a note.
+
+Frost tolerance comes from FAO ECOCROP's "killing temperature during early growth" (`temp_kill_early` in `crop-needs.csv`), available for 19 of the 38 crops with an ECOCROP record; tender crops such as tomato, zucchini, eggplant and pepper have no value and are named as not checked, never guessed. A curated value for them is a candidate for the knowledge enrichment flow (#24) or an editorial file.

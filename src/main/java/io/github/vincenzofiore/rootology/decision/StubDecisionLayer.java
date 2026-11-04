@@ -103,7 +103,11 @@ public class StubDecisionLayer implements DecisionLayer {
         if (crops.isEmpty()) {
             return Decision.escalated("nothing is declared to sow or plant in " + month);
         }
-        return Decision.certain(crops, "crops to sow or plant in " + month);
+        // Frost in the forecast (frost-risk-v1) rules a crop out for now.
+        List<String> frost = facts.subjects("avoidNow", "frost");
+        return Decision.certain(crops.stream().filter(c -> !frost.contains(c)).toList(),
+                frost.isEmpty() ? "crops to sow or plant in " + month
+                        : "crops to sow or plant in " + month + ", minus those at risk of frost");
     }
 
     private Decision activeSeasons(String pest, GraphFacts facts) {

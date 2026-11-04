@@ -48,6 +48,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Autowired
     KnowledgeContributions contributions;
 
+    /** Never the real service in tests: by default it has no forecast, as when MET Norway is down. */
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    io.github.vincenzofiore.rootology.weather.WeatherService weatherService;
+
     /** A space with a garden in Milan (zone NORD): bed B with a tomato since April 2026, an old pea ended. */
     private RunContext withGarden(String login) {
         RunContext run = signedIn(login);
@@ -283,6 +287,20 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(mine.answer().sources()).contains("proposal-9002", "cornell-1999");
         assertThat(theirs.answer()).isNull();
         assertThat(theirs.pending().decision().reason()).isEqualTo("pomodorino is not in the dataset");
+    }
+
+    @Test
+    void pestRiskIsStillAnsweredWhenTheForecastIsMissing() {
+        String month = java.time.LocalDate.now(GardenPipelineAgent.ITALY).getMonth().name();
+        whenCreateObject(prompt -> prompt.contains("Question: What threatens my garden now?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.PEST_RISK, null, null, "en", null, month));
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", "What threatens my garden now?"),
+                withGarden("carl"));
+
+        assertThat(run.answer()).isNotNull();
+        assertThat(run.answer().notes()).singleElement().asString().contains("not available");
+        verifyGenerateText(prompt -> prompt.contains("Notes: The weather forecast is not available"));
     }
 
     @Test

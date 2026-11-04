@@ -34,7 +34,7 @@ class EcocropImportTool {
     private static final Path OUTPUT = Path.of("src/main/resources/knowledge/crop-needs.csv");
     private static final String HEADER = "crop_id,ecocrop_id,temp_opt_min,temp_opt_max,temp_abs_min,temp_abs_max,"
             + "rain_opt_min,rain_opt_max,ph_opt_min,ph_opt_max,ph_abs_min,ph_abs_max,"
-            + "cycle_min_days,cycle_max_days,soil_texture_opt,soil_drainage_opt,light_opt,source";
+            + "cycle_min_days,cycle_max_days,soil_texture_opt,soil_drainage_opt,light_opt,temp_kill_early,source";
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
 
@@ -43,6 +43,7 @@ class EcocropImportTool {
         List<String> lines = new ArrayList<>();
         lines.add("# Environmental needs of the crops, from FAO ECOCROP (CC BY 4.0), retrieved by EcocropImportTool.");
         lines.add("# Temperatures in degrees C, rainfall in mm per year; empty when ECOCROP gives no value.");
+        lines.add("# temp_kill_early: ECOCROP's killing temperature during early growth (frost tolerance of young plants).");
         lines.add(HEADER);
         for (Crop crop : new CropCatalog().all().stream().sorted(Comparator.comparing(Crop::id)).toList()) {
             if (crop.ecocropId() == null) {
@@ -62,10 +63,10 @@ class EcocropImportTool {
                     at(ph, 0), at(ph, 1), at(ph, 2), at(ph, 3),
                     at(cycle, 0), at(cycle, 1),
                     text(sheet, "Soil texture"), text(sheet, "Soil drainage"), text(sheet, "Light intensity"),
-                    "fao-ecocrop"));
+                    at(numbers(sheet, "Killing temp. early growth"), 0), "fao-ecocrop"));
         }
         Files.write(OUTPUT, lines);
-        System.out.println("Wrote " + (lines.size() - 3) + " crops to " + OUTPUT);
+        System.out.println("Wrote " + (lines.size() - 4) + " crops to " + OUTPUT);
     }
 
     private String fetch(String id) throws IOException, InterruptedException {

@@ -16,7 +16,10 @@ import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
 
+import io.github.vincenzofiore.rootology.weather.Forecast;
+
 import java.util.List;
+import java.util.Set;
 
 /**
  * Third contestant. Blackboard flow:
@@ -71,6 +74,11 @@ public class GardenPipelineAgent {
             Reason: %s
             """;
 
+    static final String NOTES_PROMPT = """
+            Notes: %s
+            Mention the notes briefly, in the language of the question, without adding anything to them.
+            """;
+
     static final String HUMAN_PHRASE_PROMPT = """
             Write a one or two sentence answer to a gardening question, in the language of the question.
             Say that a human reviewer answered it, and use only the values given below.
@@ -84,13 +92,15 @@ public class GardenPipelineAgent {
     private final FactSource factSource;
     private final KnowledgeGraph knowledge;
     private final GardenFacts garden;
+    private final WeatherFacts weather;
     private final DecisionLayer decisionLayer;
 
     public GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden,
-                               DecisionLayer decisionLayer) {
+                               WeatherFacts weather, DecisionLayer decisionLayer) {
         this.factSource = factSource;
         this.knowledge = knowledge;
         this.garden = garden;
+        this.weather = weather;
         this.decisionLayer = decisionLayer;
     }
 
@@ -143,11 +153,20 @@ public class GardenPipelineAgent {
                         full.languageOrDefault());
                 default -> knowledge.factsAbout(full.subject(), full.languageOrDefault(), space);
             };
-            return new GraphFacts(facts.stream()
+            // The local forecast (#18) for questions about now: frost for sowing, blight for pest risk.
+            WeatherFacts.Result local = switch (full.kind()) {
+                case SOW_NOW, SOW_IN_PLOT -> weather.frost(run, full.month(), facts.stream()
+                        .filter(f -> Set.of("sowIn", "plantIn").contains(f.fact().predicate())).toList());
+                case PEST_RISK -> weather.blight(run, full.month(), full.languageOrDefault());
+                default -> WeatherFacts.Result.NONE;
+            };
+            List<Reading> readings = new java.util.ArrayList<>(facts.stream()
                     .map(f -> new Reading(f.fact(), f.derivedBy() != null ? Reading.Source.INFERRED
                             : f.proposed() ? Reading.Source.PROPOSED : Reading.Source.CURATED,
                             f.sourceIds(), f.derivedBy()))
                     .toList());
+            readings.addAll(local.readings());
+            return new GraphFacts(readings, local.notes());
         }
         return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));
     }
@@ -179,17 +198,26 @@ public class GardenPipelineAgent {
                 ? HUMAN_PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.reason())
                 : PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.escalated(),
                         resolution.reason());
+        if (!facts.notes().isEmpty()) {
+            // Only when present, so the suite's prompts stay exactly as recorded.
+            prompt += NOTES_PROMPT.formatted(String.join(" ", facts.notes()));
+        }
         String text = context.ai().withDefaultLlm().generateText(prompt);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
                 resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text,
-                sourcesOf(resolution.answer(), facts));
+                sourcesOf(resolution.answer(), facts), facts.notes());
     }
 
-    /** The sources of the facts that mention an answer value, in first-seen order. */
+    /**
+     * The sources of the facts that mention an answer value, in first-seen order, plus the weather
+     * service whenever the forecast was used (it may have removed values rather than added them).
+     */
     static List<String> sourcesOf(List<String> answer, GraphFacts facts) {
-        return facts.readings().stream()
-                .filter(r -> answer.contains(r.fact().subject()) || answer.contains(r.fact().object()))
-                .flatMap(r -> r.sourceIds().stream())
+        return java.util.stream.Stream.concat(facts.readings().stream()
+                                .filter(r -> answer.contains(r.fact().subject()) || answer.contains(r.fact().object()))
+                                .flatMap(r -> r.sourceIds().stream()),
+                        facts.readings().stream().flatMap(r -> r.sourceIds().stream())
+                                .filter(Forecast.SOURCE::equals))
                 .distinct()
                 .toList();
     }

@@ -14,11 +14,12 @@ public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<N
                             String retrievedOn) {
     }
 
+    /** tempKillEarly: the temperature that kills young plants (ECOCROP), used by the frost rule. */
     public record NeedRow(String cropId, String ecocropId, Double tempOptMin, Double tempOptMax,
                           Double tempAbsMin, Double tempAbsMax, Double rainOptMin, Double rainOptMax,
                           Double phOptMin, Double phOptMax, Double phAbsMin, Double phAbsMax,
                           Double cycleMinDays, Double cycleMaxDays, String soilTexture, String soilDrainage,
-                          String light, String source) {
+                          String light, Double tempKillEarly, String source) {
     }
 
     /** activity: SOW, SOW_SEEDBED, TRANSPLANT, PLANT or HARVEST; months 1-12, wrapping when from > to. */

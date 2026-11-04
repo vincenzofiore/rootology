@@ -32,7 +32,7 @@ final class CuratedKnowledgeReader {
                         number(r, "ph_opt_min"), number(r, "ph_opt_max"), number(r, "ph_abs_min"),
                         number(r, "ph_abs_max"), number(r, "cycle_min_days"), number(r, "cycle_max_days"),
                         r.get("soil_texture_opt"), r.get("soil_drainage_opt"), r.get("light_opt"),
-                        r.get("source"))).toList(),
+                        number(r, "temp_kill_early"), r.get("source"))).toList(),
                 rows("sowing-windows.csv").stream().map(r -> new WindowRow(r.get("crop_id"), r.get("zone"),
                         r.get("activity"), month(r, "from_month"), month(r, "to_month"), r.get("note"),
                         r.get("source"), "yes".equals(r.get("verified")))).toList(),

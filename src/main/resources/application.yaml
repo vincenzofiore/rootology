@@ -32,6 +32,10 @@ rootology:
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
     base-url: https://api.typesafe.ai
     model: jev-latest
+  weather:
+    # MET Norway asks every app to identify itself, with a way to reach its maintainer.
+    base-url: https://api.met.no
+    user-agent: rootology/0.1 (+https://github.com/vincenzofiore/rootology)
   knowledge:
     # GitHub logins (comma-separated) who review facts proposed for everyone (#24). Empty means nobody.
     curators: ${ROOTOLOGY_CURATORS:}

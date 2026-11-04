@@ -24,7 +24,13 @@ class KnowledgeGraphTest {
         assertThat(knowledge.count("Family")).isEqualTo(11);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         assertThat(knowledge.count("Zone")).isEqualTo(3);
-        assertThat(knowledge.count("Source")).isEqualTo(9);
+        assertThat(knowledge.count("Source")).isEqualTo(10);
+    }
+
+    @Test
+    void knowsWhichTemperatureKillsYoungPlants() {
+        assertThat(knowledge.killingTemperatures()).containsEntry("garlic", -5.0).containsEntry("lettuce", 0.0)
+                .doesNotContainKey("tomato");
     }
 
     @Test

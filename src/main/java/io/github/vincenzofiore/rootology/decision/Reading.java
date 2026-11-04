@@ -15,7 +15,9 @@ public record Reading(Fact fact, Source source, List<String> sourceIds, String d
         /** Derived by an explicit, tested rule from curated facts; as reliable as the rule. */
         INFERRED,
         /** Added by a member of the asking space, not reviewed by a curator; plausible but may be wrong. */
-        PROPOSED
+        PROPOSED,
+        /** From a weather forecast for the garden's location; likely, and less certain further ahead. */
+        FORECAST
     }
 
     /** sourceIds: where the fact comes from (ids of the knowledge base's sources); derivedBy: the rule, for INFERRED. */

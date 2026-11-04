@@ -38,6 +38,10 @@ public class JevDecisionLayer implements DecisionLayer {
     static final Map<String, Object> PROPOSED = ordered(
             "PROPOSED", "Added by a member of the asking space and not reviewed by a curator. Plausible, but it may be wrong.");
 
+    /** Added only when some reading comes from the weather forecast (#18). */
+    static final Map<String, Object> FORECAST = ordered(
+            "FORECAST", "From the weather forecast for the garden's location. Likely, but less certain further ahead.");
+
     private final RestClient restClient;
     private final String model;
 
@@ -46,14 +50,19 @@ public class JevDecisionLayer implements DecisionLayer {
         this.model = model;
     }
 
-    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed) {
+    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast) {
         Map<String, Object> sources = anyInferred ? SOURCES_WITH_INFERRED : SOURCES;
-        if (!anyProposed) {
+        if (!anyProposed && !anyForecast) {
             return sources;
         }
-        Map<String, Object> withProposed = new LinkedHashMap<>(sources);
-        withProposed.putAll(PROPOSED);
-        return withProposed;
+        Map<String, Object> extended = new LinkedHashMap<>(sources);
+        if (anyProposed) {
+            extended.putAll(PROPOSED);
+        }
+        if (anyForecast) {
+            extended.putAll(FORECAST);
+        }
+        return extended;
     }
 
     /** Jev's raw yes-probabilities, before any threshold is applied. */
@@ -102,13 +111,14 @@ public class JevDecisionLayer implements DecisionLayer {
                 .toList();
         boolean anyInferred = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.INFERRED);
         boolean anyProposed = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.PROPOSED);
+        boolean anyForecast = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.FORECAST);
         Map<String, Object> request = ordered(
                 "model", model,
                 "state", ordered(
                         // Field by field, so the language (not needed to decide) never changes what Jev sees.
                         "intent", intent(intent),
                         "rule", rule(intent.kind()),
-                        "sources", sources(anyInferred, anyProposed),
+                        "sources", sources(anyInferred, anyProposed, anyForecast),
                         "facts", stateFacts),
                 "questions", questions);
 
@@ -266,12 +276,13 @@ public class JevDecisionLayer implements DecisionLayer {
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact for "
                     + "`intent.zone`.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact for `intent.zone`.";
+                    + "(X, plantIn, `intent.month`) is a fact for `intent.zone`, unless (X, avoidNow, frost) is a fact.";
             case GROWING_NOW -> "The answer is every crop X such that (P, grows, X) is a fact for some plot P.";
             case PEST_RISK -> "The answer is every pest or disease X such that (X, threatens, C) is a fact for some "
                     + "crop C growing now.";
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact.";
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
+                    + "(X, avoidNow, frost) is a fact.";
             case OTHER -> "";
         };
     }

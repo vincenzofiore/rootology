@@ -51,7 +51,8 @@ public final class KnowledgeValidator {
             String where = "needs of " + n.cropId();
             crop(crops, n.cropId(), where, problems);
             source(sources, n.source(), where, problems);
-            ordered(where + ": temperature", problems, n.tempAbsMin(), n.tempOptMin(), n.tempOptMax(), n.tempAbsMax());
+            ordered(where + ": temperature", problems, n.tempKillEarly(), n.tempAbsMin(), n.tempOptMin(),
+                    n.tempOptMax(), n.tempAbsMax());
             ordered(where + ": pH", problems, 0.0, n.phAbsMin(), n.phOptMin(), n.phOptMax(), n.phAbsMax(), 14.0);
             ordered(where + ": rainfall", problems, n.rainOptMin(), n.rainOptMax());
             ordered(where + ": crop cycle", problems, n.cycleMinDays(), n.cycleMaxDays());
