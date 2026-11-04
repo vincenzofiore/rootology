@@ -6,6 +6,7 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -19,14 +20,16 @@ import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.facts.Crop;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
-import io.github.vincenzofiore.rootology.geocoding.GeoNames;
-import io.github.vincenzofiore.rootology.geocoding.Place;
 import io.github.vincenzofiore.rootology.garden.GardenViews.GardenSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlantingSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlotSummary;
 import io.github.vincenzofiore.rootology.garden.PlantingMethod;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
+import io.github.vincenzofiore.rootology.geocoding.GeoNames;
+import io.github.vincenzofiore.rootology.geocoding.Place;
+import io.github.vincenzofiore.rootology.weather.DailyForecast;
+import io.github.vincenzofiore.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.LocalDate;
@@ -40,6 +43,8 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
     private final GardenService gardens;
     private final CropCatalog crops;
     private final GeoNames geoNames;
+    private final WeatherService weather;
+    private final Div weatherCard = new Div();
     private final long spaceId;
     private final String login;
 
@@ -49,7 +54,9 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
     private final Grid<PlantingSummary> plantingGrid = new Grid<>();
     private final H4 plantingTitle = new H4();
 
-    public GardenView(GardenService gardens, CropCatalog crops, GeoNames geoNames, CurrentUser currentUser) {
+    public GardenView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
+                      CurrentUser currentUser) {
+        this.weather = weather;
         this.gardens = gardens;
         this.crops = crops;
         this.geoNames = geoNames;
@@ -98,7 +105,7 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         addPlot.setVisible(contributor);
         addPlanting.setVisible(contributor);
 
-        add(new H3(getTranslation("garden.title")), top, gardenInfo,
+        add(new H3(getTranslation("garden.title")), top, gardenInfo, weatherCard,
                 new HorizontalLayout(new H4(getTranslation("garden.plots")), addPlot), plotGrid,
                 new HorizontalLayout(plantingTitle, addPlanting), plantingGrid);
         reloadGardens(null);
@@ -113,6 +120,7 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
 
     private void showGarden(GardenSummary garden) {
         if (garden == null) {
+            weatherCard.removeAll();
             gardenInfo.setText(getTranslation("garden.none"));
             plotGrid.setItems(List.of());
             showPlantings(null);
@@ -122,8 +130,26 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         String coords = garden.latitude() == null ? "" : " (" + garden.latitude() + ", " + garden.longitude() + ")";
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry + coords);
+        showWeather(garden);
         plotGrid.setItems(gardens.plots(spaceId, login, garden.id()));
         showPlantings(null);
+    }
+
+    /** The coming week at the garden (#31); a hint to add coordinates, or nothing when there is no forecast. */
+    private void showWeather(GardenSummary garden) {
+        weatherCard.removeAll();
+        if (garden.latitude() == null || garden.longitude() == null) {
+            Paragraph hint = new Paragraph(getTranslation("weather.nocoordinates"));
+            hint.addClassNames(com.vaadin.flow.theme.lumo.LumoUtility.TextColor.SECONDARY);
+            weatherCard.add(hint);
+            return;
+        }
+        weather.around(garden.latitude(), garden.longitude()).ifPresentOrElse(forecast -> {
+            var days = DailyForecast.of(forecast, java.time.ZoneId.of("Europe/Rome"), LocalDate.now(), 7);
+            if (!days.isEmpty()) {
+                weatherCard.add(new WeatherCard(days, forecast.fetchedAt(), forecast.stale()));
+            }
+        }, () -> weatherCard.add(new Paragraph(getTranslation("note.FORECAST_UNAVAILABLE_FROST"))));
     }
 
     private static java.math.BigDecimal coarse(double degrees) {

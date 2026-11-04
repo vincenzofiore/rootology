@@ -48,6 +48,9 @@ class ViewsTest {
     CropCatalog crops;
 
     @Autowired
+    io.github.vincenzofiore.rootology.weather.WeatherService weatherService;
+
+    @Autowired
     io.github.vincenzofiore.rootology.experiments.GoldenRuns goldenRuns;
 
     @Autowired
@@ -94,7 +97,7 @@ class ViewsTest {
     void historyAndSpaceViewsBuild() {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
         assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardenView(gardens, crops, geoNames, viewer()).getChildren()).isNotEmpty();
+        assertThat(new GardenView(gardens, crops, geoNames, weatherService, viewer()).getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new NotificationsView(notificationService, viewer()).getChildren()).isNotEmpty();

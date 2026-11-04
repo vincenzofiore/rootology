@@ -23,7 +23,7 @@ class MetNorwayClientTest {
     static final String BODY = """
             {"properties":{"meta":{"updated_at":"2026-11-04T09:17:28Z"},"timeseries":[
              {"time":"2026-11-04T10:00:00Z","data":{"instant":{"details":{"air_temperature":12.5,"relative_humidity":91.0}},
-              "next_1_hours":{"details":{"precipitation_amount":0.4}}}},
+              "next_1_hours":{"summary":{"symbol_code":"lightrain"},"details":{"precipitation_amount":0.4}}}},
              {"time":"2026-11-04T11:00:00Z","data":{"instant":{"details":{"air_temperature":13.0,"relative_humidity":88.0}},
               "next_1_hours":{"details":{"precipitation_amount":0.0}}}},
              {"time":"2026-11-04T17:00:00Z","data":{"instant":{"details":{"air_temperature":9.0}},
@@ -47,7 +47,7 @@ class MetNorwayClientTest {
         MetNorwayClient.Response response = client.fetch(45.4612, 9.1899, null);
 
         assertThat(response.hours()).containsExactly(
-                new ForecastHour(Instant.parse("2026-11-04T10:00:00Z"), 12.5, 91.0, 0.4, 1),
+                new ForecastHour(Instant.parse("2026-11-04T10:00:00Z"), 12.5, 91.0, 0.4, 1, "lightrain"),
                 new ForecastHour(Instant.parse("2026-11-04T11:00:00Z"), 13.0, 88.0, 0.0, 6),
                 new ForecastHour(Instant.parse("2026-11-04T17:00:00Z"), 9.0, null, 1.2, 6));
         assertThat(response.expires()).isEqualTo(Instant.parse("2026-11-04T10:01:06Z"));

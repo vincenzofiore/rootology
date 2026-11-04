@@ -88,8 +88,9 @@ class MetNorwayClient {
             Details now = s.data().instant().details();
             Next next = s.data().next1Hours() != null ? s.data().next1Hours() : s.data().next6Hours();
             Double precipitation = next == null || next.details() == null ? null : next.details().precipitationAmount();
+            String symbol = next == null || next.summary() == null ? null : next.summary().symbolCode();
             if (now.airTemperature() != null) {
-                hours.add(new ForecastHour(time, now.airTemperature(), now.relativeHumidity(), precipitation, step));
+                hours.add(new ForecastHour(time, now.airTemperature(), now.relativeHumidity(), precipitation, step, symbol));
             }
         }
         return hours;
@@ -123,7 +124,10 @@ class MetNorwayClient {
     record Now(Details details) {
     }
 
-    record Next(Details details) {
+    record Next(Summary summary, Details details) {
+    }
+
+    record Summary(@JsonProperty("symbol_code") String symbolCode) {
     }
 
     record Details(@JsonProperty("air_temperature") Double airTemperature,

@@ -96,22 +96,23 @@ public class WeatherService {
     private void store(BigDecimal lat, BigDecimal lon, List<ForecastHour> hours, Instant now) {
         for (ForecastHour h : hours) {
             jdbc.sql("INSERT INTO weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
-                            + "precipitation_mm, step_hours) VALUES (?, ?, ?, ?, ?, ?, ?) "
+                            + "precipitation_mm, step_hours, symbol_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
                             + "ON CONFLICT (latitude, longitude, valid_at) DO UPDATE SET "
                             + "air_temperature = EXCLUDED.air_temperature, relative_humidity = EXCLUDED.relative_humidity, "
-                            + "precipitation_mm = EXCLUDED.precipitation_mm, step_hours = EXCLUDED.step_hours")
+                            + "precipitation_mm = EXCLUDED.precipitation_mm, step_hours = EXCLUDED.step_hours, "
+                            + "symbol_code = EXCLUDED.symbol_code")
                     .params(lat, lon, ts(h.time()), h.airTemperature(), h.relativeHumidity(), h.precipitation(),
-                            h.stepHours()).update();
+                            h.stepHours(), h.symbol()).update();
         }
         jdbc.sql("DELETE FROM weather_hour WHERE valid_at < ?").params(ts(now.minus(KEPT))).update();
     }
 
     private Forecast read(BigDecimal lat, BigDecimal lon, Instant now, Instant fetchedAt, boolean stale) {
         List<ForecastHour> hours = jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, "
-                        + "step_hours FROM weather_hour WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
+                        + "step_hours, symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
                         + "ORDER BY valid_at").params(lat, lon, ts(now.minus(PAST)))
                 .query((rs, i) -> new ForecastHour(rs.getTimestamp(1).toInstant(), rs.getDouble(2),
-                        (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5))).list();
+                        (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6))).list();
         return new Forecast(hours, fetchedAt, stale);
     }
 

@@ -37,7 +37,7 @@ class WeatherServiceTest {
 
     private static List<ForecastHour> comingHours() {
         Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS);
-        return List.of(new ForecastHour(hour, 4.0, 90.0, 0.0, 1),
+        return List.of(new ForecastHour(hour, 4.0, 90.0, 0.0, 1, "fog"),
                 new ForecastHour(hour.plus(1, ChronoUnit.HOURS), 3.0, 92.0, 0.2, 6));
     }
 
@@ -56,6 +56,7 @@ class WeatherServiceTest {
         Forecast second = weather.around(new BigDecimal("45.4600"), new BigDecimal("9.1900")).orElseThrow();
 
         assertThat(first.hours()).extracting(ForecastHour::airTemperature).containsExactly(4.0, 3.0);
+        assertThat(first.hours()).extracting(ForecastHour::symbol).containsExactly("fog", null);
         assertThat(second.hours()).isEqualTo(first.hours());
         assertThat(second.stale()).isFalse();
         verify(client, times(1)).fetch(anyDouble(), anyDouble(), isNull());
