@@ -11,7 +11,9 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.facts.SourceCatalog;
@@ -70,6 +72,9 @@ public class AskView extends VerticalLayout {
             if (run.answer() == null) {
                 result.add(new Paragraph("Not sure enough to answer: " + run.pending().decision().reason()
                         + ". The question waits in Escalations for a member of this space."));
+                RouterLink propose = new RouterLink("Propose the missing fact", KnowledgeView.class);
+                propose.setQueryParameters(QueryParameters.simple(java.util.Map.of("question", text.trim())));
+                result.add(propose);
                 return;
             }
             show(run.answer());

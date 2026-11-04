@@ -143,6 +143,17 @@ public class KnowledgeContributions {
         }
     }
 
+    /** Removes what a contribution wrote (a withdrawn space fact). */
+    public void remove(long proposalId) {
+        try (var session = driver.session()) {
+            session.executeWrite(tx -> {
+                tx.run("MATCH ()-[r]->() WHERE r.proposalId = $id DELETE r", Map.of("id", proposalId)).consume();
+                return tx.run("MATCH (a:Kb:Alias {proposalId: $id}) DETACH DELETE a", Map.of("id", proposalId))
+                        .consume();
+            });
+        }
+    }
+
     static String normalize(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
     }

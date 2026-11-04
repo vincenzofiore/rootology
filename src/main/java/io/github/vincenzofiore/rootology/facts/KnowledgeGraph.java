@@ -26,6 +26,10 @@ public class KnowledgeGraph {
                          String provenance, String derivedBy, List<String> sources, boolean verified) {
     }
 
+    /** A pest or a disease, by its EPPO code. */
+    public record Organism(String id, String italianName, String englishName, String kind) {
+    }
+
     /** A crop or an organism the knowledge base knows, and the language its name was given in. */
     public record Entity(String kind, String id, String italianName, String englishName, boolean italian) {
 
@@ -54,6 +58,14 @@ public class KnowledgeGraph {
             throw new IllegalArgumentException("Unknown knowledge base label " + label);
         }
         return single("MATCH (n:Kb:" + label + ") RETURN count(n) AS n", Map.of()).get("n").asLong();
+    }
+
+    /** The pests and diseases of the knowledge base, by Italian name. */
+    public List<Organism> organisms() {
+        return list("MATCH (o:Kb:Organism) RETURN o.id AS id, o.italianName AS it, o.englishName AS en, o.kind AS kind "
+                        + "ORDER BY o.italianName", Map.of(),
+                r -> new Organism(r.get("id").asString(), r.get("it").asString(), r.get("en").asString(),
+                        r.get("kind").asString()));
     }
 
     /** The pairs declared from this crop (the reverse direction is never inferred). */

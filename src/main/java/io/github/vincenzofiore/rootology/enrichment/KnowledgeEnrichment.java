@@ -104,6 +104,26 @@ public class KnowledgeEnrichment {
                 .toList();
     }
 
+    /**
+     * Withdraws a fact of this space, or a proposal of this space still waiting for review; a member of the
+     * space may do it. The fact leaves the graph at once; the proposal stays in the history.
+     */
+    @Transactional
+    public ProposalSummary withdraw(long spaceId, String login, long proposalId) {
+        requireMember(spaceId, login);
+        KnowledgeProposal proposal = proposals.findById(proposalId).filter(p -> p.getSpaceId() == spaceId)
+                .orElseThrow(() -> new IllegalArgumentException("No proposal " + proposalId + " in this space"));
+        if (!proposal.canBeWithdrawn()) {
+            throw new IllegalStateException("Proposal " + proposalId + " can no longer be withdrawn");
+        }
+        boolean inGraph = proposal.getStatus() == ProposalStatus.APPROVED;
+        proposal.withdraw(SpaceService.normalizeLogin(login), Instant.now());
+        if (inGraph) {
+            graph.remove(proposalId);
+        }
+        return proposal.summary();
+    }
+
     /** Approves a global proposal, checking it again against today's knowledge, and adds it for everyone. */
     @Transactional
     public ProposalSummary approve(String login, long proposalId, String note) {

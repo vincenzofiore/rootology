@@ -43,6 +43,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Compare", ComparisonView.class));
         nav.addItem(new SideNavItem("Escalations", EscalationView.class));
         nav.addItem(new SideNavItem("History", HistoryView.class));
+        nav.addItem(new SideNavItem("Knowledge", KnowledgeView.class));
         nav.addItem(new SideNavItem("Space", SpaceView.class));
         nav.addItem(new SideNavItem("Sources", SourcesView.class));
         addToDrawer(nav);

@@ -53,11 +53,14 @@ class ViewsTest {
     @Autowired
     io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment enrichment;
 
+    @Autowired
+    io.github.vincenzofiore.rootology.facts.KnowledgeGraph knowledge;
+
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class, AskView.class)) {
+                GardenView.class, AskView.class, KnowledgeView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)).as(view.getSimpleName()).isTrue();
             assertThat(route.layout().isAnnotationPresent(PermitAll.class)).as(route.layout().getSimpleName()).isTrue();
@@ -75,6 +78,7 @@ class ViewsTest {
         assertThat(new GardenView(gardens, crops, viewer()).getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
+        assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
 

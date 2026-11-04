@@ -111,6 +111,29 @@ class KnowledgeEnrichmentTest {
     }
 
     @Test
+    void aMemberWithdrawsASpaceFactButNotAnApprovedGlobalOne() {
+        long space = spaceOf("xena");
+        Pair pair = new Pair("garlic", "lettuce", "ANTAGONIST", "Lettuce did badly next to garlic");
+        ProposalSummary added = enrichment.propose(space, "xena", ProposalScope.SPACE, pair, null);
+        assertThat(contributions.problems(pair, space)).isNotEmpty();
+
+        ProposalSummary withdrawn = enrichment.withdraw(space, "xena", added.id());
+
+        assertThat(withdrawn.status()).isEqualTo(ProposalStatus.WITHDRAWN);
+        assertThat(withdrawn.withdrawnBy()).isEqualTo("xena");
+        assertThat(contributions.problems(pair, space)).isEmpty();
+        assertThatThrownBy(() -> enrichment.withdraw(space, "xena", added.id())).isInstanceOf(IllegalStateException.class);
+
+        ProposalSummary global = enrichment.propose(space, "xena", ProposalScope.GLOBAL,
+                new Alias("pea", "pisello nano", "it"), "Seed catalogue");
+        enrichment.approve("cora", global.id(), null);
+        assertThatThrownBy(() -> enrichment.withdraw(space, "xena", global.id())).isInstanceOf(IllegalStateException.class);
+        assertThat(enrichment.source(space, "xena", "proposal-" + global.id())).isPresent();
+        assertThat(enrichment.source(space, "xena", "proposal-" + added.id())).isEmpty();
+        assertThat(enrichment.source(space, "xena", "cornell-1999")).isEmpty();
+    }
+
+    @Test
     void proposalsFollowTheCuratedRules() {
         assertThat(contributions.problems(new Pair("potato", "cucumber", "COMPANION", "x"), null))
                 .containsExactly("this pair is already declared as antagonist");

@@ -46,8 +46,9 @@ public class GardenPipelineAgent {
             - SOW_IN_PLOT: what can I sow or plant in one of my plots (subject: the plot's name, as written)
             - OTHER: anything else
 
-            subject: the plant or pest the question is about, as a single capitalized English
-            name exactly as named in the question (e.g. "Tomato"). Do not correct or replace it.
+            subject: the plant or pest the question is about, exactly as named in the question and in
+            the question's language (e.g. "Tomato" in an English question, "pomodorino" in an Italian
+            one). Do not translate, correct or replace it: local and dialect names are looked up as written.
             season: SPRING, SUMMER, AUTUMN or WINTER for RELEVANT_PESTS, otherwise null.
             language: the ISO 639-1 code of the language the question is written in (for example "it" or "en").
             zone: NORD, CENTRO or SUD if the question names the north, centre or south of Italy (or a place

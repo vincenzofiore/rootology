@@ -7,5 +7,5 @@ import java.time.Instant;
 /** A proposal as the UI sees it, with its review if it had one. */
 public record ProposalSummary(long id, long spaceId, ProposalScope scope, Contribution contribution, String citation,
                               String proposedBy, Instant createdAt, ProposalStatus status, String reviewedBy,
-                              Instant reviewedAt, String reviewNote) {
+                              Instant reviewedAt, String reviewNote, String withdrawnBy) {
 }

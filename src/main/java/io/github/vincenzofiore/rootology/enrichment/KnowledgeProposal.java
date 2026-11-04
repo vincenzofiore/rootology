@@ -54,6 +54,8 @@ class KnowledgeProposal {
     private String reviewedBy;
     private Instant reviewedAt;
     private String reviewNote;
+    private String withdrawnBy;
+    private Instant withdrawnAt;
 
     protected KnowledgeProposal() {
     }
@@ -111,9 +113,20 @@ class KnowledgeProposal {
         this.reviewedAt = now;
     }
 
+    /** A space fact, or a global proposal not yet reviewed; an approved global fact belongs to the curators. */
+    boolean canBeWithdrawn() {
+        return status == ProposalStatus.PENDING || (status == ProposalStatus.APPROVED && scope == ProposalScope.SPACE);
+    }
+
+    void withdraw(String login, Instant now) {
+        this.status = ProposalStatus.WITHDRAWN;
+        this.withdrawnBy = login;
+        this.withdrawnAt = now;
+    }
+
     ProposalSummary summary() {
         return new ProposalSummary(id, spaceId, scope, contribution(), citation, proposedBy, createdAt, status,
-                reviewedBy, reviewedAt, reviewNote);
+                reviewedBy, reviewedAt, reviewNote, withdrawnBy);
     }
 
     Long getId() { return id; }
