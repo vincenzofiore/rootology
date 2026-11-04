@@ -99,10 +99,26 @@ public class JevDecisionLayer implements DecisionLayer {
 
     /** One call to Jev: is the question answerable, and is each candidate part of the answer. */
     public Judgments judge(Intent intent, GraphFacts facts) {
+        // Facts of the knowledge base carry their sources; the suite's do not. KB-only wording is sent only
+        // then, so the suite's requests stay exactly as recorded (#35).
+        boolean knowledgeBase = facts.readings().stream().anyMatch(r -> !r.sourceIds().isEmpty());
         List<String> candidates = candidates(intent.kind(), facts);
-
+        if (knowledgeBase && NONE_IS_AN_ANSWER.contains(intent.kind()) && intent.subject() != null) {
+            // In the knowledge base no crop pairs with itself (KnowledgeValidator): not a candidate.
+            candidates = candidates.stream().filter(c -> !c.equalsIgnoreCase(intent.subject().trim())).toList();
+        }
         Map<String, Object> questions = new LinkedHashMap<>();
-        questions.put("answerable", noul(SUBJECTLESS.contains(intent.kind()) ? """
+        questions.put("answerable", noul(knowledgeBase && NONE_IS_AN_ANSWER.contains(intent.kind()) ? """
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? Answer no if `intent.subject` \
+                does not appear in any fact. If it appears but no fact declares the relation the \
+                question asks about, answer yes: the answer is that there is none."""
+                : knowledgeBase && intent.kind() == QueryKind.SOW_IN_PLOT ? """
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? `intent.subject` is a plot of the \
+                garden. Answer no if it does not appear in any fact, or if no crop can be sown or \
+                planted in `intent.month`."""
+                : SUBJECTLESS.contains(intent.kind()) ? """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
                 can the question described by `intent` be answered? Answer no if the facts do not \
                 contain the relation the question asks about.""" : """
@@ -137,7 +153,7 @@ public class JevDecisionLayer implements DecisionLayer {
                 "state", ordered(
                         // Field by field, so the language (not needed to decide) never changes what Jev sees.
                         "intent", intent(intent),
-                        "rule", rule(intent.kind()),
+                        "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
                         "sources", sources(anyInferred, anyProposed, anyForecast),
                         "facts", stateFacts),
                 "questions", questions);
@@ -275,6 +291,28 @@ public class JevDecisionLayer implements DecisionLayer {
             }
         }
         return List.copyOf(result);
+    }
+
+    /** On the knowledge base, a declared relation that has no value means "none", not "unknown" (#35). */
+    static final Set<QueryKind> NONE_IS_AN_ANSWER = Set.of(QueryKind.COMPANIONS, QueryKind.ANTAGONISTS);
+
+    /**
+     * The rule as stated for facts of the knowledge base, where it differs from the suite's: there are no
+     * repels facts, and sowing facts are already those of the asked zone (#35).
+     */
+    static String knowledgeBaseRule(QueryKind kind) {
+        return switch (kind) {
+            case RELEVANT_PESTS -> "The answer is every pest or disease X such that (X, activeInSeason, "
+                    + "`intent.season`) and (X, affects, `intent.subject`) are facts. The knowledge base declares "
+                    + "no repels facts, so no pest is excluded for being repelled.";
+            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, frost) is a fact. The facts are "
+                    + "already those of `intent.zone`.";
+            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
+                    + "(X, avoidNow, frost) is a fact. The facts are already those of `intent.zone`.";
+            default -> rule(kind);
+        };
     }
 
     /** The domain rule for each question shape, stated in plain words for Jev. */

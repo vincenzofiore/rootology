@@ -145,7 +145,7 @@ public class GardenPipelineAgent {
     }
 
     /** Zone CENTRO unless already set; for the kinds about a month, the current month in Italy. */
-    static Intent withDefaults(Intent intent, java.time.Month currentMonth) {
+    public static Intent withDefaults(Intent intent, java.time.Month currentMonth) {
         if (!NEEDS_ZONE.contains(intent.kind())) {
             return intent;
         }

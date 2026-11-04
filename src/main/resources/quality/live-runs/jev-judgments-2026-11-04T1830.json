@@ -1,0 +1,352 @@
+{
+  "startedAt" : "2026-11-04T18:30:55.134090Z",
+  "judgments" : [ {
+    "id" : "companions-tomato-it",
+    "intent" : "Intent[kind=COMPANIONS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodoro companionOf Basilico [CURATED]", "pomodoro antagonistOf Broccolo [CURATED]", "pomodoro antagonistOf Cavolo cappuccio [CURATED]", "pomodoro companionOf Carota [CURATED]", "pomodoro antagonistOf Cavolfiore [CURATED]", "pomodoro antagonistOf Finocchio [CURATED]", "pomodoro companionOf Cipolla [CURATED]", "pomodoro companionOf Prezzemolo [CURATED]", "pomodoro antagonistOf Patata [CURATED]", "pomodoro antagonistOf Cavolo verza [CURATED]", "pomodoro antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodoro [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodoro [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodoro [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodoro [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodoro [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodoro [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodoro [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodoro [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodoro [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodoro [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "pomodoro" : 0.06,
+      "Basilico" : 1.0,
+      "Broccolo" : 0.01,
+      "Cavolo cappuccio" : 0.01,
+      "Carota" : 0.99,
+      "Cavolfiore" : 0.01,
+      "Finocchio" : 0.01,
+      "Cipolla" : 0.99,
+      "Prezzemolo" : 0.99,
+      "Patata" : 0.01,
+      "Cavolo verza" : 0.01,
+      "Cavolo nero" : 0.01
+    },
+    "decision" : "Decision[answer=[Basilico, Carota, Cipolla, Prezzemolo], confidence=0.88, escalate=false, reason=Jev: confident (0,88)]"
+  }, {
+    "id" : "companions-tomato-en",
+    "intent" : "Intent[kind=COMPANIONS, subject=tomato, season=null, language=en, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "tomato companionOf Basil [CURATED]", "tomato antagonistOf Broccoli [CURATED]", "tomato antagonistOf Cabbage [CURATED]", "tomato companionOf Carrot [CURATED]", "tomato antagonistOf Cauliflower [CURATED]", "tomato antagonistOf Florence fennel [CURATED]", "tomato companionOf Onion [CURATED]", "tomato companionOf Parsley [CURATED]", "tomato antagonistOf Potato [CURATED]", "tomato antagonistOf Savoy cabbage [CURATED]", "tomato antagonistOf Tuscan kale [CURATED]", "Early blight affects tomato [CURATED]", "Early blight activeInSeason SUMMER [CURATED]", "Early blight activeInSeason AUTUMN [CURATED]", "Tobacco whitefly affects tomato [CURATED]", "Tobacco whitefly activeInSeason SUMMER [CURATED]", "Tobacco whitefly activeInSeason AUTUMN [CURATED]", "Grey mould affects tomato [CURATED]", "Grey mould activeInSeason SPRING [CURATED]", "Grey mould activeInSeason SUMMER [CURATED]", "Grey mould activeInSeason AUTUMN [CURATED]", "Western flower thrips affects tomato [CURATED]", "Western flower thrips activeInSeason SPRING [CURATED]", "Western flower thrips activeInSeason SUMMER [CURATED]", "Western flower thrips activeInSeason AUTUMN [CURATED]", "Tomato leafminer affects tomato [CURATED]", "Tomato leafminer activeInSeason SPRING [CURATED]", "Tomato leafminer activeInSeason SUMMER [CURATED]", "Tomato leafminer activeInSeason AUTUMN [CURATED]", "Cotton bollworm affects tomato [CURATED]", "Cotton bollworm activeInSeason SUMMER [CURATED]", "Cotton bollworm activeInSeason AUTUMN [CURATED]", "Colorado potato beetle affects tomato [CURATED]", "Colorado potato beetle activeInSeason SPRING [CURATED]", "Colorado potato beetle activeInSeason SUMMER [CURATED]", "Late blight affects tomato [CURATED]", "Late blight activeInSeason SPRING [CURATED]", "Late blight activeInSeason SUMMER [CURATED]", "Late blight activeInSeason AUTUMN [CURATED]", "Two-spotted spider mite affects tomato [CURATED]", "Two-spotted spider mite activeInSeason SUMMER [CURATED]", "Two-spotted spider mite activeInSeason AUTUMN [CURATED]", "Greenhouse whitefly affects tomato [CURATED]", "Greenhouse whitefly activeInSeason SUMMER [CURATED]", "Greenhouse whitefly activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.96,
+    "candidates" : {
+      "tomato" : 0.08,
+      "Basil" : 1.0,
+      "Broccoli" : 0.01,
+      "Cabbage" : 0.01,
+      "Carrot" : 0.99,
+      "Cauliflower" : 0.01,
+      "Florence fennel" : 0.01,
+      "Onion" : 0.99,
+      "Parsley" : 0.99,
+      "Potato" : 0.01,
+      "Savoy cabbage" : 0.01,
+      "Tuscan kale" : 0.01
+    },
+    "decision" : "Decision[answer=[Basil, Carrot, Onion, Parsley], confidence=0.84, escalate=false, reason=Jev: confident (0,84)]"
+  }, {
+    "id" : "companions-garlic-none-declared",
+    "intent" : "Intent[kind=COMPANIONS, subject=aglio, season=null, language=it, zone=null, month=null]",
+    "facts" : 12,
+    "factLines" : [ "Mosca della cipolla affects aglio [CURATED]", "Mosca della cipolla activeInSeason SUMMER [CURATED]", "Mosca della cipolla activeInSeason AUTUMN [CURATED]", "Mosca della cipolla activeInSeason SPRING [CURATED]", "Ruggine dell'aglio e del porro affects aglio [CURATED]", "Ruggine dell'aglio e del porro activeInSeason SPRING [CURATED]", "Ruggine dell'aglio e del porro activeInSeason SUMMER [CURATED]", "Ruggine dell'aglio e del porro activeInSeason AUTUMN [CURATED]", "Tripide della cipolla affects aglio [CURATED]", "Tripide della cipolla activeInSeason SPRING [CURATED]", "Tripide della cipolla activeInSeason SUMMER [CURATED]", "Tripide della cipolla activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.93,
+    "candidates" : { },
+    "decision" : "Decision[answer=[], confidence=0.8600000000000001, escalate=false, reason=Jev: confident (0,86)]"
+  }, {
+    "id" : "antagonists-tomato",
+    "intent" : "Intent[kind=ANTAGONISTS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodoro companionOf Basilico [CURATED]", "pomodoro antagonistOf Broccolo [CURATED]", "pomodoro antagonistOf Cavolo cappuccio [CURATED]", "pomodoro companionOf Carota [CURATED]", "pomodoro antagonistOf Cavolfiore [CURATED]", "pomodoro antagonistOf Finocchio [CURATED]", "pomodoro companionOf Cipolla [CURATED]", "pomodoro companionOf Prezzemolo [CURATED]", "pomodoro antagonistOf Patata [CURATED]", "pomodoro antagonistOf Cavolo verza [CURATED]", "pomodoro antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodoro [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodoro [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodoro [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodoro [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodoro [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodoro [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodoro [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodoro [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodoro [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodoro [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.97,
+    "candidates" : {
+      "pomodoro" : 0.06,
+      "Basilico" : 0.01,
+      "Broccolo" : 1.0,
+      "Cavolo cappuccio" : 1.0,
+      "Carota" : 0.0,
+      "Cavolfiore" : 1.0,
+      "Finocchio" : 0.99,
+      "Cipolla" : 0.01,
+      "Prezzemolo" : 0.01,
+      "Patata" : 1.0,
+      "Cavolo verza" : 1.0,
+      "Cavolo nero" : 1.0
+    },
+    "decision" : "Decision[answer=[Broccolo, Cavolo cappuccio, Cavolfiore, Finocchio, Patata, Cavolo verza, Cavolo nero], confidence=0.88, escalate=false, reason=Jev: confident (0,88)]"
+  }, {
+    "id" : "antagonists-fennel-not-reversed",
+    "intent" : "Intent[kind=ANTAGONISTS, subject=finocchio, season=null, language=it, zone=null, month=null]",
+    "facts" : 2,
+    "factLines" : [ "finocchio antagonistOf Fagiolo [CURATED]", "finocchio antagonistOf Peperone [CURATED]" ],
+    "answerable" : 0.94,
+    "candidates" : {
+      "finocchio" : 0.33,
+      "Fagiolo" : 0.99,
+      "Peperone" : 0.98
+    },
+    "decision" : "Decision[answer=[Fagiolo, Peperone], confidence=0.33999999999999997, escalate=true, reason=Jev: low confidence (0,34)]"
+  }, {
+    "id" : "sowing-tomato",
+    "intent" : "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=CENTRO, month=null]",
+    "facts" : 7,
+    "factLines" : [ "pomodoro harvestIn JULY [CURATED]", "pomodoro harvestIn AUGUST [CURATED]", "pomodoro harvestIn SEPTEMBER [CURATED]", "pomodoro sowIn FEBRUARY [CURATED]", "pomodoro sowIn MARCH [CURATED]", "pomodoro plantIn APRIL [CURATED]", "pomodoro plantIn MAY [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "FEBRUARY" : 0.99,
+      "MARCH" : 0.99,
+      "APRIL" : 0.98,
+      "MAY" : 0.98
+    },
+    "decision" : "Decision[answer=[FEBRUARY, MARCH, APRIL, MAY], confidence=0.96, escalate=false, reason=Jev: confident (0,96)]"
+  }, {
+    "id" : "harvest-garlic",
+    "intent" : "Intent[kind=HARVEST_TIME, subject=aglio, season=null, language=it, zone=CENTRO, month=null]",
+    "facts" : 5,
+    "factLines" : [ "aglio harvestIn JUNE [CURATED]", "aglio harvestIn JULY [CURATED]", "aglio plantIn OCTOBER [CURATED]", "aglio plantIn NOVEMBER [CURATED]", "aglio plantIn DECEMBER [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "JUNE" : 0.99,
+      "JULY" : 0.99
+    },
+    "decision" : "Decision[answer=[JUNE, JULY], confidence=0.96, escalate=false, reason=Jev: confident (0,96)]"
+  }, {
+    "id" : "sow-now-november",
+    "intent" : "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+    "facts" : 5,
+    "factLines" : [ "Fava sowIn NOVEMBER [CURATED]", "Aglio plantIn NOVEMBER [CURATED]", "Pisello sowIn NOVEMBER [CURATED]", "Rosmarino plantIn NOVEMBER [CURATED]", "Salvia plantIn NOVEMBER [CURATED]" ],
+    "answerable" : 0.91,
+    "candidates" : {
+      "Fava" : 0.97,
+      "Aglio" : 0.96,
+      "Pisello" : 0.98,
+      "Rosmarino" : 0.96,
+      "Salvia" : 0.97
+    },
+    "decision" : "Decision[answer=[Fava, Aglio, Pisello, Rosmarino, Salvia], confidence=0.8200000000000001, escalate=false, reason=Jev: confident (0,82)]"
+  }, {
+    "id" : "sow-in-march-en",
+    "intent" : "Intent[kind=SOW_NOW, subject=null, season=null, language=en, zone=CENTRO, month=MARCH]",
+    "facts" : 20,
+    "factLines" : [ "Basil sowIn MARCH [CURATED]", "Cabbage sowIn MARCH [CURATED]", "Carrot sowIn MARCH [CURATED]", "Celery sowIn MARCH [CURATED]", "Chard sowIn MARCH [CURATED]", "Chili pepper sowIn MARCH [CURATED]", "Eggplant sowIn MARCH [CURATED]", "Leek sowIn MARCH [CURATED]", "Lettuce sowIn MARCH [CURATED]", "Onion sowIn MARCH [CURATED]", "Parsley sowIn MARCH [CURATED]", "Pea sowIn MARCH [CURATED]", "Potato plantIn MARCH [CURATED]", "Radish sowIn MARCH [CURATED]", "Rocket sowIn MARCH [CURATED]", "Rosemary plantIn MARCH [CURATED]", "Sage plantIn MARCH [CURATED]", "Spinach sowIn MARCH [CURATED]", "Sweet pepper sowIn MARCH [CURATED]", "Tomato sowIn MARCH [CURATED]" ],
+    "answerable" : 0.93,
+    "candidates" : {
+      "Basil" : 0.99,
+      "Cabbage" : 0.99,
+      "Carrot" : 0.99,
+      "Celery" : 0.98,
+      "Chard" : 0.99,
+      "Chili pepper" : 0.97,
+      "Eggplant" : 0.97,
+      "Leek" : 0.98,
+      "Lettuce" : 0.99,
+      "Onion" : 0.98,
+      "Parsley" : 0.99,
+      "Pea" : 0.99,
+      "Potato" : 0.98,
+      "Radish" : 0.99,
+      "Rocket" : 0.99,
+      "Rosemary" : 0.97,
+      "Sage" : 0.98,
+      "Spinach" : 0.99,
+      "Sweet pepper" : 0.98,
+      "Tomato" : 0.98
+    },
+    "decision" : "Decision[answer=[Basil, Cabbage, Carrot, Celery, Chard, Chili pepper, Eggplant, Leek, Lettuce, Onion, Parsley, Pea, Potato, Radish, Rocket, Rosemary, Sage, Spinach, Sweet pepper, Tomato], confidence=0.8600000000000001, escalate=false, reason=Jev: confident (0,86)]"
+  }, {
+    "id" : "relevant-pests-tomato-summer",
+    "intent" : "Intent[kind=RELEVANT_PESTS, subject=pomodoro, season=SUMMER, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodoro companionOf Basilico [CURATED]", "pomodoro antagonistOf Broccolo [CURATED]", "pomodoro antagonistOf Cavolo cappuccio [CURATED]", "pomodoro companionOf Carota [CURATED]", "pomodoro antagonistOf Cavolfiore [CURATED]", "pomodoro antagonistOf Finocchio [CURATED]", "pomodoro companionOf Cipolla [CURATED]", "pomodoro companionOf Prezzemolo [CURATED]", "pomodoro antagonistOf Patata [CURATED]", "pomodoro antagonistOf Cavolo verza [CURATED]", "pomodoro antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodoro [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodoro [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodoro [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodoro [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodoro [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodoro [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodoro [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodoro [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodoro [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodoro [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "Alternariosi" : 0.99,
+      "Mosca bianca del tabacco" : 0.99,
+      "Muffa grigia" : 0.94,
+      "Tripide occidentale" : 0.98,
+      "Tignola del pomodoro (Tuta)" : 0.98,
+      "Nottua del pomodoro" : 0.99,
+      "Dorifora" : 0.97,
+      "Peronospora del pomodoro e della patata" : 0.98,
+      "Ragnetto rosso" : 0.99,
+      "Mosca bianca delle serre" : 0.95
+    },
+    "decision" : "Decision[answer=[Alternariosi, Mosca bianca del tabacco, Muffa grigia, Tripide occidentale, Tignola del pomodoro (Tuta), Nottua del pomodoro, Dorifora, Peronospora del pomodoro e della patata, Ragnetto rosso, Mosca bianca delle serre], confidence=0.8799999999999999, escalate=false, reason=Jev: confident (0,88)]"
+  }, {
+    "id" : "active-seasons-colorado-beetle",
+    "intent" : "Intent[kind=ACTIVE_SEASONS, subject=dorifora, season=null, language=it, zone=null, month=null]",
+    "facts" : 5,
+    "factLines" : [ "dorifora affects Melanzana [CURATED]", "dorifora activeInSeason SPRING [CURATED]", "dorifora activeInSeason SUMMER [CURATED]", "dorifora affects Patata [CURATED]", "dorifora affects Pomodoro [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "SPRING" : 0.99,
+      "SUMMER" : 0.99
+    },
+    "decision" : "Decision[answer=[SPRING, SUMMER], confidence=0.96, escalate=false, reason=Jev: confident (0,96)]"
+  }, {
+    "id" : "active-seasons-late-blight-en",
+    "intent" : "Intent[kind=ACTIVE_SEASONS, subject=late blight, season=null, language=en, zone=null, month=null]",
+    "facts" : 5,
+    "factLines" : [ "late blight affects Potato [CURATED]", "late blight activeInSeason SPRING [CURATED]", "late blight activeInSeason SUMMER [CURATED]", "late blight activeInSeason AUTUMN [CURATED]", "late blight affects Tomato [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "SPRING" : 0.99,
+      "SUMMER" : 0.99,
+      "AUTUMN" : 0.99
+    },
+    "decision" : "Decision[answer=[SPRING, SUMMER, AUTUMN], confidence=0.96, escalate=false, reason=Jev: confident (0,96)]"
+  }, {
+    "id" : "growing-now",
+    "intent" : "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+    "facts" : 2,
+    "factLines" : [ "Aiuola A grows Lattuga [CURATED]", "Aiuola A grows Pomodoro [CURATED]" ],
+    "answerable" : 0.84,
+    "candidates" : {
+      "Lattuga" : 0.98,
+      "Pomodoro" : 0.98
+    },
+    "decision" : "Decision[answer=[Lattuga, Pomodoro], confidence=0.6799999999999999, escalate=false, reason=Jev: confident (0,68)]"
+  }, {
+    "id" : "pest-risk-november",
+    "intent" : "Intent[kind=PEST_RISK, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+    "facts" : 6,
+    "factLines" : [ "Aiuola A grows Lattuga [CURATED]", "Aiuola A grows Pomodoro [CURATED]", "Muffa grigia threatens Lattuga [CURATED]", "Peronospora della lattuga threatens Lattuga [CURATED]", "Limaccia grigia threatens Lattuga [CURATED]", "Muffa grigia threatens Pomodoro [CURATED]" ],
+    "answerable" : 0.9,
+    "candidates" : {
+      "Muffa grigia" : 0.98,
+      "Peronospora della lattuga" : 0.97,
+      "Limaccia grigia" : 0.95
+    },
+    "decision" : "Decision[answer=[Muffa grigia, Peronospora della lattuga, Limaccia grigia], confidence=0.8, escalate=false, reason=Jev: confident (0,80)]"
+  }, {
+    "id" : "sow-in-plot-after-peas",
+    "intent" : "Intent[kind=SOW_IN_PLOT, subject=Aiuola B, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+    "facts" : 8,
+    "factLines" : [ "Aiuola B hasSoil LOAMY [CURATED]", "Fava sowIn NOVEMBER [CURATED]", "Fava avoidIn Aiuola B [INFERRED]", "Aglio plantIn NOVEMBER [CURATED]", "Pisello sowIn NOVEMBER [CURATED]", "Pisello avoidIn Aiuola B [INFERRED]", "Rosmarino plantIn NOVEMBER [CURATED]", "Salvia plantIn NOVEMBER [CURATED]" ],
+    "answerable" : 0.69,
+    "candidates" : {
+      "Fava" : 0.09,
+      "Aglio" : 0.95,
+      "Pisello" : 0.15,
+      "Rosmarino" : 0.94,
+      "Salvia" : 0.96
+    },
+    "decision" : "Decision[answer=[Aglio, Rosmarino, Salvia], confidence=0.3799999999999999, escalate=true, reason=Jev: low confidence (0,38)]"
+  }, {
+    "id" : "frost-rules-out-pea",
+    "intent" : "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+    "facts" : 7,
+    "factLines" : [ "Fava sowIn NOVEMBER [CURATED]", "Aglio plantIn NOVEMBER [CURATED]", "Pisello sowIn NOVEMBER [CURATED]", "Rosmarino plantIn NOVEMBER [CURATED]", "Salvia plantIn NOVEMBER [CURATED]", "Forecast minimumAirTemperatureNext7Days -2.0 [FORECAST]", "Pisello avoidNow frost [INFERRED]" ],
+    "answerable" : 0.85,
+    "candidates" : {
+      "Fava" : 0.96,
+      "Aglio" : 0.96,
+      "Pisello" : 0.06,
+      "Rosmarino" : 0.94,
+      "Salvia" : 0.96
+    },
+    "decision" : "Decision[answer=[Fava, Aglio, Rosmarino, Salvia], confidence=0.7, escalate=false, reason=Jev: confident (0,70)]"
+  }, {
+    "id" : "forecast-missing-answers-anyway",
+    "intent" : "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+    "facts" : 5,
+    "factLines" : [ "Fava sowIn NOVEMBER [CURATED]", "Aglio plantIn NOVEMBER [CURATED]", "Pisello sowIn NOVEMBER [CURATED]", "Rosmarino plantIn NOVEMBER [CURATED]", "Salvia plantIn NOVEMBER [CURATED]" ],
+    "answerable" : 0.83,
+    "candidates" : {
+      "Fava" : 0.98,
+      "Aglio" : 0.97,
+      "Pisello" : 0.98,
+      "Rosmarino" : 0.96,
+      "Salvia" : 0.97
+    },
+    "decision" : "Decision[answer=[Fava, Aglio, Pisello, Rosmarino, Salvia], confidence=0.6599999999999999, escalate=false, reason=Jev: confident (0,66)]"
+  }, {
+    "id" : "space-alias-in-its-space",
+    "intent" : "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodorino companionOf Basilico [CURATED]", "pomodorino antagonistOf Broccolo [CURATED]", "pomodorino antagonistOf Cavolo cappuccio [CURATED]", "pomodorino companionOf Carota [CURATED]", "pomodorino antagonistOf Cavolfiore [CURATED]", "pomodorino antagonistOf Finocchio [CURATED]", "pomodorino companionOf Cipolla [CURATED]", "pomodorino companionOf Prezzemolo [CURATED]", "pomodorino antagonistOf Patata [CURATED]", "pomodorino antagonistOf Cavolo verza [CURATED]", "pomodorino antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodorino [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodorino [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodorino [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodorino [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodorino [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodorino [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodorino [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodorino [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodorino [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodorino [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.96,
+    "candidates" : {
+      "pomodorino" : 0.12,
+      "Basilico" : 1.0,
+      "Broccolo" : 0.01,
+      "Cavolo cappuccio" : 0.01,
+      "Carota" : 0.99,
+      "Cavolfiore" : 0.01,
+      "Finocchio" : 0.01,
+      "Cipolla" : 0.99,
+      "Prezzemolo" : 0.99,
+      "Patata" : 0.01,
+      "Cavolo verza" : 0.01,
+      "Cavolo nero" : 0.01
+    },
+    "decision" : "Decision[answer=[Basilico, Carota, Cipolla, Prezzemolo], confidence=0.76, escalate=false, reason=Jev: confident (0,76)]"
+  }, {
+    "id" : "space-alias-not-in-another-space",
+    "intent" : "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+    "facts" : 0,
+    "factLines" : [ ],
+    "answerable" : 0.18,
+    "candidates" : { },
+    "decision" : "Decision[answer=[], confidence=0.8200000000000001, escalate=true, reason=Jev: the facts do not answer this (p=0,18)]"
+  }, {
+    "id" : "unknown-crop",
+    "intent" : "Intent[kind=COMPANIONS, subject=lavanda, season=null, language=it, zone=null, month=null]",
+    "facts" : 0,
+    "factLines" : [ ],
+    "answerable" : 0.16,
+    "candidates" : { },
+    "decision" : "Decision[answer=[], confidence=0.84, escalate=true, reason=Jev: the facts do not answer this (p=0,16)]"
+  }, {
+    "id" : "growing-now-without-garden",
+    "intent" : "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+    "facts" : 0,
+    "factLines" : [ ],
+    "answerable" : 0.08,
+    "candidates" : { },
+    "decision" : "Decision[answer=[], confidence=0.92, escalate=true, reason=Jev: the facts do not answer this (p=0,08)]"
+  }, {
+    "id" : "calendar-abroad",
+    "intent" : "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=CENTRO, month=null]",
+    "facts" : 7,
+    "factLines" : [ "pomodoro harvestIn JULY [CURATED]", "pomodoro harvestIn AUGUST [CURATED]", "pomodoro harvestIn SEPTEMBER [CURATED]", "pomodoro sowIn FEBRUARY [CURATED]", "pomodoro sowIn MARCH [CURATED]", "pomodoro plantIn APRIL [CURATED]", "pomodoro plantIn MAY [CURATED]" ],
+    "answerable" : 0.98,
+    "candidates" : {
+      "FEBRUARY" : 0.98,
+      "MARCH" : 0.99,
+      "APRIL" : 0.98,
+      "MAY" : 0.98
+    },
+    "decision" : "Decision[answer=[FEBRUARY, MARCH, APRIL, MAY], confidence=0.96, escalate=false, reason=Jev: confident (0,96)]"
+  }, {
+    "id" : "active-season-of-a-crop",
+    "intent" : "Intent[kind=ACTIVE_SEASONS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodoro companionOf Basilico [CURATED]", "pomodoro antagonistOf Broccolo [CURATED]", "pomodoro antagonistOf Cavolo cappuccio [CURATED]", "pomodoro companionOf Carota [CURATED]", "pomodoro antagonistOf Cavolfiore [CURATED]", "pomodoro antagonistOf Finocchio [CURATED]", "pomodoro companionOf Cipolla [CURATED]", "pomodoro companionOf Prezzemolo [CURATED]", "pomodoro antagonistOf Patata [CURATED]", "pomodoro antagonistOf Cavolo verza [CURATED]", "pomodoro antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodoro [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodoro [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodoro [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodoro [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodoro [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodoro [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodoro [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodoro [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodoro [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodoro [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.2,
+    "candidates" : {
+      "SUMMER" : 0.11,
+      "AUTUMN" : 0.11,
+      "SPRING" : 0.09
+    },
+    "decision" : "Decision[answer=[], confidence=0.8, escalate=true, reason=Jev: the facts do not answer this (p=0,20)]"
+  }, {
+    "id" : "shared-repellers-not-declared",
+    "intent" : "Intent[kind=COMPANIONS_OF_SHARED_REPELLERS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+    "facts" : 45,
+    "factLines" : [ "pomodoro companionOf Basilico [CURATED]", "pomodoro antagonistOf Broccolo [CURATED]", "pomodoro antagonistOf Cavolo cappuccio [CURATED]", "pomodoro companionOf Carota [CURATED]", "pomodoro antagonistOf Cavolfiore [CURATED]", "pomodoro antagonistOf Finocchio [CURATED]", "pomodoro companionOf Cipolla [CURATED]", "pomodoro companionOf Prezzemolo [CURATED]", "pomodoro antagonistOf Patata [CURATED]", "pomodoro antagonistOf Cavolo verza [CURATED]", "pomodoro antagonistOf Cavolo nero [CURATED]", "Alternariosi affects pomodoro [CURATED]", "Alternariosi activeInSeason SUMMER [CURATED]", "Alternariosi activeInSeason AUTUMN [CURATED]", "Mosca bianca del tabacco affects pomodoro [CURATED]", "Mosca bianca del tabacco activeInSeason SUMMER [CURATED]", "Mosca bianca del tabacco activeInSeason AUTUMN [CURATED]", "Muffa grigia affects pomodoro [CURATED]", "Muffa grigia activeInSeason SPRING [CURATED]", "Muffa grigia activeInSeason SUMMER [CURATED]", "Muffa grigia activeInSeason AUTUMN [CURATED]", "Tripide occidentale affects pomodoro [CURATED]", "Tripide occidentale activeInSeason SPRING [CURATED]", "Tripide occidentale activeInSeason SUMMER [CURATED]", "Tripide occidentale activeInSeason AUTUMN [CURATED]", "Tignola del pomodoro (Tuta) affects pomodoro [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SPRING [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason SUMMER [CURATED]", "Tignola del pomodoro (Tuta) activeInSeason AUTUMN [CURATED]", "Nottua del pomodoro affects pomodoro [CURATED]", "Nottua del pomodoro activeInSeason SUMMER [CURATED]", "Nottua del pomodoro activeInSeason AUTUMN [CURATED]", "Dorifora affects pomodoro [CURATED]", "Dorifora activeInSeason SPRING [CURATED]", "Dorifora activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata affects pomodoro [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SPRING [CURATED]", "Peronospora del pomodoro e della patata activeInSeason SUMMER [CURATED]", "Peronospora del pomodoro e della patata activeInSeason AUTUMN [CURATED]", "Ragnetto rosso affects pomodoro [CURATED]", "Ragnetto rosso activeInSeason SUMMER [CURATED]", "Ragnetto rosso activeInSeason AUTUMN [CURATED]", "Mosca bianca delle serre affects pomodoro [CURATED]", "Mosca bianca delle serre activeInSeason SUMMER [CURATED]", "Mosca bianca delle serre activeInSeason AUTUMN [CURATED]" ],
+    "answerable" : 0.3,
+    "candidates" : {
+      "pomodoro" : 0.16,
+      "Basilico" : 0.32,
+      "Broccolo" : 0.11,
+      "Cavolo cappuccio" : 0.09,
+      "Carota" : 0.32,
+      "Cavolfiore" : 0.09,
+      "Finocchio" : 0.11,
+      "Cipolla" : 0.28,
+      "Prezzemolo" : 0.31,
+      "Patata" : 0.12,
+      "Cavolo verza" : 0.11,
+      "Cavolo nero" : 0.11
+    },
+    "decision" : "Decision[answer=[], confidence=0.7, escalate=true, reason=Jev: the facts do not answer this (p=0,30)]"
+  } ]
+}

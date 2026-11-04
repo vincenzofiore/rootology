@@ -114,6 +114,64 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void factsOfTheKnowledgeBaseGetTheirOwnRuleAndNoneCountsAsAnAnswer() {
+        var garlic = new GraphFacts(List.of(new Reading(new Fact("Ruggine", "affects", "aglio"),
+                Reading.Source.CURATED, List.of("eppo-codes"), null)));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.questions.answerable.instructions")
+                        .value(org.hamcrest.Matchers.containsString("the answer is that there is none")))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.rule").value(org.hamcrest.Matchers.containsString("no pest is excluded")))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        Decision none = layer.decide(new Intent(QueryKind.COMPANIONS, "aglio", null, "it"), garlic);
+        layer.decide(new Intent(QueryKind.RELEVANT_PESTS, "aglio", "SUMMER", "it"), garlic);
+
+        assertThat(none.escalate()).isFalse();
+        assertThat(none.answer()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void onTheKnowledgeBaseTheSubjectIsNeverItsOwnAntagonist() {
+        var fennel = new GraphFacts(List.of(
+                new Reading(new Fact("finocchio", "antagonistOf", "Fagiolo"), Reading.Source.CURATED,
+                        List.of("cornell-1999"), null),
+                new Reading(new Fact("finocchio", "antagonistOf", "Peperone"), Reading.Source.CURATED,
+                        List.of("cornell-1999"), null)));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.questions.candidate_0.instructions")
+                        .value(org.hamcrest.Matchers.containsString("\"Fagiolo\"")))
+                .andExpect(jsonPath("$.questions.candidate_2").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.95},
+                         "candidate_0":{"type":"noul","noul":0.95},
+                         "candidate_1":{"type":"noul","noul":0.95}}}""", MediaType.APPLICATION_JSON));
+
+        Decision decision = layer.decide(new Intent(QueryKind.ANTAGONISTS, "finocchio", null, "it"), fennel);
+
+        assertThat(decision.answer()).containsExactly("Fagiolo", "Peperone");
+        server.verify();
+    }
+
+    @Test
+    void theSuitesFactsKeepTheRecordedWording() {
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.rule").value(JevDecisionLayer.rule(QueryKind.COMPANIONS)))
+                .andExpect(jsonPath("$.questions.answerable.instructions")
+                        .value(org.hamcrest.Matchers.containsString("or if no fact declares the relation")))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.04}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), FACTS);
+
+        server.verify();
+    }
+
+    @Test
     void theQuestionsLanguageNeverReachesJev() {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.intent.subject").value("Mosquito"))
