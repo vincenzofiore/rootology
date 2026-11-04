@@ -272,7 +272,7 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         DatePicker date = new DatePicker(getTranslation("garden.date"), LocalDate.now());
         TextField notes = new TextField(getTranslation("garden.notes.field"));
         Paragraph rotationWarning = new Paragraph();
-        rotationWarning.getStyle().set("color", "var(--vaadin-error-text-color, #b00020)");
+        rotationWarning.addClassNames(com.vaadin.flow.theme.lumo.LumoUtility.TextColor.ERROR);
         Runnable checkRotation = () -> rotationWarning.setText(crop.getValue() == null || date.getValue() == null ? ""
                 : gardens.rotationWarning(spaceId, login, plot.id(), crop.getValue().id(), date.getValue())
                 .map(w -> getTranslation("garden.rotation", cropName(crop.getValue().id(), crop.getValue().italianName()),

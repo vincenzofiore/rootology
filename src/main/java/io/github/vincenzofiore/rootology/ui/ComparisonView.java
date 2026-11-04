@@ -165,7 +165,7 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
             p.getStyle().set("font-size", "0.85rem").set("margin", "0.4rem 0 0");
             card.add(p);
         }
-        card.getStyle().set("border", "1px solid var(--vaadin-border-color, #ccc)")
+        card.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)")
                 .set("border-radius", "8px").set("padding", "0.8rem 1rem").set("width", "15rem");
         return card;
     }

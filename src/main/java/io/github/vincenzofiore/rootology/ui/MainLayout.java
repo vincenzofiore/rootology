@@ -7,6 +7,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.spring.security.AuthenticationContext;
@@ -23,6 +24,9 @@ public class MainLayout extends AppLayout {
     private final NotificationBroadcaster broadcaster;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
+    /** Light or dark (#31): automatic (the device's setting), light or dark; kept in this browser. */
+    private final Button scheme = new Button();
+    private ColorScheme.Value colorScheme = ColorScheme.Value.LIGHT_DARK;
     private Runnable stopListening;
 
     public MainLayout(AuthenticationContext authentication, CurrentUser currentUser, NotificationService notifications,
@@ -53,7 +57,9 @@ public class MainLayout extends AppLayout {
         bell.addThemeName("tertiary");
         bell.addClickListener(e -> UI.getCurrent().navigate(NotificationsView.class));
         showUnread();
-        addToNavbar(space, bell, who, logout);
+        scheme.addThemeName("tertiary");
+        scheme.addClickListener(e -> nextScheme());
+        addToNavbar(space, scheme, bell, who, logout);
 
         SideNav nav = new SideNav();
         nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, VaadinIcon.COMMENT_ELLIPSIS_O.create()));
@@ -84,6 +90,13 @@ public class MainLayout extends AppLayout {
         super.onAttach(event);
         UI ui = event.getUI();
         stopListening = broadcaster.register(currentUser.login(), () -> ui.access(this::showUnread));
+        ui.getPage().executeJs("return localStorage.getItem($0)", SCHEME_KEY).then(String.class, saved -> {
+            if (saved != null) {
+                applyScheme(java.util.Arrays.stream(SCHEMES).filter(s -> s.name().equals(saved)).findFirst()
+                        .orElse(ColorScheme.Value.LIGHT_DARK));
+            }
+        });
+        showScheme();
     }
 
     @Override
@@ -92,5 +105,33 @@ public class MainLayout extends AppLayout {
             stopListening.run();
         }
         super.onDetach(event);
+    }
+
+    static final String SCHEME_KEY = "rootology.colorScheme";
+    private static final ColorScheme.Value[] SCHEMES =
+            {ColorScheme.Value.LIGHT_DARK, ColorScheme.Value.LIGHT, ColorScheme.Value.DARK};
+
+    private void nextScheme() {
+        int next = (java.util.Arrays.asList(SCHEMES).indexOf(colorScheme) + 1) % SCHEMES.length;
+        applyScheme(SCHEMES[next]);
+        getUI().ifPresent(ui -> ui.getPage().executeJs("localStorage.setItem($0, $1)", SCHEME_KEY, colorScheme.name()));
+    }
+
+    private void applyScheme(ColorScheme.Value value) {
+        colorScheme = value;
+        getUI().ifPresent(ui -> ui.getPage().setColorScheme(value));
+        showScheme();
+    }
+
+    private void showScheme() {
+        String key = switch (colorScheme) {
+            case LIGHT -> "theme.light";
+            case DARK -> "theme.dark";
+            default -> "theme.auto";
+        };
+        scheme.setIcon((colorScheme == ColorScheme.Value.DARK ? VaadinIcon.MOON_O
+                : colorScheme == ColorScheme.Value.LIGHT ? VaadinIcon.SUN_O : VaadinIcon.ADJUST).create());
+        scheme.setTooltipText(getTranslation(key));
+        scheme.setAriaLabel(getTranslation(key));
     }
 }
