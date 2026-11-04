@@ -18,6 +18,8 @@ import com.vaadin.flow.router.RouterLink;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.facts.SourceCatalog;
+import io.github.vincenzofiore.rootology.usage.UsageLimitException;
+import io.github.vincenzofiore.rootology.usage.UsageService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 import io.github.vincenzofiore.rootology.pipeline.Question;
@@ -37,11 +39,14 @@ public class AskView extends VerticalLayout {
     private final SourceCatalog sources;
     private final CurrentUser currentUser;
     private final KnowledgeEnrichment enrichment;
+    private final UsageService usage;
+    private final Span questionsToday = new Span();
     private final Div result = new Div();
 
     public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
-                   KnowledgeEnrichment enrichment) {
+                   KnowledgeEnrichment enrichment, UsageService usage) {
         this.enrichment = enrichment;
+        this.usage = usage;
         this.pipeline = pipeline;
         this.sources = sources;
         this.currentUser = currentUser;
@@ -51,7 +56,7 @@ public class AskView extends VerticalLayout {
         question.setWidth("36rem");
         Button ask = new Button("Ask", e -> ask(question.getValue()));
         ask.addThemeName("primary");
-        HorizontalLayout form = new HorizontalLayout(question, ask);
+        HorizontalLayout form = new HorizontalLayout(question, ask, questionsToday);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
 
@@ -62,6 +67,7 @@ public class AskView extends VerticalLayout {
                         + "threaten it this month, what to sow in one of your plots (respecting rotation). Say north, "
                         + "centre or south of Italy if it matters; otherwise your garden's location, or the centre."),
                 form, result);
+        showQuestionsToday();
         // A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member.
         if (!currentUser.canContribute()) {
             form.setVisible(false);
@@ -86,9 +92,19 @@ public class AskView extends VerticalLayout {
                 return;
             }
             show(run.answer());
+        } catch (UsageLimitException ex) {
+            result.add(new Paragraph(ex.getMessage()));
         } catch (RuntimeException ex) {
             Notification.show("Could not answer: " + ex.getMessage());
+        } finally {
+            showQuestionsToday();
         }
+    }
+
+    /** Today's questions against the personal limit (#19). */
+    private void showQuestionsToday() {
+        UsageService.Today today = usage.today(currentUser.login());
+        questionsToday.setText("%d of %d questions today".formatted(today.used(), today.limit()));
     }
 
     private void show(PipelineAnswer answer) {

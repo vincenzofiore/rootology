@@ -371,6 +371,38 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         verifyNoInteractions();
     }
 
+    @Autowired
+    io.github.vincenzofiore.rootology.usage.UsageService usage;
+
+    @Test
+    void overTheDailyLimitNoPaidCallIsMade() {
+        RunContext run = signedIn("wilma");
+        for (int i = 0; i < usage.defaultLimit(); i++) {
+            usage.record("wilma", run.spaceId(), io.github.vincenzofiore.rootology.usage.UsageKind.QUESTION,
+                    new io.github.vincenzofiore.rootology.usage.RunUsage(2, 0, 0, 0, 1));
+        }
+
+        assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Anything?"), run))
+                .isInstanceOf(io.github.vincenzofiore.rootology.usage.UsageLimitException.class);
+        verifyNoInteractions();
+    }
+
+    @Test
+    void everyQuestionAndEveryAnswerToAnEscalationIsRecorded() {
+        RunContext run = signedIn("xavier");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(
+                new Question("ask", "Which plants are companions of lavender?"), run);
+        assertThat(usage.today("xavier").used()).isEqualTo(1);
+        pipeline.respond(asked.pending().processId(), run.spaceId(),
+                new HumanAnswer(List.of(), "not in the garden", "xavier"));
+
+        assertThat(usage.today("xavier").used()).as("an answer to an escalation is not a question").isEqualTo(1);
+    }
+
     @Test
     void anUnknownCropInARealQuestionWaitsForAPerson() {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)

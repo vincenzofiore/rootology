@@ -54,6 +54,9 @@ class ViewsTest {
     io.github.vincenzofiore.rootology.roles.RoleService roles;
 
     @Autowired
+    io.github.vincenzofiore.rootology.usage.UsageService usage;
+
+    @Autowired
     io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
 
     @Autowired
@@ -86,7 +89,7 @@ class ViewsTest {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
         assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardenView(gardens, crops, geoNames, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
@@ -98,7 +101,7 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {
-        assertThat(new AdminView(roles, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+        assertThat(new AdminView(roles, usage, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
     }
 
     @Test

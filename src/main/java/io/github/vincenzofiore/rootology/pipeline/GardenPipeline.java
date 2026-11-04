@@ -5,14 +5,21 @@ import com.embabel.agent.core.Agent;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.AgentProcess;
 import com.embabel.agent.core.AgentProcessStatusCode;
+import com.embabel.agent.core.LlmInvocation;
 import com.embabel.agent.core.ProcessOptions;
 import com.embabel.agent.core.hitl.TypeRequest;
 import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
+import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.Intent;
+import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
+import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
-import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
+import io.github.vincenzofiore.rootology.usage.RunUsage;
+import io.github.vincenzofiore.rootology.usage.UsageKind;
+import io.github.vincenzofiore.rootology.usage.UsageService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -41,13 +48,17 @@ public class GardenPipeline {
     private final Map<String, PendingReview> pending = new ConcurrentHashMap<>();
     private final ClaudeCircuit claude;
     private final SpaceService spaces;
+    private final UsageService usage;
+    private final DecisionLayer decisionLayer;
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
-                   SpaceService spaces) {
+                   SpaceService spaces, UsageService usage, DecisionLayer decisionLayer) {
         this.agentPlatform = agentPlatform;
         this.events = events;
         this.claude = claude;
         this.spaces = spaces;
+        this.usage = usage;
+        this.decisionLayer = decisionLayer;
     }
 
     /** Fails at once while Claude's circuit is open, instead of waiting for Claude's retries (#29). */
@@ -92,11 +103,33 @@ public class GardenPipeline {
         if (context.hasSpace()) {
             // A guest only looks: no questions in the space (#33).
             spaces.requireContributor(context.spaceId(), context.startedBy());
+            // Before any paid call (#19).
+            usage.requireQuestionAvailable(context.startedBy());
         }
         requireClaude();
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
-        return settle(process.run(), question, context);
+        try {
+            return settle(process.run(), question, context);
+        } finally {
+            if (context.hasSpace()) {
+                usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
+            }
+        }
+    }
+
+    /** The Claude calls made since invocation number `from`, and the Jev call of the run if it reached Jev. */
+    private RunUsage usageOf(AgentProcess process, int from) {
+        var invocations = process.getLlmInvocations();
+        var since = invocations.subList(Math.min(from, invocations.size()), invocations.size());
+        int prompt = since.stream().mapToInt(i -> i.getUsage().getPromptTokens() == null ? 0 : i.getUsage().getPromptTokens()).sum();
+        int completion = since.stream()
+                .mapToInt(i -> i.getUsage().getCompletionTokens() == null ? 0 : i.getUsage().getCompletionTokens()).sum();
+        double cost = since.stream().mapToDouble(LlmInvocation::cost).sum();
+        Intent intent = process.last(Intent.class);
+        boolean jev = from == 0 && decisionLayer instanceof JevDecisionLayer && process.last(Decision.class) != null
+                && intent != null && intent.kind() != QueryKind.OTHER;
+        return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
     }
 
     /** Escalated questions of one space waiting for a person. */
@@ -116,11 +149,18 @@ public class GardenPipeline {
         }
         pending.remove(processId);
         AgentProcess process = agentPlatform.getAgentProcess(processId);
+        int before = process.getLlmInvocations().size();
         @SuppressWarnings("unchecked")
         TypeRequest<HumanAnswer> request = process.last(TypeRequest.class);
         request.onResponse(new TypeResponse<>(human, request.getId(), UUID.randomUUID().toString(),
                 Instant.now(), false), process);
-        Run run = settle(process.run(), review.question(), review.context());
+        Run run;
+        try {
+            run = settle(process.run(), review.question(), review.context());
+        } finally {
+            // Recorded, never blocked: whoever answers a waiting question must not be stopped (#19).
+            usage.record(human.reviewer(), spaceId, UsageKind.REVIEW, usageOf(process, before));
+        }
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }

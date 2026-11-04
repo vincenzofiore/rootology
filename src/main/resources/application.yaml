@@ -46,6 +46,9 @@ rootology:
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
     base-url: https://api.typesafe.ai
     model: jev-latest
+  usage:
+    # Questions each person may ask per day (#19), unless an admin set a personal limit.
+    daily-questions: 30
   geonames:
     # A free GeoNames account with "free web services" enabled; empty means place search is not offered.
     base-url: https://secure.geonames.org
