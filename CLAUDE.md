@@ -75,11 +75,14 @@ Phase 1, a personal assistant for a few invited users:
 14. #19 (done) Usage limits per user for Claude and Jev.
 15. #25 (done) Send email: SMTP (iCloud Mail app-specific password for now, a transactional service with a domain later), Mailpit in development, invitations by email bound to a verified address.
 16. #26 (done) Notifications: in-app and email, starting with escalations; per-person preferences; Telegram, web push or ntfy later for sensors.
-17. #27 Observability: structured logs, domain metrics (escalation rate, confidence, Claude/Jev latency and errors, cost per user), traces through the agent, health checks, alerts; no personal data in logs or traces.
-18. #31 UX v1: typed notes instead of strings, a weather card (7 days, frost days, MET Norway icons), answers as cards (values, confidence, warnings, sources), a garden home, Italian UI, usable on a phone.
-19. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
-20. #28 Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
-21. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+17. #37 Weather alerts: a daily job per garden applies frost-risk-v1 and smith-period-v1 to what grows and notifies (#26) once per event; later rain, wind and official warnings (Meteoalarm, terms first).
+18. #36 Persist pending escalations so they survive a restart (before the deploy); guaranteed events via the Modulith registry, Namastack Outbox evaluated.
+19. #38 Telegram notifications (account linked with a one-time code); WhatsApp Business Platform evaluated, not built.
+20. #27 Observability: structured logs, domain metrics (escalation rate, confidence, Claude/Jev latency and errors, cost per user), traces through the agent, health checks, alerts; no personal data in logs or traces.
+21. #31 UX v1: typed notes instead of strings, a weather card (7 days, frost days, MET Norway icons), answers as cards (values, confidence, warnings, sources), a garden home, Italian UI, usable on a phone.
+22. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
+23. #28 Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
+24. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
