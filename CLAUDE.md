@@ -72,7 +72,7 @@ Phase 1, a personal assistant for a few invited users:
 12. #33 (done) GUEST role in a space: a plain observer who sees everything and changes nothing. #34 (to evaluate later) a knowledge contributor app role and an operational collaborator space role.
 13. #20 (done) Quality suite: golden questions in CI, failing on silent wrong answers. The Compare view is already QA-only (#32); it becomes the QA view of the suite's and golden questions' results.
 14. #19 (done) Usage limits per user for Claude and Jev.
-15. #25 Send email: SMTP (Gmail app password or a transactional service, terms checked first), Mailpit in development, invitations by email bound to a verified address.
+15. #25 (done) Send email: SMTP (iCloud Mail app-specific password for now, a transactional service with a domain later), Mailpit in development, invitations by email bound to a verified address.
 16. #26 Notifications: in-app and email, starting with escalations; per-person preferences; Telegram, web push or ntfy later for sensors.
 17. #27 Observability: structured logs, domain metrics (escalation rate, confidence, Claude/Jev latency and errors, cost per user), traces through the agent, health checks, alerts; no personal data in logs or traces.
 18. #31 UX v1: typed notes instead of strings, a weather card (7 days, frost days, MET Norway icons), answers as cards (values, confidence, warnings, sources), a garden home, Italian UI, usable on a phone.
