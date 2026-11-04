@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = "rootology.jev.api-key=")
+@org.springframework.test.context.event.RecordApplicationEvents
 class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
@@ -385,6 +386,28 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Anything?"), run))
                 .isInstanceOf(io.github.vincenzofiore.rootology.usage.UsageLimitException.class);
         verifyNoInteractions();
+    }
+
+    @Autowired
+    org.springframework.test.context.event.ApplicationEvents applicationEvents;
+
+    @Test
+    void aWaitingQuestionAndItsAnswerAreAnnouncedForNotifications() {
+        RunContext run = signedIn("yara");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mint?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mint"));
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mint?"), run);
+        pipeline.respond(asked.pending().processId(), run.spaceId(), new HumanAnswer(List.of(), "", "yara"));
+
+        assertThat(applicationEvents.stream(EscalationWaiting.class)).singleElement().satisfies(e -> {
+            assertThat(e.spaceId()).isEqualTo(run.spaceId());
+            assertThat(e.askedBy()).isEqualTo("yara");
+            assertThat(e.reason()).isEqualTo("mint is not in the dataset");
+        });
+        assertThat(applicationEvents.stream(EscalationResolved.class)).singleElement()
+                .extracting(EscalationResolved::reviewer).isEqualTo("yara");
     }
 
     @Test

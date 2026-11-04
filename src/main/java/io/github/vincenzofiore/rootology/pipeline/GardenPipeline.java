@@ -164,6 +164,7 @@ public class GardenPipeline {
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }
+        events.publishEvent(new EscalationResolved(processId, spaceId, human.reviewer(), Instant.now()));
         return run.answer();
     }
 
@@ -171,6 +172,11 @@ public class GardenPipeline {
         if (process.getStatus() == AgentProcessStatusCode.WAITING) {
             PendingReview review = new PendingReview(process.getId(), context, question, process.last(Decision.class));
             pending.put(process.getId(), review);
+            if (context.hasSpace()) {
+                // Someone has to notice (#26): the notifications module tells the space's members.
+                events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.startedBy(),
+                        question.text(), review.decision().reason(), Instant.now()));
+            }
             return new Run(null, review, process.last(Intent.class));
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {

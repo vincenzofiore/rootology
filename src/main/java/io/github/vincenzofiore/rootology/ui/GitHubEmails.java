@@ -22,7 +22,12 @@ class GitHubEmails {
 
     private static final Logger log = LoggerFactory.getLogger(GitHubEmails.class);
 
-    record Address(String email, boolean verified) {
+    record Address(String email, boolean verified, boolean primary) {
+    }
+
+    /** The verified addresses in lower case, and the primary one if it is verified (null otherwise). */
+    record Verified(Set<String> all, String primary) {
+        static final Verified NONE = new Verified(Set.of(), null);
     }
 
     private final RestClient restClient;
@@ -40,16 +45,22 @@ class GitHubEmails {
         this.restClient = restClient;
     }
 
-    Set<String> verified(String accessToken) {
+    Verified verified(String accessToken) {
         try {
             List<Address> addresses = restClient.get().uri("/user/emails")
                     .header("Authorization", "Bearer " + accessToken)
                     .retrieve().body(new org.springframework.core.ParameterizedTypeReference<List<Address>>() { });
-            return addresses == null ? Set.of() : addresses.stream().filter(Address::verified)
+            if (addresses == null) {
+                return Verified.NONE;
+            }
+            Set<String> all = addresses.stream().filter(Address::verified)
                     .map(a -> a.email().trim().toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet());
+            String primary = addresses.stream().filter(a -> a.verified() && a.primary())
+                    .map(a -> a.email().trim().toLowerCase(Locale.ROOT)).findFirst().orElse(null);
+            return new Verified(all, primary);
         } catch (RuntimeException e) {
             log.warn("Could not read the verified email addresses from GitHub: {}", e.getMessage());
-            return Set.of();
+            return Verified.NONE;
         }
     }
 }

@@ -26,13 +26,16 @@ class GitHubEmailsTest {
                          {"email":"old@example.org","verified":false,"primary":false,"visibility":null}]
                         """, MediaType.APPLICATION_JSON));
 
-        assertThat(emails.verified("gho_test")).containsExactly("ann@example.org");
+        GitHubEmails.Verified verified = emails.verified("gho_test");
+
+        assertThat(verified.all()).containsExactly("ann@example.org");
+        assertThat(verified.primary()).isEqualTo("ann@example.org");
     }
 
     @Test
     void githubDownMeansNoVerifiedAddress() {
         server.expect(requestTo("https://github.test/user/emails")).andRespond(withServerError());
 
-        assertThat(emails.verified("gho_test")).isEmpty();
+        assertThat(emails.verified("gho_test")).isEqualTo(GitHubEmails.Verified.NONE);
     }
 }

@@ -28,7 +28,8 @@ class AllowListOAuth2UserServiceTest {
     }
 
     private AllowListOAuth2UserService service(String... allowed) {
-        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles, mock(GitHubEmails.class));
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles, mock(GitHubEmails.class),
+                mock(io.github.vincenzofiore.rootology.notifications.NotificationService.class));
     }
 
     @Test

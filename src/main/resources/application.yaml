@@ -61,6 +61,10 @@ rootology:
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
+  notifications:
+    # Emails of waiting questions (#26): grouped once at least this old, checked this often.
+    group-window: PT2M
+    digest-every: PT1M
   invitations:
     # Invitations each owner may create per day (#25).
     daily-limit: 20

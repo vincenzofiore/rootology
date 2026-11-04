@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
@@ -31,10 +32,12 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
     private final InvitationService invitations;
     private final RoleService roles;
     private final GitHubEmails gitHubEmails;
+    private final NotificationService notifications;
 
     AllowListOAuth2UserService(Set<String> allowedLogins, SpaceService spaces, InvitationService invitations,
-                               RoleService roles, GitHubEmails gitHubEmails) {
+                               RoleService roles, GitHubEmails gitHubEmails, NotificationService notifications) {
         this.gitHubEmails = gitHubEmails;
+        this.notifications = notifications;
         this.allowedLogins = allowedLogins.stream().map(SpaceService::normalizeLogin).collect(Collectors.toSet());
         this.spaces = spaces;
         this.invitations = invitations;
@@ -45,7 +48,8 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
         OAuth2User user = super.loadUser(request);
-        Set<String> emails = gitHubEmails.verified(request.getAccessToken().getTokenValue());
+        GitHubEmails.Verified verified = gitHubEmails.verified(request.getAccessToken().getTokenValue());
+        Set<String> emails = verified.all();
         String token = PendingInvitation.current();
         String login = requireAllowed(user, token, emails);
         if (token != null && invitations.admits(token, login, emails)) {
@@ -57,6 +61,7 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
             PendingInvitation.clear();
         }
         spaces.signedIn(login);
+        notifications.rememberEmail(login, verified.primary());
         return withRoles(user, login, emails,
                 request.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName());
     }

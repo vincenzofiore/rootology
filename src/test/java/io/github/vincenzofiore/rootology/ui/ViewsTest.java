@@ -57,6 +57,9 @@ class ViewsTest {
     io.github.vincenzofiore.rootology.usage.UsageService usage;
 
     @Autowired
+    io.github.vincenzofiore.rootology.notifications.NotificationService notificationService;
+
+    @Autowired
     io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
 
     @Autowired
@@ -72,7 +75,7 @@ class ViewsTest {
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class)) {
+                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class, NotificationsView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)
                     || view.isAnnotationPresent(jakarta.annotation.security.RolesAllowed.class)).as(view.getSimpleName()).isTrue();
@@ -91,6 +94,7 @@ class ViewsTest {
         assertThat(new GardenView(gardens, crops, geoNames, viewer()).getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
+        assertThat(new NotificationsView(notificationService, viewer()).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("ADMIN");
