@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,11 +26,13 @@ class FactGraphLoader implements ApplicationRunner {
     private final Driver driver;
     private final OntologyDefinition ontology;
     private final CropCatalog crops;
+    private final ApplicationEventPublisher events;
 
-    FactGraphLoader(Driver driver, OntologyDefinition ontology, CropCatalog crops) {
+    FactGraphLoader(Driver driver, OntologyDefinition ontology, CropCatalog crops, ApplicationEventPublisher events) {
         this.driver = driver;
         this.ontology = ontology;
         this.crops = crops;
+        this.events = events;
     }
 
     @Override
@@ -57,6 +60,8 @@ class FactGraphLoader implements ApplicationRunner {
                 return null;
             });
         }
+        // Facts added by people (knowledge enrichment) are reapplied on top of the rebuilt graph.
+        events.publishEvent(new KnowledgeGraphLoaded());
         log.info("Loaded {} suite facts and the knowledge base ({} crops, {} pairs, {} pests and diseases) into Neo4j",
                 suite.size(), knowledge.crops().size(), knowledge.pairs().size(), knowledge.organisms().size());
     }

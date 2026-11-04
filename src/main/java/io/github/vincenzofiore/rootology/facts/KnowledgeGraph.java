@@ -58,7 +58,7 @@ public class KnowledgeGraph {
 
     /** The pairs declared from this crop (the reverse direction is never inferred). */
     public List<CropPair> pairsOf(String cropId) {
-        return list("MATCH (a:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) "
+        return list("MATCH (a:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE r.spaceId IS NULL "
                         + "RETURN a.id AS a, b.id AS b, type(r) AS t, r.effect AS effect, r.evidence AS evidence, "
                         + "r.sources AS sources ORDER BY b.id", Map.of("id", cropId),
                 r -> new CropPair(r.get("a").asString(), r.get("b").asString(),
@@ -69,8 +69,8 @@ public class KnowledgeGraph {
     /** Pests and diseases active on this crop in this month (1-12); periods may wrap over the new year. */
     public List<Affecting> affecting(String cropId, int month) {
         return list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
-                        + "WHERE (a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
-                        + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth)) "
+                        + "WHERE a.spaceId IS NULL AND ((a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
+                        + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth))) "
                         + "RETURN o.id AS id, o.italianName AS name, o.englishName AS en, o.kind AS kind, "
                         + "a.fromMonth AS f, a.toMonth AS t, "
                         + "a.sources + o.sources AS sources, a.verified AS verified ORDER BY o.id",
@@ -103,7 +103,8 @@ public class KnowledgeGraph {
         }
         String n = name.trim().toLowerCase(java.util.Locale.ROOT);
         return list("MATCH (e:Kb) WHERE (e:Crop OR e:Organism) AND (toLower(e.id) = $n OR toLower(e.italianName) = $n "
-                        + "OR toLower(e.englishName) = $n OR toLower(e.scientificName) = $n) "
+                        + "OR toLower(e.englishName) = $n OR toLower(e.scientificName) = $n "
+                        + "OR EXISTS { MATCH (a:Kb:Alias)-[:NAME_OF]->(e) WHERE a.name = $n AND a.spaceId IS NULL }) "
                         + "RETURN CASE WHEN e:Crop THEN 'CROP' ELSE 'ORGANISM' END AS kind, e.id AS id, "
                         + "e.italianName AS it, e.englishName AS en LIMIT 1", Map.of("n", n),
                 r -> new Entity(r.get("kind").asString(), r.get("id").asString(), r.get("it").asString(),
@@ -135,13 +136,13 @@ public class KnowledgeGraph {
 
     private List<SourcedFact> cropFacts(Entity crop, String self) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
-        list("MATCH (:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) "
+        list("MATCH (:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE r.spaceId IS NULL "
                         + "RETURN type(r) AS t, b.italianName AS it, b.englishName AS en, r.sources AS sources ORDER BY b.id",
                 Map.of("id", crop.id()), r -> new SourcedFact(new Fact(self,
                         r.get("t").asString().equals("COMPANION_OF") ? "companionOf" : "antagonistOf",
                         crop.italian() ? r.get("it").asString() : r.get("en").asString()),
                         r.get("sources").asList(v -> v.asString()))).forEach(facts::add);
-        list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
+        list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) WHERE a.spaceId IS NULL "
                         + "RETURN o.italianName AS it, o.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
                         + "a.sources + o.sources AS sources ORDER BY o.id",
                 Map.of("id", crop.id()), r -> r).forEach(r -> {
@@ -156,7 +157,7 @@ public class KnowledgeGraph {
 
     private List<SourcedFact> organismFacts(Entity organism, String self) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
-        list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) "
+        list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) WHERE a.spaceId IS NULL "
                         + "RETURN c.italianName AS it, c.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
                         + "a.sources + o.sources AS sources ORDER BY c.id",
                 Map.of("id", organism.id()), r -> r).forEach(r -> {
