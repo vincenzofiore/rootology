@@ -57,6 +57,9 @@ class ViewsTest {
     io.github.vincenzofiore.rootology.usage.UsageService usage;
 
     @Autowired
+    io.github.vincenzofiore.rootology.alerts.WeatherAlerts weatherAlerts;
+
+    @Autowired
     io.github.vincenzofiore.rootology.notifications.NotificationService notificationService;
 
     @Autowired
@@ -105,7 +108,7 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {
-        assertThat(new AdminView(roles, usage, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+        assertThat(new AdminView(roles, usage, weatherAlerts, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
     }
 
     @Test

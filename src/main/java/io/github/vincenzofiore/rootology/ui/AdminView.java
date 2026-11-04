@@ -12,6 +12,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import io.github.vincenzofiore.rootology.alerts.WeatherAlerts;
 import io.github.vincenzofiore.rootology.roles.AppRole;
 import io.github.vincenzofiore.rootology.roles.RoleGrantView;
 import io.github.vincenzofiore.rootology.roles.RoleService;
@@ -41,11 +42,13 @@ public class AdminView extends VerticalLayout {
     private final Grid<Map.Entry<String, Set<AppRole>>> people = new Grid<>();
     private final Grid<RoleGrantView> history = new Grid<>();
     private final UsageService usage;
+    private final WeatherAlerts weatherAlerts;
     private final Grid<UsageService.PersonUsage> consumption = new Grid<>();
 
-    public AdminView(RoleService roles, UsageService usage, CurrentUser currentUser) {
+    public AdminView(RoleService roles, UsageService usage, WeatherAlerts weatherAlerts, CurrentUser currentUser) {
         this.roles = roles;
         this.usage = usage;
+        this.weatherAlerts = weatherAlerts;
         this.currentUser = currentUser;
         people.addColumn(Map.Entry::getKey).setHeader("GitHub login").setAutoWidth(true);
         for (AppRole role : AppRole.values()) {
@@ -78,6 +81,10 @@ public class AdminView extends VerticalLayout {
                         + "suite. A change applies from the person's next sign-in; there is always at least one admin."),
                 people, new H4("History"), history);
         add(usageSection());
+        Button checkWeather = new Button("Check weather alerts now", e -> Notification.show(
+                "Weather alerts: " + weatherAlerts.checkNow() + " new"));
+        add(new H3("Weather alerts"), new Paragraph("They run every morning at 7; this runs the same check now, "
+                + "and an alert already sent is never sent again."), checkWeather);
         refresh();
     }
 

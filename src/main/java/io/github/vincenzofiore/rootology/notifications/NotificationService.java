@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Notifications (#26). A waiting question notifies the space's owners and members, the asker included
+ * Notifications (#26), and weather alerts (#37). A waiting question notifies the space's owners and members, the asker included
  * (in a personal space nobody else can answer); guests are not notified, since they cannot answer. Emails
  * go out as a digest: notifications at least `group-window` old are grouped per person, outside their quiet
  * hours, and dropped once the question is answered.
@@ -93,12 +93,12 @@ public class NotificationService {
     /** The latest notifications of a person, newest first. */
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
-        return jdbc.sql("SELECT id, space_id, process_id, title, body, created_at, read_at, resolved_at, resolved_by "
+        return jdbc.sql("SELECT id, space_id, kind, process_id, title, body, created_at, read_at, resolved_at, resolved_by "
                         + "FROM notification WHERE recipient = ? ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
                 .query((rs, i) -> new NotificationView(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), rs.getTimestamp(6).toInstant(), instant(rs.getTimestamp(7)),
-                        instant(rs.getTimestamp(8)), rs.getString(9)))
+                        rs.getString(5), rs.getString(6), rs.getTimestamp(7).toInstant(), instant(rs.getTimestamp(8)),
+                        instant(rs.getTimestamp(9)), rs.getString(10)))
                 .list();
     }
 
@@ -106,6 +106,30 @@ public class NotificationService {
     public int unread(String login) {
         return jdbc.sql("SELECT count(*) FROM notification WHERE recipient = ? AND read_at IS NULL")
                 .params(normalize(login)).query(Integer.class).single();
+    }
+
+    /**
+     * A weather alert (#37) for every member of a space, guests included: it informs and asks for no action in
+     * the app. dedupKey names the event (garden, rule, day), so the same event never notifies anyone twice.
+     * Returns how many people were newly notified.
+     */
+    @Transactional
+    public int weatherAlert(long spaceId, String dedupKey, String title, String body) {
+        Set<String> notified = new java.util.HashSet<>();
+        for (Member member : spaces.membersForSystem(spaceId)) {
+            int added = jdbc.sql("INSERT INTO notification (recipient, space_id, kind, dedup_key, title, body, created_at) "
+                            + "VALUES (?, ?, 'WEATHER_ALERT', ?, ?, ?, ?) ON CONFLICT (recipient, dedup_key) DO NOTHING")
+                    .params(member.githubLogin(), spaceId, dedupKey, truncate(title, 200), truncate(body, 1000),
+                            Timestamp.from(clock.instant()))
+                    .update();
+            if (added > 0) {
+                notified.add(member.githubLogin());
+            }
+        }
+        if (!notified.isEmpty()) {
+            events.publishEvent(new NotificationsChanged(notified));
+        }
+        return notified.size();
     }
 
     /** Marks a person's own notifications as read: one, or all when id is null. */
@@ -120,10 +144,10 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationPreferences preferences(String login) {
-        return jdbc.sql("SELECT email, email_escalations, quiet_from, quiet_to FROM notification_preference "
+        return jdbc.sql("SELECT email, email_escalations, email_weather, quiet_from, quiet_to FROM notification_preference "
                         + "WHERE github_login = ?").params(normalize(login))
-                .query((rs, i) -> new NotificationPreferences(rs.getString(1), rs.getBoolean(2),
-                        time(rs.getTime(3)), time(rs.getTime(4))))
+                .query((rs, i) -> new NotificationPreferences(rs.getString(1), rs.getBoolean(2), rs.getBoolean(3),
+                        time(rs.getTime(4)), time(rs.getTime(5))))
                 .optional().orElse(NotificationPreferences.DEFAULT);
     }
 
@@ -134,12 +158,12 @@ public class NotificationService {
         if (email != null && (email.length() > 254 || !EMAIL.matcher(email).matches())) {
             throw new IllegalArgumentException(preferences.email() + " is not an email address");
         }
-        jdbc.sql("INSERT INTO notification_preference (github_login, email, email_escalations, quiet_from, quiet_to) "
-                        + "VALUES (?, ?, ?, ?, ?) ON CONFLICT (github_login) DO UPDATE SET email = EXCLUDED.email, "
-                        + "email_escalations = EXCLUDED.email_escalations, quiet_from = EXCLUDED.quiet_from, "
-                        + "quiet_to = EXCLUDED.quiet_to")
-                .params(normalize(login), email, preferences.emailEscalations(), sqlTime(preferences.quietFrom()),
-                        sqlTime(preferences.quietTo()))
+        jdbc.sql("INSERT INTO notification_preference (github_login, email, email_escalations, email_weather, "
+                        + "quiet_from, quiet_to) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (github_login) DO UPDATE SET "
+                        + "email = EXCLUDED.email, email_escalations = EXCLUDED.email_escalations, "
+                        + "email_weather = EXCLUDED.email_weather, quiet_from = EXCLUDED.quiet_from, quiet_to = EXCLUDED.quiet_to")
+                .params(normalize(login), email, preferences.emailEscalations(), preferences.emailWeather(),
+                        sqlTime(preferences.quietFrom()), sqlTime(preferences.quietTo()))
                 .update();
     }
 
@@ -167,10 +191,11 @@ public class NotificationService {
     public int digest() {
         Instant now = clock.instant();
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
-        jdbc.sql("SELECT id, recipient, body FROM notification WHERE kind = 'ESCALATION_WAITING' AND emailed_at IS NULL "
+        jdbc.sql("SELECT id, recipient, kind, title, body FROM notification WHERE emailed_at IS NULL "
                         + "AND resolved_at IS NULL AND created_at <= ? ORDER BY created_at")
                 .params(Timestamp.from(now.minus(groupWindow)))
-                .query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3))).list()
+                .query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getString(5))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : byRecipient.entrySet()) {
@@ -178,8 +203,10 @@ public class NotificationService {
             if (prefs.quietAt(LocalTime.now(clock))) {
                 continue;
             }
-            if (prefs.emailEscalations() && prefs.email() != null) {
-                mail.sendLater(digestMail(prefs.email(), e.getValue()));
+            List<Pending> wanted = e.getValue().stream()
+                    .filter(p -> p.weather() ? prefs.emailWeather() : prefs.emailEscalations()).toList();
+            if (!wanted.isEmpty() && prefs.email() != null) {
+                mail.sendLater(digestMail(prefs.email(), wanted));
                 sent++;
             }
             // Handled: sent, or not wanted, or no address. Never emailed twice.
@@ -193,31 +220,46 @@ public class NotificationService {
         return sent;
     }
 
-    private OutgoingMail digestMail(String to, List<Pending> waiting) {
-        String link = baseUrl + "/escalations";
-        String subject = waiting.size() == 1 ? "Rootology: una domanda aspetta una risposta"
-                : "Rootology: " + waiting.size() + " domande aspettano una risposta";
-        String list = waiting.stream().map(p -> "- " + p.body()).collect(Collectors.joining("\n"));
-        String text = """
-                Ciao,
-
-                %s
-
-                %s
-
-                Per rispondere: %s
-                Puoi cambiare queste email nelle preferenze di notifica di Rootology.
-                """.formatted(waiting.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:"
-                : "alcune domande nei tuoi spazi aspettano una risposta:", list, link);
-        String html = "<p>Ciao,</p><p>" + (waiting.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:"
-                : "alcune domande nei tuoi spazi aspettano una risposta:") + "</p><ul>"
-                + waiting.stream().map(p -> "<li>" + HtmlUtils.htmlEscape(p.body()) + "</li>").collect(Collectors.joining())
-                + "</ul><p><a href=\"" + HtmlUtils.htmlEscape(link) + "\">Rispondi</a></p>"
-                + "<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>";
-        return new OutgoingMail(to, subject, text, html);
+    private OutgoingMail digestMail(String to, List<Pending> pending) {
+        List<Pending> questions = pending.stream().filter(p -> !p.weather()).toList();
+        List<Pending> weather = pending.stream().filter(Pending::weather).toList();
+        String subject = weather.isEmpty()
+                ? (questions.size() == 1 ? "Rootology: una domanda aspetta una risposta"
+                        : "Rootology: " + questions.size() + " domande aspettano una risposta")
+                : questions.isEmpty() ? (weather.size() == 1 ? "Rootology: " + weather.getFirst().title()
+                        : "Rootology: " + weather.size() + " avvisi meteo")
+                : "Rootology: domande in attesa e avvisi meteo";
+        StringBuilder text = new StringBuilder("Ciao,\n\n");
+        StringBuilder html = new StringBuilder("<p>Ciao,</p>");
+        if (!questions.isEmpty()) {
+            text.append(questions.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:\n"
+                    : "alcune domande nei tuoi spazi aspettano una risposta:\n");
+            questions.forEach(p -> text.append("- ").append(p.body()).append('\n'));
+            text.append("Per rispondere: ").append(baseUrl).append("/escalations\n\n");
+            html.append("<p>").append(questions.size() == 1 ? "Una domanda nel tuo spazio aspetta una risposta:"
+                    : "Alcune domande nei tuoi spazi aspettano una risposta:").append("</p><ul>");
+            questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body())).append("</li>"));
+            html.append("</ul><p><a href=\"").append(HtmlUtils.htmlEscape(baseUrl + "/escalations")).append("\">Rispondi</a></p>");
+        }
+        if (!weather.isEmpty()) {
+            text.append("Avvisi meteo per il tuo orto:\n");
+            weather.forEach(p -> text.append("- ").append(p.title()).append(": ").append(p.body()).append('\n'));
+            text.append("Il tuo orto: ").append(baseUrl).append("/garden\n\n");
+            html.append("<p>Avvisi meteo per il tuo orto:</p><ul>");
+            weather.forEach(p -> html.append("<li><strong>").append(HtmlUtils.htmlEscape(p.title())).append("</strong>: ")
+                    .append(HtmlUtils.htmlEscape(p.body())).append("</li>"));
+            html.append("</ul><p><a href=\"").append(HtmlUtils.htmlEscape(baseUrl + "/garden")).append("\">Il tuo orto</a></p>");
+        }
+        text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
+        html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
+        return new OutgoingMail(to, subject, text.toString(), html.toString());
     }
 
-    private record Pending(long id, String recipient, String body) {
+    private record Pending(long id, String recipient, String kind, String title, String body) {
+
+        boolean weather() {
+            return "WEATHER_ALERT".equals(kind);
+        }
     }
 
     private static String normalize(String login) {

@@ -19,8 +19,13 @@ public final class FrostRule {
 
     /** The coldest forecast step from now over the horizon. */
     public static Optional<ForecastHour> coldest(Forecast forecast, Instant now) {
+        return coldest(forecast, now, HORIZON);
+    }
+
+    /** The coldest forecast step from now over a given horizon (weather alerts use a shorter one, #37). */
+    public static Optional<ForecastHour> coldest(Forecast forecast, Instant now, Duration horizon) {
         return forecast.hours().stream()
-                .filter(h -> !h.time().isBefore(now.minus(Duration.ofHours(1))) && h.time().isBefore(now.plus(HORIZON)))
+                .filter(h -> !h.time().isBefore(now.minus(Duration.ofHours(1))) && h.time().isBefore(now.plus(horizon)))
                 .min(Comparator.comparingDouble(ForecastHour::airTemperature));
     }
 

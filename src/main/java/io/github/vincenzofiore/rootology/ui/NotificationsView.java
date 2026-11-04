@@ -40,8 +40,8 @@ public class NotificationsView extends VerticalLayout {
 
         grid.addColumn(n -> WHEN.format(n.createdAt())).setHeader("When").setAutoWidth(true);
         grid.addColumn(n -> (n.unread() ? "● " : "") + n.title()).setHeader("What").setAutoWidth(true);
-        grid.addColumn(NotificationView::body).setHeader("Question").setFlexGrow(3);
-        grid.addColumn(n -> n.resolvedAt() == null ? "waiting" : "answered by " + n.resolvedBy())
+        grid.addColumn(NotificationView::body).setHeader("Details").setFlexGrow(3);
+        grid.addColumn(n -> n.weather() ? "" : n.resolvedAt() == null ? "waiting" : "answered by " + n.resolvedBy())
                 .setHeader("Status").setAutoWidth(true);
         grid.addComponentColumn(n -> {
             Button open = new Button("Open", e -> open(n));
@@ -58,13 +58,19 @@ public class NotificationsView extends VerticalLayout {
         refresh();
     }
 
-    /** To the waiting question: switch to its space if needed, then the escalations. */
+    /** To the waiting question, or to the garden for a weather alert: switching to its space if needed. */
     private void open(NotificationView n) {
         notifications.markRead(currentUser.login(), n.id());
         if (currentUser.space().id() != n.spaceId()) {
             currentUser.switchTo(n.spaceId());
         }
-        getUI().ifPresent(ui -> ui.navigate(EscalationView.class));
+        getUI().ifPresent(ui -> {
+            if (n.weather()) {
+                ui.navigate(GardenView.class);
+            } else {
+                ui.navigate(EscalationView.class);
+            }
+        });
     }
 
     private VerticalLayout preferences() {
@@ -73,12 +79,13 @@ public class NotificationsView extends VerticalLayout {
         email.setWidth("20rem");
         email.setValue(p.email() == null ? "" : p.email());
         Checkbox escalations = new Checkbox("Email me when a question waits for an answer", p.emailEscalations());
+        Checkbox weather = new Checkbox("Email me weather alerts for my gardens", p.emailWeather());
         TimePicker quietFrom = new TimePicker("Quiet from", p.quietFrom());
         TimePicker quietTo = new TimePicker("Quiet until", p.quietTo());
         Button save = new Button("Save", e -> {
             try {
                 notifications.save(currentUser.login(), new NotificationPreferences(email.getValue(),
-                        escalations.getValue(), quietFrom.getValue(), quietTo.getValue()));
+                        escalations.getValue(), weather.getValue(), quietFrom.getValue(), quietTo.getValue()));
                 Notification.show("Saved");
             } catch (RuntimeException ex) {
                 Notification.show(ex.getMessage());
@@ -88,7 +95,7 @@ public class NotificationsView extends VerticalLayout {
         return new VerticalLayout(new H4("Preferences"),
                 new Paragraph("In-app notifications are always on. Emails group the questions of a couple of minutes "
                         + "into one message and wait for the end of your quiet hours (Italian time)."),
-                email, escalations, quiet, save);
+                email, escalations, weather, quiet, save);
     }
 
     private void refresh() {

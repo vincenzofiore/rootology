@@ -106,6 +106,13 @@ public class SpaceService {
         members.save(new SpaceMember(owner.getSpace(), user, role, Instant.now()));
     }
 
+    /** For system jobs, not for people (weather alerts, #37): every member of a space with their role. */
+    @Transactional(readOnly = true)
+    public List<Member> membersForSystem(long spaceId) {
+        return members.findBySpaceIdOrderById(spaceId).stream()
+                .map(m -> new Member(m.getUser().getGithubLogin(), m.getRole())).toList();
+    }
+
     /** Every person the app knows (signed in, or added to a space), by login. */
     @Transactional(readOnly = true)
     public List<String> people() {

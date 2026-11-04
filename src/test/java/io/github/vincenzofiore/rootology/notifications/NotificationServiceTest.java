@@ -123,8 +123,8 @@ class NotificationServiceTest {
     void waitingQuestionsAreEmailedTogetherAfterTheGroupingWindowOutsideQuietHours() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("pia", "remo", "sara");
-        notifications.save("pia", new NotificationPreferences("pia@example.org", true, null, null));
-        notifications.save("remo", new NotificationPreferences("remo@example.org", true, LocalTime.of(9, 0),
+        notifications.save("pia", new NotificationPreferences("pia@example.org", true, true, null, null));
+        notifications.save("remo", new NotificationPreferences("remo@example.org", true, true, LocalTime.of(9, 0),
                 LocalTime.of(12, 0)));
 
         waiting("p-2", space, "remo", "Prima domanda?");
@@ -148,7 +148,7 @@ class NotificationServiceTest {
     void answeredQuestionsAndPeopleWhoDoNotWantEmailsGetNone() {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("teo", "ugo", "vera");
-        notifications.save("teo", new NotificationPreferences("teo@example.org", false, null, null));
+        notifications.save("teo", new NotificationPreferences("teo@example.org", false, true, null, null));
         notifications.rememberEmail("ugo", "Ugo@Example.org");
         notifications.rememberEmail("ugo", "other@example.org");
 
@@ -159,13 +159,13 @@ class NotificationServiceTest {
         assertThat(notifications.digest()).isZero();
         assertThat(notifications.preferences("ugo").email()).as("the first remembered address stays")
                 .isEqualTo("ugo@example.org");
-        assertThatThrownBy(() -> notifications.save("teo", new NotificationPreferences("nope", true, null, null)))
+        assertThatThrownBy(() -> notifications.save("teo", new NotificationPreferences("nope", true, true, null, null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void quietHoursMayCrossMidnight() {
-        NotificationPreferences night = new NotificationPreferences(null, true, LocalTime.of(22, 0), LocalTime.of(7, 0));
+        NotificationPreferences night = new NotificationPreferences(null, true, true, LocalTime.of(22, 0), LocalTime.of(7, 0));
 
         assertThat(night.quietAt(LocalTime.of(23, 30))).isTrue();
         assertThat(night.quietAt(LocalTime.of(6, 59))).isTrue();

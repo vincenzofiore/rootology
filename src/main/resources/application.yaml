@@ -61,6 +61,9 @@ rootology:
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
+  alerts:
+    # Weather alerts (#37): every morning at 7, Italian time.
+    cron: "0 0 7 * * *"
   notifications:
     # Emails of waiting questions (#26): grouped once at least this old, checked this often.
     group-window: PT2M

@@ -165,6 +165,23 @@ public class GardenService {
     }
 
     /**
+     * For system jobs, not for people (weather alerts, #37): every garden with coordinates and what grows
+     * in it on that day, across all spaces. No person acts here, so there is no membership check; never
+     * shown as such in the UI.
+     */
+    @Transactional(readOnly = true)
+    public List<GardenViews.GrowingGarden> locatedGardensGrowing(LocalDate day) {
+        java.util.Map<Long, List<PlantingSummary>> byGarden = new java.util.HashMap<>();
+        plantings.findAll().stream().filter(p -> p.isGrowingOn(day))
+                .forEach(p -> byGarden.computeIfAbsent(p.getPlot().getGarden().getId(), k -> new java.util.ArrayList<>())
+                        .add(summary(p)));
+        return gardens.findAll().stream()
+                .filter(g -> g.getLatitude() != null && g.getLongitude() != null)
+                .map(g -> new GardenViews.GrowingGarden(g.getSpaceId(), summary(g), byGarden.getOrDefault(g.getId(), List.of())))
+                .toList();
+    }
+
+    /**
      * The zone of Italy the space's first located garden lies in (NORD, CENTRO or SUD), for the
      * knowledge base's sowing windows. Coarse on purpose: north of about 44° N is NORD (Emilia-Romagna
      * and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands), CENTRO in between.
