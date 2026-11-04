@@ -67,6 +67,10 @@ public class StubDecisionLayer implements DecisionLayer {
     }
 
     private Decision companionsOfSharedRepellers(String plant, GraphFacts facts) {
+        // Without any declared repels fact the honest answer is "unknown", not "no companions" (#20).
+        if (facts.objects(plant, "repels").isEmpty()) {
+            return Decision.escalated("what " + plant + " repels is not declared");
+        }
         Set<String> companions = new LinkedHashSet<>();
         for (String pest : facts.objects(plant, "repels")) {
             for (String other : facts.subjects("repels", pest)) {

@@ -96,11 +96,13 @@ public class GardenPipelineAgent {
     private final WeatherFacts weather;
     private final DecisionLayer decisionLayer;
     private final ClaudeCircuit claude;
+    private final java.time.Clock clock;
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GardenPipelineAgent.class);
 
     GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden, WeatherFacts weather,
-                        DecisionLayer decisionLayer, ClaudeCircuit claude) {
+                        DecisionLayer decisionLayer, ClaudeCircuit claude, java.time.Clock clock) {
+        this.clock = clock;
         this.factSource = factSource;
         this.knowledge = knowledge;
         this.garden = garden;
@@ -138,15 +140,19 @@ public class GardenPipelineAgent {
     static final java.util.Set<QueryKind> NEEDS_ZONE = java.util.Set.of(QueryKind.SOWING_TIME, QueryKind.HARVEST_TIME,
             QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
 
+    private Intent withDefaults(Intent intent) {
+        return withDefaults(intent, java.time.LocalDate.now(clock).getMonth());
+    }
+
     /** Zone CENTRO unless already set; for the kinds about a month, the current month in Italy. */
-    static Intent withDefaults(Intent intent) {
+    static Intent withDefaults(Intent intent, java.time.Month currentMonth) {
         if (!NEEDS_ZONE.contains(intent.kind())) {
             return intent;
         }
         String zone = intent.zone() == null ? "CENTRO" : intent.zone();
         String month = intent.month() != null || intent.kind() == QueryKind.SOWING_TIME
                 || intent.kind() == QueryKind.HARVEST_TIME ? intent.month()
-                : java.time.LocalDate.now(ITALY).getMonth().name();
+                : currentMonth.name();
         return intent.withZoneAndMonth(zone, month);
     }
 

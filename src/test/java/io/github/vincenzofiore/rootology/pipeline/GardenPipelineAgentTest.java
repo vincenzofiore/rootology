@@ -423,11 +423,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void defaultsGiveTheCentreAndTheCurrentMonth() {
-        Intent now = GardenPipelineAgent.withDefaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null));
+        Intent now = GardenPipelineAgent.withDefaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
+                java.time.Month.NOVEMBER);
 
         assertThat(now.zone()).isEqualTo("CENTRO");
-        assertThat(now.month()).isEqualTo(java.time.LocalDate.now(GardenPipelineAgent.ITALY).getMonth().name());
-        assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato")))
+        assertThat(now.month()).isEqualTo("NOVEMBER");
+        assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
                 .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));
     }
 

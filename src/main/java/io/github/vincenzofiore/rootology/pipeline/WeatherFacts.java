@@ -47,10 +47,6 @@ class WeatherFacts {
     private final Clock clock;
 
     @Autowired
-    WeatherFacts(GardenService gardens, WeatherService weather, KnowledgeGraph knowledge, CropCatalog crops) {
-        this(gardens, weather, knowledge, crops, Clock.system(GardenPipelineAgent.ITALY));
-    }
-
     WeatherFacts(GardenService gardens, WeatherService weather, KnowledgeGraph knowledge, CropCatalog crops,
                  Clock clock) {
         this.gardens = gardens;

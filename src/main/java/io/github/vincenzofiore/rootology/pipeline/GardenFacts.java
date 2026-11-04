@@ -28,8 +28,10 @@ class GardenFacts {
     private final GardenService gardens;
     private final KnowledgeGraph knowledge;
     private final CropCatalog crops;
+    private final java.time.Clock clock;
 
-    GardenFacts(GardenService gardens, KnowledgeGraph knowledge, CropCatalog crops) {
+    GardenFacts(GardenService gardens, KnowledgeGraph knowledge, CropCatalog crops, java.time.Clock clock) {
+        this.clock = clock;
         this.gardens = gardens;
         this.knowledge = knowledge;
         this.crops = crops;
@@ -71,7 +73,7 @@ class GardenFacts {
         }
         List<SourcedFact> facts = new ArrayList<>();
         facts.add(new SourcedFact(new Fact(plotName.trim(), "hasSoil", plot.get().soil().name()), List.of(SOURCE)));
-        LocalDate on = nextFirstDay(Month.valueOf(month));
+        LocalDate on = nextFirstDay(Month.valueOf(month), LocalDate.now(clock));
         for (SourcedFact sowable : knowledge.sowingFacts(month, zone, language)) {
             facts.add(sowable);
             knowledge.resolve(sowable.fact().subject(), run.spaceId()).ifPresent(crop -> gardens
@@ -83,7 +85,7 @@ class GardenFacts {
     }
 
     private List<PlantingSummary> now(RunContext run) {
-        return run.hasSpace() ? gardens.growingOn(run.spaceId(), run.startedBy(), LocalDate.now(GardenPipelineAgent.ITALY))
+        return run.hasSpace() ? gardens.growingOn(run.spaceId(), run.startedBy(), LocalDate.now(clock))
                 : List.of();
     }
 
@@ -92,8 +94,7 @@ class GardenFacts {
     }
 
     /** The first day of the month's next occurrence (today if it is the current month). */
-    static LocalDate nextFirstDay(Month month) {
-        LocalDate today = LocalDate.now(GardenPipelineAgent.ITALY);
+    static LocalDate nextFirstDay(Month month, LocalDate today) {
         if (today.getMonth() == month) {
             return today;
         }
