@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.quality;
 
+import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Intent;

@@ -1,4 +1,4 @@
-package io.github.vincenzofiore.rootology.quality;
+package io.github.vincenzofiore.rootology.experiments;
 
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
@@ -13,22 +13,25 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-/** The golden questions of the quality suite (#20), read from src/test/resources/quality/golden-questions.yaml. */
-record GoldenQuestions(LocalDate today, List<Case> cases) {
+/**
+ * The golden questions of the quality suite (#20), from src/main/resources/quality/golden-questions.yaml:
+ * read by the offline and live tests and shown in the QA view.
+ */
+public record GoldenQuestions(LocalDate today, List<Case> cases) {
 
     static final String RESOURCE = "/quality/golden-questions.yaml";
 
     /** A space fact to add before asking (#24): another name for a crop or organism. */
-    record SpaceAlias(String targetId, String name, String language) {
+    public record SpaceAlias(String targetId, String name, String language) {
     }
 
     /** answer is null when the question must escalate; escalate is then a part of the expected reason. */
-    record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
+    public record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
                 List<String> answer, String escalate, List<String> notes) {
     }
 
     @SuppressWarnings("unchecked")
-    static GoldenQuestions load() {
+    public static GoldenQuestions load() {
         try (InputStream in = GoldenQuestions.class.getResourceAsStream(RESOURCE)) {
             Map<String, Object> root = new Yaml().load(in);
             Object today = root.get("today");

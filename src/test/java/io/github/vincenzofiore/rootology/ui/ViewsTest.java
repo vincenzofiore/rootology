@@ -48,6 +48,9 @@ class ViewsTest {
     CropCatalog crops;
 
     @Autowired
+    io.github.vincenzofiore.rootology.experiments.GoldenRuns goldenRuns;
+
+    @Autowired
     io.github.vincenzofiore.rootology.roles.RoleService roles;
 
     @Autowired
@@ -100,7 +103,7 @@ class ViewsTest {
 
     @Test
     void comparisonViewBuildsAndIsForQaOnly() {
-        assertThat(new ComparisonView(runner, pipeline, viewer()).getChildren()).isNotEmpty();
+        assertThat(new ComparisonView(runner, pipeline, goldenRuns, viewer()).getChildren()).isNotEmpty();
         assertThat(ComparisonView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("QA");
     }

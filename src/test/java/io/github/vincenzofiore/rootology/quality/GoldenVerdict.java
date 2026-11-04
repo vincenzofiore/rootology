@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.quality;
 
+import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;

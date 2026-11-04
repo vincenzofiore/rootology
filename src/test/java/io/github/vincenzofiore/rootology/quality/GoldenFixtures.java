@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.quality;
 
+import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.facts.Contribution;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
 import io.github.vincenzofiore.rootology.garden.GardenService;

@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -16,6 +17,8 @@ import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 import io.github.vincenzofiore.rootology.experiments.ExperimentCase;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
+import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
+import io.github.vincenzofiore.rootology.experiments.GoldenRuns;
 import io.github.vincenzofiore.rootology.experiments.RecordedLlmAnswers;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.NoiseProfile;
@@ -24,6 +27,7 @@ import io.github.vincenzofiore.rootology.pipeline.Question;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -40,7 +44,8 @@ public class ComparisonView extends VerticalLayout {
     private final CurrentUser currentUser;
     private final FlexLayout arms = new FlexLayout();
 
-    public ComparisonView(ExperimentRunner runner, GardenPipeline pipeline, CurrentUser currentUser) {
+    public ComparisonView(ExperimentRunner runner, GardenPipeline pipeline, GoldenRuns goldenRuns,
+                          CurrentUser currentUser) {
         this.runner = runner;
         this.pipeline = pipeline;
         this.currentUser = currentUser;
@@ -68,8 +73,43 @@ public class ComparisonView extends VerticalLayout {
 
         arms.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         arms.getStyle().set("gap", "1rem");
-        add(controls, new Paragraph("The pipeline calls Claude and Jev for real. An escalated question waits in Escalations."),
+        add(new H3("Experiment cases"), controls,
+                new Paragraph("The pipeline calls Claude and Jev for real. An escalated question waits in Escalations."),
                 arms);
+        add(goldenSection(goldenRuns));
+    }
+
+    /**
+     * The golden questions (#20) with the latest recorded live run. Live runs are not started from here: they
+     * need fixtures (spaces, gardens, a fixed date, a simulated forecast) that do not belong in this database.
+     */
+    private VerticalLayout goldenSection(GoldenRuns goldenRuns) {
+        Optional<GoldenRuns.LiveRun> latest = goldenRuns.latest();
+        Map<String, GoldenRuns.LiveResult> live = latest.map(GoldenRuns.LiveRun::results).orElse(Map.of());
+        Grid<GoldenQuestions.Case> grid = new Grid<>();
+        grid.addColumn(GoldenQuestions.Case::id).setHeader("Case").setAutoWidth(true);
+        grid.addColumn(GoldenQuestions.Case::question).setHeader("Question").setFlexGrow(2);
+        grid.addColumn(c -> c.answer() != null ? String.join(", ", c.answer()) : "→ a person (" + c.escalate() + ")")
+                .setHeader("Expected").setFlexGrow(2);
+        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(GoldenRuns.LiveResult::verdict).orElse("-"))
+                .setHeader("Last live").setAutoWidth(true);
+        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> "%.2f".formatted(r.confidence())).orElse(""))
+                .setHeader("Confidence").setAutoWidth(true);
+        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> r.escalationReason() != null
+                        ? "→ a person: " + r.escalationReason() : String.join(", ", r.answer())).orElse(""))
+                .setHeader("Live outcome").setFlexGrow(2);
+        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> r.intentMatches() ? "yes" : "no: "
+                + r.understoodIntent()).orElse("")).setHeader("Understood").setAutoWidth(true);
+        grid.setItems(goldenRuns.golden().cases());
+        grid.setAllRowsVisible(true);
+        String summary = latest.map(r -> "Last live run " + r.startedAt() + " (" + r.llm() + ", " + r.decisionLayer()
+                + "): " + r.verdicts() + ", intents understood " + r.intentsUnderstood() + " of " + r.results().size()
+                + ".").orElse("No live run recorded yet.");
+        return new VerticalLayout(new H3("Golden questions"),
+                new Paragraph("Checked offline on every build (silent wrong answers fail it). Live runs use the real "
+                        + "Claude and Jev and cost money: ./mvnw test -Plive -Dtest=GoldenLiveRecordingTest, "
+                        + "recorded in src/main/resources/quality/live-runs."),
+                new Paragraph(summary), grid);
     }
 
     private static NoiseProfile noise(String choice, Integer seed) {

@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.quality;
 
+import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.when;
  * question goes through the real Claude (it reads the question text) and the configured decision layer (Jev
  * with ROOTOLOGY_TYPESAFE_API_KEY, otherwise the stub), with the same fixtures and "today" as offline. It
  * measures and records, it does not fail: understood intents, silent errors, escalations and confidence go
- * to src/test/resources/quality/live-runs/, kept in the repository like the experiment's recordings.
+ * to src/main/resources/quality/live-runs/, kept in the repository like the experiment's recordings.
  */
 @Tag("live-api")
 @Import(TestcontainersConfiguration.class)
@@ -48,7 +49,7 @@ import static org.mockito.Mockito.when;
 @EnabledIfEnvironmentVariable(named = "ROOTOLOGY_ANTHROPIC_API_KEY", matches = ".+")
 class GoldenLiveRecordingTest {
 
-    static final Path RUNS = Path.of("src/test/resources/quality/live-runs");
+    static final Path RUNS = Path.of("src/main/resources/quality/live-runs");
     static final GoldenQuestions GOLDEN = GoldenQuestions.load();
 
     @TestBean
