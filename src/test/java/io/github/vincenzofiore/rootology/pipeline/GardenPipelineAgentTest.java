@@ -411,6 +411,34 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void aWaitingQuestionSurvivesTheLossOfItsAgentAndCanStillBeAnswered() {
+        RunContext run = signedIn("zeno");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of thyme?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "thyme"));
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")
+                && prompt.contains("companions of thyme")).thenReturn("a person answered after the restart");
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of thyme?"), run);
+        String processId = asked.pending().processId();
+        agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
+
+        assertThat(pipeline.pending(run.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+                .containsExactly(processId);
+        PipelineAnswer answer = pipeline.respond(processId, run.spaceId(),
+                new HumanAnswer(List.of("Rosmarino"), "From experience", "zeno"));
+
+        assertThat(answer.answeredByHuman()).isTrue();
+        assertThat(answer.answer()).containsExactly("Rosmarino");
+        assertThat(answer.text()).isEqualTo("a person answered after the restart");
+        assertThat(pipeline.pending(run.spaceId())).isEmpty();
+        assertThat(history.recent(run.spaceId())).extracting(PipelineRunRecord::getReviewer).contains("zeno");
+        assertThat(applicationEvents.stream(EscalationResolved.class))
+                .anyMatch(e -> e.processId().equals(processId));
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), new HumanAnswer(List.of(), "", "zeno")))
+                .as("answered once").isInstanceOf(NoSuchElementException.class);
+    }
+
+    @Test
     void everyQuestionAndEveryAnswerToAnEscalationIsRecorded() {
         RunContext run = signedIn("xavier");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)

@@ -11,6 +11,7 @@ import com.embabel.agent.core.hitl.TypeRequest;
 import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
+import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
@@ -22,13 +23,14 @@ import io.github.vincenzofiore.rootology.usage.UsageKind;
 import io.github.vincenzofiore.rootology.usage.UsageService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /** Entry point to the pipeline contestant, so callers never touch Embabel directly. */
 @Service
@@ -45,15 +47,19 @@ public class GardenPipeline {
 
     private final AgentPlatform agentPlatform;
     private final ApplicationEventPublisher events;
-    private final Map<String, PendingReview> pending = new ConcurrentHashMap<>();
+    private final PendingEscalations pending;
+    private final TransactionTemplate transaction;
     private final ClaudeCircuit claude;
     private final SpaceService spaces;
     private final UsageService usage;
     private final DecisionLayer decisionLayer;
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
-                   SpaceService spaces, UsageService usage, DecisionLayer decisionLayer) {
+                   SpaceService spaces, UsageService usage, DecisionLayer decisionLayer, PendingEscalations pending,
+                   PlatformTransactionManager transactions) {
         this.agentPlatform = agentPlatform;
+        this.pending = pending;
+        this.transaction = new TransactionTemplate(transactions);
         this.events = events;
         this.claude = claude;
         this.spaces = spaces;
@@ -132,9 +138,9 @@ public class GardenPipeline {
         return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
     }
 
-    /** Escalated questions of one space waiting for a person. */
+    /** Escalated questions of one space waiting for a person, from the database (#36). */
     public List<PendingReview> pending(long spaceId) {
-        return pending.values().stream().filter(r -> r.context().spaceId() == spaceId).toList();
+        return pending.waitingIn(spaceId);
     }
 
     /**
@@ -143,17 +149,30 @@ public class GardenPipeline {
      */
     public PipelineAnswer respond(String processId, long spaceId, HumanAnswer human) {
         spaces.requireContributor(spaceId, human.reviewer());
-        PendingReview review = pending.get(processId);
-        if (review == null || review.context().spaceId() != spaceId) {
-            throw new NoSuchElementException("No review waiting for process " + processId + " in this space");
+        PendingEscalations.Stored stored = pending.waiting(processId)
+                .filter(s -> s.review().context().spaceId() == spaceId)
+                .orElseThrow(() -> new NoSuchElementException("No review waiting for process " + processId
+                        + " in this space"));
+        PendingReview review = stored.review();
+        AgentProcess paused = agentPlatform.getAgentProcess(processId);
+        AgentProcess process;
+        int before;
+        if (paused != null && paused.getStatus() == AgentProcessStatusCode.WAITING) {
+            process = paused;
+            before = process.getLlmInvocations().size();
+            @SuppressWarnings("unchecked")
+            TypeRequest<HumanAnswer> request = process.last(TypeRequest.class);
+            request.onResponse(new TypeResponse<>(human, request.getId(), UUID.randomUUID().toString(),
+                    Instant.now(), false), process);
+        } else {
+            // The paused agent is gone (a restart, #36): a new run of the same agent starts from what was
+            // stored and the person's answer, so only the phrasing step is left to do.
+            requireClaude();
+            process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, review.question(),
+                    review.decision(), stored.facts(), stored.noise(), Resolution.byHuman(review.decision(), human),
+                    ReviewMode.HUMAN, review.context());
+            before = 0;
         }
-        pending.remove(processId);
-        AgentProcess process = agentPlatform.getAgentProcess(processId);
-        int before = process.getLlmInvocations().size();
-        @SuppressWarnings("unchecked")
-        TypeRequest<HumanAnswer> request = process.last(TypeRequest.class);
-        request.onResponse(new TypeResponse<>(human, request.getId(), UUID.randomUUID().toString(),
-                Instant.now(), false), process);
         Run run;
         try {
             run = settle(process.run(), review.question(), review.context());
@@ -164,19 +183,25 @@ public class GardenPipeline {
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }
-        events.publishEvent(new EscalationResolved(processId, spaceId, human.reviewer(), Instant.now()));
+        transaction.executeWithoutResult(status -> {
+            pending.resolve(processId, human.reviewer(), Instant.now());
+            events.publishEvent(new EscalationResolved(processId, spaceId, human.reviewer(), Instant.now()));
+        });
         return run.answer();
     }
 
     private Run settle(AgentProcess process, Question question, RunContext context) {
         if (process.getStatus() == AgentProcessStatusCode.WAITING) {
             PendingReview review = new PendingReview(process.getId(), context, question, process.last(Decision.class));
-            pending.put(process.getId(), review);
-            if (context.hasSpace()) {
-                // Someone has to notice (#26): the notifications module tells the space's members.
-                events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.startedBy(),
-                        question.text(), review.decision().reason(), Instant.now()));
-            }
+            // Stored and announced together (#36): the notifications (#26) are written in the same transaction.
+            transaction.executeWithoutResult(status -> {
+                pending.save(process.getId(), context, question, review.decision(), process.last(GraphFacts.class),
+                        process.last(NoiseProfile.class), Instant.now());
+                if (context.hasSpace()) {
+                    events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.startedBy(),
+                            question.text(), review.decision().reason(), Instant.now()));
+                }
+            });
             return new Run(null, review, process.last(Intent.class));
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
