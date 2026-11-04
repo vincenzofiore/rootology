@@ -56,19 +56,19 @@ public class MainLayout extends AppLayout {
         addToNavbar(space, bell, who, logout);
 
         SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.garden"), GardenView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.notifications"), NotificationsView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.history"), HistoryView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.space"), SpaceView.class));
-        nav.addItem(new SideNavItem(getTranslation("nav.sources"), SourcesView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, VaadinIcon.COMMENT_ELLIPSIS_O.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.garden"), GardenView.class, VaadinIcon.HOME_O.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class, VaadinIcon.HOURGLASS.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.notifications"), NotificationsView.class, VaadinIcon.BELL_O.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.history"), HistoryView.class, VaadinIcon.CLOCK.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, VaadinIcon.BOOK.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.space"), SpaceView.class, VaadinIcon.USERS.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.sources"), SourcesView.class, VaadinIcon.BOOKMARK_O.create()));
         if (currentUser.hasRole(AppRole.QA)) {
-            nav.addItem(new SideNavItem(getTranslation("nav.compare"), ComparisonView.class));
+            nav.addItem(new SideNavItem(getTranslation("nav.compare"), ComparisonView.class, VaadinIcon.FLASK.create()));
         }
         if (currentUser.hasRole(AppRole.ADMIN)) {
-            nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminView.class));
+            nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminView.class, VaadinIcon.COG_O.create()));
         }
         addToDrawer(nav);
     }

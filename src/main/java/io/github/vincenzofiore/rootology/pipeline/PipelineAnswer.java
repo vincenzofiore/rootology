@@ -17,5 +17,5 @@ public record PipelineAnswer(
         String reviewer,
         String text,
         List<String> sources,
-        List<String> notes) {
+        List<io.github.vincenzofiore.rootology.decision.Note> notes) {
 }

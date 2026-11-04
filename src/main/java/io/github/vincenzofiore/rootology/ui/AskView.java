@@ -5,6 +5,7 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -25,6 +26,9 @@ import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 import io.github.vincenzofiore.rootology.pipeline.Question;
 import jakarta.annotation.security.PermitAll;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A free question, answered from the curated knowledge base, with the sources behind the answer.
@@ -77,10 +81,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle {
         try {
             GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text.trim()), currentUser.runContext());
             if (run.answer() == null) {
-                result.add(new Paragraph(getTranslation("ask.escalated", run.pending().decision().reason())));
                 RouterLink propose = new RouterLink(getTranslation("ask.propose"), KnowledgeView.class);
                 propose.setQueryParameters(QueryParameters.simple(java.util.Map.of("question", text.trim())));
-                result.add(propose);
+                result.add(new AnswerCard().waiting(ReasonText.text(run.pending().decision().reason(), this))
+                        .extra(propose));
                 return;
             }
             show(run.answer());
@@ -102,28 +106,19 @@ public class AskView extends VerticalLayout implements HasDynamicTitle {
     }
 
     private void show(PipelineAnswer answer) {
-        result.add(new Paragraph(answer.text()));
-        result.add(new Span(getTranslation("ask.values", answer.answer().isEmpty() ? getTranslation("ask.novalues")
-                : String.join(", ", answer.answer()), answer.confidence())));
-        answer.notes().forEach(note -> result.add(new Paragraph(note)));
-        if (!answer.sources().isEmpty()) {
-            Div list = new Div(new Paragraph(getTranslation("ask.sources")));
-            answer.sources().forEach(id -> {
-                if (id.equals("garden")) {
-                    list.add(new Div(new Span(getTranslation("ask.source.garden"))));
-                }
-                enrichment.source(currentUser.space().id(), currentUser.login(), id).ifPresent(p -> list.add(new Div(
-                        new Span(p.scope() == ProposalScope.GLOBAL
-                                ? getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
-                                : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id()))))));
-                sources.byId(id).ifPresent(s -> {
-                    Anchor link = new Anchor(s.url(), s.title());
-                    link.setTarget("_blank");
-                    list.add(new Div(link));
-                });
-            });
-            result.add(list);
+        List<AnswerCard.SourceLine> lines = new ArrayList<>();
+        for (String id : answer.sources()) {
+            if (id.equals("garden")) {
+                lines.add(new AnswerCard.SourceLine(VaadinIcon.HOME_O, getTranslation("ask.source.garden"), null));
+            }
+            enrichment.source(currentUser.space().id(), currentUser.login(), id).ifPresent(p -> lines.add(
+                    new AnswerCard.SourceLine(VaadinIcon.USER_STAR, p.scope() == ProposalScope.GLOBAL
+                            ? getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
+                            : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id())), null)));
+            sources.byId(id).ifPresent(s -> lines.add(new AnswerCard.SourceLine(VaadinIcon.BOOK, s.title(), s.url())));
         }
+        result.add(new AnswerCard().answered(answer.text(), answer.answer(), answer.confidence())
+                .notes(answer.notes()).sources(lines));
     }
 
     @Override

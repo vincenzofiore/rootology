@@ -95,7 +95,7 @@ class WeatherFactsTest {
                 new Fact("Lattuga", "avoidNow", "frost"));
         assertThat(result.readings()).extracting(Reading::source)
                 .containsExactly(Reading.Source.FORECAST, Reading.Source.INFERRED);
-        assertThat(result.notes()).anyMatch(n -> n.contains("-2.0 °C"))
+        assertThat(result.notes()).extracting(io.github.vincenzofiore.rootology.decision.Note::english).anyMatch(n -> n.contains("-2.0 °C"))
                 .anyMatch(n -> n.contains("frost-risk-v1") && n.contains("Lattuga"))
                 .anyMatch(n -> n.startsWith("Frost tolerance not known") && n.contains("Pomodoro"));
     }
@@ -107,7 +107,7 @@ class WeatherFactsTest {
         assertThat(facts().frost(space("xavi", true), "MARCH", SOWABLE)).isEqualTo(WeatherFacts.Result.NONE);
         WeatherFacts.Result noCoordinates = facts().frost(space("yuri", false), "NOVEMBER", SOWABLE);
         assertThat(noCoordinates.readings()).isEmpty();
-        assertThat(noCoordinates.notes()).singleElement().asString().startsWith("Add your garden's coordinates");
+        assertThat(noCoordinates.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().startsWith("Add your garden's coordinates");
     }
 
     @Test
@@ -117,7 +117,7 @@ class WeatherFactsTest {
         WeatherFacts.Result result = facts().frost(space("zoe", true), "NOVEMBER", SOWABLE);
 
         assertThat(result.readings()).isEmpty();
-        assertThat(result.notes()).singleElement().asString().contains("not available");
+        assertThat(result.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().contains("not available");
     }
 
     @Test
@@ -129,7 +129,7 @@ class WeatherFactsTest {
         assertThat(result.readings()).extracting(Reading::fact).containsExactly(
                 new Fact("Peronospora del pomodoro e della patata", "favouredByWeather", "Pomodoro"));
         assertThat(result.readings()).allMatch(r -> "smith-period-v1".equals(r.derivedBy()));
-        assertThat(result.notes()).singleElement().asString().contains("Smith period").contains("Pomodoro");
+        assertThat(result.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().contains("Smith period").contains("Pomodoro");
     }
 
     @Test
@@ -139,6 +139,6 @@ class WeatherFactsTest {
         WeatherFacts.Result result = facts().blight(space("bice", true), "NOVEMBER", "it");
 
         assertThat(result.readings()).isEmpty();
-        assertThat(result.notes()).singleElement().asString().startsWith("No Smith period");
+        assertThat(result.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().startsWith("No Smith period");
     }
 }

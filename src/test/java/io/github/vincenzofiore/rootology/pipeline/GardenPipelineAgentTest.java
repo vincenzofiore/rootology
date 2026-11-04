@@ -342,7 +342,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 withGarden("carl"));
 
         assertThat(run.answer()).isNotNull();
-        assertThat(run.answer().notes()).singleElement().asString().contains("not available");
+        assertThat(run.answer().notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().contains("not available");
         verifyGenerateText(prompt -> prompt.contains("Notes: The weather forecast is not available"));
     }
 

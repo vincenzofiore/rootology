@@ -40,7 +40,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle {
         submit.setText(getTranslation("escalations.answer"));
 
         grid.addColumn(r -> r.question().text()).setHeader(getTranslation("escalations.question")).setFlexGrow(2);
-        grid.addColumn(r -> r.decision().reason()).setHeader(getTranslation("escalations.why")).setFlexGrow(2);
+        grid.addColumn(r -> ReasonText.text(r.decision().reason(), this)).setHeader(getTranslation("escalations.why"))
+                .setFlexGrow(2);
         grid.addColumn(r -> String.join(", ", r.decision().answer())).setHeader(getTranslation("escalations.proposed"));
         grid.addColumn(r -> "%.2f".formatted(r.decision().confidence())).setHeader(getTranslation("escalations.confidence"))
                 .setAutoWidth(true);

@@ -104,7 +104,7 @@ class GoldenLiveRecordingTest {
                         c.escalate(), r.answer() != null ? r.answer().answer() : decision.answer(),
                         decision == null ? null : decision.reason(),
                         r.answer() != null ? r.answer().confidence() : decision.confidence(),
-                        r.answer() != null ? r.answer().notes() : List.of(), (System.nanoTime() - start) / 1_000_000,
+                        r.answer() != null ? r.answer().notes().stream().map(io.github.vincenzofiore.rootology.decision.Note::english).toList() : List.of(), (System.nanoTime() - start) / 1_000_000,
                         null));
             } catch (RuntimeException e) {
                 // A failing call is recorded, not hidden: the other questions still run.

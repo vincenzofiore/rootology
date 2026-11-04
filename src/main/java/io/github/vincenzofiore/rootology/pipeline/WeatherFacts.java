@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
+import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.decision.Reading;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.facts.Fact;
@@ -34,7 +35,7 @@ import java.util.Optional;
 class WeatherFacts {
 
     /** Readings to add and notes to show; both empty when the weather does not apply. */
-    record Result(List<Reading> readings, List<String> notes) {
+    record Result(List<Reading> readings, List<Note> notes) {
         static final Result NONE = new Result(List.of(), List.of());
     }
 
@@ -60,15 +61,15 @@ class WeatherFacts {
     Result frost(RunContext run, String month, List<SourcedFact> sowable) {
         Optional<Optional<Forecast>> located = forecast(run, month);
         if (located.isEmpty()) {
-            return noLocation(run, month, "frost was not checked");
+            return noLocation(run, month, Note.Kind.NO_COORDINATES_FROST);
         }
         if (located.get().isEmpty()) {
-            return new Result(List.of(), List.of("The weather forecast is not available right now: frost was not checked."));
+            return new Result(List.of(), List.of(Note.of(Note.Kind.FORECAST_UNAVAILABLE_FROST)));
         }
         Forecast forecast = located.get().get();
         Optional<ForecastHour> coldest = FrostRule.coldest(forecast, clock.instant());
         if (coldest.isEmpty()) {
-            return new Result(List.of(), List.of("The weather forecast has no coming days: frost was not checked."));
+            return new Result(List.of(), List.of(Note.of(Note.Kind.NO_FORECAST_DAYS)));
         }
         double minimum = coldest.get().airTemperature();
         List<Reading> readings = new ArrayList<>();
@@ -88,15 +89,15 @@ class WeatherFacts {
                         List.of(Forecast.SOURCE, "fao-ecocrop")));
             }
         }
-        List<String> notes = new ArrayList<>();
-        String when = DAY.format(coldest.get().time().atZone(GardenPipelineAgent.ITALY));
-        notes.add(String.format(Locale.ROOT, "Forecast minimum in the next 7 days: %.1f °C on %s (MET Norway%s).",
-                minimum, when, staleNote(forecast)));
+        List<Note> notes = new ArrayList<>();
+        LocalDate day = LocalDate.ofInstant(coldest.get().time(), GardenPipelineAgent.ITALY);
+        notes.add(Note.of(Note.Kind.FORECAST_MINIMUM, String.format(Locale.ROOT, "%.1f", minimum), day.toString(),
+                staleSince(forecast)));
         if (!avoided.isEmpty()) {
-            notes.add("Not advised now because of frost risk (" + FrostRule.ID + "): " + String.join(", ", avoided) + ".");
+            notes.add(Note.of(Note.Kind.FROST_EXCLUDED, FrostRule.ID, String.join(", ", avoided)));
         }
         if (minimum <= 2.0 && !unknown.isEmpty()) {
-            notes.add("Frost tolerance not known, not checked: " + String.join(", ", unknown) + ".");
+            notes.add(Note.of(Note.Kind.FROST_UNKNOWN, String.join(", ", unknown)));
         }
         return new Result(readings, notes);
     }
@@ -105,11 +106,10 @@ class WeatherFacts {
     Result blight(RunContext run, String month, String language) {
         Optional<Optional<Forecast>> located = forecast(run, month);
         if (located.isEmpty()) {
-            return noLocation(run, month, "weather-driven risk was not checked");
+            return noLocation(run, month, Note.Kind.NO_COORDINATES_RISK);
         }
         if (located.get().isEmpty()) {
-            return new Result(List.of(), List.of("The weather forecast is not available right now: "
-                    + "weather-driven risk was not checked."));
+            return new Result(List.of(), List.of(Note.of(Note.Kind.FORECAST_UNAVAILABLE_RISK)));
         }
         Forecast forecast = located.get().get();
         LocalDate today = LocalDate.now(clock);
@@ -118,7 +118,7 @@ class WeatherFacts {
         List<String> hosts = gardens.growingOn(run.spaceId(), run.startedBy(), today).stream()
                 .map(PlantingSummary::cropId).filter(SmithPeriodRule.HOSTS::contains).distinct().toList();
         if (period.isEmpty() || hosts.isEmpty()) {
-            return new Result(List.of(), List.of("No Smith period around today (MET Norway" + staleNote(forecast) + ")."));
+            return new Result(List.of(), List.of(Note.of(Note.Kind.NO_SMITH_PERIOD, staleSince(forecast))));
         }
         String blight = knowledge.organisms().stream().filter(o -> o.id().equals(SmithPeriodRule.LATE_BLIGHT))
                 .map(o -> "it".equals(language) ? o.italianName() : o.englishName()).findFirst().orElse("Late blight");
@@ -131,8 +131,8 @@ class WeatherFacts {
             readings.add(Reading.inferred(new Fact(blight, "favouredByWeather", name), SmithPeriodRule.ID,
                     List.of(Forecast.SOURCE)));
         }
-        return new Result(readings, List.of("Smith period ending %s: the weather favours late blight on %s (%s, MET Norway%s)."
-                .formatted(DAY.format(period.get()), String.join(", ", names), SmithPeriodRule.ID, staleNote(forecast))));
+        return new Result(readings, List.of(Note.of(Note.Kind.SMITH_PERIOD, period.get().toString(),
+                String.join(", ", names), SmithPeriodRule.ID, staleSince(forecast))));
     }
 
     /** Empty when the question is not about now or the space has no garden with coordinates. */
@@ -148,16 +148,17 @@ class WeatherFacts {
                 .filter(g -> g.latitude() != null && g.longitude() != null).findFirst();
     }
 
-    private Result noLocation(RunContext run, String month, String what) {
+    private Result noLocation(RunContext run, String month, Note.Kind kind) {
         boolean now = LocalDate.now(clock).getMonth().name().equals(month);
         if (!now || !run.hasSpace()) {
             return Result.NONE;
         }
-        return new Result(List.of(), List.of("Add your garden's coordinates to use the local forecast: " + what + "."));
+        return new Result(List.of(), List.of(Note.of(kind)));
     }
 
-    private static String staleNote(Forecast forecast) {
-        return forecast.stale() ? ", from " + DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.ENGLISH)
-                .format(forecast.fetchedAt().atZone(GardenPipelineAgent.ITALY)) + ": the service is not reachable" : "";
+    /** When the stored copy of a stale forecast was fetched, as an ISO local date-time in Italy; empty if fresh. */
+    private static String staleSince(Forecast forecast) {
+        return forecast.stale() ? java.time.LocalDateTime.ofInstant(forecast.fetchedAt(), GardenPipelineAgent.ITALY)
+                .withNano(0).toString() : "";
     }
 }

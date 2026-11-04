@@ -188,10 +188,11 @@ public class GardenPipelineAgent {
                             f.sourceIds(), f.derivedBy()))
                     .toList());
             readings.addAll(local.readings());
-            List<String> notes = new java.util.ArrayList<>(local.notes());
+            List<io.github.vincenzofiore.rootology.decision.Note> notes = new java.util.ArrayList<>(local.notes());
             if (io.github.vincenzofiore.rootology.garden.GardenService.OUTSIDE_ITALY.equals(full.zone())) {
                 // No window matches this zone, so the question escalates; say why (#30).
-                notes.add(0, "The sowing and harvest calendars cover Italy only, and your garden is outside Italy.");
+                notes.add(0, io.github.vincenzofiore.rootology.decision.Note.of(
+                        io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY));
             }
             return new GraphFacts(readings, notes);
         }
@@ -227,7 +228,9 @@ public class GardenPipelineAgent {
                         resolution.reason());
         if (!facts.notes().isEmpty()) {
             // Only when present, so the suite's prompts stay exactly as recorded.
-            prompt += NOTES_PROMPT.formatted(String.join(" ", facts.notes()));
+            prompt += NOTES_PROMPT.formatted(facts.notes().stream()
+                    .map(io.github.vincenzofiore.rootology.decision.Note::english)
+                    .collect(java.util.stream.Collectors.joining(" ")));
         }
         String text = phrase(prompt, resolution, facts, context);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
@@ -253,8 +256,8 @@ public class GardenPipelineAgent {
     static String plainText(Resolution resolution, GraphFacts facts) {
         String main = resolution.escalated() ? "Not sure enough to answer: " + resolution.reason() + "."
                 : resolution.answer().isEmpty() ? "No values found." : "Answer: " + String.join(", ", resolution.answer()) + ".";
-        return String.join(" ", java.util.stream.Stream.concat(java.util.stream.Stream.of(main), facts.notes().stream())
-                .toList());
+        return String.join(" ", java.util.stream.Stream.concat(java.util.stream.Stream.of(main),
+                facts.notes().stream().map(io.github.vincenzofiore.rootology.decision.Note::english)).toList());
     }
 
     /**

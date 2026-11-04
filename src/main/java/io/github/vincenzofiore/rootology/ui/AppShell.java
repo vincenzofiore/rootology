@@ -11,5 +11,6 @@ import com.vaadin.flow.theme.lumo.Lumo;
  */
 @Push
 @StyleSheet(Lumo.STYLESHEET)
+@StyleSheet(Lumo.UTILITY_STYLESHEET)
 public class AppShell implements AppShellConfigurator {
 }

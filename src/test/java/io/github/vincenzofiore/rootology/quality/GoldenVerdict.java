@@ -45,7 +45,7 @@ enum GoldenVerdict {
                 || !new HashSet<>(answer.answer()).equals(new HashSet<>(c.answer()))) {
             return SILENT_WRONG;
         }
-        boolean notes = c.notes().stream().allMatch(note -> answer.notes().stream().anyMatch(n -> n.contains(note)));
+        boolean notes = c.notes().stream().allMatch(note -> answer.notes().stream().anyMatch(n -> n.english().contains(note)));
         return notes ? CORRECT : MISSING_NOTE;
     }
 
