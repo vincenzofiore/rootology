@@ -32,7 +32,8 @@ public class GardenPipeline {
     }
 
     /** Outcome of a run in HUMAN review mode: an answer, or a review waiting for a person. */
-    public record Run(PipelineAnswer answer, PendingReview pending) {
+    /** intent: how Claude understood the question (with defaults applied), for the quality suite (#20). */
+    public record Run(PipelineAnswer answer, PendingReview pending, Intent intent) {
     }
 
     private final AgentPlatform agentPlatform;
@@ -130,7 +131,7 @@ public class GardenPipeline {
         if (process.getStatus() == AgentProcessStatusCode.WAITING) {
             PendingReview review = new PendingReview(process.getId(), context, question, process.last(Decision.class));
             pending.put(process.getId(), review);
-            return new Run(null, review);
+            return new Run(null, review, process.last(Intent.class));
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
             if (claude.breaker.failing()) {
@@ -141,7 +142,7 @@ public class GardenPipeline {
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
         events.publishEvent(new PipelineRunFinished(process.getId(), context, question, process.last(NoiseProfile.class),
                 process.last(Decision.class), answer, Instant.now()));
-        return new Run(answer, null);
+        return new Run(answer, null, process.last(Intent.class));
     }
 
     private Agent agent() {
