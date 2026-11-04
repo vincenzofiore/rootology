@@ -30,9 +30,11 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
     private final SpaceService spaces;
     private final InvitationService invitations;
     private final RoleService roles;
+    private final GitHubEmails gitHubEmails;
 
     AllowListOAuth2UserService(Set<String> allowedLogins, SpaceService spaces, InvitationService invitations,
-                               RoleService roles) {
+                               RoleService roles, GitHubEmails gitHubEmails) {
+        this.gitHubEmails = gitHubEmails;
         this.allowedLogins = allowedLogins.stream().map(SpaceService::normalizeLogin).collect(Collectors.toSet());
         this.spaces = spaces;
         this.invitations = invitations;
@@ -43,30 +45,36 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
         OAuth2User user = super.loadUser(request);
+        Set<String> emails = gitHubEmails.verified(request.getAccessToken().getTokenValue());
         String token = PendingInvitation.current();
-        String login = requireAllowed(user, token);
-        if (token != null && invitations.admits(token, login)) {
+        String login = requireAllowed(user, token, emails);
+        if (token != null && invitations.admits(token, login, emails)) {
             try {
-                invitations.accept(token, login);
+                invitations.accept(token, login, emails);
             } catch (SpaceAccessException e) {
                 throw denied(e.getMessage());
             }
             PendingInvitation.clear();
         }
         spaces.signedIn(login);
-        return withRoles(user, login,
+        return withRoles(user, login, emails,
                 request.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName());
     }
 
-    /** The user with their app roles as authorities (ROLE_ADMIN, ...), read once at sign-in as Spring intends. */
-    OAuth2User withRoles(OAuth2User user, String login, String nameAttribute) {
+    /**
+     * The user with their app roles as authorities (ROLE_ADMIN, ...), read once at sign-in as Spring intends,
+     * and their verified email addresses as an attribute, for invitations bound to an address (#25).
+     */
+    OAuth2User withRoles(OAuth2User user, String login, Set<String> verifiedEmails, String nameAttribute) {
         List<GrantedAuthority> authorities = new ArrayList<>(user.getAuthorities());
         roles.rolesOf(login).forEach(role -> authorities.add(new SimpleGrantedAuthority(role.authority())));
-        return new DefaultOAuth2User(authorities, user.getAttributes(), nameAttribute);
+        java.util.Map<String, Object> attributes = new java.util.HashMap<>(user.getAttributes());
+        attributes.put(GitHubEmails.ATTRIBUTE, List.copyOf(verifiedEmails));
+        return new DefaultOAuth2User(authorities, attributes, nameAttribute);
     }
 
     /** The user's login if they may sign in; token is a pending invitation, or null. */
-    String requireAllowed(OAuth2User user, String token) {
+    String requireAllowed(OAuth2User user, String token, Set<String> verifiedEmails) {
         Object attribute = user.getAttribute("login");
         if (attribute == null) {
             throw denied("GitHub returned no login");
@@ -74,7 +82,7 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
         String login = SpaceService.normalizeLogin(attribute.toString());
         boolean allowed = allowedLogins.contains(login)
                 || spaces.belongsToAnySpace(login)
-                || (token != null && invitations.admits(token, login));
+                || (token != null && invitations.admits(token, login, verifiedEmails));
         if (!allowed) {
             throw denied("GitHub account " + login + " is not allowed");
         }

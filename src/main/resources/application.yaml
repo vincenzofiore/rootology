@@ -14,6 +14,22 @@ spring:
             # From the GitHub OAuth App. The placeholders let the app start; login needs the real values.
             client-id: ${ROOTOLOGY_GITHUB_CLIENT_ID:not-set}
             client-secret: ${ROOTOLOGY_GITHUB_CLIENT_SECRET:not-set}
+            # user:email reads the verified addresses, so an invitation can be bound to one (#25).
+            scope: read:user,user:email
+
+  # Outgoing email (#25). Without settings it goes to Mailpit (compose.yaml), which keeps it locally. For Gmail:
+  # host smtp.gmail.com, port 587, auth and starttls true, an app password of the app's dedicated account.
+  mail:
+    host: ${ROOTOLOGY_SMTP_HOST:localhost}
+    port: ${ROOTOLOGY_SMTP_PORT:1025}
+    username: ${ROOTOLOGY_SMTP_USERNAME:}
+    password: ${ROOTOLOGY_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${ROOTOLOGY_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${ROOTOLOGY_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 embabel:
   models:
@@ -41,6 +57,13 @@ embabel:
           api-key: ${ROOTOLOGY_ANTHROPIC_API_KEY:not-set}
 
 rootology:
+  # The app's public address, for links in emails (#25).
+  base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
+  mail:
+    from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
+  invitations:
+    # Invitations each owner may create per day (#25).
+    daily-limit: 20
   jev:
     # Same convention as above. Without a key the deterministic StubDecisionLayer is used.
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}

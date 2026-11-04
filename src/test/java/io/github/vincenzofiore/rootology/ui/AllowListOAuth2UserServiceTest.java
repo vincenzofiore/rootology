@@ -28,46 +28,46 @@ class AllowListOAuth2UserServiceTest {
     }
 
     private AllowListOAuth2UserService service(String... allowed) {
-        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles);
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles, mock(GitHubEmails.class));
     }
 
     @Test
     void letsTheBootstrapAllowListIn() {
-        assertThat(service("alice").requireAllowed(githubUser("alice"), null)).isEqualTo("alice");
+        assertThat(service("alice").requireAllowed(githubUser("alice"), null, Set.of())).isEqualTo("alice");
     }
 
     @Test
     void ignoresTheCaseOfTheLogin() {
-        assertThat(service("Alice").requireAllowed(githubUser("ALICE"), null)).isEqualTo("alice");
+        assertThat(service("Alice").requireAllowed(githubUser("ALICE"), null, Set.of())).isEqualTo("alice");
     }
 
     @Test
     void letsInAnyoneWhoAlreadyBelongsToASpace() {
         when(spaces.belongsToAnySpace("bob")).thenReturn(true);
 
-        assertThat(service().requireAllowed(githubUser("bob"), null)).isEqualTo("bob");
+        assertThat(service().requireAllowed(githubUser("bob"), null, Set.of())).isEqualTo("bob");
     }
 
     @Test
     void letsInSomeoneWithAValidInvitation() {
-        when(invitations.admits("token", "carol")).thenReturn(true);
+        when(invitations.admits("token", "carol", Set.of())).thenReturn(true);
 
-        assertThat(service().requireAllowed(githubUser("carol"), "token")).isEqualTo("carol");
+        assertThat(service().requireAllowed(githubUser("carol"), "token", Set.of())).isEqualTo("carol");
     }
 
     @Test
     void refusesEveryoneElse() {
-        when(invitations.admits("token", "mallory")).thenReturn(false);
+        when(invitations.admits("token", "mallory", Set.of())).thenReturn(false);
 
-        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), null))
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), null, Set.of()))
                 .isInstanceOf(OAuth2AuthenticationException.class);
-        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), "token"))
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), "token", Set.of()))
                 .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
     @Test
     void anEmptyAllowListLetsNobodyInOnItsOwn() {
-        assertThatThrownBy(() -> service().requireAllowed(githubUser("alice"), null))
+        assertThatThrownBy(() -> service().requireAllowed(githubUser("alice"), null, Set.of()))
                 .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
@@ -75,10 +75,11 @@ class AllowListOAuth2UserServiceTest {
     void appRolesBecomeAuthoritiesAtSignIn() {
         when(roles.rolesOf("alice")).thenReturn(java.util.EnumSet.of(io.github.vincenzofiore.rootology.roles.AppRole.QA));
 
-        OAuth2User user = service("alice").withRoles(githubUser("alice"), "alice", "login");
+        OAuth2User user = service("alice").withRoles(githubUser("alice"), "alice", Set.of("alice@example.org"), "login");
 
         assertThat(user.getAuthorities()).extracting(org.springframework.security.core.GrantedAuthority::getAuthority)
                 .containsExactlyInAnyOrder("OAUTH2_USER", "ROLE_QA");
         assertThat(user.getName()).isEqualTo("alice");
+        assertThat(user.<java.util.List<String>>getAttribute(GitHubEmails.ATTRIBUTE)).containsExactly("alice@example.org");
     }
 }

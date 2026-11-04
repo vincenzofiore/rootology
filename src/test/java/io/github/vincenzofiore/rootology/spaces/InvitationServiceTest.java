@@ -37,7 +37,7 @@ class InvitationServiceTest {
         long garden = spaceOf("olga");
         String token = invitations.create(garden, "olga", Role.MEMBER, null);
 
-        assertThat(invitations.admits(token, "pat")).isTrue();
+        assertThat(invitations.admits(token, "pat", java.util.Set.of())).isTrue();
         assertThat(invitations.accept(token, "Pat")).isEqualTo(garden);
 
         assertThat(spaces.isMember(garden, "pat")).isTrue();
@@ -60,8 +60,8 @@ class InvitationServiceTest {
         long garden = spaceOf("sam");
         String token = invitations.create(garden, "sam", Role.MEMBER, "Tina");
 
-        assertThat(invitations.admits(token, "uma")).isFalse();
-        assertThat(invitations.admits(token, "tina")).isTrue();
+        assertThat(invitations.admits(token, "uma", java.util.Set.of())).isFalse();
+        assertThat(invitations.admits(token, "tina", java.util.Set.of())).isTrue();
     }
 
     @Test
@@ -73,7 +73,7 @@ class InvitationServiceTest {
 
         String expired = "expired-token";
         repository.save(new Invitation(spaceRepository.getReferenceById(garden), InvitationService.hash(expired),
-                Role.MEMBER, null, "vic", Instant.now().minusSeconds(3600), Instant.now().minusSeconds(60)));
+                Role.MEMBER, null, null, "vic", Instant.now().minusSeconds(3600), Instant.now().minusSeconds(60)));
 
         assertThat(invitations.preview(revoked, "walt").refusal()).isEqualTo("This invitation was revoked");
         assertThat(invitations.preview(expired, "walt").refusal()).isEqualTo("This invitation has expired");

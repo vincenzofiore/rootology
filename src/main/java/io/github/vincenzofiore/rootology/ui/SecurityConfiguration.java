@@ -38,7 +38,8 @@ class SecurityConfiguration {
                 .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed, spaces, invitations, roles);
+        return new AllowListOAuth2UserService(allowed, spaces, invitations, roles,
+                new GitHubEmails("https://api.github.com"));
     }
 
     @Bean

@@ -86,25 +86,34 @@ public class SpaceView extends VerticalLayout {
     private VerticalLayout invitationSection(SpaceSummary space) {
         ComboBox<Role> role = new ComboBox<>("Role", Role.values());
         role.setValue(Role.MEMBER);
+        TextField email = new TextField("Send to this email (optional)");
+        email.setWidth("18rem");
         TextField onlyFor = new TextField("Only for this GitHub login (optional)");
         TextField link = new TextField("Invitation link (shown once)");
         link.setReadOnly(true);
         link.setWidth("40rem");
         link.setVisible(false);
         Button create = new Button("Create invitation link", e -> act(() -> {
-            String token = invitations.create(space.id(), currentUser.login(), role.getValue(), onlyFor.getValue());
+            String token = invitations.create(space.id(), currentUser.login(), role.getValue(), onlyFor.getValue(),
+                    email.getValue());
+            if (!email.getValue().isBlank()) {
+                Notification.show("The invitation is being emailed to " + email.getValue().trim()
+                        + "; the link below works too.");
+            }
+            email.clear();
             link.setValue(ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/" + InvitationView.ROUTE + "/" + token).toUriString());
             link.setVisible(true);
             onlyFor.clear();
         }));
         create.addThemeName("primary");
-        HorizontalLayout form = new HorizontalLayout(role, onlyFor, create);
+        HorizontalLayout form = new HorizontalLayout(role, email, onlyFor, create);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
 
         pending.addColumn(i -> i.role().name()).setHeader("Role").setAutoWidth(true);
-        pending.addColumn(i -> i.invitedLogin() == null ? "anyone with the link" : i.invitedLogin()).setHeader("For");
+        pending.addColumn(i -> i.invitedEmail() != null ? i.invitedEmail()
+                : i.invitedLogin() != null ? i.invitedLogin() : "anyone with the link").setHeader("For");
         pending.addColumn(InvitationSummary::createdBy).setHeader("Created by");
         pending.addColumn(i -> DAY.format(i.expiresAt())).setHeader("Expires").setAutoWidth(true);
         pending.addComponentColumn(i -> new Button("Revoke", e -> act(() ->
@@ -112,7 +121,9 @@ public class SpaceView extends VerticalLayout {
         pending.setAllRowsVisible(true);
 
         return new VerticalLayout(new H4("Invitations"),
-                new Paragraph("Share the link yourself: it works once and expires in 7 days."),
+                new Paragraph("With an email address the link is sent there, and only someone with that address "
+                        + "verified on GitHub can use it; otherwise share the link yourself. It works once and "
+                        + "expires in 7 days. At most 20 invitations a day."),
                 form, link, new H4("Pending invitations"), pending);
     }
 

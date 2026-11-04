@@ -42,18 +42,22 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
         String token = event.getRouteParameters().get("token").orElse("");
-        Optional<String> login = authentication.getAuthenticatedUser(OAuth2User.class)
-                .map(user -> String.valueOf(user.<Object>getAttribute("login")));
-        InvitationPreview preview = invitations.preview(token, login.orElse(null));
+        Optional<OAuth2User> user = authentication.getAuthenticatedUser(OAuth2User.class);
+        Optional<String> login = user.map(u -> String.valueOf(u.<Object>getAttribute("login")));
+        java.util.Set<String> emails = user.map(u -> u.<java.util.List<String>>getAttribute(GitHubEmails.ATTRIBUTE))
+                .map(java.util.Set::copyOf).orElse(java.util.Set.of());
+        InvitationPreview preview = invitations.preview(token, login.orElse(null), emails);
         if (!preview.acceptable()) {
             add(new H2("This invitation cannot be used"), new Paragraph(preview.refusal()));
             return;
         }
         add(new H2("You are invited to " + preview.spaceName()),
-                new Paragraph("You would join as " + preview.role() + "."));
+                new Paragraph("You would join as " + preview.role() + "."
+                        + (preview.forEmail() == null ? "" : " This invitation is for " + preview.forEmail()
+                        + ": sign in with a GitHub account where that address is verified.")));
         if (login.isPresent()) {
             Button join = new Button("Join " + preview.spaceName(), e -> {
-                invitations.accept(token, login.get());
+                invitations.accept(token, login.get(), emails);
                 getUI().ifPresent(ui -> ui.navigate(SpaceView.class));
             });
             join.addThemeName("primary");
