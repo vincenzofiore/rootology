@@ -7,7 +7,7 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
@@ -24,9 +24,8 @@ import java.util.Optional;
  * Someone already signed in joins with one click.
  */
 @Route(InvitationView.ROUTE + "/:token")
-@PageTitle("Invitation · Rootology")
 @AnonymousAllowed
-public class InvitationView extends VerticalLayout implements BeforeEnterObserver {
+public class InvitationView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
     static final String ROUTE = "invite";
 
@@ -48,25 +47,41 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
                 .map(java.util.Set::copyOf).orElse(java.util.Set.of());
         InvitationPreview preview = invitations.preview(token, login.orElse(null), emails);
         if (!preview.acceptable()) {
-            add(new H2("This invitation cannot be used"), new Paragraph(preview.refusal()));
+            add(new H2(getTranslation("invite.refused")), new Paragraph(refusal(preview)));
             return;
         }
-        add(new H2("You are invited to " + preview.spaceName()),
-                new Paragraph("You would join as " + preview.role() + "."
-                        + (preview.forEmail() == null ? "" : " This invitation is for " + preview.forEmail()
-                        + ": sign in with a GitHub account where that address is verified.")));
+        add(new H2(getTranslation("invite.title", preview.spaceName())),
+                new Paragraph(getTranslation("invite.as", getTranslation("role." + preview.role().name()))
+                        + (preview.forEmail() == null ? "" : " " + getTranslation("invite.foremail", preview.forEmail()))));
         if (login.isPresent()) {
-            Button join = new Button("Join " + preview.spaceName(), e -> {
+            Button join = new Button(getTranslation("invite.join", preview.spaceName()), e -> {
                 invitations.accept(token, login.get(), emails);
                 getUI().ifPresent(ui -> ui.navigate(SpaceView.class));
             });
             join.addThemeName("primary");
-            add(join, new Paragraph("Then pick the space in the selector at the top."));
+            add(join, new Paragraph(getTranslation("invite.then")));
         } else {
             VaadinSession.getCurrent().getSession().setAttribute(PendingInvitation.SESSION_KEY, token);
-            Anchor signIn = new Anchor(SecurityConfiguration.GITHUB_LOGIN_PAGE, "Sign in with GitHub to join");
+            Anchor signIn = new Anchor(SecurityConfiguration.GITHUB_LOGIN_PAGE, getTranslation("invite.signin"));
             signIn.setRouterIgnore(true);
             add(signIn);
         }
+    }
+
+    /** The refusal in the person's language; the service words it in English for its logs. */
+    private String refusal(InvitationPreview preview) {
+        String text = preview.refusal();
+        String key = text.contains("revoked") ? "invite.refused.revoked"
+                : text.contains("already used") ? "invite.refused.used"
+                : text.contains("expired") ? "invite.refused.expired"
+                : text.contains("another GitHub account") ? "invite.refused.account"
+                : text.startsWith("This invitation is for ") ? "invite.refused.email"
+                : text.contains("does not exist") ? "invite.refused.notfound" : null;
+        return key == null ? text : getTranslation(key, preview.forEmail());
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("invite.page") + " · Rootology";
     }
 }

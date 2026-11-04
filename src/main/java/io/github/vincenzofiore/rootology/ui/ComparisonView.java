@@ -12,7 +12,7 @@ import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 import io.github.vincenzofiore.rootology.experiments.ExperimentCase;
@@ -35,9 +35,8 @@ import java.util.Optional;
  * the skill (recorded by hand), and the pipeline, run live in HUMAN review mode.
  */
 @Route(value = "compare", layout = MainLayout.class)
-@PageTitle("Compare · Rootology")
 @RolesAllowed("QA")
-public class ComparisonView extends VerticalLayout {
+public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
 
     private final ExperimentRunner runner;
     private final GardenPipeline pipeline;
@@ -50,21 +49,22 @@ public class ComparisonView extends VerticalLayout {
         this.pipeline = pipeline;
         this.currentUser = currentUser;
 
-        ComboBox<ExperimentCase> caseBox = new ComboBox<>("Case", ExperimentCase.values());
+        ComboBox<ExperimentCase> caseBox = new ComboBox<>(getTranslation("qa.case"), ExperimentCase.values());
         caseBox.setItemLabelGenerator(c -> c.id() + " · " + c.question());
         caseBox.setValue(ExperimentCase.EASY_1);
         caseBox.setWidth("32rem");
 
-        ComboBox<String> noiseBox = new ComboBox<>("Pipeline input", List.of("Clean facts", "Noisy facts"));
+        ComboBox<String> noiseBox = new ComboBox<>(getTranslation("qa.input"), List.of("Clean facts", "Noisy facts"));
+        noiseBox.setItemLabelGenerator(c -> getTranslation("Clean facts".equals(c) ? "qa.input.clean" : "qa.input.noisy"));
         noiseBox.setValue("Clean facts");
-        IntegerField seedField = new IntegerField("Noise seed");
+        IntegerField seedField = new IntegerField(getTranslation("qa.seed"));
         seedField.setValue(1);
         seedField.setMin(1);
         seedField.setStepButtonsVisible(true);
         seedField.setEnabled(false);
         noiseBox.addValueChangeListener(e -> seedField.setEnabled("Noisy facts".equals(e.getValue())));
 
-        Button ask = new Button("Ask all arms", e -> show(caseBox.getValue(), noise(noiseBox.getValue(), seedField.getValue())));
+        Button ask = new Button(getTranslation("qa.ask"), e -> show(caseBox.getValue(), noise(noiseBox.getValue(), seedField.getValue())));
         ask.addThemeName("primary");
 
         HorizontalLayout controls = new HorizontalLayout(caseBox, noiseBox, seedField, ask);
@@ -73,8 +73,7 @@ public class ComparisonView extends VerticalLayout {
 
         arms.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         arms.getStyle().set("gap", "1rem");
-        add(new H3("Experiment cases"), controls,
-                new Paragraph("The pipeline calls Claude and Jev for real. An escalated question waits in Escalations."),
+        add(new H3(getTranslation("qa.experiment")), controls, new Paragraph(getTranslation("qa.experiment.intro")),
                 arms);
         add(goldenSection(goldenRuns));
     }
@@ -87,28 +86,26 @@ public class ComparisonView extends VerticalLayout {
         Optional<GoldenRuns.LiveRun> latest = goldenRuns.latest();
         Map<String, GoldenRuns.LiveResult> live = latest.map(GoldenRuns.LiveRun::results).orElse(Map.of());
         Grid<GoldenQuestions.Case> grid = new Grid<>();
-        grid.addColumn(GoldenQuestions.Case::id).setHeader("Case").setAutoWidth(true);
-        grid.addColumn(GoldenQuestions.Case::question).setHeader("Question").setFlexGrow(2);
-        grid.addColumn(c -> c.answer() != null ? String.join(", ", c.answer()) : "→ a person (" + c.escalate() + ")")
-                .setHeader("Expected").setFlexGrow(2);
+        grid.addColumn(GoldenQuestions.Case::id).setHeader(getTranslation("qa.case")).setAutoWidth(true);
+        grid.addColumn(GoldenQuestions.Case::question).setHeader(getTranslation("history.question")).setFlexGrow(2);
+        grid.addColumn(c -> c.answer() != null ? String.join(", ", c.answer()) : getTranslation("qa.toperson", c.escalate()))
+                .setHeader(getTranslation("qa.expected")).setFlexGrow(2);
         grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(GoldenRuns.LiveResult::verdict).orElse("-"))
-                .setHeader("Last live").setAutoWidth(true);
+                .setHeader(getTranslation("qa.lastlive")).setAutoWidth(true);
         grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> "%.2f".formatted(r.confidence())).orElse(""))
-                .setHeader("Confidence").setAutoWidth(true);
+                .setHeader(getTranslation("history.confidence")).setAutoWidth(true);
         grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> r.escalationReason() != null
-                        ? "→ a person: " + r.escalationReason() : String.join(", ", r.answer())).orElse(""))
-                .setHeader("Live outcome").setFlexGrow(2);
-        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> r.intentMatches() ? "yes" : "no: "
-                + r.understoodIntent()).orElse("")).setHeader("Understood").setAutoWidth(true);
+                        ? getTranslation("qa.toperson", r.escalationReason()) : String.join(", ", r.answer())).orElse(""))
+                .setHeader(getTranslation("qa.outcome")).setFlexGrow(2);
+        grid.addColumn(c -> Optional.ofNullable(live.get(c.id())).map(r -> r.intentMatches() ? getTranslation("common.yes")
+                : getTranslation("common.no") + ": " + r.understoodIntent()).orElse(""))
+                .setHeader(getTranslation("qa.understood")).setAutoWidth(true);
         grid.setItems(goldenRuns.golden().cases());
         grid.setAllRowsVisible(true);
-        String summary = latest.map(r -> "Last live run " + r.startedAt() + " (" + r.llm() + ", " + r.decisionLayer()
-                + "): " + r.verdicts() + ", intents understood " + r.intentsUnderstood() + " of " + r.results().size()
-                + ".").orElse("No live run recorded yet.");
-        return new VerticalLayout(new H3("Golden questions"),
-                new Paragraph("Checked offline on every build (silent wrong answers fail it). Live runs use the real "
-                        + "Claude and Jev and cost money: ./mvnw test -Plive -Dtest=GoldenLiveRecordingTest, "
-                        + "recorded in src/main/resources/quality/live-runs."),
+        String summary = latest.map(r -> getTranslation("qa.summary", r.startedAt(), r.llm(), r.decisionLayer(),
+                String.valueOf(r.verdicts()), r.intentsUnderstood(), r.results().size()))
+                .orElse(getTranslation("qa.norun"));
+        return new VerticalLayout(new H3(getTranslation("qa.golden")), new Paragraph(getTranslation("qa.golden.intro")),
                 new Paragraph(summary), grid);
     }
 
@@ -125,43 +122,43 @@ public class ComparisonView extends VerticalLayout {
         }
         arms.removeAll();
         List<String> jena = runner.jenaAnswer(experimentCase);
-        arms.add(card("Jena (arbiter)", values(jena), "SPARQL over the clean dataset"));
-        arms.add(recorded("Claude with skill", RecordedLlmAnswers.withSkill(experimentCase), jena));
-        arms.add(recorded("Claude without skill", RecordedLlmAnswers.withoutSkill(experimentCase), jena));
+        arms.add(card(getTranslation("qa.arm.jena"), values(jena), getTranslation("qa.arm.jena.how")));
+        arms.add(recorded(getTranslation("qa.arm.skill"), RecordedLlmAnswers.withSkill(experimentCase), jena));
+        arms.add(recorded(getTranslation("qa.arm.noskill"), RecordedLlmAnswers.withoutSkill(experimentCase), jena));
         try {
             GardenPipeline.Run run = pipeline.start(new Question(experimentCase.id(), experimentCase.question()), noise,
                     currentUser.runContext());
             arms.add(run.answer() != null ? pipelineCard(run.answer(), jena)
-                    : card("Pipeline", "Waiting for a human",
-                    "Escalated: " + run.pending().decision().reason() + ". Answer it in Escalations."));
+                    : card(getTranslation("qa.arm.pipeline"), getTranslation("qa.waiting"),
+                    getTranslation("qa.waiting.why", run.pending().decision().reason())));
         } catch (RuntimeException ex) {
-            Notification.show("Pipeline failed: " + ex.getMessage());
-            arms.add(card("Pipeline", "Failed", ex.getMessage()));
+            Notification.show(getTranslation("qa.failed", ex.getMessage()));
+            arms.add(card(getTranslation("qa.arm.pipeline"), getTranslation("qa.failed.short"), ex.getMessage()));
         }
     }
 
-    private static Div recorded(String title, Optional<List<String>> answer, List<String> jena) {
-        return answer.map(a -> card(title, values(a), matchLabel(a, jena) + " · recorded by hand"))
-                .orElseGet(() -> card(title, "Not recorded", "No hand-recorded session for this case yet"));
+    private Div recorded(String title, Optional<List<String>> answer, List<String> jena) {
+        return answer.map(a -> card(title, values(a), matchLabel(a, jena) + " · " + getTranslation("qa.byhand")))
+                .orElseGet(() -> card(title, getTranslation("qa.notrecorded"), getTranslation("qa.notrecorded.why")));
     }
 
-    private static Div pipelineCard(PipelineAnswer answer, List<String> jena) {
-        String status = answer.answeredByHuman() ? "answered by " + answer.reviewer()
-                : answer.escalated() ? "escalated" : "not escalated";
-        return card("Pipeline", values(answer.answer()),
-                matchLabel(answer.answer(), jena) + " · confidence %.2f · %s".formatted(answer.confidence(), status),
+    private Div pipelineCard(PipelineAnswer answer, List<String> jena) {
+        String status = answer.answeredByHuman() ? getTranslation("history.byhuman", answer.reviewer())
+                : getTranslation(answer.escalated() ? "qa.escalated" : "qa.notescalated");
+        return card(getTranslation("qa.arm.pipeline"), values(answer.answer()),
+                matchLabel(answer.answer(), jena) + " · " + getTranslation("qa.confidence", answer.confidence()) + " · " + status,
                 answer.text());
     }
 
-    private static String matchLabel(List<String> answer, List<String> jena) {
-        return new HashSet<>(answer).equals(new HashSet<>(jena)) ? "matches Jena" : "differs from Jena";
+    private String matchLabel(List<String> answer, List<String> jena) {
+        return getTranslation(new HashSet<>(answer).equals(new HashSet<>(jena)) ? "qa.matches" : "qa.differs");
     }
 
-    private static String values(List<String> values) {
-        return values.isEmpty() ? "∅ (nothing declared)" : String.join(", ", values);
+    private String values(List<String> values) {
+        return values.isEmpty() ? getTranslation("qa.nothing") : String.join(", ", values);
     }
 
-    private static Div card(String title, String value, String... details) {
+    private Div card(String title, String value, String... details) {
         Div card = new Div(new H3(title), new Span(value));
         for (String detail : details) {
             Paragraph p = new Paragraph(detail);
@@ -171,5 +168,10 @@ public class ComparisonView extends VerticalLayout {
         card.getStyle().set("border", "1px solid var(--vaadin-border-color, #ccc)")
                 .set("border-radius", "8px").set("padding", "0.8rem 1rem").set("width", "15rem");
         return card;
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("qa.title") + " · Rootology";
     }
 }

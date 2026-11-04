@@ -46,7 +46,7 @@ public class MainLayout extends AppLayout {
         space.getStyle().set("margin-left", "auto");
         Span who = new Span(currentUser.login());
         who.getStyle().set("margin-left", "1rem");
-        Button logout = new Button("Log out", e -> authentication.logout());
+        Button logout = new Button(getTranslation("nav.logout"), e -> authentication.logout());
         logout.getStyle().set("margin", "0 1rem");
         // The unread notifications (#26), updated live through push while the page is open.
         bell.setIcon(VaadinIcon.BELL.create());
@@ -56,19 +56,19 @@ public class MainLayout extends AppLayout {
         addToNavbar(space, bell, who, logout);
 
         SideNav nav = new SideNav();
-        nav.addItem(new SideNavItem("Ask", AskView.class));
-        nav.addItem(new SideNavItem("Garden", GardenView.class));
-        nav.addItem(new SideNavItem("Escalations", EscalationView.class));
-        nav.addItem(new SideNavItem("Notifications", NotificationsView.class));
-        nav.addItem(new SideNavItem("History", HistoryView.class));
-        nav.addItem(new SideNavItem("Knowledge", KnowledgeView.class));
-        nav.addItem(new SideNavItem("Space", SpaceView.class));
-        nav.addItem(new SideNavItem("Sources", SourcesView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.garden"), GardenView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.notifications"), NotificationsView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.history"), HistoryView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.space"), SpaceView.class));
+        nav.addItem(new SideNavItem(getTranslation("nav.sources"), SourcesView.class));
         if (currentUser.hasRole(AppRole.QA)) {
-            nav.addItem(new SideNavItem("Compare", ComparisonView.class));
+            nav.addItem(new SideNavItem(getTranslation("nav.compare"), ComparisonView.class));
         }
         if (currentUser.hasRole(AppRole.ADMIN)) {
-            nav.addItem(new SideNavItem("Admin", AdminView.class));
+            nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminView.class));
         }
         addToDrawer(nav);
     }
@@ -76,7 +76,7 @@ public class MainLayout extends AppLayout {
     private void showUnread() {
         int unread = notifications.unread(currentUser.login());
         bell.setText(unread == 0 ? "" : String.valueOf(unread));
-        bell.setAriaLabel(unread + " unread notifications");
+        bell.setAriaLabel(getTranslation("nav.unread", unread));
     }
 
     @Override

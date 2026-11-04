@@ -10,7 +10,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -18,6 +18,7 @@ import com.vaadin.flow.router.RouterLink;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.facts.SourceCatalog;
+import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import io.github.vincenzofiore.rootology.usage.UsageLimitException;
 import io.github.vincenzofiore.rootology.usage.UsageService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
@@ -31,9 +32,8 @@ import jakarta.annotation.security.PermitAll;
  */
 @Route(value = "ask", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
-@PageTitle("Ask · Rootology")
 @PermitAll
-public class AskView extends VerticalLayout {
+public class AskView extends VerticalLayout implements HasDynamicTitle {
 
     private final GardenPipeline pipeline;
     private final SourceCatalog sources;
@@ -51,28 +51,21 @@ public class AskView extends VerticalLayout {
         this.sources = sources;
         this.currentUser = currentUser;
 
-        TextField question = new TextField("Your question");
-        question.setPlaceholder("Which plants are companions of tomato?");
+        TextField question = new TextField(getTranslation("ask.question"));
+        question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setWidth("36rem");
-        Button ask = new Button("Ask", e -> ask(question.getValue()));
+        Button ask = new Button(getTranslation("ask.button"), e -> ask(question.getValue()));
         ask.addThemeName("primary");
         HorizontalLayout form = new HorizontalLayout(question, ask, questionsToday);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
 
-        add(new H3("Ask the knowledge base"),
-                new Paragraph("Ask about companions and antagonists of a crop, when to sow or harvest it, "
-                        + "what can be sown now or in a given month, the pests and diseases relevant for a crop "
-                        + "in a season, or when a pest is active. About your garden: what grows now, which pests "
-                        + "threaten it this month, what to sow in one of your plots (respecting rotation). Say north, "
-                        + "centre or south of Italy if it matters; otherwise your garden's location, or the centre."),
-                form, result);
+        add(new H3(getTranslation("ask.title")), new Paragraph(getTranslation("ask.intro")), form, result);
         showQuestionsToday();
         // A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member.
         if (!currentUser.canContribute()) {
             form.setVisible(false);
-            add(new Paragraph("You are a guest in this space: you can look at its garden, history and knowledge, "
-                    + "but not ask questions."));
+            add(new Paragraph(getTranslation("ask.guest")));
         }
     }
 
@@ -84,18 +77,19 @@ public class AskView extends VerticalLayout {
         try {
             GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text.trim()), currentUser.runContext());
             if (run.answer() == null) {
-                result.add(new Paragraph("Not sure enough to answer: " + run.pending().decision().reason()
-                        + ". The question waits in Escalations for a member of this space."));
-                RouterLink propose = new RouterLink("Propose the missing fact", KnowledgeView.class);
+                result.add(new Paragraph(getTranslation("ask.escalated", run.pending().decision().reason())));
+                RouterLink propose = new RouterLink(getTranslation("ask.propose"), KnowledgeView.class);
                 propose.setQueryParameters(QueryParameters.simple(java.util.Map.of("question", text.trim())));
                 result.add(propose);
                 return;
             }
             show(run.answer());
         } catch (UsageLimitException ex) {
-            result.add(new Paragraph(ex.getMessage()));
+            result.add(new Paragraph(getTranslation("ask.limit", ex.limit())));
+        } catch (ServiceUnavailableException ex) {
+            result.add(new Paragraph(getTranslation("error.claude")));
         } catch (RuntimeException ex) {
-            Notification.show("Could not answer: " + ex.getMessage());
+            Notification.show(getTranslation("ask.failed", ex.getMessage()));
         } finally {
             showQuestionsToday();
         }
@@ -104,24 +98,24 @@ public class AskView extends VerticalLayout {
     /** Today's questions against the personal limit (#19). */
     private void showQuestionsToday() {
         UsageService.Today today = usage.today(currentUser.login());
-        questionsToday.setText("%d of %d questions today".formatted(today.used(), today.limit()));
+        questionsToday.setText(getTranslation("ask.today", today.used(), today.limit()));
     }
 
     private void show(PipelineAnswer answer) {
         result.add(new Paragraph(answer.text()));
-        result.add(new Span((answer.answer().isEmpty() ? "No values" : String.join(", ", answer.answer()))
-                + " · confidence %.2f".formatted(answer.confidence())));
+        result.add(new Span(getTranslation("ask.values", answer.answer().isEmpty() ? getTranslation("ask.novalues")
+                : String.join(", ", answer.answer()), answer.confidence())));
         answer.notes().forEach(note -> result.add(new Paragraph(note)));
         if (!answer.sources().isEmpty()) {
-            Div list = new Div(new Paragraph("Sources:"));
+            Div list = new Div(new Paragraph(getTranslation("ask.sources")));
             answer.sources().forEach(id -> {
                 if (id.equals("garden")) {
-                    list.add(new Div(new Span("Your garden (this space's plots and plantings)")));
+                    list.add(new Div(new Span(getTranslation("ask.source.garden"))));
                 }
                 enrichment.source(currentUser.space().id(), currentUser.login(), id).ifPresent(p -> list.add(new Div(
                         new Span(p.scope() == ProposalScope.GLOBAL
-                                ? "Contributed fact #%d, reviewed by a curator: %s".formatted(p.id(), p.citation())
-                                : "Proposed in this space by %s, not reviewed (#%d)".formatted(p.proposedBy(), p.id())))));
+                                ? getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
+                                : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id()))))));
                 sources.byId(id).ifPresent(s -> {
                     Anchor link = new Anchor(s.url(), s.title());
                     link.setTarget("_blank");
@@ -130,5 +124,10 @@ public class AskView extends VerticalLayout {
             });
             result.add(list);
         }
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("ask.page") + " · Rootology";
     }
 }

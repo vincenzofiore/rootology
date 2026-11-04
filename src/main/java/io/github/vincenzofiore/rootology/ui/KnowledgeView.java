@@ -14,7 +14,7 @@ import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.enrichment.InvalidProposalException;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
@@ -40,9 +40,8 @@ import java.util.Map;
  * (a curator reviews it), see and withdraw this space's proposals, and, for curators, the review queue.
  */
 @Route(value = "knowledge", layout = MainLayout.class)
-@PageTitle("Knowledge · Rootology")
 @PermitAll
-public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver {
+public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
     /** A crop or an organism as offered in the forms. */
     record Option(String id, String label) {
@@ -52,9 +51,9 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         }
     }
 
-    static final String ALIAS = "Another name";
-    static final String PAIR = "A crop pair";
-    static final String HOST = "A pest or disease on a crop";
+    static final String ALIAS = "ALIAS";
+    static final String PAIR = "PAIR";
+    static final String HOST = "HOST";
 
     private final KnowledgeEnrichment enrichment;
     private final CurrentUser currentUser;
@@ -77,31 +76,30 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         organisms.forEach(o -> labels.put(o.id(), o.label()));
 
         askedAbout.setVisible(false);
-        add(new H3("Knowledge"),
-                new Paragraph("Is a name, a crop pair or a pest missing? Add it for this space, where it applies "
-                        + "at once and is marked as proposed in the answers, or propose it for everyone with a "
-                        + "source: a curator reviews it first."),
+        add(new H3(getTranslation("knowledge.title")), new Paragraph(getTranslation("knowledge.intro")),
                 askedAbout);
         // A guest only looks (#33): no proposals, no withdrawals.
         if (currentUser.canContribute()) {
             add(form());
         }
 
-        mine.addColumn(this::describe).setHeader("Fact").setFlexGrow(3);
-        mine.addColumn(p -> p.scope() == ProposalScope.SPACE ? "This space" : "Everyone").setHeader("For")
+        mine.addColumn(this::describe).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
+        mine.addColumn(p -> getTranslation(p.scope() == ProposalScope.SPACE ? "knowledge.for.space" : "knowledge.for.everyone"))
+                .setHeader(getTranslation("knowledge.for"))
                 .setAutoWidth(true);
-        mine.addColumn(p -> p.status().name()).setHeader("Status").setAutoWidth(true);
-        mine.addColumn(ProposalSummary::proposedBy).setHeader("By").setAutoWidth(true);
-        mine.addColumn(this::review).setHeader("Review").setFlexGrow(2);
+        mine.addColumn(p -> getTranslation("proposal." + p.status().name())).setHeader(getTranslation("knowledge.status"))
+                .setAutoWidth(true);
+        mine.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
+        mine.addColumn(this::review).setHeader(getTranslation("knowledge.review")).setFlexGrow(2);
         mine.addComponentColumn(p -> {
-            Button withdraw = new Button("Withdraw", e -> act(() ->
+            Button withdraw = new Button(getTranslation("knowledge.withdraw"), e -> act(() ->
                     enrichment.withdraw(currentUser.space().id(), currentUser.login(), p.id())));
             withdraw.setVisible(currentUser.canContribute() && (p.status() == ProposalStatus.PENDING
                     || (p.status() == ProposalStatus.APPROVED && p.scope() == ProposalScope.SPACE)));
             return withdraw;
         }).setAutoWidth(true);
         mine.setAllRowsVisible(true);
-        add(new H4("Proposed in this space"), mine);
+        add(new H4(getTranslation("knowledge.mine")), mine);
 
         if (currentUser.hasRole(AppRole.CURATOR)) {
             add(curatorSection());
@@ -116,43 +114,47 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
                 List.of());
         askedAbout.setVisible(!question.isEmpty());
         if (!question.isEmpty()) {
-            askedAbout.setText("You asked: \"" + question.getFirst() + "\"");
+            askedAbout.setText(getTranslation("knowledge.asked", question.getFirst()));
         }
     }
 
     private VerticalLayout form() {
-        RadioButtonGroup<String> kind = new RadioButtonGroup<>("What is missing", ALIAS, PAIR, HOST);
+        RadioButtonGroup<String> kind = new RadioButtonGroup<>(getTranslation("knowledge.missing"), ALIAS, PAIR, HOST);
+        kind.setItemLabelGenerator(k -> getTranslation("knowledge.kind." + k));
         kind.setValue(ALIAS);
 
         List<Option> named = new ArrayList<>(crops);
         named.addAll(organisms);
-        ComboBox<Option> target = combo("Crop, pest or disease", named);
-        TextField name = new TextField("Other name");
-        RadioButtonGroup<String> language = new RadioButtonGroup<>("Language", "it", "en");
+        ComboBox<Option> target = combo(getTranslation("knowledge.target"), named);
+        TextField name = new TextField(getTranslation("knowledge.othername"));
+        RadioButtonGroup<String> language = new RadioButtonGroup<>(getTranslation("knowledge.language"), "it", "en");
+        language.setItemLabelGenerator(l -> getTranslation("knowledge.language." + l));
         language.setValue("it");
         HorizontalLayout alias = row(target, name, language);
 
-        ComboBox<Option> crop = combo("Crop", crops);
-        ComboBox<Option> partner = combo("With", crops);
-        RadioButtonGroup<String> relation = new RadioButtonGroup<>("Relation", "COMPANION", "ANTAGONIST");
+        ComboBox<Option> crop = combo(getTranslation("garden.crop"), crops);
+        ComboBox<Option> partner = combo(getTranslation("knowledge.with"), crops);
+        RadioButtonGroup<String> relation = new RadioButtonGroup<>(getTranslation("knowledge.relation"), "COMPANION",
+                "ANTAGONIST");
+        relation.setItemLabelGenerator(r -> getTranslation("knowledge.relation." + r));
         relation.setValue("COMPANION");
-        TextField effect = new TextField("Effect");
-        effect.setPlaceholder("What happens when they grow together");
+        TextField effect = new TextField(getTranslation("knowledge.effect"));
+        effect.setPlaceholder(getTranslation("knowledge.effect.hint"));
         HorizontalLayout pair = row(crop, partner, relation, effect);
 
-        ComboBox<Option> organism = combo("Pest or disease", organisms);
-        ComboBox<Option> host = combo("On crop", crops);
-        ComboBox<Month> from = months("From");
-        ComboBox<Month> to = months("To");
+        ComboBox<Option> organism = combo(getTranslation("knowledge.organism"), organisms);
+        ComboBox<Option> host = combo(getTranslation("knowledge.oncrop"), crops);
+        ComboBox<Month> from = months(getTranslation("knowledge.from"));
+        ComboBox<Month> to = months(getTranslation("knowledge.to"));
         HorizontalLayout pest = row(organism, host, from, to);
 
-        RadioButtonGroup<ProposalScope> scope = new RadioButtonGroup<>("For");
+        RadioButtonGroup<ProposalScope> scope = new RadioButtonGroup<>(getTranslation("knowledge.for"));
         scope.setItems(ProposalScope.SPACE, ProposalScope.GLOBAL);
-        scope.setItemLabelGenerator(s -> s == ProposalScope.SPACE ? "Only this space (applies now)"
-                : "Everyone (a curator reviews it)");
+        scope.setItemLabelGenerator(s -> getTranslation(s == ProposalScope.SPACE ? "knowledge.scope.space"
+                : "knowledge.scope.everyone"));
         scope.setValue(ProposalScope.SPACE);
-        TextField citation = new TextField("Source");
-        citation.setPlaceholder("A link or a reference; required for everyone");
+        TextField citation = new TextField(getTranslation("knowledge.source"));
+        citation.setPlaceholder(getTranslation("knowledge.source.hint"));
         citation.setWidth("36rem");
 
         Runnable show = () -> {
@@ -164,7 +166,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         show.run();
 
         Div problems = new Div();
-        Button propose = new Button("Propose", e -> {
+        Button propose = new Button(getTranslation("knowledge.propose"), e -> {
             problems.removeAll();
             Contribution contribution = switch (kind.getValue()) {
                 case ALIAS -> new Contribution.Alias(id(target), name.getValue(), language.getValue());
@@ -174,8 +176,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
             try {
                 ProposalSummary added = enrichment.propose(currentUser.space().id(), currentUser.login(),
                         scope.getValue(), contribution, citation.getValue());
-                Notification.show(added.status() == ProposalStatus.APPROVED ? "Added for this space"
-                        : "Proposed; a curator will review it");
+                Notification.show(getTranslation(added.status() == ProposalStatus.APPROVED ? "knowledge.added"
+                        : "knowledge.proposed"));
                 name.clear();
                 effect.clear();
                 citation.clear();
@@ -183,7 +185,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
             } catch (InvalidProposalException ex) {
                 ex.problems().forEach(p -> problems.add(new Paragraph(p)));
             } catch (RuntimeException ex) {
-                Notification.show("Could not propose: " + ex.getMessage());
+                Notification.show(getTranslation("knowledge.failed", ex.getMessage()));
             }
         });
         propose.addThemeName("primary");
@@ -191,19 +193,20 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private VerticalLayout curatorSection() {
-        TextField note = new TextField("Review note");
+        TextField note = new TextField(getTranslation("knowledge.note"));
         note.setWidth("36rem");
-        queue.addColumn(this::describe).setHeader("Fact").setFlexGrow(3);
-        queue.addColumn(ProposalSummary::citation).setHeader("Source").setFlexGrow(2);
-        queue.addColumn(ProposalSummary::proposedBy).setHeader("By").setAutoWidth(true);
+        queue.addColumn(this::describe).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
+        queue.addColumn(ProposalSummary::citation).setHeader(getTranslation("knowledge.source")).setFlexGrow(2);
+        queue.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
         queue.addComponentColumn(p -> new HorizontalLayout(
-                new Button("Approve", e -> act(() -> enrichment.approve(currentUser.login(), p.id(), note.getValue()))),
-                new Button("Reject", e -> act(() -> enrichment.reject(currentUser.login(), p.id(), note.getValue())))))
+                new Button(getTranslation("knowledge.approve"), e -> act(() ->
+                        enrichment.approve(currentUser.login(), p.id(), note.getValue()))),
+                new Button(getTranslation("knowledge.reject"), e -> act(() ->
+                        enrichment.reject(currentUser.login(), p.id(), note.getValue())))))
                 .setAutoWidth(true);
         queue.setAllRowsVisible(true);
-        return new VerticalLayout(new H4("Waiting for a curator"),
-                new Paragraph("Facts proposed for everyone. Check the source before approving; an approved fact "
-                        + "reaches every space as curated."), note, queue);
+        return new VerticalLayout(new H4(getTranslation("knowledge.curator")),
+                new Paragraph(getTranslation("knowledge.curator.intro")), note, queue);
     }
 
     private void refresh() {
@@ -226,18 +229,19 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
 
     String describe(ProposalSummary p) {
         return switch (p.contribution()) {
-            case Contribution.Alias a -> "\"" + a.name() + "\" (" + a.language() + ") is a name of " + label(a.targetId());
-            case Contribution.Pair pair -> label(pair.cropId()) + " is "
-                    + ("COMPANION".equals(pair.relation()) ? "a companion" : "an antagonist") + " of "
-                    + label(pair.partnerId()) + ": " + pair.effect();
-            case Contribution.Host h -> label(h.organismId()) + " affects " + label(h.cropId()) + ", "
-                    + monthName(h.fromMonth()) + " to " + monthName(h.toMonth());
+            case Contribution.Alias a -> getTranslation("knowledge.describe.alias", a.name(),
+                    getTranslation("knowledge.language." + a.language()), label(a.targetId()));
+            case Contribution.Pair pair -> getTranslation("COMPANION".equals(pair.relation())
+                    ? "knowledge.describe.companion" : "knowledge.describe.antagonist", label(pair.cropId()),
+                    label(pair.partnerId()), pair.effect());
+            case Contribution.Host h -> getTranslation("knowledge.describe.host", label(h.organismId()), label(h.cropId()),
+                    monthName(h.fromMonth()), monthName(h.toMonth()));
         };
     }
 
     private String review(ProposalSummary p) {
         if (p.withdrawnBy() != null) {
-            return "withdrawn by " + p.withdrawnBy();
+            return getTranslation("knowledge.withdrawnby", p.withdrawnBy());
         }
         if (p.reviewedBy() == null) {
             return "";
@@ -249,8 +253,12 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         return labels.getOrDefault(id, id);
     }
 
-    private static String monthName(int month) {
-        return Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+    private String monthName(int month) {
+        return Month.of(month).getDisplayName(TextStyle.FULL, pageLocale());
+    }
+
+    private Locale pageLocale() {
+        return getLocale() != null && getLocale().getLanguage().equals("en") ? Locale.ENGLISH : Locale.ITALIAN;
     }
 
     private static ComboBox<Option> combo(String label, List<Option> options) {
@@ -259,9 +267,9 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         return box;
     }
 
-    private static ComboBox<Month> months(String label) {
+    private ComboBox<Month> months(String label) {
         ComboBox<Month> box = new ComboBox<>(label, Month.values());
-        box.setItemLabelGenerator(m -> m.getDisplayName(TextStyle.FULL, Locale.ENGLISH));
+        box.setItemLabelGenerator(m -> m.getDisplayName(TextStyle.FULL, pageLocale()));
         return box;
     }
 
@@ -279,5 +287,10 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     /** 0 when not chosen, so the rules report it. */
     private static int month(ComboBox<Month> box) {
         return box.getValue() == null ? 0 : box.getValue().getValue();
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("knowledge.title") + " · Rootology";
     }
 }

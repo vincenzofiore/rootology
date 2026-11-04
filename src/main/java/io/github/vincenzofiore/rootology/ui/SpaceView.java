@@ -10,7 +10,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.InvitationSummary;
@@ -29,9 +29,8 @@ import java.time.format.DateTimeFormatter;
  * Any member may leave a shared space; nobody leaves their own personal space.
  */
 @Route(value = "space", layout = MainLayout.class)
-@PageTitle("Space · Rootology")
 @PermitAll
-public class SpaceView extends VerticalLayout {
+public class SpaceView extends VerticalLayout implements HasDynamicTitle {
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneId.systemDefault());
@@ -49,11 +48,13 @@ public class SpaceView extends VerticalLayout {
         SpaceSummary space = currentUser.space();
         boolean owner = space.role() == Role.OWNER;
 
-        members.addColumn(Member::githubLogin).setHeader("GitHub login");
-        members.addColumn(m -> m.role().name()).setHeader("Role").setAutoWidth(true);
+        members.addColumn(Member::githubLogin).setHeader(getTranslation("space.login"));
+        members.addColumn(m -> getTranslation("role." + m.role().name())).setHeader(getTranslation("space.role"))
+                .setAutoWidth(true);
         if (owner) {
             members.addComponentColumn(m -> {
                         ComboBox<Role> roleBox = new ComboBox<>(null, Role.values());
+                        roleBox.setItemLabelGenerator(r -> getTranslation("role." + r.name()));
                         roleBox.setValue(m.role());
                         roleBox.setWidth("9rem");
                         roleBox.addValueChangeListener(e -> {
@@ -62,16 +63,17 @@ public class SpaceView extends VerticalLayout {
                             }
                         });
                         return new HorizontalLayout(roleBox,
-                                new Button("Remove", e -> act(() ->
+                                new Button(getTranslation("space.remove"), e -> act(() ->
                                         spaces.removeMember(space.id(), currentUser.login(), m.githubLogin()))));
                     })
-                    .setHeader("Actions").setAutoWidth(true);
+                    .setHeader(getTranslation("space.actions")).setAutoWidth(true);
         }
         members.setAllRowsVisible(true);
-        add(new H3(space.name()), new Paragraph("Your role here: " + space.role()), members);
+        add(new H3(space.name()), new Paragraph(getTranslation("space.yourrole", getTranslation("role." + space.role().name()))),
+                members);
 
         if (!space.personal()) {
-            add(new Button("Leave this space", e -> {
+            add(new Button(getTranslation("space.leave"), e -> {
                 act(() -> spaces.removeMember(space.id(), currentUser.login(), currentUser.login()));
                 getUI().ifPresent(ui -> ui.getPage().reload());
             }));
@@ -84,21 +86,21 @@ public class SpaceView extends VerticalLayout {
     }
 
     private VerticalLayout invitationSection(SpaceSummary space) {
-        ComboBox<Role> role = new ComboBox<>("Role", Role.values());
+        ComboBox<Role> role = new ComboBox<>(getTranslation("space.role"), Role.values());
+        role.setItemLabelGenerator(r -> getTranslation("role." + r.name()));
         role.setValue(Role.MEMBER);
-        TextField email = new TextField("Send to this email (optional)");
+        TextField email = new TextField(getTranslation("space.invite.email"));
         email.setWidth("18rem");
-        TextField onlyFor = new TextField("Only for this GitHub login (optional)");
-        TextField link = new TextField("Invitation link (shown once)");
+        TextField onlyFor = new TextField(getTranslation("space.invite.login"));
+        TextField link = new TextField(getTranslation("space.invite.link"));
         link.setReadOnly(true);
         link.setWidth("40rem");
         link.setVisible(false);
-        Button create = new Button("Create invitation link", e -> act(() -> {
+        Button create = new Button(getTranslation("space.invite.create"), e -> act(() -> {
             String token = invitations.create(space.id(), currentUser.login(), role.getValue(), onlyFor.getValue(),
                     email.getValue());
             if (!email.getValue().isBlank()) {
-                Notification.show("The invitation is being emailed to " + email.getValue().trim()
-                        + "; the link below works too.");
+                Notification.show(getTranslation("space.invite.sent", email.getValue().trim()));
             }
             email.clear();
             link.setValue(ServletUriComponentsBuilder.fromCurrentContextPath()
@@ -111,20 +113,20 @@ public class SpaceView extends VerticalLayout {
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
 
-        pending.addColumn(i -> i.role().name()).setHeader("Role").setAutoWidth(true);
+        pending.addColumn(i -> getTranslation("role." + i.role().name())).setHeader(getTranslation("space.role"))
+                .setAutoWidth(true);
         pending.addColumn(i -> i.invitedEmail() != null ? i.invitedEmail()
-                : i.invitedLogin() != null ? i.invitedLogin() : "anyone with the link").setHeader("For");
-        pending.addColumn(InvitationSummary::createdBy).setHeader("Created by");
-        pending.addColumn(i -> DAY.format(i.expiresAt())).setHeader("Expires").setAutoWidth(true);
-        pending.addComponentColumn(i -> new Button("Revoke", e -> act(() ->
+                : i.invitedLogin() != null ? i.invitedLogin() : getTranslation("space.invite.anyone"))
+                .setHeader(getTranslation("space.invite.for"));
+        pending.addColumn(InvitationSummary::createdBy).setHeader(getTranslation("space.invite.by"));
+        pending.addColumn(i -> DAY.format(i.expiresAt())).setHeader(getTranslation("space.invite.expires")).setAutoWidth(true);
+        pending.addComponentColumn(i -> new Button(getTranslation("space.invite.revoke"), e -> act(() ->
                 invitations.revoke(space.id(), currentUser.login(), i.id())))).setAutoWidth(true);
         pending.setAllRowsVisible(true);
 
-        return new VerticalLayout(new H4("Invitations"),
-                new Paragraph("With an email address the link is sent there, and only someone with that address "
-                        + "verified on GitHub can use it; otherwise share the link yourself. It works once and "
-                        + "expires in 7 days. At most 20 invitations a day."),
-                form, link, new H4("Pending invitations"), pending);
+        return new VerticalLayout(new H4(getTranslation("space.invitations")),
+                new Paragraph(getTranslation("space.invitations.intro")),
+                form, link, new H4(getTranslation("space.invitations.pending")), pending);
     }
 
     /** Runs an action, shows its error if any, and refreshes the lists. */
@@ -143,5 +145,10 @@ public class SpaceView extends VerticalLayout {
         if (space.role() == Role.OWNER) {
             pending.setItems(invitations.pending(space.id(), currentUser.login()));
         }
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("space.title") + " · Rootology";
     }
 }

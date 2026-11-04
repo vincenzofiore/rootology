@@ -49,7 +49,7 @@ public class UsageService {
         Today today = today(login);
         if (today.exhausted()) {
             throw new UsageLimitException("You have asked your %d questions for today; you can ask again from midnight."
-                    .formatted(today.limit()));
+                    .formatted(today.limit()), today.limit());
         }
     }
 

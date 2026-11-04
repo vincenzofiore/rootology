@@ -14,7 +14,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.facts.Crop;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
@@ -34,9 +34,8 @@ import java.util.List;
 
 /** The current space's gardens: plots, and what is sown or planted in each. */
 @Route(value = "garden", layout = MainLayout.class)
-@PageTitle("Garden · Rootology")
 @PermitAll
-public class GardenView extends VerticalLayout {
+public class GardenView extends VerticalLayout implements HasDynamicTitle {
 
     private final GardenService gardens;
     private final CropCatalog crops;
@@ -44,11 +43,11 @@ public class GardenView extends VerticalLayout {
     private final long spaceId;
     private final String login;
 
-    private final ComboBox<GardenSummary> gardenBox = new ComboBox<>("Garden");
+    private final ComboBox<GardenSummary> gardenBox = new ComboBox<>();
     private final Paragraph gardenInfo = new Paragraph();
     private final Grid<PlotSummary> plotGrid = new Grid<>();
     private final Grid<PlantingSummary> plantingGrid = new Grid<>();
-    private final H4 plantingTitle = new H4("Select a plot");
+    private final H4 plantingTitle = new H4();
 
     public GardenView(GardenService gardens, CropCatalog crops, GeoNames geoNames, CurrentUser currentUser) {
         this.gardens = gardens;
@@ -59,8 +58,10 @@ public class GardenView extends VerticalLayout {
 
         gardenBox.setItemLabelGenerator(GardenSummary::name);
         gardenBox.addValueChangeListener(e -> showGarden(e.getValue()));
-        Button newGarden = new Button("New garden", e -> gardenDialog(null));
-        Button editGarden = new Button("Edit garden", e -> gardenDialog(gardenBox.getValue()));
+        gardenBox.setLabel(getTranslation("garden.garden"));
+        plantingTitle.setText(getTranslation("garden.selectplot"));
+        Button newGarden = new Button(getTranslation("garden.new"), e -> gardenDialog(null));
+        Button editGarden = new Button(getTranslation("garden.edit"), e -> gardenDialog(gardenBox.getValue()));
         // A guest only looks (#33): every button that changes the garden is hidden.
         boolean contributor = currentUser.canContribute();
         newGarden.setVisible(contributor);
@@ -68,36 +69,37 @@ public class GardenView extends VerticalLayout {
         HorizontalLayout top = new HorizontalLayout(gardenBox, newGarden, editGarden);
         top.setDefaultVerticalComponentAlignment(Alignment.END);
 
-        plotGrid.addColumn(PlotSummary::name).setHeader("Plot");
-        plotGrid.addColumn(p -> p.kind().name()).setHeader("Kind");
-        plotGrid.addColumn(p -> p.soil().name()).setHeader("Soil");
-        plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader("Area");
+        plotGrid.addColumn(PlotSummary::name).setHeader(getTranslation("garden.plot"));
+        plotGrid.addColumn(p -> getTranslation("plotkind." + p.kind().name())).setHeader(getTranslation("garden.kind"));
+        plotGrid.addColumn(p -> getTranslation("soil." + p.soil().name())).setHeader(getTranslation("garden.soil"));
+        plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader(getTranslation("garden.area"));
         plotGrid.addComponentColumn(p -> new HorizontalLayout(
-                new Button("Edit", e -> plotDialog(p)),
-                new Button("Delete", e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))))
+                new Button(getTranslation("common.edit"), e -> plotDialog(p)),
+                new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))))
                 .setVisible(contributor);
         plotGrid.setAllRowsVisible(true);
         plotGrid.asSingleSelect().addValueChangeListener(e -> showPlantings(e.getValue()));
 
-        plantingGrid.addColumn(PlantingSummary::cropName).setHeader("Crop");
-        plantingGrid.addColumn(p -> p.method().name()).setHeader("Method");
-        plantingGrid.addColumn(PlantingSummary::plantedOn).setHeader("Since");
-        plantingGrid.addColumn(p -> p.endedOn() == null ? "growing" : "ended " + p.endedOn()).setHeader("Status");
-        plantingGrid.addColumn(p -> p.notes() == null ? "" : p.notes()).setHeader("Notes");
+        plantingGrid.addColumn(p -> cropName(p.cropId(), p.cropName())).setHeader(getTranslation("garden.crop"));
+        plantingGrid.addColumn(p -> getTranslation("method." + p.method().name())).setHeader(getTranslation("garden.method"));
+        plantingGrid.addColumn(PlantingSummary::plantedOn).setHeader(getTranslation("garden.since"));
+        plantingGrid.addColumn(p -> p.endedOn() == null ? getTranslation("garden.growing")
+                : getTranslation("garden.ended", p.endedOn().toString())).setHeader(getTranslation("garden.status"));
+        plantingGrid.addColumn(p -> p.notes() == null ? "" : p.notes()).setHeader(getTranslation("garden.notes"));
         plantingGrid.addComponentColumn(p -> new HorizontalLayout(
-                new Button("Harvested today", e -> act(() ->
+                new Button(getTranslation("garden.harvested"), e -> act(() ->
                         gardens.endPlanting(spaceId, login, p.id(), LocalDate.now()))),
-                new Button("Delete", e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))))
+                new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))))
                 .setVisible(contributor);
         plantingGrid.setAllRowsVisible(true);
 
-        Button addPlot = new Button("Add plot", e -> plotDialog(null));
-        Button addPlanting = new Button("Sow or plant", e -> plantingDialog());
+        Button addPlot = new Button(getTranslation("garden.addplot"), e -> plotDialog(null));
+        Button addPlanting = new Button(getTranslation("garden.sow"), e -> plantingDialog());
         addPlot.setVisible(contributor);
         addPlanting.setVisible(contributor);
 
-        add(new H3("My garden"), top, gardenInfo,
-                new HorizontalLayout(new H4("Plots"), addPlot), plotGrid,
+        add(new H3(getTranslation("garden.title")), top, gardenInfo,
+                new HorizontalLayout(new H4(getTranslation("garden.plots")), addPlot), plotGrid,
                 new HorizontalLayout(plantingTitle, addPlanting), plantingGrid);
         reloadGardens(null);
     }
@@ -111,12 +113,12 @@ public class GardenView extends VerticalLayout {
 
     private void showGarden(GardenSummary garden) {
         if (garden == null) {
-            gardenInfo.setText("No garden yet: create one with \"New garden\".");
+            gardenInfo.setText(getTranslation("garden.none"));
             plotGrid.setItems(List.of());
             showPlantings(null);
             return;
         }
-        String where = garden.town() == null ? "no town" : garden.town();
+        String where = garden.town() == null ? getTranslation("garden.notown") : garden.town();
         String coords = garden.latitude() == null ? "" : " (" + garden.latitude() + ", " + garden.longitude() + ")";
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry + coords);
@@ -129,16 +131,16 @@ public class GardenView extends VerticalLayout {
     }
 
     private void showPlantings(PlotSummary plot) {
-        plantingTitle.setText(plot == null ? "Select a plot" : "In " + plot.name());
+        plantingTitle.setText(plot == null ? getTranslation("garden.selectplot") : getTranslation("garden.in", plot.name()));
         plantingGrid.setItems(plot == null ? List.of() : gardens.plantings(spaceId, login, plot.id()));
     }
 
     private void gardenDialog(GardenSummary existing) {
-        TextField name = new TextField("Name");
-        TextField town = new TextField("Town");
-        BigDecimalField latitude = new BigDecimalField("Latitude (optional)");
-        BigDecimalField longitude = new BigDecimalField("Longitude (optional)");
-        TextField country = new TextField("Country (ISO code, optional)");
+        TextField name = new TextField(getTranslation("garden.name"));
+        TextField town = new TextField(getTranslation("garden.town"));
+        BigDecimalField latitude = new BigDecimalField(getTranslation("garden.latitude"));
+        BigDecimalField longitude = new BigDecimalField(getTranslation("garden.longitude"));
+        TextField country = new TextField(getTranslation("garden.country"));
         country.setMaxLength(2);
         country.setPattern("[A-Za-z]{2}");
         if (existing != null) {
@@ -151,8 +153,8 @@ public class GardenView extends VerticalLayout {
 
         // A place found by name fills in the town, the coordinates and the country (#30).
         String language = getLocale() == null ? "en" : getLocale().getLanguage();
-        ComboBox<Place> place = new ComboBox<>("Find the place");
-        place.setPlaceholder("Type at least 3 letters");
+        ComboBox<Place> place = new ComboBox<>(getTranslation("garden.place"));
+        place.setPlaceholder(getTranslation("garden.place.hint"));
         place.setItemLabelGenerator(Place::label);
         place.setItems(query -> geoNames.search(query.getFilter().orElse(""), language).stream()
                 .skip(query.getOffset()).limit(query.getLimit()));
@@ -168,7 +170,7 @@ public class GardenView extends VerticalLayout {
         place.setVisible(geoNames.enabled());
 
         // The browser asks the person first; it works on localhost and over HTTPS only.
-        Button here = new Button("Use my position", e -> getElement().executeJs("""
+        Button here = new Button(getTranslation("garden.position"), e -> getElement().executeJs("""
                 return new Promise((resolve, reject) => navigator.geolocation
                     ? navigator.geolocation.getCurrentPosition(
                         p => resolve(p.coords.latitude + ',' + p.coords.longitude),
@@ -185,14 +187,14 @@ public class GardenView extends VerticalLayout {
                         town.setValue(p.name());
                         country.setValue(p.countryCode());
                     });
-                }, error -> Notification.show("Position not available: " + error)));
+                }, error -> Notification.show(getTranslation("garden.position.none", error))));
 
-        Dialog dialog = new Dialog(existing == null ? "New garden" : "Edit garden");
+        Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.new" : "garden.edit"));
         dialog.add(new FormLayout(name, place, town, latitude, longitude, country), here,
-                new Paragraph("Only a coarse location is kept: coordinates are rounded to about 1 km. "
-                        + "Sowing calendars cover Italy only for now; the weather works everywhere."
-                        + (geoNames.enabled() ? " Place search by GeoNames (CC BY 4.0)." : "")));
-        dialog.getFooter().add(new Button("Cancel", e -> dialog.close()), new Button("Save", e -> {
+                new Paragraph(getTranslation("garden.location.note")
+                        + (geoNames.enabled() ? " " + getTranslation("garden.geonames") : "")));
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
+                new Button(getTranslation("common.save"), e -> {
             try {
                 String countryCode = country.getValue().trim().toUpperCase(java.util.Locale.ROOT);
                 if ((countryCode.isEmpty() || town.getValue().isBlank())
@@ -223,13 +225,15 @@ public class GardenView extends VerticalLayout {
     private void plotDialog(PlotSummary existing) {
         GardenSummary garden = gardenBox.getValue();
         if (garden == null) {
-            Notification.show("Create a garden first");
+            Notification.show(getTranslation("garden.first"));
             return;
         }
-        TextField name = new TextField("Name");
-        ComboBox<PlotKind> kind = new ComboBox<>("Kind", PlotKind.values());
-        ComboBox<Soil> soil = new ComboBox<>("Soil", Soil.values());
-        BigDecimalField area = new BigDecimalField("Area in m² (optional)");
+        TextField name = new TextField(getTranslation("garden.name"));
+        ComboBox<PlotKind> kind = new ComboBox<>(getTranslation("garden.kind"), PlotKind.values());
+        kind.setItemLabelGenerator(k -> getTranslation("plotkind." + k.name()));
+        ComboBox<Soil> soil = new ComboBox<>(getTranslation("garden.soil"), Soil.values());
+        soil.setItemLabelGenerator(k -> getTranslation("soil." + k.name()));
+        BigDecimalField area = new BigDecimalField(getTranslation("garden.area.field"));
         kind.setValue(PlotKind.GROUND);
         soil.setValue(Soil.UNKNOWN);
         if (existing != null) {
@@ -238,9 +242,10 @@ public class GardenView extends VerticalLayout {
             soil.setValue(existing.soil());
             area.setValue(existing.areaM2());
         }
-        Dialog dialog = new Dialog(existing == null ? "Add plot" : "Edit plot");
+        Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.addplot" : "garden.editplot"));
         dialog.add(new FormLayout(name, kind, soil, area));
-        dialog.getFooter().add(new Button("Cancel", e -> dialog.close()), new Button("Save", e -> {
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
+                new Button(getTranslation("common.save"), e -> {
             try {
                 gardens.savePlot(spaceId, login, garden.id(), existing == null ? null : existing.id(),
                         name.getValue(), kind.getValue(), soil.getValue(), area.getValue());
@@ -256,25 +261,29 @@ public class GardenView extends VerticalLayout {
     private void plantingDialog() {
         PlotSummary plot = plotGrid.asSingleSelect().getValue();
         if (plot == null) {
-            Notification.show("Select a plot first");
+            Notification.show(getTranslation("garden.plotfirst"));
             return;
         }
-        ComboBox<Crop> crop = new ComboBox<>("Crop", crops.all());
-        crop.setItemLabelGenerator(c -> c.italianName() + " (" + c.englishName() + ")");
-        ComboBox<PlantingMethod> method = new ComboBox<>("Method", PlantingMethod.values());
+        ComboBox<Crop> crop = new ComboBox<>(getTranslation("garden.crop"), crops.all());
+        crop.setItemLabelGenerator(c -> cropName(c.id(), c.italianName()));
+        ComboBox<PlantingMethod> method = new ComboBox<>(getTranslation("garden.method"), PlantingMethod.values());
+        method.setItemLabelGenerator(m -> getTranslation("method." + m.name()));
         method.setValue(PlantingMethod.TRANSPLANTED);
-        DatePicker date = new DatePicker("Date", LocalDate.now());
-        TextField notes = new TextField("Notes (optional)");
+        DatePicker date = new DatePicker(getTranslation("garden.date"), LocalDate.now());
+        TextField notes = new TextField(getTranslation("garden.notes.field"));
         Paragraph rotationWarning = new Paragraph();
         rotationWarning.getStyle().set("color", "var(--vaadin-error-text-color, #b00020)");
         Runnable checkRotation = () -> rotationWarning.setText(crop.getValue() == null || date.getValue() == null ? ""
                 : gardens.rotationWarning(spaceId, login, plot.id(), crop.getValue().id(), date.getValue())
-                .map(w -> w.reason() + " (inferred by rule " + w.rule() + ")").orElse(""));
+                .map(w -> getTranslation("garden.rotation", cropName(crop.getValue().id(), crop.getValue().italianName()),
+                        cropName(w.previous().cropId(), w.previous().cropName()), w.previous().plantedOn().toString(),
+                        w.family(), w.previous().plotName(), w.rule())).orElse(""));
         crop.addValueChangeListener(e -> checkRotation.run());
         date.addValueChangeListener(e -> checkRotation.run());
-        Dialog dialog = new Dialog("Sow or plant in " + plot.name());
+        Dialog dialog = new Dialog(getTranslation("garden.sowin", plot.name()));
         dialog.add(new FormLayout(crop, method, date, notes), rotationWarning);
-        dialog.getFooter().add(new Button("Cancel", e -> dialog.close()), new Button("Save", e -> {
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
+                new Button(getTranslation("common.save"), e -> {
             try {
                 gardens.plant(spaceId, login, plot.id(), crop.getValue() == null ? null : crop.getValue().id(),
                         method.getValue(), date.getValue(), notes.getValue());
@@ -299,5 +308,16 @@ public class GardenView extends VerticalLayout {
         if (selected != null) {
             plotGrid.asSingleSelect().setValue(selected);
         }
+    }
+
+    /** A crop's name in the page's language: Italian, or English for an English page. */
+    private String cropName(String cropId, String fallback) {
+        boolean english = getLocale() != null && getLocale().getLanguage().equals("en");
+        return crops.byId(cropId).map(c -> english ? c.englishName() : c.italianName()).orElse(fallback);
+    }
+
+    @Override
+    public String getPageTitle() {
+        return getTranslation("garden.title") + " · Rootology";
     }
 }

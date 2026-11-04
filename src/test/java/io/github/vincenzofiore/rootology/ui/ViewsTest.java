@@ -129,7 +129,7 @@ class ViewsTest {
                 .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
                 .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
 
-        assertThat(suiteColumnsForQa - columnsForMember).isEqualTo(3);
+        assertThat(suiteColumnsForQa - columnsForMember).as("case, input, Jena, matches").isEqualTo(4);
     }
 
     @Test
