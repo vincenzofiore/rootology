@@ -18,7 +18,7 @@ public class KnowledgeGraph {
 
     /** A pest or disease that affects a crop in a given month. */
     public record Affecting(String organismId, String italianName, String englishName, String kind, int fromMonth,
-                            int toMonth, List<String> sources, boolean verified) {
+                            int toMonth, List<String> sources, boolean verified, boolean proposed) {
     }
 
     /** A sowing, planting or harvest window of a crop in a zone, curated or derived by a rule. */
@@ -68,17 +68,23 @@ public class KnowledgeGraph {
 
     /** Pests and diseases active on this crop in this month (1-12); periods may wrap over the new year. */
     public List<Affecting> affecting(String cropId, int month) {
+        return affecting(cropId, month, null);
+    }
+
+    /** As {@link #affecting(String, int)}, plus the facts this space added (null: none). */
+    public List<Affecting> affecting(String cropId, int month, Long spaceId) {
         return list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
-                        + "WHERE a.spaceId IS NULL AND ((a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
+                        + "WHERE (a.spaceId IS NULL OR a.spaceId = $space) AND ((a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
                         + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth))) "
                         + "RETURN o.id AS id, o.italianName AS name, o.englishName AS en, o.kind AS kind, "
                         + "a.fromMonth AS f, a.toMonth AS t, "
-                        + "a.sources + o.sources AS sources, a.verified AS verified ORDER BY o.id",
-                Map.of("id", cropId, "m", month),
+                        + "a.sources + o.sources AS sources, a.verified AS verified, "
+                        + "a.spaceId IS NOT NULL AS proposed ORDER BY o.id",
+                Map.of("id", cropId, "m", month, "space", space(spaceId)),
                 r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("en").asString(),
                         r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),
-                        r.get("verified").asBoolean()));
+                        r.get("verified").asBoolean(), r.get("proposed").asBoolean()));
     }
 
     /** The windows of a crop in a zone, curated ones first. */
@@ -98,15 +104,20 @@ public class KnowledgeGraph {
      * Finds a crop or a pest or disease by its id, Italian, English or scientific name, ignoring case.
      */
     public java.util.Optional<Entity> resolve(String name) {
+        return resolve(name, null);
+    }
+
+    /** As {@link #resolve(String)}, also by the names this space added (null: only global names). */
+    public java.util.Optional<Entity> resolve(String name, Long spaceId) {
         if (name == null || name.isBlank()) {
             return java.util.Optional.empty();
         }
         String n = name.trim().toLowerCase(java.util.Locale.ROOT);
         return list("MATCH (e:Kb) WHERE (e:Crop OR e:Organism) AND (toLower(e.id) = $n OR toLower(e.italianName) = $n "
                         + "OR toLower(e.englishName) = $n OR toLower(e.scientificName) = $n "
-                        + "OR EXISTS { MATCH (a:Kb:Alias)-[:NAME_OF]->(e) WHERE a.name = $n AND a.spaceId IS NULL }) "
+                        + "OR EXISTS { MATCH (a:Kb:Alias)-[:NAME_OF]->(e) WHERE a.name = $n AND (a.spaceId IS NULL OR a.spaceId = $space) }) "
                         + "RETURN CASE WHEN e:Crop THEN 'CROP' ELSE 'ORGANISM' END AS kind, e.id AS id, "
-                        + "e.italianName AS it, e.englishName AS en LIMIT 1", Map.of("n", n),
+                        + "e.italianName AS it, e.englishName AS en LIMIT 1", Map.of("n", n, "space", space(spaceId)),
                 r -> new Entity(r.get("kind").asString(), r.get("id").asString(), r.get("it").asString(),
                         r.get("en").asString(), r.get("it").asString().equalsIgnoreCase(name.trim())))
                 .stream().findFirst();
@@ -127,45 +138,54 @@ public class KnowledgeGraph {
      * anything else English); when null, the language the subject was named in.
      */
     public List<SourcedFact> factsAbout(String name, String language) {
+        return factsAbout(name, language, null);
+    }
+
+    /** As {@link #factsAbout(String, String)}, plus the names and facts this space added (null: none). */
+    public List<SourcedFact> factsAbout(String name, String language, Long spaceId) {
         // The subject keeps the exact name of the question, so the decision layer can match it.
-        return resolve(name).map(e -> language == null ? e : new Entity(e.kind(), e.id(), e.italianName(),
+        return resolve(name, spaceId).map(e -> language == null ? e : new Entity(e.kind(), e.id(), e.italianName(),
                         e.englishName(), language.equalsIgnoreCase("it")))
-                .map(e -> e.kind().equals("CROP") ? cropFacts(e, name.trim()) : organismFacts(e, name.trim()))
+                .map(e -> e.kind().equals("CROP") ? cropFacts(e, name.trim(), spaceId) : organismFacts(e, name.trim(), spaceId))
                 .orElse(List.of());
     }
 
-    private List<SourcedFact> cropFacts(Entity crop, String self) {
+    private List<SourcedFact> cropFacts(Entity crop, String self, Long spaceId) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
-        list("MATCH (:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE r.spaceId IS NULL "
-                        + "RETURN type(r) AS t, b.italianName AS it, b.englishName AS en, r.sources AS sources ORDER BY b.id",
-                Map.of("id", crop.id()), r -> new SourcedFact(new Fact(self,
+        list("MATCH (:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE (r.spaceId IS NULL OR r.spaceId = $space) "
+                        + "RETURN type(r) AS t, b.italianName AS it, b.englishName AS en, r.sources AS sources, "
+                        + "r.spaceId IS NOT NULL AS proposed ORDER BY b.id",
+                Map.of("id", crop.id(), "space", space(spaceId)), r -> new SourcedFact(new Fact(self,
                         r.get("t").asString().equals("COMPANION_OF") ? "companionOf" : "antagonistOf",
                         crop.italian() ? r.get("it").asString() : r.get("en").asString()),
-                        r.get("sources").asList(v -> v.asString()))).forEach(facts::add);
-        list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) WHERE a.spaceId IS NULL "
+                        r.get("sources").asList(v -> v.asString()), null, r.get("proposed").asBoolean()))
+                .forEach(facts::add);
+        list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) WHERE (a.spaceId IS NULL OR a.spaceId = $space) "
                         + "RETURN o.italianName AS it, o.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
-                        + "a.sources + o.sources AS sources ORDER BY o.id",
-                Map.of("id", crop.id()), r -> r).forEach(r -> {
+                        + "a.sources + o.sources AS sources, a.spaceId IS NOT NULL AS proposed ORDER BY o.id",
+                Map.of("id", crop.id(), "space", space(spaceId)), r -> r).forEach(r -> {
             String organism = crop.italian() ? r.get("it").asString() : r.get("en").asString();
             List<String> sources = r.get("sources").asList(v -> v.asString());
-            facts.add(new SourcedFact(new Fact(organism, "affects", self), sources));
-            seasons(r.get("f").asInt(), r.get("t").asInt())
-                    .forEach(season -> facts.add(new SourcedFact(new Fact(organism, "activeInSeason", season), sources)));
+            boolean proposed = r.get("proposed").asBoolean();
+            facts.add(new SourcedFact(new Fact(organism, "affects", self), sources, null, proposed));
+            seasons(r.get("f").asInt(), r.get("t").asInt()).forEach(season -> facts.add(
+                    new SourcedFact(new Fact(organism, "activeInSeason", season), sources, null, proposed)));
         });
         return dedup(facts);
     }
 
-    private List<SourcedFact> organismFacts(Entity organism, String self) {
+    private List<SourcedFact> organismFacts(Entity organism, String self, Long spaceId) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
-        list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) WHERE a.spaceId IS NULL "
+        list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) WHERE (a.spaceId IS NULL OR a.spaceId = $space) "
                         + "RETURN c.italianName AS it, c.englishName AS en, a.fromMonth AS f, a.toMonth AS t, "
-                        + "a.sources + o.sources AS sources ORDER BY c.id",
-                Map.of("id", organism.id()), r -> r).forEach(r -> {
+                        + "a.sources + o.sources AS sources, a.spaceId IS NOT NULL AS proposed ORDER BY c.id",
+                Map.of("id", organism.id(), "space", space(spaceId)), r -> r).forEach(r -> {
             List<String> sources = r.get("sources").asList(v -> v.asString());
+            boolean proposed = r.get("proposed").asBoolean();
             facts.add(new SourcedFact(new Fact(self, "affects",
-                    organism.italian() ? r.get("it").asString() : r.get("en").asString()), sources));
-            seasons(r.get("f").asInt(), r.get("t").asInt())
-                    .forEach(season -> facts.add(new SourcedFact(new Fact(self, "activeInSeason", season), sources)));
+                    organism.italian() ? r.get("it").asString() : r.get("en").asString()), sources, null, proposed));
+            seasons(r.get("f").asInt(), r.get("t").asInt()).forEach(season -> facts.add(
+                    new SourcedFact(new Fact(self, "activeInSeason", season), sources, null, proposed)));
         });
         return dedup(facts);
     }
@@ -187,7 +207,12 @@ public class KnowledgeGraph {
      * MONTH). Windows derived by a rule keep its name in derivedBy. Empty when the crop is unknown.
      */
     public List<SourcedFact> windowFacts(String name, String zone) {
-        return resolve(name).map(crop -> dedup(windows(crop.id(), zone).stream()
+        return windowFacts(name, zone, null);
+    }
+
+    /** As {@link #windowFacts(String, String)}, also finding the crop by a name this space added. */
+    public List<SourcedFact> windowFacts(String name, String zone, Long spaceId) {
+        return resolve(name, spaceId).map(crop -> dedup(windows(crop.id(), zone).stream()
                 .flatMap(w -> months(w.fromMonth(), w.toMonth()).stream().map(m -> new SourcedFact(
                         new Fact(name.trim(), predicate(w.activity()), MONTHS.get(m - 1)), w.sources(), w.derivedBy())))
                 .toList())).orElse(List.of());
@@ -242,7 +267,8 @@ public class KnowledgeGraph {
 
     /**
      * One fact per triple, with the union of its sources, in first-seen order. A fact that is curated
-     * anywhere stays curated; it is inferred only if every occurrence was inferred.
+     * anywhere stays curated; otherwise inferred if a rule derived it, and proposed only if every
+     * occurrence was proposed.
      */
     private static List<SourcedFact> dedup(List<SourcedFact> facts) {
         Map<Fact, java.util.LinkedHashSet<String>> sources = new java.util.LinkedHashMap<>();
@@ -250,14 +276,22 @@ public class KnowledgeGraph {
         java.util.Set<Fact> curated = new java.util.HashSet<>();
         for (SourcedFact f : facts) {
             sources.computeIfAbsent(f.fact(), k -> new java.util.LinkedHashSet<>()).addAll(f.sourceIds());
-            if (f.derivedBy() == null) {
-                curated.add(f.fact());
-            } else {
+            if (f.derivedBy() != null) {
                 derivedBy.putIfAbsent(f.fact(), f.derivedBy());
+            } else if (!f.proposed()) {
+                curated.add(f.fact());
             }
         }
-        return sources.entrySet().stream().map(e -> new SourcedFact(e.getKey(), List.copyOf(e.getValue()),
-                curated.contains(e.getKey()) ? null : derivedBy.get(e.getKey()))).toList();
+        return sources.entrySet().stream().map(e -> {
+            Fact fact = e.getKey();
+            String rule = curated.contains(fact) ? null : derivedBy.get(fact);
+            return new SourcedFact(fact, List.copyOf(e.getValue()), rule, !curated.contains(fact) && rule == null);
+        }).toList();
+    }
+
+    /** The space whose own facts a read includes; -1 matches no space. */
+    private static long space(Long spaceId) {
+        return spaceId == null ? -1L : spaceId;
     }
 
     private org.neo4j.driver.Record single(String query, Map<String, Object> params) {

@@ -50,6 +50,9 @@ class ViewsTest {
     @Autowired
     SourceCatalog sourceCatalog;
 
+    @Autowired
+    io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment enrichment;
+
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
@@ -70,7 +73,7 @@ class ViewsTest {
         assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
         assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardenView(gardens, crops, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }

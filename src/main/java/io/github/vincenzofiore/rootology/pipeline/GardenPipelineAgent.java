@@ -131,18 +131,21 @@ public class GardenPipelineAgent {
     public GraphFacts gatherFacts(Intent intent, NoiseProfile noise, FactScope scope, RunContext run) {
         if (scope == FactScope.KNOWLEDGE_BASE) {
             Intent full = withDefaults(intent);
+            // The asking space also sees the facts its members added (#24), tagged PROPOSED.
+            Long space = run.hasSpace() ? run.spaceId() : null;
             List<SourcedFact> facts = switch (full.kind()) {
-                case SOWING_TIME, HARVEST_TIME -> knowledge.windowFacts(full.subject(), full.zone());
+                case SOWING_TIME, HARVEST_TIME -> knowledge.windowFacts(full.subject(), full.zone(), space);
                 case SOW_NOW -> knowledge.sowingFacts(full.month(), full.zone(), full.languageOrDefault());
                 case GROWING_NOW -> garden.growing(run, full.languageOrDefault());
                 case PEST_RISK -> garden.threats(run, full.month(), full.languageOrDefault());
                 case SOW_IN_PLOT -> garden.sowableIn(run, full.subject(), full.month(), full.zone(),
                         full.languageOrDefault());
-                default -> knowledge.factsAbout(full.subject(), full.languageOrDefault());
+                default -> knowledge.factsAbout(full.subject(), full.languageOrDefault(), space);
             };
             return new GraphFacts(facts.stream()
-                    .map(f -> new Reading(f.fact(), f.derivedBy() == null ? Reading.Source.CURATED
-                            : Reading.Source.INFERRED, f.sourceIds(), f.derivedBy()))
+                    .map(f -> new Reading(f.fact(), f.derivedBy() != null ? Reading.Source.INFERRED
+                            : f.proposed() ? Reading.Source.PROPOSED : Reading.Source.CURATED,
+                            f.sourceIds(), f.derivedBy()))
                     .toList());
         }
         return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), intent, noise));

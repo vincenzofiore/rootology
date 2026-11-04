@@ -12,6 +12,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
+import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.facts.SourceCatalog;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
@@ -30,9 +32,12 @@ public class AskView extends VerticalLayout {
     private final GardenPipeline pipeline;
     private final SourceCatalog sources;
     private final CurrentUser currentUser;
+    private final KnowledgeEnrichment enrichment;
     private final Div result = new Div();
 
-    public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser) {
+    public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
+                   KnowledgeEnrichment enrichment) {
+        this.enrichment = enrichment;
         this.pipeline = pipeline;
         this.sources = sources;
         this.currentUser = currentUser;
@@ -83,6 +88,10 @@ public class AskView extends VerticalLayout {
                 if (id.equals("garden")) {
                     list.add(new Div(new Span("Your garden (this space's plots and plantings)")));
                 }
+                enrichment.source(currentUser.space().id(), currentUser.login(), id).ifPresent(p -> list.add(new Div(
+                        new Span(p.scope() == ProposalScope.GLOBAL
+                                ? "Contributed fact #%d, reviewed by a curator: %s".formatted(p.id(), p.citation())
+                                : "Proposed in this space by %s, not reviewed (#%d)".formatted(p.proposedBy(), p.id())))));
                 sources.byId(id).ifPresent(s -> {
                     Anchor link = new Anchor(s.url(), s.title());
                     link.setTarget("_blank");

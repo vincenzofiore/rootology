@@ -13,7 +13,9 @@ public record Reading(Fact fact, Source source, List<String> sourceIds, String d
         /** From a single unverified report; may be wrong. */
         UNCONFIRMED,
         /** Derived by an explicit, tested rule from curated facts; as reliable as the rule. */
-        INFERRED
+        INFERRED,
+        /** Added by a member of the asking space, not reviewed by a curator; plausible but may be wrong. */
+        PROPOSED
     }
 
     /** sourceIds: where the fact comes from (ids of the knowledge base's sources); derivedBy: the rule, for INFERRED. */

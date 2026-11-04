@@ -75,6 +75,27 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void aProposedReadingAddsTheProposedSourceDescription() {
+        var facts = new GraphFacts(List.of(
+                Reading.curated(new Fact("Tomato", "companionOf", "Basil")),
+                new Reading(new Fact("Tomato", "companionOf", "Lettuce"), Reading.Source.PROPOSED,
+                        List.of("proposal-7"), null)));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.PROPOSED").exists())
+                .andExpect(jsonPath("$.state.sources.INFERRED").doesNotExist())
+                .andExpect(jsonPath("$.state.facts[1].source").value("PROPOSED"))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9},
+                         "candidate_0":{"type":"noul","noul":0.9},
+                         "candidate_1":{"type":"noul","noul":0.7},
+                         "candidate_2":{"type":"noul","noul":0.1}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), facts);
+
+        server.verify();
+    }
+
+    @Test
     void theQuestionsLanguageNeverReachesJev() {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.intent.subject").value("Mosquito"))
@@ -91,6 +112,7 @@ class JevDecisionLayerTest {
     void withoutInferredReadingsTheRequestIsUnchanged() {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.sources.INFERRED").doesNotExist())
+                .andExpect(jsonPath("$.state.sources.PROPOSED").doesNotExist())
                 .andRespond(withSuccess("""
                         {"answers":{"answerable":{"type":"noul","noul":0.04}}}""", MediaType.APPLICATION_JSON));
 

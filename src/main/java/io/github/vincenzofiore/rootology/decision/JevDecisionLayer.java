@@ -34,12 +34,26 @@ public class JevDecisionLayer implements DecisionLayer {
             "UNCONFIRMED", "From a single unverified report. It may be wrong.",
             "INFERRED", "Derived from curated facts by the rule named in `derivedBy`. As reliable as that rule.");
 
+    /** Added only when some reading is proposed (#24), so other requests stay exactly as they were. */
+    static final Map<String, Object> PROPOSED = ordered(
+            "PROPOSED", "Added by a member of the asking space and not reviewed by a curator. Plausible, but it may be wrong.");
+
     private final RestClient restClient;
     private final String model;
 
     public JevDecisionLayer(RestClient restClient, String model) {
         this.restClient = restClient;
         this.model = model;
+    }
+
+    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed) {
+        Map<String, Object> sources = anyInferred ? SOURCES_WITH_INFERRED : SOURCES;
+        if (!anyProposed) {
+            return sources;
+        }
+        Map<String, Object> withProposed = new LinkedHashMap<>(sources);
+        withProposed.putAll(PROPOSED);
+        return withProposed;
     }
 
     /** Jev's raw yes-probabilities, before any threshold is applied. */
@@ -87,13 +101,14 @@ public class JevDecisionLayer implements DecisionLayer {
                 })
                 .toList();
         boolean anyInferred = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.INFERRED);
+        boolean anyProposed = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.PROPOSED);
         Map<String, Object> request = ordered(
                 "model", model,
                 "state", ordered(
                         // Field by field, so the language (not needed to decide) never changes what Jev sees.
                         "intent", intent(intent),
                         "rule", rule(intent.kind()),
-                        "sources", anyInferred ? SOURCES_WITH_INFERRED : SOURCES,
+                        "sources", sources(anyInferred, anyProposed),
                         "facts", stateFacts),
                 "questions", questions);
 

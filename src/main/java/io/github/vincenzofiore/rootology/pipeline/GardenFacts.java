@@ -51,9 +51,9 @@ class GardenFacts {
         List<SourcedFact> facts = new ArrayList<>(growing(run, language));
         int m = Month.valueOf(month).getValue();
         growing.stream().map(PlantingSummary::cropId).distinct().forEach(cropId ->
-                knowledge.affecting(cropId, m).forEach(a -> facts.add(new SourcedFact(new Fact(
+                knowledge.affecting(cropId, m, run.spaceId()).forEach(a -> facts.add(new SourcedFact(new Fact(
                         "it".equals(language) ? a.italianName() : a.englishName(), "threatens", name(cropId, language)),
-                        a.sources()))));
+                        a.sources(), null, a.proposed()))));
         return facts;
     }
 
@@ -74,7 +74,7 @@ class GardenFacts {
         LocalDate on = nextFirstDay(Month.valueOf(month));
         for (SourcedFact sowable : knowledge.sowingFacts(month, zone, language)) {
             facts.add(sowable);
-            knowledge.resolve(sowable.fact().subject()).ifPresent(crop -> gardens
+            knowledge.resolve(sowable.fact().subject(), run.spaceId()).ifPresent(crop -> gardens
                     .rotationWarning(run.spaceId(), run.startedBy(), plot.get().id(), crop.id(), on)
                     .ifPresent(w -> facts.add(new SourcedFact(new Fact(sowable.fact().subject(), "avoidIn",
                             plotName.trim()), List.of(SOURCE), RotationRule.ID))));

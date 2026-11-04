@@ -81,6 +81,21 @@ public class KnowledgeEnrichment {
         return proposals.findBySpaceIdOrderByIdDesc(spaceId).stream().map(KnowledgeProposal::summary).toList();
     }
 
+    /**
+     * The approved proposal behind a source id `proposal-<id>`, if this member of this space may see it:
+     * a global fact, or a fact of this space.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<ProposalSummary> source(long spaceId, String login, String sourceId) {
+        if (sourceId == null || !sourceId.matches("proposal-\\d{1,18}") || !spaces.isMember(spaceId, login)) {
+            return java.util.Optional.empty();
+        }
+        return proposals.findById(Long.parseLong(sourceId.substring("proposal-".length())))
+                .filter(p -> p.getStatus() == ProposalStatus.APPROVED)
+                .filter(p -> p.getScope() == ProposalScope.GLOBAL || p.getSpaceId() == spaceId)
+                .map(KnowledgeProposal::summary);
+    }
+
     /** The global proposals waiting for a curator, oldest first. */
     @Transactional(readOnly = true)
     public List<ProposalSummary> pending(String login) {

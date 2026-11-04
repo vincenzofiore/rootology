@@ -4,6 +4,8 @@ import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import io.github.vincenzofiore.rootology.facts.Contribution;
+import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.garden.PlantingMethod;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
@@ -42,6 +44,9 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     GardenService gardens;
+
+    @Autowired
+    KnowledgeContributions contributions;
 
     /** A space with a garden in Milan (zone NORD): bed B with a tomato since April 2026, an old pea ended. */
     private RunContext withGarden(String login) {
@@ -256,6 +261,28 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.answer().answer()).contains("Late blight", "Colorado potato beetle", "Tomato leafminer")
                 .doesNotContain("Carrot fly");
         assertThat(run.answer().sources()).contains("eppo-codes", "rootology-editorial");
+    }
+
+    @Test
+    void aSpaceSeesItsOwnProposedFactsAndNamesOthersDoNot() {
+        RunContext rita = signedIn("rita");
+        RunContext sam = signedIn("sam");
+        // As if a member of rita's space had added them (#24): proposal ids only label the sources here.
+        contributions.apply(9001, rita.spaceId(), new Contribution.Alias("tomato", "pomodorino", "it"));
+        contributions.apply(9002, rita.spaceId(), new Contribution.Pair("tomato", "lettuce", "COMPANION", "Shade"));
+        whenCreateObject(prompt -> prompt.contains("Question: Quali piante sono compagne del pomodorino?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.COMPANIONS, "pomodorino", null, "it"));
+
+        GardenPipeline.Run mine = pipeline.askKnowledgeBase(
+                new Question("ask", "Quali piante sono compagne del pomodorino?"), rita);
+        GardenPipeline.Run theirs = pipeline.askKnowledgeBase(
+                new Question("ask", "Quali piante sono compagne del pomodorino?"), sam);
+
+        assertThat(mine.answer().answer()).containsExactlyInAnyOrder("Basilico", "Cipolla", "Prezzemolo", "Carota",
+                "Lattuga");
+        assertThat(mine.answer().sources()).contains("proposal-9002", "cornell-1999");
+        assertThat(theirs.answer()).isNull();
+        assertThat(theirs.pending().decision().reason()).isEqualTo("pomodorino is not in the dataset");
     }
 
     @Test
