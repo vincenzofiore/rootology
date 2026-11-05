@@ -56,6 +56,23 @@ embabel:
           # The placeholder lets the context start without a key; real LLM calls need it set.
           api-key: ${ROOTOLOGY_ANTHROPIC_API_KEY:not-set}
 
+server:
+  servlet:
+    session:
+      cookie:
+        # The session cookie is not sent on cross-site requests (#41); Secure comes with HTTPS in #12.
+        same-site: lax
+
+management:
+  # Only health over HTTP, without details (#41); who may reach it is decided with the deploy (#12, #27).
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 rootology:
   # The app's public address, for links in emails (#25).
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}

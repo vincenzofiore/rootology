@@ -61,6 +61,7 @@ public class HomeView extends VerticalLayout implements HasDynamicTitle {
 
         if (currentUser.canContribute()) {
             TextField question = new TextField();
+            question.setMaxLength(io.github.vincenzofiore.rootology.pipeline.Question.MAX_LENGTH);
             question.setPlaceholder(getTranslation("ask.placeholder"));
             question.setWidth("32rem");
             question.setMaxWidth("100%");
@@ -105,7 +106,7 @@ public class HomeView extends VerticalLayout implements HasDynamicTitle {
             alerts.forEach(a -> add(callout(a.title() + ": " + a.body())));
         }
 
-        var waiting = pipeline.pending(spaceId);
+        var waiting = pipeline.pending(spaceId, currentUser.login());
         if (!waiting.isEmpty()) {
             add(section(VaadinIcon.HOURGLASS, getTranslation("home.waiting", waiting.size())));
             waiting.stream().limit(3).forEach(r -> add(new Paragraph("• " + r.question().text())));

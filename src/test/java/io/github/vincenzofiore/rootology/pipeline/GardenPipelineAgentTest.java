@@ -68,6 +68,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void anOverlongQuestionIsRefusedBeforeAnyCall() {
+        // Unbounded consumption (#41): nothing reaches Claude and nothing counts against the limit.
+        String question = "Which plants are companions of tomato? ".repeat(20);
+        assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", question), signedIn("ivo")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(String.valueOf(Question.MAX_LENGTH));
+    }
+
+    @Test
     void anOpenCircuitRefusesAtOnce() {
         for (int i = 0; i < io.github.vincenzofiore.rootology.resilience.CircuitBreaker.FAILURE_THRESHOLD; i++) {
             claude.breaker.failure();
@@ -115,8 +123,8 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         return new RunContext(spaces.spacesOf(login).getFirst().id(), login);
     }
 
-    private PipelineRunRecord stored(long spaceId, String processId) {
-        return history.recent(spaceId).stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
+    private PipelineRunRecord stored(RunContext run, String processId) {
+        return history.recent(run.spaceId(), run.startedBy()).stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
     }
 
     @BeforeEach
@@ -203,7 +211,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(run.answer()).isNull();
         assertThat(run.pending().decision().reason()).isEqualTo("Lavender is not in the dataset");
-        assertThat(pipeline.pending(alice.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .contains(run.pending().processId());
 
         PipelineAnswer answer = pipeline.respond(run.pending().processId(), alice.spaceId(),
@@ -214,11 +222,11 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.escalated()).isTrue();
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.text()).isEqualTo("a human answered");
-        assertThat(pipeline.pending(alice.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(run.pending().processId());
         verifyGenerateText(prompt -> prompt.contains("Reviewer's note: Lavender is outside the garden dataset"));
 
-        PipelineRunRecord record = stored(alice.spaceId(), run.pending().processId());
+        PipelineRunRecord record = stored(alice, run.pending().processId());
         assertThat(record.getQuestionId()).isEqualTo("hard-3");
         assertThat(record.getStartedBy()).isEqualTo("alice");
         assertThat(record.isDecisionEscalated()).isTrue();
@@ -242,7 +250,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.answer().answeredByHuman()).isFalse();
         assertThat(run.answer().reviewer()).isNull();
 
-        PipelineRunRecord record = history.recent(bob.spaceId()).getFirst();
+        PipelineRunRecord record = history.recent(bob.spaceId(), bob.startedBy()).getFirst();
         assertThat(record.getQuestionId()).isEqualTo("easy-1");
         assertThat(record.getAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(record.getJenaAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
@@ -262,14 +270,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 new Question("hard-3", "Which plants are companions of Lavender?"), NoiseProfile.NONE, carol);
         String processId = run.pending().processId();
 
-        assertThat(pipeline.pending(dave.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(dave.spaceId(), dave.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(processId);
         assertThatThrownBy(() -> pipeline.respond(processId, dave.spaceId(), new HumanAnswer(List.of(), "", "dave")))
                 .isInstanceOf(NoSuchElementException.class);
 
         pipeline.respond(processId, carol.spaceId(), new HumanAnswer(List.of(), "", "carol"));
-        assertThat(history.recent(carol.spaceId())).extracting(PipelineRunRecord::getProcessId).contains(processId);
-        assertThat(history.recent(dave.spaceId())).extracting(PipelineRunRecord::getProcessId).doesNotContain(processId);
+        assertThat(history.recent(carol.spaceId(), carol.startedBy())).extracting(PipelineRunRecord::getProcessId).contains(processId);
+        assertThat(history.recent(dave.spaceId(), dave.startedBy())).extracting(PipelineRunRecord::getProcessId).doesNotContain(processId);
     }
 
     @Test
@@ -422,7 +430,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         String processId = asked.pending().processId();
         agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
 
-        assertThat(pipeline.pending(run.spaceId())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(run.spaceId(), run.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .containsExactly(processId);
         PipelineAnswer answer = pipeline.respond(processId, run.spaceId(),
                 new HumanAnswer(List.of("Rosmarino"), "From experience", "zeno"));
@@ -430,8 +438,8 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.answeredByHuman()).isTrue();
         assertThat(answer.answer()).containsExactly("Rosmarino");
         assertThat(answer.text()).isEqualTo("a person answered after the restart");
-        assertThat(pipeline.pending(run.spaceId())).isEmpty();
-        assertThat(history.recent(run.spaceId())).extracting(PipelineRunRecord::getReviewer).contains("zeno");
+        assertThat(pipeline.pending(run.spaceId(), run.startedBy())).isEmpty();
+        assertThat(history.recent(run.spaceId(), run.startedBy())).extracting(PipelineRunRecord::getReviewer).contains("zeno");
         assertThat(applicationEvents.stream(EscalationResolved.class))
                 .anyMatch(e -> e.processId().equals(processId));
         assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), new HumanAnswer(List.of(), "", "zeno")))

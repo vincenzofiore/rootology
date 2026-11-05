@@ -81,7 +81,7 @@ public class KnowledgeEnrichment {
         }
         return proposals.findById(Long.parseLong(sourceId.substring("proposal-".length())))
                 .filter(p -> p.getStatus() == ProposalStatus.APPROVED)
-                .filter(p -> p.getScope() == ProposalScope.GLOBAL || p.getSpaceId() == spaceId)
+                .filter(p -> p.getScope() == ProposalScope.GLOBAL || Long.valueOf(spaceId).equals(p.getSpaceId()))
                 .map(KnowledgeProposal::summary);
     }
 
@@ -100,7 +100,7 @@ public class KnowledgeEnrichment {
     @Transactional
     public ProposalSummary withdraw(long spaceId, String login, long proposalId) {
         spaces.requireContributor(spaceId, login);
-        KnowledgeProposal proposal = proposals.findById(proposalId).filter(p -> p.getSpaceId() == spaceId)
+        KnowledgeProposal proposal = proposals.findById(proposalId).filter(p -> Long.valueOf(spaceId).equals(p.getSpaceId()))
                 .orElseThrow(() -> new IllegalArgumentException("No proposal " + proposalId + " in this space"));
         if (!proposal.canBeWithdrawn()) {
             throw new IllegalStateException("Proposal " + proposalId + " can no longer be withdrawn");

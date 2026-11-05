@@ -29,6 +29,24 @@ public record Intent(QueryKind kind, String subject, String season, String langu
         return new Intent(kind, subject, season, language, zone, month);
     }
 
+    /**
+     * The same intent with every text trimmed, stripped of control characters and cut to a sane length
+     * (#41). Values are not otherwise changed: an unknown zone or month still finds no facts and escalates,
+     * rather than turning into a default.
+     */
+    public Intent bounded() {
+        return new Intent(kind, bound(subject, 100), bound(season, 20), bound(language, 5), bound(zone, 20),
+                bound(month, 20));
+    }
+
+    private static String bound(String text, int max) {
+        if (text == null) {
+            return null;
+        }
+        String plain = text.replaceAll("\\p{Cntrl}", " ").strip();
+        return plain.length() <= max ? plain : plain.substring(0, max);
+    }
+
     /** The question's language as an ISO 639-1 code, English when unknown. */
     public String languageOrDefault() {
         return language == null || language.isBlank() ? "en" : language.trim().toLowerCase(java.util.Locale.ROOT);

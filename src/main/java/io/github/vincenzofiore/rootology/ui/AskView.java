@@ -62,6 +62,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         question.setLabel(getTranslation("ask.question"));
         question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setWidth("36rem");
+        question.setMaxLength(Question.MAX_LENGTH);
         Button ask = new Button(getTranslation("ask.button"), e -> ask(question.getValue()));
         ask.addThemeName("primary");
         HorizontalLayout form = new HorizontalLayout(question, ask, questionsToday);

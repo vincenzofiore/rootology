@@ -44,10 +44,10 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle {
         grid.addColumn(r -> r.isAnsweredByHuman() ? getTranslation("history.byhuman", r.getReviewer())
                 : r.isDecisionEscalated() ? getTranslation("history.escalated") : "-")
                 .setHeader(getTranslation("history.person")).setAutoWidth(true);
-        grid.setItems(history.recent(spaceId));
+        grid.setItems(history.recent(spaceId, currentUser.login()));
         grid.setSizeFull();
 
-        add(new Button(getTranslation("common.refresh"), e -> grid.setItems(history.recent(spaceId))), grid);
+        add(new Button(getTranslation("common.refresh"), e -> grid.setItems(history.recent(spaceId, currentUser.login()))), grid);
         setSizeFull();
     }
 

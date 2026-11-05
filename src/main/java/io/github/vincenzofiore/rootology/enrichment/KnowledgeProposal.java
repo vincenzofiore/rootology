@@ -131,7 +131,7 @@ class KnowledgeProposal {
     }
 
     Long getId() { return id; }
-    long getSpaceId() { return spaceId; }
+    Long getSpaceId() { return spaceId; }
     ProposalScope getScope() { return scope; }
     ProposalStatus getStatus() { return status; }
 }

@@ -50,6 +50,16 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void responsesCarryTheSecurityHeaders() throws Exception {
+        var headers = get("/" + PrivacyView.ROUTE).headers();
+        assertThat(headers.firstValue("Content-Security-Policy")).hasValue(SecurityConfiguration.CONTENT_SECURITY_POLICY);
+        assertThat(headers.firstValue("Referrer-Policy")).hasValue("strict-origin-when-cross-origin");
+        assertThat(headers.firstValue("Permissions-Policy")).hasValueSatisfying(p -> assertThat(p).contains("camera=()"));
+        assertThat(headers.firstValue("X-Frame-Options")).hasValue("DENY");
+        assertThat(headers.firstValue("X-Content-Type-Options")).hasValue("nosniff");
+    }
+
+    @Test
     void theLoggedOutPageIsPublic() throws Exception {
         HttpResponse<String> response = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)

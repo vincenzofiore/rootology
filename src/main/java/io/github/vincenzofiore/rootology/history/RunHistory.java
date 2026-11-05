@@ -6,6 +6,8 @@ import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
 import io.github.vincenzofiore.rootology.pipeline.NoiseProfile;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 import io.github.vincenzofiore.rootology.pipeline.PipelineRunFinished;
+import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +23,12 @@ public class RunHistory {
 
     private final PipelineRunRepository repository;
     private final ExperimentRunner runner;
+    private final SpaceService spaces;
 
-    RunHistory(PipelineRunRepository repository, ExperimentRunner runner) {
+    RunHistory(PipelineRunRepository repository, ExperimentRunner runner, SpaceService spaces) {
         this.repository = repository;
         this.runner = runner;
+        this.spaces = spaces;
     }
 
     @EventListener
@@ -43,9 +47,12 @@ public class RunHistory {
                 jena, matches, run.finishedAt()));
     }
 
-    /** The most recent runs of one space, newest first. */
+    /** The most recent runs of one space, newest first; only its members may read them (#41). */
     @Transactional(readOnly = true)
-    public List<PipelineRunRecord> recent(long spaceId) {
+    public List<PipelineRunRecord> recent(long spaceId, String login) {
+        if (!spaces.isMember(spaceId, login)) {
+            throw new SpaceAccessException(login + " is not a member of space " + spaceId);
+        }
         return repository.findTop100BySpaceIdOrderByFinishedAtDesc(spaceId);
     }
 

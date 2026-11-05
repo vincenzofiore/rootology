@@ -90,7 +90,7 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle {
     }
 
     private void refresh() {
-        grid.setItems(pipeline.pending(currentUser.space().id()));
+        grid.setItems(pipeline.pending(currentUser.space().id(), currentUser.login()));
     }
 
     @Override

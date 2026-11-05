@@ -17,6 +17,7 @@ import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
+import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.usage.RunUsage;
 import io.github.vincenzofiore.rootology.usage.UsageKind;
@@ -106,6 +107,9 @@ public class GardenPipeline {
     }
 
     private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
+        if (question.text() == null || question.text().isBlank() || question.text().length() > Question.MAX_LENGTH) {
+            throw new IllegalArgumentException("A question needs between 1 and " + Question.MAX_LENGTH + " characters");
+        }
         if (context.hasSpace()) {
             // A guest only looks: no questions in the space (#33).
             spaces.requireContributor(context.spaceId(), context.startedBy());
@@ -138,8 +142,11 @@ public class GardenPipeline {
         return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
     }
 
-    /** Escalated questions of one space waiting for a person, from the database (#36). */
-    public List<PendingReview> pending(long spaceId) {
+    /** Escalated questions of one space waiting for a person, from the database (#36); for its members only (#41). */
+    public List<PendingReview> pending(long spaceId, String login) {
+        if (!spaces.isMember(spaceId, login)) {
+            throw new SpaceAccessException(login + " is not a member of space " + spaceId);
+        }
         return pending.waitingIn(spaceId);
     }
 
