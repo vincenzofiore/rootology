@@ -72,6 +72,15 @@ class ViewsTest {
     SourceCatalog sourceCatalog;
 
     @Autowired
+    io.github.vincenzofiore.rootology.privacy.DataExport dataExport;
+
+    @Autowired
+    io.github.vincenzofiore.rootology.privacy.AccountDeletion accountDeletion;
+
+    @Autowired
+    com.vaadin.flow.spring.security.AuthenticationContext authentication;
+
+    @Autowired
     io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment enrichment;
 
     @Autowired
@@ -81,7 +90,8 @@ class ViewsTest {
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class, NotificationsView.class, HomeView.class)) {
+                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class, NotificationsView.class, HomeView.class,
+                AccountView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)
                     || view.isAnnotationPresent(jakarta.annotation.security.RolesAllowed.class)).as(view.getSimpleName()).isTrue();
@@ -102,6 +112,7 @@ class ViewsTest {
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new HomeView(gardens, weatherService, notificationService, pipeline, viewer()).getChildren()).isNotEmpty();
         assertThat(new NotificationsView(notificationService, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("ADMIN");

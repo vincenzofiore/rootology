@@ -4,6 +4,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Privacy",
-        allowedDependencies = {}
+        allowedDependencies = { "spaces", "garden", "history", "pipeline", "notifications", "usage", "enrichment", "roles" }
 )
 package io.github.vincenzofiore.rootology.privacy;

@@ -25,7 +25,8 @@ class KnowledgeProposal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private long spaceId;
+    /** Null for an approved global fact whose space was deleted with an account (#40). */
+    private Long spaceId;
 
     @Enumerated(EnumType.STRING)
     private ProposalScope scope;

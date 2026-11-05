@@ -65,6 +65,7 @@ rootology:
     contact: ${ROOTOLOGY_PRIVACY_CONTACT:}
   retention:
     # How long personal data is kept (#40, docs/privacy.md); applied every night and shown on /privacy.
+    cron: "0 30 3 * * *"
     history: P365D
     usage: P365D
     escalations: P90D

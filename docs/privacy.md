@@ -18,7 +18,7 @@ The controller is the owner of the deployment, named on the privacy page through
 | Invitations (invited login or email address, who invited) | `invitation` | joining a space | contract | the address is cleared when the invitation is accepted, revoked or expires; the row is deleted 30 days after |
 | Gardens (name, town, country, coordinates rounded to 0.01°, about 1 km), plots, plantings with optional notes | `garden`, `plot`, `planting` | garden questions, weather, alerts | contract | until deleted by the space, or with the space |
 | Questions (free text) and answers, who asked and who answered | `pipeline_run`, `pending_escalation` | history, escalations to a person | contract | 12 months; resolved escalations 90 days |
-| Notifications | `notification` | in-app bell and email digest | contract | 90 days after they are resolved or read |
+| Notifications | `notification` | in-app bell and email digest | contract | 90 days after they are resolved or read; weather alerts 90 days, read or not |
 | Usage records (who, when, calls, tokens, cost) and personal limits | `usage_record`, `usage_limit` | fair use, cost control | legitimate interest | 12 months |
 | Knowledge proposals (who proposed, who reviewed, source, note) | `knowledge_proposal`, Neo4j | attribution of contributed facts | legitimate interest | as long as the fact is in use; the login is replaced when the account is deleted |
 | App roles with who granted and revoked them | `app_role_grant` | accountability of administration | legitimate interest | kept; the login is replaced when the account is deleted |
@@ -42,6 +42,16 @@ the colour scheme choice stays in the browser's localStorage. Both are strictly 
 
 The person's browser talks only to Rootology, plus GitHub for sign-in. The browser's position
 (`navigator.geolocation`) is read only when the person presses the button, and rounded to 0.01° before the server sends it to any service.
+
+## How it is applied
+
+- `privacy.RetentionJob` runs every night at 3:30 Italian time (`rootology.retention`) and deletes old runs,
+  answered escalations, read or resolved notifications and old weather alerts, usage records and closed invitations.
+- `privacy.AccountDeletion` deletes an account in one transaction, through a small class in each module
+  (`SpacePersonalData`, `GardenPersonalData`, `RunPersonalData`, `EscalationPersonalData`,
+  `NotificationPersonalData`, `UsagePersonalData`, `ProposalPersonalData`, `RolePersonalData`); space facts leave
+  the Neo4j graph after the commit. An approved global fact proposed in a deleted space keeps no space (Flyway `V18`).
+- `privacy.DataExport` builds the JSON file from the same classes. The My account page (`/account`) offers both.
 
 ## Rights
 
