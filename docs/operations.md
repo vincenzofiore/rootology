@@ -106,10 +106,10 @@ Which version runs is `APP_VERSION` in `.env`: a release (`0.1.0`), `latest` (th
 
 ### Backups
 
-`deploy/backup.sh` dumps Postgres every night and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
+`deploy/backup.sh` dumps Postgres every night (1:30 UTC, the server's time zone: before the app's retention job at 3:30 Italian time) and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
 off the server. In the `rootology` user's crontab (`crontab -e`):
 ```
-30 2 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
+30 1 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
 ```
 Restore (stops nothing else; the app may need a restart afterwards):
 ```sh
