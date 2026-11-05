@@ -62,6 +62,7 @@ public class MainLayout extends AppLayout {
         addToNavbar(space, scheme, bell, who, logout);
 
         SideNav nav = new SideNav();
+        nav.addItem(new SideNavItem(getTranslation("nav.home"), HomeView.class, VaadinIcon.DASHBOARD.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, VaadinIcon.COMMENT_ELLIPSIS_O.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.garden"), GardenView.class, VaadinIcon.HOME_O.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class, VaadinIcon.HOURGLASS.create()));

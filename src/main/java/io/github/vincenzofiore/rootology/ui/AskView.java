@@ -11,10 +11,11 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouterLink;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
@@ -35,9 +36,11 @@ import java.util.List;
  * An escalated question waits in Escalations, like the others.
  */
 @Route(value = "ask", layout = MainLayout.class)
-@RouteAlias(value = "", layout = MainLayout.class)
 @PermitAll
-public class AskView extends VerticalLayout implements HasDynamicTitle {
+public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
+
+    /** A question handed over by the home page (#31), answered as soon as the page opens. */
+    static final String QUESTION = "q";
 
     private final GardenPipeline pipeline;
     private final SourceCatalog sources;
@@ -46,6 +49,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle {
     private final UsageService usage;
     private final Span questionsToday = new Span();
     private final Div result = new Div();
+    private final TextField question = new TextField();
 
     public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
                    KnowledgeEnrichment enrichment, UsageService usage) {
@@ -55,7 +59,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle {
         this.sources = sources;
         this.currentUser = currentUser;
 
-        TextField question = new TextField(getTranslation("ask.question"));
+        question.setLabel(getTranslation("ask.question"));
         question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setWidth("36rem");
         Button ask = new Button(getTranslation("ask.button"), e -> ask(question.getValue()));
@@ -71,6 +75,14 @@ public class AskView extends VerticalLayout implements HasDynamicTitle {
             form.setVisible(false);
             add(new Paragraph(getTranslation("ask.guest")));
         }
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        event.getLocation().getQueryParameters().getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(q -> {
+            question.setValue(q);
+            ask(q);
+        });
     }
 
     private void ask(String text) {
