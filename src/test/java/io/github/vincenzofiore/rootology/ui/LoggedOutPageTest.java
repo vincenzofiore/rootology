@@ -50,6 +50,14 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void theHealthCheckIsPublicAndGivesNoDetails() throws Exception {
+        // For Caddy and an uptime monitor (#12): the status only, no components.
+        var response = get("/actuator/health");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("\"status\":\"UP\"").doesNotContain("components");
+    }
+
+    @Test
     void responsesCarryTheSecurityHeaders() throws Exception {
         var headers = get("/" + PrivacyView.ROUTE).headers();
         assertThat(headers.firstValue("Content-Security-Policy")).hasValue(SecurityConfiguration.CONTENT_SECURITY_POLICY);

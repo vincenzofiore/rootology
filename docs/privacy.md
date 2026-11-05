@@ -38,7 +38,8 @@ the colour scheme choice stays in the browser's localStorage. Both are strictly 
 | Apple iCloud Mail | notification and invitation emails (address, text) | consumer terms, no DPA; "designed and intended for personal use" | Ireland / USA | Apple's own policy. Accepted for the prototype; replaced by a transactional email service before opening beyond invited friends (#12) |
 | GeoNames (Unxos GmbH) | place names typed in the garden dialog; rounded coordinates for the nearest town | no published request logging policy | Switzerland (EU adequacy decision) | unknown |
 | MET Norway | rounded coordinates | logs the caller's IP (the server's, not the person's) and coordinates | Norway (EEA) | MET Norway's own policy |
-| The hosting provider | everything stored | processor, chosen in #12 | to decide (EU preferred) | |
+| Hetzner Online (hosting) | everything stored: the server runs the app and its databases | processor; DPA (art. 28) accepted in the customer account on 2026-11-05 | Germany | backups are ours (`deploy/backup.sh`), Hetzner's own backups are off |
+| OVHcloud (domain `rootology.app`) | only the owner's registrant data; DNS answers for the domain | the owner's own provider, not a processor of users' data | France | |
 
 The person's browser talks only to Rootology, plus GitHub for sign-in. The browser's position
 (`navigator.geolocation`) is read only when the person presses the button, and rounded to 0.01° before the server sends it to any service.

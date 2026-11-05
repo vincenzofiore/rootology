@@ -1,0 +1,9 @@
+# The deployment (#12, deploy/compose.prod.yaml): behind Caddy, which terminates HTTPS.
+server:
+  # Caddy's X-Forwarded-* headers: the OAuth redirect_uri and links use https://rootology.app, and Spring
+  # Security sees requests as secure, so it sends HSTS.
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true

@@ -18,3 +18,13 @@ updates:
     groups:
       actions:
         patterns: ['*']
+  - package-ecosystem: docker
+    directories: [/]
+    target-branch: develop
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directories: [/deploy]
+    target-branch: develop
+    schedule:
+      interval: weekly

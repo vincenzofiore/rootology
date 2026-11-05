@@ -51,3 +51,67 @@ Gmail works the same way (`smtp.gmail.com`, 587, an app password, about 500 emai
 account needs an SMS verification. Set the variables in the environment (for example `~/.zshrc`), never in
 the repository. `ROOTOLOGY_BASE_URL` is the address links in emails point to (default
 http://localhost:8080). With a domain (#12), move to a transactional service and set SPF, DKIM and DMARC.
+
+## Production server (#12)
+
+One small server (Hetzner Cloud CX23: 2 vCPU, 4 GB, Ubuntu 26.04 LTS, Germany), created with
+`deploy/cloud-init.yaml` (the owner's public key pasted in): user `rootology` signs in with that key only,
+no passwords and no root login, Docker with Compose, fail2ban, automatic security updates. Hetzner's
+firewall allows only TCP 22, 80, 443 and ICMP in. The domain `rootology.app` (OVHcloud, DNSSEC on) points to
+the server with an `A` and an `AAAA` record. Server address and keys stay out of this repository.
+
+`deploy/compose.prod.yaml` runs Caddy (HTTPS from Let's Encrypt, HTTP redirected), the app image
+`ghcr.io/vincenzofiore/rootology` (built by `.github/workflows/publish.yml` after a green build on `main`),
+Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` profile
+(`application-prod.yaml`: forwarded headers from Caddy, `Secure` cookie; Spring then sends HSTS).
+
+### First start
+
+1. A separate GitHub OAuth App for production: homepage `https://rootology.app`, callback
+   `https://rootology.app/login/oauth2/code/github`. Production keys for Anthropic and TypeSafe, separate
+   from the development ones.
+2. On the server:
+   ```sh
+   git clone https://github.com/vincenzofiore/rootology.git ~/rootology
+   cd ~/rootology/deploy
+   cp .env.example .env && chmod 600 .env   # then fill it in: passwords from `openssl rand -base64 24`
+   docker compose -f compose.prod.yaml up -d
+   docker compose -f compose.prod.yaml logs -f app   # until "Started RootologyApplication"
+   ```
+   Caddy gets the certificate on the first request to `https://rootology.app`.
+3. The first admin, as in "First admin of an environment" above:
+   ```sh
+   docker compose -f compose.prod.yaml exec postgres psql -U rootology -d rootology
+   ```
+
+### Updating
+
+The owner updates `main`; once its build is green, `publish` pushes the new image. Then on the server:
+```sh
+cd ~/rootology && git pull && cd deploy
+docker compose -f compose.prod.yaml pull && docker compose -f compose.prod.yaml up -d
+```
+A specific version: `APP_VERSION=<commit sha>` in `.env`. Flyway migrates the database at start.
+
+### Backups
+
+`deploy/backup.sh` dumps Postgres every night and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
+off the server. In the `rootology` user's crontab (`crontab -e`):
+```
+30 2 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
+```
+Restore (stops nothing else; the app may need a restart afterwards):
+```sh
+docker compose -f compose.prod.yaml exec -T postgres \
+    pg_restore -U rootology -d rootology --clean --if-exists < ~/backups/rootology-<stamp>.dump
+docker compose -f compose.prod.yaml restart app
+```
+Neo4j is rebuilt from the curated files at every start of the app, and contributed facts are applied again
+from Postgres: it needs no backup.
+
+### Watching it
+
+`https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j and disk;
+email is left out: it is sent in the background with retries). An external uptime monitor checks it every
+few minutes and emails the owner (#27 adds metrics and alerts). Logs: `docker compose -f compose.prod.yaml
+logs --since 1h app`.

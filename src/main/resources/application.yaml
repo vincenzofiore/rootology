@@ -72,6 +72,10 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    mail:
+      # Email goes out in the background with retries (#25): an unreachable SMTP server is not the app being down.
+      enabled: false
 
 rootology:
   # The app's public address, for links in emails (#25).

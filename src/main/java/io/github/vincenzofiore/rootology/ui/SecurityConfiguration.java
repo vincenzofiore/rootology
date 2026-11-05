@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
@@ -56,7 +58,7 @@ class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE,
-                        "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**")
+                        "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**", "/actuator/health")
                 .permitAll());
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
@@ -68,6 +70,15 @@ class SecurityConfiguration {
         http.oauth2Login(login -> login.userInfoEndpoint(info -> info.userService(userService)));
         // Security headers (#41) beyond Spring's defaults (nosniff, frame DENY, no-store).
         http.headers(headers -> headers
+                // Written at the start of every response: in production mode Vaadin sends its bootstrap page
+                // for public routes without passing through the late writer, and the headers went missing (#12).
+                .withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
+                    @Override
+                    public <O extends HeaderWriterFilter> O postProcess(O filter) {
+                        filter.setShouldWriteHeadersEagerly(true);
+                        return filter;
+                    }
+                })
                 .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
                 .referrerPolicy(referrer -> referrer.policy(
                         ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))

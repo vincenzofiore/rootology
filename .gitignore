@@ -37,3 +37,6 @@ build/
 
 ### Vaadin ###
 src/main/frontend/generated/
+
+### Deployment secrets ###
+deploy/.env
