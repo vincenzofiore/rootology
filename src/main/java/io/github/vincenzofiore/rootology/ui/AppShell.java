@@ -15,5 +15,6 @@ import com.vaadin.flow.theme.lumo.Lumo;
 @ColorScheme(ColorScheme.Value.LIGHT_DARK)
 @StyleSheet(Lumo.STYLESHEET)
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
+@StyleSheet("styles/rootology.css")
 public class AppShell implements AppShellConfigurator {
 }

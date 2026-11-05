@@ -1,0 +1,32 @@
+/* Rootology's own styles (#31): only what Lumo does not do by itself for small screens and touch. */
+
+/* Fields with a fixed width never overflow a narrow screen. */
+vaadin-text-field, vaadin-combo-box, vaadin-big-decimal-field, vaadin-integer-field,
+vaadin-date-picker, vaadin-time-picker, vaadin-select {
+    max-width: 100%;
+}
+
+/* Wide tables scroll sideways instead of squeezing their columns to nothing. */
+vaadin-grid {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Comfortable touch targets on phones and tablets (about 44 px instead of 36). */
+@media (pointer: coarse) {
+    html {
+        --lumo-size-m: 2.75rem;
+        --lumo-size-s: 2.25rem;
+    }
+}
+
+/* Narrow screens: less padding, so content keeps the width. */
+@media (max-width: 640px) {
+    vaadin-vertical-layout[theme~="padding"] {
+        padding: var(--lumo-space-s);
+    }
+
+    .rootology-wide-only {
+        display: none !important;
+    }
+}

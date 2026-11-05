@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
+import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H1;
@@ -35,8 +36,11 @@ public class MainLayout extends AppLayout {
         this.broadcaster = broadcaster;
         this.currentUser = currentUser;
         H1 title = new H1("Rootology");
-        title.getStyle().set("font-size", "1.2rem").set("margin", "0 1rem");
-        addToNavbar(title);
+        title.getStyle().set("font-size", "1.2rem").set("margin", "0 0.5rem");
+        // On a phone the side menu hides itself (#31): the toggle opens it.
+        DrawerToggle toggle = new DrawerToggle();
+        toggle.setAriaLabel(getTranslation("nav.menu"));
+        addToNavbar(toggle, title);
         ComboBox<SpaceSummary> space = new ComboBox<>();
         space.setItems(currentUser.spaces());
         space.setItemLabelGenerator(SpaceSummary::name);
@@ -48,10 +52,16 @@ public class MainLayout extends AppLayout {
             }
         });
         space.getStyle().set("margin-left", "auto");
+        space.setWidth("12rem");
+        space.getStyle().set("min-width", "6rem");
         Span who = new Span(currentUser.login());
-        who.getStyle().set("margin-left", "1rem");
-        Button logout = new Button(getTranslation("nav.logout"), e -> authentication.logout());
-        logout.getStyle().set("margin", "0 1rem");
+        who.getStyle().set("margin-left", "0.5rem");
+        who.addClassName("rootology-wide-only");
+        Button logout = new Button(VaadinIcon.SIGN_OUT.create(), e -> authentication.logout());
+        logout.addThemeName("tertiary");
+        logout.setTooltipText(getTranslation("nav.logout"));
+        logout.setAriaLabel(getTranslation("nav.logout"));
+        logout.getStyle().set("margin-right", "0.5rem");
         // The unread notifications (#26), updated live through push while the page is open.
         bell.setIcon(VaadinIcon.BELL.create());
         bell.addThemeName("tertiary");
