@@ -23,8 +23,16 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    # Major versions of images (Java LTS, Postgres data format, Neo4j, Caddy) are decided by hand (#12).
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: docker-compose
     directories: [/deploy]
     target-branch: develop
     schedule:
       interval: weekly
+    # Major versions of images (Java LTS, Postgres data format, Neo4j, Caddy) are decided by hand (#12).
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
