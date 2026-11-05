@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.0</version>
+		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>io.github.vincenzofiore</groupId>
@@ -211,6 +211,12 @@
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
+			<!-- Guava comes through Embabel (jinjava) at 33.3.1, which has GHSA-xxph-c9ww-hj94; pinned until Embabel moves on (#41) -->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>33.8.0-jre</version>
+			</dependency>
 			<dependency>
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-bom</artifactId>
