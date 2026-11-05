@@ -1,0 +1,30 @@
+# Weekly update pull requests for Maven dependencies and the actions of the workflows (#41),
+# grouped so a week brings one pull request per ecosystem; security updates come at once.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      maven:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: docker
+    directories: [/]
+    target-branch: develop
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directories: [/deploy]
+    target-branch: develop
+    schedule:
+      interval: weekly

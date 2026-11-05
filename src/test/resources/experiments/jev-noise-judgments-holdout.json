@@ -1,0 +1,461 @@
+[ {
+  "caseId" : "easy-1",
+  "seed" : 6,
+  "answerable" : 0.89,
+  "candidates" : {
+    "Basil" : 0.9,
+    "Tomato" : 0.13,
+    "Marigold" : 0.96
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 7,
+  "answerable" : 0.83,
+  "candidates" : {
+    "Basil" : 0.94,
+    "Tomato" : 0.14,
+    "Marigold" : 0.95
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 8,
+  "answerable" : 0.68,
+  "candidates" : {
+    "Basil" : 0.84,
+    "Marigold" : 0.89,
+    "Tomato" : 0.19
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 9,
+  "answerable" : 0.54,
+  "candidates" : {
+    "Basil" : 0.8,
+    "Tomato" : 0.22,
+    "Marigold" : 0.34
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 10,
+  "answerable" : 0.82,
+  "candidates" : {
+    "Basil" : 0.94,
+    "Tomato" : 0.22,
+    "Marigold" : 0.94
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 11,
+  "answerable" : 0.59,
+  "candidates" : {
+    "Basil" : 0.62,
+    "Tomato" : 0.24,
+    "Marigold" : 0.9
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 12,
+  "answerable" : 0.61,
+  "candidates" : {
+    "Basil" : 0.59,
+    "Marigold" : 0.89,
+    "Tomato" : 0.3
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 13,
+  "answerable" : 0.82,
+  "candidates" : {
+    "Basil" : 0.83,
+    "Tomato" : 0.2,
+    "Marigold" : 0.96
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 14,
+  "answerable" : 0.63,
+  "candidates" : {
+    "Basil" : 0.58,
+    "Tomato" : 0.18,
+    "Marigold" : 0.92
+  }
+}, {
+  "caseId" : "easy-1",
+  "seed" : 15,
+  "answerable" : 0.65,
+  "candidates" : {
+    "Basil" : 0.91,
+    "Marigold" : 0.93,
+    "Tomato" : 0.27
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 6,
+  "answerable" : 0.74,
+  "candidates" : {
+    "Aphid" : 0.45,
+    "Mosquito" : 0.21,
+    "Nematode" : 0.81
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 7,
+  "answerable" : 0.74,
+  "candidates" : {
+    "Aphid" : 0.27,
+    "Mosquito" : 0.22,
+    "Nematode" : 0.49
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 8,
+  "answerable" : 0.72,
+  "candidates" : {
+    "Aphid" : 0.37,
+    "Mosquito" : 0.31,
+    "Nematode" : 0.52
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 9,
+  "answerable" : 0.8,
+  "candidates" : {
+    "Aphid" : 0.27,
+    "Mosquito" : 0.13,
+    "Nematode" : 0.7
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 10,
+  "answerable" : 0.61,
+  "candidates" : {
+    "Aphid" : 0.16,
+    "Mosquito" : 0.23,
+    "Nematode" : 0.67
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 11,
+  "answerable" : 0.64,
+  "candidates" : {
+    "Aphid" : 0.51,
+    "Mosquito" : 0.21,
+    "Nematode" : 0.55
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 12,
+  "answerable" : 0.76,
+  "candidates" : {
+    "Aphid" : 0.28,
+    "Mosquito" : 0.2,
+    "Nematode" : 0.69
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 13,
+  "answerable" : 0.74,
+  "candidates" : {
+    "Aphid" : 0.11,
+    "Nematode" : 0.09,
+    "Mosquito" : 0.85
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 14,
+  "answerable" : 0.72,
+  "candidates" : {
+    "Aphid" : 0.17,
+    "Mosquito" : 0.11,
+    "Nematode" : 0.67
+  }
+}, {
+  "caseId" : "easy-2",
+  "seed" : 15,
+  "answerable" : 0.74,
+  "candidates" : {
+    "Aphid" : 0.41,
+    "Mosquito" : 0.11,
+    "Nematode" : 0.6
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 6,
+  "answerable" : 0.57,
+  "candidates" : {
+    "Basil" : 0.45,
+    "Tomato" : 0.33,
+    "Marigold" : 0.27
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 7,
+  "answerable" : 0.64,
+  "candidates" : {
+    "Basil" : 0.43,
+    "Tomato" : 0.4,
+    "Marigold" : 0.48
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 8,
+  "answerable" : 0.61,
+  "candidates" : {
+    "Basil" : 0.59,
+    "Marigold" : 0.3,
+    "Tomato" : 0.26
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 9,
+  "answerable" : 0.59,
+  "candidates" : {
+    "Basil" : 0.44,
+    "Tomato" : 0.37,
+    "Marigold" : 0.44
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 10,
+  "answerable" : 0.68,
+  "candidates" : {
+    "Basil" : 0.4,
+    "Tomato" : 0.37,
+    "Marigold" : 0.44
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 11,
+  "answerable" : 0.63,
+  "candidates" : {
+    "Basil" : 0.44,
+    "Tomato" : 0.4,
+    "Marigold" : 0.55
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 12,
+  "answerable" : 0.64,
+  "candidates" : {
+    "Basil" : 0.54,
+    "Marigold" : 0.44,
+    "Tomato" : 0.25
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 13,
+  "answerable" : 0.68,
+  "candidates" : {
+    "Basil" : 0.29,
+    "Tomato" : 0.36,
+    "Marigold" : 0.52
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 14,
+  "answerable" : 0.67,
+  "candidates" : {
+    "Basil" : 0.49,
+    "Tomato" : 0.34,
+    "Marigold" : 0.4
+  }
+}, {
+  "caseId" : "hard-1",
+  "seed" : 15,
+  "answerable" : 0.66,
+  "candidates" : {
+    "Basil" : 0.59,
+    "Marigold" : 0.45,
+    "Tomato" : 0.21
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 6,
+  "answerable" : 0.95,
+  "candidates" : {
+    "SPRING" : 0.97,
+    "SUMMER" : 0.04,
+    "AUTUMN" : 0.02
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 7,
+  "answerable" : 0.7,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.04,
+    "AUTUMN" : 0.59
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 8,
+  "answerable" : 0.78,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.78,
+    "AUTUMN" : 0.52
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 9,
+  "answerable" : 0.75,
+  "candidates" : {
+    "SPRING" : 0.69,
+    "SUMMER" : 0.05,
+    "AUTUMN" : 0.02
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 10,
+  "answerable" : 0.96,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.98,
+    "AUTUMN" : 0.28
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 11,
+  "answerable" : 0.71,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.68,
+    "AUTUMN" : 0.02
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 12,
+  "answerable" : 0.67,
+  "candidates" : {
+    "SPRING" : 0.48,
+    "SUMMER" : 0.76,
+    "AUTUMN" : 0.03
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 13,
+  "answerable" : 0.64,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.66,
+    "AUTUMN" : 0.03
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 14,
+  "answerable" : 0.55,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.03,
+    "AUTUMN" : 0.52
+  }
+}, {
+  "caseId" : "hard-2",
+  "seed" : 15,
+  "answerable" : 0.75,
+  "candidates" : {
+    "SPRING" : 0.02,
+    "SUMMER" : 0.04,
+    "AUTUMN" : 0.63
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 6,
+  "answerable" : 0.48,
+  "candidates" : {
+    "Basil" : 0.03,
+    "Tomato" : 0.04,
+    "Lavender" : 0.12,
+    "Marigold" : 0.57
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 7,
+  "answerable" : 0.45,
+  "candidates" : {
+    "Basil" : 0.06,
+    "Tomato" : 0.48,
+    "Lavender" : 0.16,
+    "Marigold" : 0.05
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 8,
+  "answerable" : 0.36,
+  "candidates" : {
+    "Basil" : 0.52,
+    "Tomato" : 0.05,
+    "Lavender" : 0.17,
+    "Marigold" : 0.06
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 9,
+  "answerable" : 0.48,
+  "candidates" : {
+    "Basil" : 0.04,
+    "Tomato" : 0.51,
+    "Lavender" : 0.15,
+    "Marigold" : 0.06
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 10,
+  "answerable" : 0.49,
+  "candidates" : {
+    "Basil" : 0.69,
+    "Tomato" : 0.18,
+    "Lavender" : 0.24,
+    "Marigold" : 0.61
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 11,
+  "answerable" : 0.49,
+  "candidates" : {
+    "Basil" : 0.57,
+    "Tomato" : 0.65,
+    "Lavender" : 0.25,
+    "Marigold" : 0.06
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 12,
+  "answerable" : 0.44,
+  "candidates" : {
+    "Basil" : 0.55,
+    "Lavender" : 0.12,
+    "Marigold" : 0.52,
+    "Tomato" : 0.06
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 13,
+  "answerable" : 0.4,
+  "candidates" : {
+    "Basil" : 0.66,
+    "Tomato" : 0.07,
+    "Lavender" : 0.21,
+    "Marigold" : 0.06
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 14,
+  "answerable" : 0.59,
+  "candidates" : {
+    "Basil" : 0.73,
+    "Tomato" : 0.06,
+    "Lavender" : 0.14,
+    "Marigold" : 0.66
+  }
+}, {
+  "caseId" : "hard-3",
+  "seed" : 15,
+  "answerable" : 0.63,
+  "candidates" : {
+    "Basil" : 0.06,
+    "Tomato" : 0.56,
+    "Lavender" : 0.15,
+    "Marigold" : 0.68
+  }
+} ]

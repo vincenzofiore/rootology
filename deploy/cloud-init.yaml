@@ -1,0 +1,39 @@
+#cloud-config
+# First boot of the Rootology server (#12), pasted into "Cloud config" when the server is created.
+# Replace the key below with the owner's public key (~/.ssh/rootology_ed25519.pub); a public key is not a
+# secret, but the real one stays out of this repository.
+#
+# Result: a user `rootology` that signs in with that key only (no passwords, no root login), Docker with
+# Compose, automatic security updates and fail2ban against SSH guessing.
+
+users:
+  - name: rootology
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ssh-ed25519 REPLACE-WITH-YOUR-PUBLIC-KEY rootology server
+
+disable_root: true
+ssh_pwauth: false
+
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - unattended-upgrades
+  - fail2ban
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-rootology.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+
+runcmd:
+  - usermod -aG docker rootology
+  - systemctl enable --now docker fail2ban unattended-upgrades
+  - systemctl restart ssh

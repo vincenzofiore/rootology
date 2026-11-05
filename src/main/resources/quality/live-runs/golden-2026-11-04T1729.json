@@ -1,0 +1,611 @@
+{
+  "startedAt": "2026-11-04T17:29:25.707542Z",
+  "suiteToday": "2026-11-04",
+  "llm": "claude-sonnet-5-5",
+  "decisionLayer": "JevDecisionLayer",
+  "summary": {
+    "questions": 25,
+    "verdicts": {
+      "CORRECT": 11,
+      "CORRECT_ESCALATION": 7,
+      "UNNECESSARY_ESCALATION": 7
+    },
+    "intentsUnderstood": 24,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "companions-tomato-it",
+      "question": "Quali piante sono compagne del pomodoro?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Basilico",
+        "Cipolla",
+        "Prezzemolo",
+        "Carota"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Basilico",
+        "Carota",
+        "Cipolla",
+        "Prezzemolo"
+      ],
+      "escalationReason": null,
+      "confidence": 0.86,
+      "notes": [],
+      "millis": 5462,
+      "error": null
+    },
+    {
+      "id": "companions-tomato-en",
+      "question": "Which plants are companions of tomato?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=tomato, season=null, language=en, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=tomato, season=null, language=en, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Basil",
+        "Onion",
+        "Parsley",
+        "Carrot"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Basil",
+        "Carrot",
+        "Onion",
+        "Parsley"
+      ],
+      "escalationReason": null,
+      "confidence": 0.8200000000000001,
+      "notes": [],
+      "millis": 3196,
+      "error": null
+    },
+    {
+      "id": "companions-garlic-none-declared",
+      "question": "Quali sono le compagne dell'aglio?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=aglio, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=aglio, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [],
+      "expectedEscalation": null,
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,32)",
+      "confidence": 0.6799999999999999,
+      "notes": [],
+      "millis": 1595,
+      "error": null
+    },
+    {
+      "id": "antagonists-tomato",
+      "question": "Cosa non devo piantare vicino al pomodoro?",
+      "expectedIntent": "Intent[kind=ANTAGONISTS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=ANTAGONISTS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Patata",
+        "Cavolfiore",
+        "Broccolo",
+        "Cavolo nero",
+        "Cavolo verza",
+        "Cavolo cappuccio",
+        "Finocchio"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Broccolo",
+        "Cavolo cappuccio",
+        "Cavolfiore",
+        "Finocchio",
+        "Patata",
+        "Cavolo verza",
+        "Cavolo nero"
+      ],
+      "escalationReason": null,
+      "confidence": 0.84,
+      "notes": [],
+      "millis": 3127,
+      "error": null
+    },
+    {
+      "id": "antagonists-fennel-not-reversed",
+      "question": "Cosa non va piantato vicino al finocchio?",
+      "expectedIntent": "Intent[kind=ANTAGONISTS, subject=finocchio, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=ANTAGONISTS, subject=finocchio, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Fagiolo",
+        "Peperone"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Fagiolo",
+        "Peperone"
+      ],
+      "escalationReason": "Jev: low confidence (0,42)",
+      "confidence": 0.42000000000000004,
+      "notes": [],
+      "millis": 2132,
+      "error": null
+    },
+    {
+      "id": "sowing-tomato",
+      "question": "Quando si semina il pomodoro?",
+      "expectedIntent": "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=CENTRO, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "FEBRUARY",
+        "MARCH",
+        "APRIL",
+        "MAY"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "FEBRUARY",
+        "MARCH",
+        "APRIL",
+        "MAY"
+      ],
+      "escalationReason": null,
+      "confidence": 0.94,
+      "notes": [],
+      "millis": 4267,
+      "error": null
+    },
+    {
+      "id": "harvest-garlic",
+      "question": "Quando si raccoglie l'aglio?",
+      "expectedIntent": "Intent[kind=HARVEST_TIME, subject=aglio, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=HARVEST_TIME, subject=aglio, season=null, language=it, zone=CENTRO, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "JUNE",
+        "JULY"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "JUNE",
+        "JULY"
+      ],
+      "escalationReason": null,
+      "confidence": 0.96,
+      "notes": [],
+      "millis": 3328,
+      "error": null
+    },
+    {
+      "id": "sow-now-november",
+      "question": "Cosa posso seminare adesso?",
+      "expectedIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Fava",
+        "Aglio",
+        "Pisello",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Fava",
+        "Aglio",
+        "Pisello",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "escalationReason": "Jev: low confidence (0,46)",
+      "confidence": 0.45999999999999996,
+      "notes": [],
+      "millis": 2194,
+      "error": null
+    },
+    {
+      "id": "sow-in-march-en",
+      "question": "What can I sow in March?",
+      "expectedIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=en, zone=null, month=MARCH]",
+      "understoodIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=en, zone=CENTRO, month=MARCH]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Basil",
+        "Cabbage",
+        "Carrot",
+        "Celery",
+        "Chard",
+        "Chili pepper",
+        "Eggplant",
+        "Leek",
+        "Lettuce",
+        "Onion",
+        "Parsley",
+        "Pea",
+        "Potato",
+        "Radish",
+        "Rocket",
+        "Rosemary",
+        "Sage",
+        "Spinach",
+        "Sweet pepper",
+        "Tomato"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Basil",
+        "Cabbage",
+        "Carrot",
+        "Celery",
+        "Chard",
+        "Chili pepper",
+        "Eggplant",
+        "Leek",
+        "Lettuce",
+        "Onion",
+        "Parsley",
+        "Pea",
+        "Potato",
+        "Radish",
+        "Rocket",
+        "Rosemary",
+        "Sage",
+        "Spinach",
+        "Sweet pepper",
+        "Tomato"
+      ],
+      "escalationReason": null,
+      "confidence": 0.8200000000000001,
+      "notes": [],
+      "millis": 3324,
+      "error": null
+    },
+    {
+      "id": "relevant-pests-tomato-summer",
+      "question": "Quali parassiti e malattie riguardano il pomodoro d'estate?",
+      "expectedIntent": "Intent[kind=RELEVANT_PESTS, subject=pomodoro, season=SUMMER, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=RELEVANT_PESTS, subject=pomodoro, season=SUMMER, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Alternariosi",
+        "Dorifora",
+        "Mosca bianca del tabacco",
+        "Mosca bianca delle serre",
+        "Muffa grigia",
+        "Nottua del pomodoro",
+        "Peronospora del pomodoro e della patata",
+        "Ragnetto rosso",
+        "Tignola del pomodoro (Tuta)",
+        "Tripide occidentale"
+      ],
+      "expectedEscalation": null,
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,32)",
+      "confidence": 0.6799999999999999,
+      "notes": [],
+      "millis": 1685,
+      "error": null
+    },
+    {
+      "id": "active-seasons-colorado-beetle",
+      "question": "In quali stagioni è attiva la dorifora?",
+      "expectedIntent": "Intent[kind=ACTIVE_SEASONS, subject=dorifora, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=ACTIVE_SEASONS, subject=dorifora, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "SPRING",
+        "SUMMER"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "SPRING",
+        "SUMMER"
+      ],
+      "escalationReason": null,
+      "confidence": 0.94,
+      "notes": [],
+      "millis": 4052,
+      "error": null
+    },
+    {
+      "id": "active-seasons-late-blight-en",
+      "question": "When is late blight active?",
+      "expectedIntent": "Intent[kind=ACTIVE_SEASONS, subject=late blight, season=null, language=en, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=ACTIVE_SEASONS, subject=late blight, season=null, language=en, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "SPRING",
+        "SUMMER",
+        "AUTUMN"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "SPRING",
+        "SUMMER",
+        "AUTUMN"
+      ],
+      "escalationReason": null,
+      "confidence": 0.94,
+      "notes": [],
+      "millis": 3220,
+      "error": null
+    },
+    {
+      "id": "growing-now",
+      "question": "Cosa cresce nel mio orto?",
+      "expectedIntent": "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Pomodoro",
+        "Lattuga"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Lattuga",
+        "Pomodoro"
+      ],
+      "escalationReason": null,
+      "confidence": 0.8,
+      "notes": [],
+      "millis": 3289,
+      "error": null
+    },
+    {
+      "id": "pest-risk-november",
+      "question": "Cosa minaccia il mio orto questo mese?",
+      "expectedIntent": "Intent[kind=PEST_RISK, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=PEST_RISK, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Muffa grigia",
+        "Limaccia grigia",
+        "Peronospora della lattuga"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Muffa grigia",
+        "Peronospora della lattuga",
+        "Limaccia grigia"
+      ],
+      "escalationReason": null,
+      "confidence": 0.76,
+      "notes": [
+        "The weather forecast is not available right now: weather-driven risk was not checked."
+      ],
+      "millis": 3652,
+      "error": null
+    },
+    {
+      "id": "sow-in-plot-after-peas",
+      "question": "Cosa posso seminare nell'aiuola B?",
+      "expectedIntent": "Intent[kind=SOW_IN_PLOT, subject=Aiuola B, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOW_IN_PLOT, subject=aiuola B, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Aglio",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Aglio",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "escalationReason": "Jev: low confidence (0,44)",
+      "confidence": 0.43999999999999995,
+      "notes": [],
+      "millis": 2152,
+      "error": null
+    },
+    {
+      "id": "frost-rules-out-pea",
+      "question": "Cosa posso seminare adesso nel mio orto?",
+      "expectedIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Fava",
+        "Aglio",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Fava",
+        "Aglio",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "escalationReason": "Jev: low confidence (0,30)",
+      "confidence": 0.30000000000000004,
+      "notes": [],
+      "millis": 2129,
+      "error": null
+    },
+    {
+      "id": "forecast-missing-answers-anyway",
+      "question": "Che cosa semino adesso?",
+      "expectedIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOW_NOW, subject=null, season=null, language=it, zone=CENTRO, month=NOVEMBER]",
+      "intentMatches": true,
+      "verdict": "UNNECESSARY_ESCALATION",
+      "expected": [
+        "Fava",
+        "Aglio",
+        "Pisello",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Fava",
+        "Aglio",
+        "Pisello",
+        "Rosmarino",
+        "Salvia"
+      ],
+      "escalationReason": "Jev: low confidence (0,16)",
+      "confidence": 0.15999999999999992,
+      "notes": [],
+      "millis": 1320,
+      "error": null
+    },
+    {
+      "id": "space-alias-in-its-space",
+      "question": "Quali piante sono compagne del pomodorino?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT",
+      "expected": [
+        "Basilico",
+        "Cipolla",
+        "Prezzemolo",
+        "Carota"
+      ],
+      "expectedEscalation": null,
+      "answer": [
+        "Basilico",
+        "Carota",
+        "Cipolla",
+        "Prezzemolo"
+      ],
+      "escalationReason": null,
+      "confidence": 0.8200000000000001,
+      "notes": [],
+      "millis": 3427,
+      "error": null
+    },
+    {
+      "id": "space-alias-not-in-another-space",
+      "question": "Quali piante sono compagne del pomodorino?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=pomodorino, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "not in the dataset",
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,18)",
+      "confidence": 0.8200000000000001,
+      "notes": [],
+      "millis": 1771,
+      "error": null
+    },
+    {
+      "id": "unknown-crop",
+      "question": "Quali sono le compagne della lavanda?",
+      "expectedIntent": "Intent[kind=COMPANIONS, subject=lavanda, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS, subject=lavanda, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "not in the dataset",
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,20)",
+      "confidence": 0.8,
+      "notes": [],
+      "millis": 1983,
+      "error": null
+    },
+    {
+      "id": "out-of-scope",
+      "question": "Che tempo farà domani a Roma?",
+      "expectedIntent": "Intent[kind=OTHER, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=OTHER, subject=null, season=null, language=it, zone=CENTRO, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "does not fit",
+      "answer": [],
+      "escalationReason": "the question does not fit any supported shape",
+      "confidence": 0.0,
+      "notes": [],
+      "millis": 1417,
+      "error": null
+    },
+    {
+      "id": "growing-now-without-garden",
+      "question": "Cosa cresce nel mio orto?",
+      "expectedIntent": "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=GROWING_NOW, subject=null, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "nothing is recorded as growing",
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,13)",
+      "confidence": 0.87,
+      "notes": [],
+      "millis": 2498,
+      "error": null
+    },
+    {
+      "id": "calendar-abroad",
+      "question": "Quando semino il pomodoro?",
+      "expectedIntent": "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=SOWING_TIME, subject=pomodoro, season=null, language=it, zone=OUTSIDE_ITALY, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "pomodoro",
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,13)",
+      "confidence": 0.87,
+      "notes": [],
+      "millis": 1694,
+      "error": null
+    },
+    {
+      "id": "active-season-of-a-crop",
+      "question": "In quale stagione è attivo il pomodoro?",
+      "expectedIntent": "Intent[kind=ACTIVE_SEASONS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=OTHER, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "intentMatches": false,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "not declared",
+      "answer": [],
+      "escalationReason": "the question does not fit any supported shape",
+      "confidence": 0.0,
+      "notes": [],
+      "millis": 1728,
+      "error": null
+    },
+    {
+      "id": "shared-repellers-not-declared",
+      "question": "Quali sono le compagne delle piante che respingono gli stessi parassiti del pomodoro?",
+      "expectedIntent": "Intent[kind=COMPANIONS_OF_SHARED_REPELLERS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "understoodIntent": "Intent[kind=COMPANIONS_OF_SHARED_REPELLERS, subject=pomodoro, season=null, language=it, zone=null, month=null]",
+      "intentMatches": true,
+      "verdict": "CORRECT_ESCALATION",
+      "expected": null,
+      "expectedEscalation": "repels",
+      "answer": [],
+      "escalationReason": "Jev: the facts do not answer this (p=0,33)",
+      "confidence": 0.6699999999999999,
+      "notes": [],
+      "millis": 1726,
+      "error": null
+    }
+  ]
+}

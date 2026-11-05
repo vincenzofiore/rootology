@@ -1,21 +1,125 @@
 spring:
   application:
     name: rootology
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway owns the schema (db/migration); Hibernate only checks it.
+      ddl-auto: validate
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            # From the GitHub OAuth App. The placeholders let the app start; login needs the real values.
+            client-id: ${ROOTOLOGY_GITHUB_CLIENT_ID:not-set}
+            client-secret: ${ROOTOLOGY_GITHUB_CLIENT_SECRET:not-set}
+            # user:email reads the verified addresses, so an invitation can be bound to one (#25).
+            scope: read:user,user:email
+
+  # Outgoing email (#25). Without settings it goes to Mailpit (compose.yaml), which keeps it locally. For Gmail:
+  # host smtp.gmail.com, port 587, auth and starttls true, an app password of the app's dedicated account.
+  mail:
+    host: ${ROOTOLOGY_SMTP_HOST:localhost}
+    port: ${ROOTOLOGY_SMTP_PORT:1025}
+    username: ${ROOTOLOGY_SMTP_USERNAME:}
+    password: ${ROOTOLOGY_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${ROOTOLOGY_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${ROOTOLOGY_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 embabel:
   models:
     default-llm: claude-sonnet-5-5
   agent:
     platform:
+      # Each action runs once: by default Embabel retries a failing action up to 5 times over minutes,
+      # which keeps a person waiting while a service is down; Claude's calls retry briefly below (#29).
+      action-qos:
+        default:
+          max-attempts: 1
+      llm-operations:
+        prompts:
+          default-timeout: 30s
       models:
         anthropic:
+          # Few, short retries: with the defaults (10 attempts, backoff from 5 s up to 3 min) a question
+          # could wait for many minutes while Anthropic is down (#29).
+          max-attempts: 3
+          backoff-millis: 1000
+          backoff-multiplier: 2
+          backoff-max-interval: 4000
           # Project-specific name, so the key does not leak into Claude Code itself (which reads ANTHROPIC_API_KEY).
           # The placeholder lets the context start without a key; real LLM calls need it set.
           api-key: ${ROOTOLOGY_ANTHROPIC_API_KEY:not-set}
 
+server:
+  servlet:
+    session:
+      cookie:
+        # The session cookie is not sent on cross-site requests (#41); Secure comes with HTTPS in #12.
+        same-site: lax
+
+management:
+  # Only health over HTTP, without details (#41); who may reach it is decided with the deploy (#12, #27).
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    mail:
+      # Email goes out in the background with retries (#25): an unreachable SMTP server is not the app being down.
+      enabled: false
+
 rootology:
+  # The app's public address, for links in emails (#25).
+  base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
+  privacy:
+    # Named on the public privacy page (#40); set per deployment, not in the repository.
+    controller: ${ROOTOLOGY_PRIVACY_CONTROLLER:}
+    contact: ${ROOTOLOGY_PRIVACY_CONTACT:}
+  retention:
+    # How long personal data is kept (#40, docs/privacy.md); applied every night and shown on /privacy.
+    cron: "0 30 3 * * *"
+    history: P365D
+    usage: P365D
+    escalations: P90D
+    notifications: P90D
+    invitations: P30D
+  mail:
+    from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
+  alerts:
+    # Weather alerts (#37): every morning at 7, Italian time.
+    cron: "0 0 7 * * *"
+  notifications:
+    # Emails of waiting questions (#26): grouped once at least this old, checked this often.
+    group-window: PT2M
+    digest-every: PT1M
+  invitations:
+    # Invitations each owner may create per day (#25).
+    daily-limit: 20
   jev:
     # Same convention as above. Without a key the deterministic StubDecisionLayer is used.
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
     base-url: https://api.typesafe.ai
     model: jev-latest
+  usage:
+    # Questions each person may ask per day (#19), unless an admin set a personal limit.
+    daily-questions: 30
+  geonames:
+    # A free GeoNames account with "free web services" enabled; empty means place search is not offered.
+    base-url: https://secure.geonames.org
+    username: ${ROOTOLOGY_GEONAMES_USERNAME:}
+  weather:
+    # MET Norway asks every app to identify itself, with a way to reach its maintainer.
+    base-url: https://api.met.no
+    user-agent: rootology/0.1 (+https://github.com/vincenzofiore/rootology)
+  security:
+    # GitHub accounts (logins, comma-separated) allowed into the UI. Empty means nobody.
+    allowed-github-users: ${ROOTOLOGY_ALLOWED_GITHUB_USERS:}

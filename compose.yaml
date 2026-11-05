@@ -1,0 +1,24 @@
+# Local services, started by Spring Boot on ./mvnw spring-boot:run: Postgres, Neo4j, and Mailpit, which catches
+# every email sent in development (web page on http://localhost:8025) instead of delivering it.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: rootology
+      POSTGRES_USER: rootology
+      POSTGRES_PASSWORD: rootology
+    ports:
+      - "5432"
+  neo4j:
+    # The pipeline's own fact store, rebuilt from OntologyDefinition at startup.
+    image: neo4j:2026.10-community
+    environment:
+      NEO4J_AUTH: neo4j/rootology-dev
+    ports:
+      - "7687"
+  mailpit:
+    # MIT licence. Fixed ports: Spring Boot has no service connection for it, see spring.mail in application.yaml.
+    image: axllent/mailpit:v1.33.0
+    ports:
+      - "1025:1025"
+      - "8025:8025"

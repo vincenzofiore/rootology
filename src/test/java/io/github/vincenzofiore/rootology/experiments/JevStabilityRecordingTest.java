@@ -1,15 +1,18 @@
 package io.github.vincenzofiore.rootology.experiments;
 
+import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
-import io.github.vincenzofiore.rootology.inference.facts.FactSource;
+import io.github.vincenzofiore.rootology.facts.FactSource;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
@@ -18,6 +21,8 @@ import java.util.List;
  * to see how much the decision layer varies on its own. Recording only, no assertions;
  * per-candidate probabilities are in the JevDecisionLayer log lines.
  */
+@Import(TestcontainersConfiguration.class)
+@Tag("live-api")
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "ROOTOLOGY_TYPESAFE_API_KEY", matches = ".+")
 class JevStabilityRecordingTest {
@@ -32,7 +37,7 @@ class JevStabilityRecordingTest {
 
     @Test
     void recordRepeatedDecisions() {
-        GraphFacts facts = new GraphFacts(factSource.allFacts());
+        GraphFacts facts = GraphFacts.curated(factSource.allFacts());
         List<Intent> intents = List.of(
                 Intent.of(QueryKind.COMPANIONS, "Tomato"),
                 new Intent(QueryKind.RELEVANT_PESTS, "Basil", "SUMMER"),

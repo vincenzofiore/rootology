@@ -1,0 +1,86 @@
+package io.github.vincenzofiore.rootology.ui;
+
+import io.github.vincenzofiore.rootology.spaces.InvitationService;
+import io.github.vincenzofiore.rootology.spaces.SpaceService;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+
+import java.util.Map;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class AllowListOAuth2UserServiceTest {
+
+    private final SpaceService spaces = mock(SpaceService.class);
+    private final InvitationService invitations = mock(InvitationService.class);
+    private final io.github.vincenzofiore.rootology.roles.RoleService roles =
+            mock(io.github.vincenzofiore.rootology.roles.RoleService.class);
+
+    private static OAuth2User githubUser(String login) {
+        return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"), Map.of("login", login), "login");
+    }
+
+    private AllowListOAuth2UserService service(String... allowed) {
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, invitations, roles, mock(GitHubEmails.class),
+                mock(io.github.vincenzofiore.rootology.notifications.NotificationService.class));
+    }
+
+    @Test
+    void letsTheBootstrapAllowListIn() {
+        assertThat(service("alice").requireAllowed(githubUser("alice"), null, Set.of())).isEqualTo("alice");
+    }
+
+    @Test
+    void ignoresTheCaseOfTheLogin() {
+        assertThat(service("Alice").requireAllowed(githubUser("ALICE"), null, Set.of())).isEqualTo("alice");
+    }
+
+    @Test
+    void letsInAnyoneWhoAlreadyBelongsToASpace() {
+        when(spaces.belongsToAnySpace("bob")).thenReturn(true);
+
+        assertThat(service().requireAllowed(githubUser("bob"), null, Set.of())).isEqualTo("bob");
+    }
+
+    @Test
+    void letsInSomeoneWithAValidInvitation() {
+        when(invitations.admits("token", "carol", Set.of())).thenReturn(true);
+
+        assertThat(service().requireAllowed(githubUser("carol"), "token", Set.of())).isEqualTo("carol");
+    }
+
+    @Test
+    void refusesEveryoneElse() {
+        when(invitations.admits("token", "mallory", Set.of())).thenReturn(false);
+
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), null, Set.of()))
+                .isInstanceOf(OAuth2AuthenticationException.class);
+        assertThatThrownBy(() -> service("alice").requireAllowed(githubUser("mallory"), "token", Set.of()))
+                .isInstanceOf(OAuth2AuthenticationException.class);
+    }
+
+    @Test
+    void anEmptyAllowListLetsNobodyInOnItsOwn() {
+        assertThatThrownBy(() -> service().requireAllowed(githubUser("alice"), null, Set.of()))
+                .isInstanceOf(OAuth2AuthenticationException.class);
+    }
+
+    @Test
+    void appRolesBecomeAuthoritiesAtSignIn() {
+        when(roles.rolesOf("alice")).thenReturn(java.util.EnumSet.of(io.github.vincenzofiore.rootology.roles.AppRole.QA));
+
+        OAuth2User user = service("alice").withRoles(githubUser("alice"), "alice", Set.of("alice@example.org"), "login");
+
+        assertThat(user.getAuthorities()).extracting(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .containsExactlyInAnyOrder("OAUTH2_USER", "ROLE_QA");
+        assertThat(user.getName()).isEqualTo("alice");
+        assertThat(user.<java.util.List<String>>getAttribute(GitHubEmails.ATTRIBUTE)).containsExactly("alice@example.org");
+    }
+}

@@ -1,0 +1,174 @@
+# Golden questions (#20): real questions on the knowledge base with answers known in advance, written by
+# hand from the curated files (src/main/resources/knowledge/, docs/*.md) and reviewed by the owner. Never
+# computed by the pipeline's code: a change to a curated file or to the code that alters an answer fails
+# the build until this file is updated on purpose.
+#
+# The suite runs as if today were `today`, in Italy. Offline (CI): Claude is mocked (the expected intent
+# is returned for the question) and the stub decision layer decides, so every mismatch fails: a silent
+# wrong answer, a missed escalation or an unexpected one. Live (-Plive): the real Claude reads the
+# question and Jev decides; results are measured and recorded, not enforced.
+#
+# garden: none | rome (Aiuola A: tomato since 2026-09-01, lettuce since 2026-10-01; Aiuola B: pea
+#   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR)
+# weather: missing (the service gives nothing) | frost (minimum -2.0 degrees all week)
+# spaceFacts: contributed by a member of the asking space (#24), visible only to that space
+# expect: answer (the exact set of values) or escalate (a part of the reason); notes: parts of the notes
+
+today: 2026-11-04
+
+cases:
+
+  # Companions and antagonists: only what is declared, never reversed.
+  - id: companions-tomato-it
+    question: Quali piante sono compagne del pomodoro?
+    intent: {kind: COMPANIONS, subject: pomodoro, language: it}
+    expect: {answer: [Basilico, Cipolla, Prezzemolo, Carota]}
+
+  - id: companions-tomato-en
+    question: Which plants are companions of tomato?
+    intent: {kind: COMPANIONS, subject: tomato, language: en}
+    expect: {answer: [Basil, Onion, Parsley, Carrot]}
+
+  - id: companions-garlic-none-declared
+    question: Quali sono le compagne dell'aglio?
+    intent: {kind: COMPANIONS, subject: aglio, language: it}
+    expect: {answer: []}
+
+  - id: antagonists-tomato
+    question: Cosa non devo piantare vicino al pomodoro?
+    intent: {kind: ANTAGONISTS, subject: pomodoro, language: it}
+    expect: {answer: [Patata, Cavolfiore, Broccolo, Cavolo nero, Cavolo verza, Cavolo cappuccio, Finocchio]}
+
+  - id: antagonists-fennel-not-reversed
+    question: Cosa non va piantato vicino al finocchio?
+    intent: {kind: ANTAGONISTS, subject: finocchio, language: it}
+    expect: {answer: [Fagiolo, Peperone]}
+
+  # Calendars (zone CENTRO by default).
+  - id: sowing-tomato
+    question: Quando si semina il pomodoro?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
+    expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
+
+  - id: harvest-garlic
+    question: Quando si raccoglie l'aglio?
+    intent: {kind: HARVEST_TIME, subject: aglio, language: it}
+    expect: {answer: [JUNE, JULY]}
+
+  - id: sow-now-november
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    expect: {answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]}
+
+  - id: sow-in-march-en
+    question: What can I sow in March?
+    intent: {kind: SOW_NOW, language: en, month: MARCH}
+    expect:
+      answer: [Basil, Cabbage, Carrot, Celery, Chard, Chili pepper, Eggplant, Leek, Lettuce, Onion, Parsley,
+               Pea, Potato, Radish, Rocket, Rosemary, Sage, Spinach, Sweet pepper, Tomato]
+
+  # Pests and diseases.
+  - id: relevant-pests-tomato-summer
+    question: Quali parassiti e malattie riguardano il pomodoro d'estate?
+    intent: {kind: RELEVANT_PESTS, subject: pomodoro, season: SUMMER, language: it}
+    expect:
+      answer: [Alternariosi, Dorifora, Mosca bianca del tabacco, Mosca bianca delle serre, Muffa grigia,
+               Nottua del pomodoro, Peronospora del pomodoro e della patata, Ragnetto rosso,
+               Tignola del pomodoro (Tuta), Tripide occidentale]
+
+  - id: active-seasons-colorado-beetle
+    question: In quali stagioni è attiva la dorifora?
+    intent: {kind: ACTIVE_SEASONS, subject: dorifora, language: it}
+    expect: {answer: [SPRING, SUMMER]}
+
+  - id: active-seasons-late-blight-en
+    question: When is late blight active?
+    intent: {kind: ACTIVE_SEASONS, subject: late blight, language: en}
+    expect: {answer: [SPRING, SUMMER, AUTUMN]}
+
+  # The space's garden.
+  - id: growing-now
+    question: Cosa cresce nel mio orto?
+    intent: {kind: GROWING_NOW, language: it}
+    garden: rome
+    weather: missing
+    expect: {answer: [Pomodoro, Lattuga]}
+
+  - id: pest-risk-november
+    question: Cosa minaccia il mio orto questo mese?
+    intent: {kind: PEST_RISK, language: it}
+    garden: rome
+    weather: missing
+    expect:
+      answer: [Muffa grigia, Limaccia grigia, Peronospora della lattuga]
+      notes: [not available]
+
+  - id: sow-in-plot-after-peas
+    question: Cosa posso seminare nell'aiuola B?
+    intent: {kind: SOW_IN_PLOT, subject: Aiuola B, language: it}
+    garden: rome
+    weather: missing
+    expect: {answer: [Aglio, Rosmarino, Salvia]}
+
+  # Local weather (#18): frost-risk-v1 with ECOCROP's killing temperature for young plants.
+  - id: frost-rules-out-pea
+    question: Cosa posso seminare adesso nel mio orto?
+    intent: {kind: SOW_NOW, language: it}
+    garden: rome
+    weather: frost
+    expect:
+      answer: [Fava, Aglio, Rosmarino, Salvia]
+      notes: [frost-risk-v1, Pisello]
+
+  - id: forecast-missing-answers-anyway
+    question: Che cosa semino adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: rome
+    weather: missing
+    expect:
+      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]
+      notes: [not available]
+
+  # Facts added by a space (#24): visible only there.
+  - id: space-alias-in-its-space
+    question: Quali piante sono compagne del pomodorino?
+    intent: {kind: COMPANIONS, subject: pomodorino, language: it}
+    spaceFacts: [{alias: tomato, name: pomodorino, language: it}]
+    expect: {answer: [Basilico, Cipolla, Prezzemolo, Carota]}
+
+  - id: space-alias-not-in-another-space
+    question: Quali piante sono compagne del pomodorino?
+    intent: {kind: COMPANIONS, subject: pomodorino, language: it}
+    expect: {escalate: not in the dataset}
+
+  # Questions that must go to a person.
+  - id: unknown-crop
+    question: Quali sono le compagne della lavanda?
+    intent: {kind: COMPANIONS, subject: lavanda, language: it}
+    expect: {escalate: not in the dataset}
+
+  - id: out-of-scope
+    question: Che tempo farà domani a Roma?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  - id: growing-now-without-garden
+    question: Cosa cresce nel mio orto?
+    intent: {kind: GROWING_NOW, language: it}
+    expect: {escalate: nothing is recorded as growing}
+
+  - id: calendar-abroad
+    question: Quando semino il pomodoro?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
+    garden: lyon
+    expect: {escalate: pomodoro}
+
+  - id: active-season-of-a-crop
+    question: In quale stagione è attivo il pomodoro?
+    intent: {kind: ACTIVE_SEASONS, subject: pomodoro, language: it}
+    expect: {escalate: not declared}
+
+  - id: shared-repellers-not-declared
+    question: Quali sono le compagne delle piante che respingono gli stessi parassiti del pomodoro?
+    intent: {kind: COMPANIONS_OF_SHARED_REPELLERS, subject: pomodoro, language: it}
+    expect: {escalate: repels}

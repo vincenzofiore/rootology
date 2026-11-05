@@ -1,0 +1,70 @@
+# Companion and antagonist pairs between the 39 crops (docs/crop-pairs-v1.md), approved 2026-11-03.
+# Declared in one direction only; the reverse pair is never inferred. evidence: study, extension or
+# traditional (long-standing advice without reproducible evidence). sources: ids from sources.csv, ";"-separated.
+crop_id,partner_id,relation,effect,evidence,sources
+carrot,onion,COMPANION,Fewer carrot fly attacks on carrots and fewer onion thrips on onions,study,uvah-coaker-1984;cornell-1999
+carrot,leek,COMPANION,Repels carrot fly,traditional,cornell-1999
+carrot,rosemary,COMPANION,Repels carrot fly,traditional,cornell-1999
+carrot,sage,COMPANION,Repels carrot fly,traditional,cornell-1999
+sweet-pepper,rosemary,COMPANION,Lower densities of major pests; natural enemies unaffected,study,rosemary-pepper
+sweet-pepper,basil,COMPANION,Similar needs; grow well together,traditional,cornell-1999
+tomato,basil,COMPANION,Less whitefly when combined with insect nets; basil alone not shown,study,agronet-basil-2016;cornell-1999
+tomato,onion,COMPANION,Compatible,traditional,cornell-1999
+tomato,parsley,COMPANION,Compatible,traditional,cornell-1999
+tomato,carrot,COMPANION,Compatible,traditional,cornell-1999
+cauliflower,sage,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+broccoli,sage,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+tuscan-kale,sage,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+savoy-cabbage,sage,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+cabbage,sage,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+cauliflower,rosemary,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+broccoli,rosemary,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+tuscan-kale,rosemary,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+savoy-cabbage,rosemary,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+cabbage,rosemary,COMPANION,Aromatic plant said to deter cabbage pests,traditional,cornell-1999
+cauliflower,celery,COMPANION,Grows well with cole crops,traditional,cornell-1999
+broccoli,celery,COMPANION,Grows well with cole crops,traditional,cornell-1999
+tuscan-kale,celery,COMPANION,Grows well with cole crops,traditional,cornell-1999
+savoy-cabbage,celery,COMPANION,Grows well with cole crops,traditional,cornell-1999
+cabbage,celery,COMPANION,Grows well with cole crops,traditional,cornell-1999
+cauliflower,onion,COMPANION,Get along well together,traditional,cornell-1999
+broccoli,onion,COMPANION,Get along well together,traditional,cornell-1999
+tuscan-kale,onion,COMPANION,Get along well together,traditional,cornell-1999
+savoy-cabbage,onion,COMPANION,Get along well together,traditional,cornell-1999
+cabbage,onion,COMPANION,Get along well together,traditional,cornell-1999
+bean,carrot,COMPANION,Thrive together,traditional,cornell-1999
+bean,cauliflower,COMPANION,Thrive together,traditional,cornell-1999
+bean,cucumber,COMPANION,Beans aid cucumbers,traditional,cornell-1999
+bean,cabbage,COMPANION,Beans aid cabbage,traditional,cornell-1999
+lettuce,strawberry,COMPANION,Grow well together,traditional,cornell-1999
+lettuce,cucumber,COMPANION,Grow well together,traditional,cornell-1999
+lettuce,carrot,COMPANION,Grow well together,traditional,cornell-1999
+lettuce,radish,COMPANION,Especially good together,traditional,cornell-1999
+onion,strawberry,COMPANION,Get along well,traditional,cornell-1999
+onion,lettuce,COMPANION,Get along well,traditional,cornell-1999
+cucumber,radish,COMPANION,Radish said to repel cucumber beetles,traditional,cornell-1999
+zucchini,radish,COMPANION,Radish in each hill said to prevent insects,traditional,cornell-1999
+winter-squash,radish,COMPANION,Radish in each hill said to prevent insects,traditional,cornell-1999
+tomato,potato,ANTAGONIST,Both host late blight; keep plantings apart and do not follow potatoes with tomatoes,extension,purdue-bp80;cornell-1999
+tomato,cauliflower,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+tomato,broccoli,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+tomato,tuscan-kale,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+tomato,savoy-cabbage,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+tomato,cabbage,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+tomato,fennel,ANTAGONIST,Said to dislike each other,traditional,cornell-1999
+bean,onion,ANTAGONIST,Beans said not to like members of the onion family,traditional,cornell-1999
+bean,garlic,ANTAGONIST,Beans said not to like members of the onion family,traditional,cornell-1999
+bean,leek,ANTAGONIST,Beans said not to like members of the onion family,traditional,cornell-1999
+pea,onion,ANTAGONIST,Onion and garlic said to harm peas,traditional,cornell-1999
+pea,garlic,ANTAGONIST,Onion and garlic said to harm peas,traditional,cornell-1999
+cauliflower,strawberry,ANTAGONIST,Cabbage said to harm strawberry,traditional,cornell-1999
+broccoli,strawberry,ANTAGONIST,Cabbage said to harm strawberry,traditional,cornell-1999
+tuscan-kale,strawberry,ANTAGONIST,Cabbage said to harm strawberry,traditional,cornell-1999
+savoy-cabbage,strawberry,ANTAGONIST,Cabbage said to harm strawberry,traditional,cornell-1999
+cabbage,strawberry,ANTAGONIST,Cabbage said to harm strawberry,traditional,cornell-1999
+cucumber,potato,ANTAGONIST,Said to be antagonistic,traditional,cornell-1999
+potato,zucchini,ANTAGONIST,Potato said to harm squash,traditional,cornell-1999
+potato,winter-squash,ANTAGONIST,Potato said to harm squash,traditional,cornell-1999
+fennel,bean,ANTAGONIST,Fennel said to harm them,traditional,cornell-1999
+fennel,sweet-pepper,ANTAGONIST,Fennel said to harm them,traditional,cornell-1999
+onion,sage,ANTAGONIST,Said to harm each other,traditional,cornell-1999

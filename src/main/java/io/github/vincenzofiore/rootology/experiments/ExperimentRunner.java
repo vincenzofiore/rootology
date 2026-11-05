@@ -51,6 +51,17 @@ public class ExperimentRunner {
         return factPresenceQuery.activeSeasonsOf(pestName);
     }
 
+    /** The arbiter's answer for an experiment case; a missing fact (hard-2) is an empty list. */
+    public List<String> jenaAnswer(ExperimentCase experimentCase) {
+        return switch (experimentCase) {
+            case EASY_1 -> jenaCompanionsOf("Tomato");
+            case EASY_2 -> jenaRelevantPests("Basil", "SUMMER");
+            case HARD_1 -> jenaChainedCompanions("Tomato");
+            case HARD_2 -> jenaDeclaredSeasonsOf("Mosquito").orElse(List.of());
+            case HARD_3 -> jenaCompanionsOf("Lavender");
+        };
+    }
+
     /** Records a comparison with only the "with skill" LLM arm. */
     public ExperimentResult recordLlmAnswer(String questionId, String question,
                                             List<String> jenaAnswer, List<String> llmAnswer,
