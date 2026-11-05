@@ -84,6 +84,17 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
    docker compose -f compose.prod.yaml exec postgres psql -U rootology -d rootology
    ```
 
+### Releases
+
+A release is a tag `vX.Y.Z` on a commit of `main`, made by the owner once `main` is updated:
+```sh
+git fetch origin && git tag -a v0.1.0 -m "Rootology 0.1.0" origin/main && git push origin v0.1.0
+```
+(or GitHub's Releases page, "Draft a new release", new tag on `main`). The `build` workflow tests it, builds
+the jar with `-Drevision=X.Y.Z`, pushes the image as `ghcr.io/vincenzofiore/rootology:X.Y.Z` and creates the
+GitHub Release with notes generated from the pull requests and commits. A tag that is not on `main` is
+refused. Then set `revision` in `pom.xml` to the next `X.Y.Z-SNAPSHOT` on `develop`.
+
 ### Updating
 
 The owner updates `main`; once its tests pass, the `publish` job pushes the new image. Then on the server:
@@ -91,7 +102,7 @@ The owner updates `main`; once its tests pass, the `publish` job pushes the new 
 cd ~/rootology && git pull && cd deploy
 docker compose -f compose.prod.yaml pull && docker compose -f compose.prod.yaml up -d
 ```
-A specific version: `APP_VERSION=<commit sha>` in `.env`. Flyway migrates the database at start.
+Which version runs is `APP_VERSION` in `.env`: a release (`0.1.0`), `latest` (the head of `main`) or a commit sha; to roll back, set the previous release and `up -d` again (Flyway migrations only move forward, so a rollback across a migration needs the backup taken before it). Flyway migrates the database at start.
 
 ### Backups
 

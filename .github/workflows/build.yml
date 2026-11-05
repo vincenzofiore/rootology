@@ -1,4 +1,4 @@
-# Offline build and tests on every push and pull request (#13).
+# Offline build and tests on every push and pull request (#13), and the release image (#12).
 # No secrets: a plain `./mvnw test` makes no paid call (live-api tests are excluded),
 # and the Testcontainers tests (Postgres, Neo4j) use the runner's Docker.
 name: build
@@ -6,6 +6,8 @@ name: build
 on:
   push:
     branches: [develop, main]
+    # A release: the owner tags a commit of main as vX.Y.Z.
+    tags: ['v*.*.*']
   pull_request:
 
 permissions:
@@ -32,35 +34,61 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
 
-  # The deployable image (#12, docs/operations.md), pushed to GitHub Container Registry only for a push to
-  # main whose tests passed: ghcr.io/vincenzofiore/rootology, tagged with the commit and `latest`.
+  # The deployable image (#12, docs/operations.md), pushed to GitHub Container Registry once the tests pass:
+  # for a push to main as `latest` and the commit; for a release tag vX.Y.Z (a commit of main) as `X.Y.Z` and
+  # the commit, with a GitHub Release whose notes are generated from the pull requests and commits.
   publish:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
       packages: write
     env:
       IMAGE: ghcr.io/vincenzofiore/rootology
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - name: Version
+        id: version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            # Only a commit of main is released.
+            git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+            echo "revision=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
       - name: Build the production jar
-        run: ./mvnw -B -ntp -Pproduction -DskipTests package
+        env:
+          REVISION: ${{ steps.version.outputs.revision }}
+        # Without a tag, the version in pom.xml (X.Y.Z-SNAPSHOT).
+        run: ./mvnw -B -ntp -Pproduction -DskipTests ${REVISION:+-Drevision=$REVISION} package
       - name: Build and push the image
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTOR: ${{ github.actor }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-          docker build --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
+          docker build --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+              --label "org.opencontainers.image.version=$TAG" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:$TAG" .
           docker push "$IMAGE:$GITHUB_SHA"
-          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$TAG"
+      - name: GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Skipped when the release was drafted on GitHub's Releases page, which created the tag.
+        run: |
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 \
+              || gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "Rootology $GITHUB_REF_NAME"

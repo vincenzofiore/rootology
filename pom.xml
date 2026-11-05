@@ -10,7 +10,8 @@
 	</parent>
 	<groupId>io.github.vincenzofiore</groupId>
 	<artifactId>rootology</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<!-- Maven's CI-friendly version: a release tag vX.Y.Z builds with -Drevision=X.Y.Z (#12, build.yml) -->
+	<version>${revision}</version>
 	<name/>
 	<description/>
 	<url/>
@@ -27,8 +28,9 @@
 		<url/>
 	</scm>
 	<properties>
+		<revision>0.1.0-SNAPSHOT</revision>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
 		<vaadin.version>25.3.4</vaadin.version>
 		<!-- Tests tagged live-api call Claude and Jev for real; run them with -Plive -->
