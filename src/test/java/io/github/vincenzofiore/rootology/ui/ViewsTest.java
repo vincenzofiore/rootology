@@ -109,6 +109,34 @@ class ViewsTest {
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
 
+    @Autowired
+    io.github.vincenzofiore.rootology.privacy.Retention retention;
+
+    @Test
+    void thePrivacyPageNamesTheControllerOnlyWhenConfigured() {
+        // Without a Vaadin session the texts stay keys; the wording is checked through Translations below.
+        String configured = new PrivacyView(
+                new io.github.vincenzofiore.rootology.privacy.PrivacyContact("Ada Lovelace", "ada@example.org"), retention)
+                .getElement().getTextRecursively();
+        assertThat(configured).contains("privacy.who.text").doesNotContain("privacy.who.missing");
+        String unset = new PrivacyView(new io.github.vincenzofiore.rootology.privacy.PrivacyContact("", ""), retention)
+                .getElement().getTextRecursively();
+        assertThat(unset).contains("privacy.who.missing");
+        assertThat(PrivacyView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
+        // Public pages need a public layout too: Vaadin denies a route whose layout a visitor may not see.
+        for (Class<?> page : List.of(PrivacyView.class, SourcesView.class)) {
+            Class<?> layout = page.getAnnotation(Route.class).layout();
+            assertThat(layout).as(page.getSimpleName()).isEqualTo(PublicLayout.class);
+            assertThat(layout.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
+        }
+
+        Translations translations = new Translations();
+        assertThat(translations.getTranslation("privacy.who.text", java.util.Locale.ITALIAN, "Ada Lovelace", "ada@example.org"))
+                .contains("Ada Lovelace", "ada@example.org");
+        assertThat(translations.getTranslation("privacy.kept.history", java.util.Locale.ITALIAN, retention.history().toDays()))
+                .contains("365 giorni");
+    }
+
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {

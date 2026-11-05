@@ -45,6 +45,11 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void thePrivacyPageIsPublic() throws Exception {
+        assertThat(get("/" + PrivacyView.ROUTE).statusCode()).isEqualTo(200);
+    }
+
+    @Test
     void theLoggedOutPageIsPublic() throws Exception {
         HttpResponse<String> response = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)

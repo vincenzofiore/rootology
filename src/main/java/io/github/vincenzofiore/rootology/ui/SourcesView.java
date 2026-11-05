@@ -15,7 +15,7 @@ import io.github.vincenzofiore.rootology.facts.SourceCatalog;
  * Sources and licences of the knowledge base, generated from `knowledge/sources.csv`. Public:
  * attribution must be readable by anyone, signed in or not.
  */
-@Route(SourcesView.ROUTE)
+@Route(value = SourcesView.ROUTE, layout = PublicLayout.class)
 @AnonymousAllowed
 public class SourcesView extends VerticalLayout implements HasDynamicTitle {
 

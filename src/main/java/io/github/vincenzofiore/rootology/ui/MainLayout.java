@@ -81,6 +81,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, VaadinIcon.BOOK.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.space"), SpaceView.class, VaadinIcon.USERS.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.sources"), SourcesView.class, VaadinIcon.BOOKMARK_O.create()));
+        nav.addItem(new SideNavItem(getTranslation("nav.privacy"), PrivacyView.class, VaadinIcon.SHIELD.create()));
         if (currentUser.hasRole(AppRole.QA)) {
             nav.addItem(new SideNavItem(getTranslation("nav.compare"), ComparisonView.class, VaadinIcon.FLASK.create()));
         }

@@ -59,6 +59,17 @@ embabel:
 rootology:
   # The app's public address, for links in emails (#25).
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
+  privacy:
+    # Named on the public privacy page (#40); set per deployment, not in the repository.
+    controller: ${ROOTOLOGY_PRIVACY_CONTROLLER:}
+    contact: ${ROOTOLOGY_PRIVACY_CONTACT:}
+  retention:
+    # How long personal data is kept (#40, docs/privacy.md); applied every night and shown on /privacy.
+    history: P365D
+    usage: P365D
+    escalations: P90D
+    notifications: P90D
+    invitations: P30D
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:

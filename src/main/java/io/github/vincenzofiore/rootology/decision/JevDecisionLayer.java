@@ -165,11 +165,12 @@ public class JevDecisionLayer implements DecisionLayer {
                 .body(JevResponse.class);
 
         double answerable = response.noul("answerable");
-        log.info("Jev {} {}: answerable={}", intent.kind(), intent.subject(), answerable);
+        // Debug only: the subject may be a plot name a person chose (#40).
+        log.debug("Jev {} {}: answerable={}", intent.kind(), intent.subject(), answerable);
         Map<String, Double> judged = new LinkedHashMap<>();
         for (int i = 0; i < candidates.size(); i++) {
             double p = response.noul("candidate_" + i);
-            log.info("Jev   {}={}", candidates.get(i), p);
+            log.debug("Jev   {}={}", candidates.get(i), p);
             judged.put(candidates.get(i), p);
         }
         return new Judgments(answerable, judged);
