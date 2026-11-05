@@ -70,4 +70,18 @@ vaadin-grid {
     min-height: var(--lumo-size-m);
     text-decoration: none;
 }
-.rootology-public-title { font-weight: 600; color: var(--lumo-secondary-text-color); }
+.rootology-public-title { font-weight: 600; font-size: calc(var(--lumo-font-size-xl) * 1.5); line-height: 1; }
+
+/* The name with the sprout as its central "o" (Wordmark): the icon sized and seated like a lowercase o. */
+.rootology-wordmark { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.rootology-wordmark img {
+    width: 0.68em;
+    height: 0.68em;
+    margin: 0 0.04em -0.07em;
+}
+.rootology-app-title { font-size: 2.25rem; line-height: 1; margin: 0 0.5rem; }
+@media (max-width: 640px) {
+    /* On a phone the navbar also holds the space, the bell and the person menu. */
+    .rootology-app-title { font-size: 1.5rem; }
+    .rootology-public-title { font-size: var(--lumo-font-size-xl); }
+}

@@ -23,7 +23,7 @@ public class PublicLayout extends Div implements RouterLayout {
         back.setRouterIgnore(!signedIn);
         back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(signedIn ? "public.back" : "public.signin")));
         back.addClassName("rootology-public-back");
-        Span title = new Span("Rootology");
+        Wordmark title = new Wordmark();
         title.addClassName("rootology-public-title");
         Header bar = new Header(back, title);
         bar.addClassName("rootology-public-bar");

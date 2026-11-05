@@ -58,7 +58,7 @@ class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE,
-                        "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**", "/actuator/health")
+                        "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**", "/icons/**", "/actuator/health")
                 .permitAll());
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();

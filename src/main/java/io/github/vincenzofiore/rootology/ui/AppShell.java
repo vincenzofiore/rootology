@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.lumo.Lumo;
@@ -17,4 +18,12 @@ import com.vaadin.flow.theme.lumo.Lumo;
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
 @StyleSheet("styles/rootology.css")
 public class AppShell implements AppShellConfigurator {
+
+    /** The sprout icon (#12, docs/brand): SVG for browsers, PNG for older ones and the phone's home screen. */
+    @Override
+    public void configurePage(AppShellSettings settings) {
+        settings.addFavIcon("icon", "icons/rootology.svg", "any");
+        settings.addFavIcon("icon", "icons/favicon-32.png", "32x32");
+        settings.addFavIcon("apple-touch-icon", "icons/apple-touch-icon.png", "180x180");
+    }
 }

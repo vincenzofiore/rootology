@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Rootology: sprout and roots, full square for app icons</title>
+  <rect width="512" height="512" fill="#F4F9EF"/>
+  <g transform="translate(38.4 38.4) scale(0.85)">
+  <defs><clipPath id="c"><circle cx="256" cy="256" r="232"/></clipPath></defs>
+  <g clip-path="url(#c)">
+    <rect width="512" height="512" fill="#E6F2DC"/>
+    <rect y="270" width="512" height="242" fill="#8A5A3B"/>
+    <path d="M0 270 Q 128 254 256 270 T 512 270 V 290 H 0 Z" fill="#6E4630"/>
+  </g>
+  <!-- roots -->
+  <g stroke="#F3E3C8" stroke-linecap="round" fill="none">
+    <path d="M256 280 C 256 330, 250 370, 256 420" stroke-width="12"/>
+    <path d="M254 320 C 226 336, 204 350, 186 380" stroke-width="8"/>
+    <path d="M258 340 C 286 352, 310 370, 324 398" stroke-width="8"/>
+    <path d="M254 380 C 236 392, 222 404, 214 424" stroke-width="6"/>
+    <path d="M258 392 C 274 402, 284 414, 290 432" stroke-width="6"/>
+  </g>
+  <!-- stem and leaves -->
+  <path d="M256 280 C 256 240, 256 214, 256 186" stroke="#3E8E41" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <path d="M256 200 C 214 150, 150 140, 116 166 C 150 216, 214 226, 256 210 Z" fill="#4E9F3D"/>
+  <path d="M256 190 C 296 128, 364 112, 398 140 C 366 198, 300 214, 256 200 Z" fill="#6BBF59"/>
+</g>
+</svg>

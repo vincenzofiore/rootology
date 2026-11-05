@@ -41,8 +41,8 @@ public class MainLayout extends AppLayout {
         this.notifications = notifications;
         this.broadcaster = broadcaster;
         this.currentUser = currentUser;
-        H1 title = new H1("Rootology");
-        title.getStyle().set("font-size", "1.2rem").set("margin", "0 0.5rem");
+        H1 title = new H1(new Wordmark());
+        title.addClassName("rootology-app-title");
         // On a phone the side menu hides itself (#31): the toggle opens it.
         DrawerToggle toggle = new DrawerToggle();
         toggle.setAriaLabel(getTranslation("nav.menu"));
