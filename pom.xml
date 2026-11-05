@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
 		<vaadin.version>25.3.4</vaadin.version>
 		<!-- Tests tagged live-api call Claude and Jev for real; run them with -Plive -->
