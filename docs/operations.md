@@ -61,7 +61,7 @@ firewall allows only TCP 22, 80, 443 and ICMP in. The domain `rootology.app` (OV
 the server with an `A` and an `AAAA` record. Server address and keys stay out of this repository.
 
 `deploy/compose.prod.yaml` runs Caddy (HTTPS from Let's Encrypt, HTTP redirected), the app image
-`ghcr.io/vincenzofiore/rootology` (built by `.github/workflows/publish.yml` after a green build on `main`),
+`ghcr.io/vincenzofiore/rootology` (built by the `publish` job of `.github/workflows/build.yml` once the tests pass on `main`),
 Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` profile
 (`application-prod.yaml`: forwarded headers from Caddy, `Secure` cookie; Spring then sends HSTS).
 
@@ -86,7 +86,7 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
 
 ### Updating
 
-The owner updates `main`; once its build is green, `publish` pushes the new image. Then on the server:
+The owner updates `main`; once its tests pass, the `publish` job pushes the new image. Then on the server:
 ```sh
 cd ~/rootology && git pull && cd deploy
 docker compose -f compose.prod.yaml pull && docker compose -f compose.prod.yaml up -d
