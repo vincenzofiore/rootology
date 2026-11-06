@@ -18,8 +18,6 @@ import java.util.stream.Collectors;
  */
 class GitHubEmails {
 
-    static final String ATTRIBUTE = "verified_emails";
-
     private static final Logger log = LoggerFactory.getLogger(GitHubEmails.class);
 
     record Address(String email, boolean verified, boolean primary) {

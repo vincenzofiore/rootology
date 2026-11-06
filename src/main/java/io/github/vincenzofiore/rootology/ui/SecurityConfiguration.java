@@ -32,6 +32,9 @@ class SecurityConfiguration {
 
     static final String GITHUB_LOGIN_PAGE = "/oauth2/authorization/github";
 
+    /** Google (OpenID Connect); the button is offered only when it is configured (#28). */
+    static final String GOOGLE_LOGIN_PAGE = "/oauth2/authorization/google";
+
     /** Public page shown after logout (see LoggedOutView). */
     static final String LOGGED_OUT_PAGE = "logged-out";
 
@@ -44,20 +47,34 @@ class SecurityConfiguration {
             + "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'";
 
     @Bean
+    SignInSteps signInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations,
+                            RoleService roles, NotificationService notifications) {
+        return new SignInSteps(spaces, identities, invitations, roles, notifications);
+    }
+
+    @Bean
     AllowListOAuth2UserService allowListOAuth2UserService(
             @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces,
-            IdentityService identities, InvitationService invitations, RoleService roles,
-            NotificationService notifications) {
+            IdentityService identities, SignInSteps steps) {
         Set<String> allowed = Arrays.stream(allowedUsers.split(","))
                 .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed, spaces, identities, invitations, roles,
-                new GitHubEmails("https://api.github.com"), notifications);
+        return new AllowListOAuth2UserService(allowed, spaces, identities, steps,
+                new GitHubEmails("https://api.github.com"));
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService) throws Exception {
+    GoogleOidcUserService googleOidcUserService(
+            @Value("${rootology.security.allowed-google-emails:}") String allowedEmails, SpaceService spaces,
+            IdentityService identities, InvitationService invitations, SignInSteps steps) {
+        return new GoogleOidcUserService(Arrays.stream(allowedEmails.split(",")).collect(Collectors.toSet()),
+                steps, spaces, identities, invitations);
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, AllowListOAuth2UserService userService,
+                                            GoogleOidcUserService googleService) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE,
                         "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**", "/icons/**", "/actuator/health",
@@ -71,7 +88,9 @@ class SecurityConfiguration {
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin
                 .oauth2LoginPage(GITHUB_LOGIN_PAGE)
                 .logoutSuccessHandler(loggedOut));
-        http.oauth2Login(login -> login.userInfoEndpoint(info -> info.userService(userService)));
+        http.oauth2Login(login -> login.userInfoEndpoint(info -> info
+                .userService(userService)
+                .oidcUserService(googleService)));
         // Security headers (#41) beyond Spring's defaults (nosniff, frame DENY, no-store).
         http.headers(headers -> headers
                 // Written at the start of every response: in production mode Vaadin sends its bootstrap page

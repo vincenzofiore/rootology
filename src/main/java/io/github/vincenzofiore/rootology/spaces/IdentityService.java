@@ -37,6 +37,31 @@ public class IdentityService {
                 .orElse(false);
     }
 
+    /** True if this person came in with any account at all, whichever provider. */
+    @Transactional(readOnly = true)
+    public boolean hasAnyIdentity(String login) {
+        return users.findByLogin(SpaceService.normalizeLogin(login))
+                .map(user -> identities.existsByUserId(user.getId()))
+                .orElse(false);
+    }
+
+    /**
+     * A login derived from {@code base} that nobody has yet: the base itself, or the base with 2, 3, ... after
+     * it. Used for a person whose login must be invented, as for Google (#28).
+     */
+    @Transactional(readOnly = true)
+    public String freeLogin(String base) {
+        if (users.findByLogin(base).isEmpty()) {
+            return base;
+        }
+        for (int n = 2; ; n++) {
+            String candidate = base + n;
+            if (users.findByLogin(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+    }
+
     /**
      * Links an account of {@code provider} to the person with this login. Does nothing if it is linked
      * already. Refuses, without writing, when the account belongs to another person or the person already

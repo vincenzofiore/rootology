@@ -60,6 +60,9 @@ class PrivacyTest {
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'del-ada'), 'github', '4242', 'ada@example.org', now())""").update();
+        jdbc.sql("""
+                insert into user_identity (user_id, provider, subject, email, linked_at)
+                values ((select id from app_user where login = 'del-ada'), 'google', '4243', 'ada@gmail.com', now())""").update();
         notification("del-ada", bobSpace);
         notification("del-bob", bobSpace);
         jdbc.sql("""
@@ -75,8 +78,8 @@ class PrivacyTest {
         deletion.delete("DEL-Ada");
 
         assertThat(count("select count(*) from app_user where login = 'del-ada'")).isZero();
-        // The GitHub identity goes with the account (#28), by the foreign key's cascade.
-        assertThat(count("select count(*) from user_identity where subject = '4242'")).isZero();
+        // The identities go with the account (#28), by the foreign key's cascade.
+        assertThat(count("select count(*) from user_identity where subject in ('4242', '4243')")).isZero();
         assertThat(count("select count(*) from space where id = " + adaSpace)).isZero();
         assertThat(count("select count(*) from garden where id = " + garden)).isZero();
         assertThat(count("select count(*) from notification_preference where github_login = 'del-ada'")).isZero();
@@ -142,11 +145,15 @@ class PrivacyTest {
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
+        jdbc.sql("""
+                insert into user_identity (user_id, provider, subject, email, linked_at)
+                values ((select id from app_user where login = 'exp-fay'), 'google', '5253', 'fay@gmail.com', now())""").update();
 
         String json = new String(export.export("exp-fay"), StandardCharsets.UTF_8);
 
         assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
-                        "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org")
+                        "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
+                        "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com")
                 .doesNotContain("gus asks about leeks");
     }
 

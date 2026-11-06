@@ -17,6 +17,7 @@ in memory, and the ones from before the release are not recognised.
   layer's confidence, and the duration and failures of calls to external services (#27).
 - The health check reports `DEGRADED`, still with HTTP 200, while an external service is not answering;
   liveness and readiness (Postgres and Neo4j) checks for the deployment (#27).
+- Sign in with Google, for people invited by email or to an open invitation link (#28).
 
 ### Changed
 

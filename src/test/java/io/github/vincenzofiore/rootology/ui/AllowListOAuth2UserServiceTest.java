@@ -27,6 +27,8 @@ class AllowListOAuth2UserServiceTest {
     private final InvitationService invitations = mock(InvitationService.class);
     private final io.github.vincenzofiore.rootology.roles.RoleService roles =
             mock(io.github.vincenzofiore.rootology.roles.RoleService.class);
+    private final io.github.vincenzofiore.rootology.notifications.NotificationService notifications =
+            mock(io.github.vincenzofiore.rootology.notifications.NotificationService.class);
 
     private static OAuth2User githubUser(String id, String login) {
         return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"),
@@ -34,8 +36,8 @@ class AllowListOAuth2UserServiceTest {
     }
 
     private AllowListOAuth2UserService service(String... allowed) {
-        return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities, invitations, roles,
-                mock(GitHubEmails.class), mock(io.github.vincenzofiore.rootology.notifications.NotificationService.class));
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
+                new SignInSteps(spaces, identities, invitations, roles, notifications), mock(GitHubEmails.class));
     }
 
     @Test
@@ -84,7 +86,7 @@ class AllowListOAuth2UserServiceTest {
     @Test
     void aFirstSignInKeepsTheGitHubLogin() {
         when(identities.loginOf(IdentityProvider.GITHUB, "7")).thenReturn(Optional.empty());
-        when(identities.hasIdentity("dave", IdentityProvider.GITHUB)).thenReturn(false);
+        when(identities.hasAnyIdentity("dave")).thenReturn(false);
 
         assertThat(service().resolveLogin("7", "dave")).isEqualTo("dave");
     }
@@ -92,9 +94,18 @@ class AllowListOAuth2UserServiceTest {
     @Test
     void aFreedGitHubLoginHeldByAnotherIdIsRefused() {
         when(identities.loginOf(IdentityProvider.GITHUB, "2")).thenReturn(Optional.empty());
-        when(identities.hasIdentity("alice", IdentityProvider.GITHUB)).thenReturn(true);
+        when(identities.hasAnyIdentity("alice")).thenReturn(true);
 
         assertThatThrownBy(() -> service().resolveLogin("2", "alice"))
+                .isInstanceOf(OAuth2AuthenticationException.class);
+    }
+
+    @Test
+    void aLoginDerivedForAGooglePersonIsNotEnteredByGitHub() {
+        when(identities.loginOf(IdentityProvider.GITHUB, "3")).thenReturn(Optional.empty());
+        when(identities.hasAnyIdentity("mario")).thenReturn(true); // a Google person, not a GitHub one
+
+        assertThatThrownBy(() -> service().resolveLogin("3", "mario"))
                 .isInstanceOf(OAuth2AuthenticationException.class);
     }
 
@@ -110,7 +121,7 @@ class AllowListOAuth2UserServiceTest {
     @Test
     void aLoginIsCaseInsensitive() {
         when(identities.loginOf(IdentityProvider.GITHUB, "9")).thenReturn(Optional.empty());
-        when(identities.hasIdentity("alice", IdentityProvider.GITHUB)).thenReturn(false);
+        when(identities.hasAnyIdentity("alice")).thenReturn(false);
 
         assertThat(service().resolveLogin("9", "ALICE")).isEqualTo("alice");
     }
@@ -125,6 +136,6 @@ class AllowListOAuth2UserServiceTest {
                 .containsExactlyInAnyOrder("OAUTH2_USER", "ROLE_QA");
         assertThat(user.getName()).isEqualTo("alice");
         assertThat(user.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("alice");
-        assertThat(user.<java.util.List<String>>getAttribute(GitHubEmails.ATTRIBUTE)).containsExactly("alice@example.org");
+        assertThat(user.<java.util.List<String>>getAttribute(SignedIn.VERIFIED_EMAILS_ATTRIBUTE)).containsExactly("alice@example.org");
     }
 }

@@ -62,8 +62,8 @@ class SignInTest {
     }
 
     private AllowListOAuth2UserService service(String... allowed) {
-        return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities, invitations, roles,
-                mock(GitHubEmails.class), notifications);
+        return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
+                new SignInSteps(spaces, identities, invitations, roles, notifications), mock(GitHubEmails.class));
     }
 
     private long count(String sql) {

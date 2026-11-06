@@ -16,6 +16,11 @@ spring:
             client-secret: ${ROOTOLOGY_GITHUB_CLIENT_SECRET:not-set}
             # user:email reads the verified addresses, so an invitation can be bound to one (#25).
             scope: read:user,user:email
+          # OpenID Connect (#28): a person is recognised by Google's sub. Spring Boot knows Google's provider.
+          google:
+            client-id: ${ROOTOLOGY_GOOGLE_CLIENT_ID:not-set}
+            client-secret: ${ROOTOLOGY_GOOGLE_CLIENT_SECRET:not-set}
+            scope: openid,email,profile
 
   # Outgoing email (#25). Without settings it goes to Mailpit (compose.yaml), which keeps it locally. For Gmail:
   # host smtp.gmail.com, port 587, auth and starttls true, an app password of the app's dedicated account.
@@ -138,3 +143,5 @@ rootology:
   security:
     # GitHub accounts (logins, comma-separated) allowed into the UI. Empty means nobody.
     allowed-github-users: ${ROOTOLOGY_ALLOWED_GITHUB_USERS:}
+    # Google accounts (verified emails, comma-separated) allowed in without an invitation (#28). Empty means nobody.
+    allowed-google-emails: ${ROOTOLOGY_ALLOWED_GOOGLE_EMAILS:}

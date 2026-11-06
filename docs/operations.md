@@ -6,7 +6,9 @@ signs in) never goes into the repository, which is public.
 ## First admin of an environment (#32)
 
 App roles live in `app_role_grant`. The first admin is inserted once per environment, after Flyway has
-created the table (start the app once); every later role is granted in the Admin view by an admin.
+created the table (start the app once) and **after that person has signed in once**: a login with no person
+behind it could otherwise be given to someone signing in with Google, whose login is derived from their email
+(#28). Every later role is granted in the Admin view by an admin.
 GitHub logins are stored in lower case.
 
 ```sql

@@ -47,6 +47,20 @@ class InvitationServiceTest {
     }
 
     @Test
+    void anInvitationSaysWhetherItNamesAGitHubLogin() {
+        long garden = spaceOf("uma");
+        String forAnyone = invitations.create(garden, "uma", Role.MEMBER, null);
+        String forLogin = invitations.create(garden, "uma", Role.MEMBER, "only-this-one");
+        String forEmail = invitations.create(garden, "uma", Role.MEMBER, null, "someone@example.org");
+
+        assertThat(invitations.boundToLogin(forAnyone)).isFalse();
+        assertThat(invitations.boundToLogin(forLogin)).isTrue();
+        assertThat(invitations.boundToLogin(forEmail)).isFalse();
+        assertThat(invitations.boundToLogin("no-such-token")).isFalse();
+        assertThat(invitations.boundToLogin(null)).isFalse();
+    }
+
+    @Test
     void onlyTheHashOfTheTokenIsStored() {
         long garden = spaceOf("rita");
         String token = invitations.create(garden, "rita", Role.MEMBER, null);
