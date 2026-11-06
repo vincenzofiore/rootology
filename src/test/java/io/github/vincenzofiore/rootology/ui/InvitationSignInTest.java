@@ -18,11 +18,11 @@ class InvitationSignInTest {
 
     @Test
     void googleIsOfferedOnlyWhenItIsConfigured() {
-        assertThat(InvitationView.googleConfigured("not-set")).isFalse();
-        assertThat(InvitationView.googleConfigured("")).isFalse();
-        assertThat(InvitationView.googleConfigured("  ")).isFalse();
-        assertThat(InvitationView.googleConfigured(null)).isFalse();
-        assertThat(InvitationView.googleConfigured("1234.apps.googleusercontent.com")).isTrue();
+        assertThat(SecurityConfiguration.googleConfigured("not-set")).isFalse();
+        assertThat(SecurityConfiguration.googleConfigured("")).isFalse();
+        assertThat(SecurityConfiguration.googleConfigured("  ")).isFalse();
+        assertThat(SecurityConfiguration.googleConfigured(null)).isFalse();
+        assertThat(SecurityConfiguration.googleConfigured("1234.apps.googleusercontent.com")).isTrue();
     }
 
     @Test

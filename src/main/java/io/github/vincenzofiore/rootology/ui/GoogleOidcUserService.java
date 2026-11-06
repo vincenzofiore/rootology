@@ -49,7 +49,27 @@ class GoogleOidcUserService extends OidcUserService {
 
     @Override
     public OidcUser loadUser(OidcUserRequest request) throws OAuth2AuthenticationException {
-        return signIn(super.loadUser(request), PendingInvitation.current());
+        OidcUser user = super.loadUser(request);
+        PendingLink.Link marker = PendingLink.current();
+        if (marker != null) {
+            return link(user, marker);
+        }
+        return signIn(user, PendingInvitation.current());
+    }
+
+    /**
+     * A link started in My account (#28): the person is already in, so no admission, no invitation, no new
+     * person and no login derived from the address — only the account just handed over is linked.
+     */
+    OidcUser link(OidcUser user, PendingLink.Link marker) {
+        String subject = subject(user);
+        String email = verifiedEmail(user);
+        Set<String> emails = emails(email);
+        PendingLink.Result result = steps.link(marker, IdentityProvider.GOOGLE, subject, email);
+        if (result != PendingLink.Result.LINKED) {
+            throw SignInSteps.refused(result);
+        }
+        return principal(user, marker.login(), emails);
     }
 
     /** Finds the person (or makes a new one), admits them, then does what every sign-in does (#28). */

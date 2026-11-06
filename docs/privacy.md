@@ -27,6 +27,8 @@ The controller is the owner of the deployment, named on the privacy page through
 | Application logs (logins in security events: invitations, joins; masked email addresses; a random id per request; never questions, prompts or coordinates) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
 | Metrics (counts and durations by service, graph and outcome; never a person, a space or a question) | the app's memory, since the last start | operations (#27) | not personal data | until the next restart |
 
+The person may link a second account (GitHub or Google) to their own profile from My account, and nothing is merged by email: linking only happens when they ask for it while signed in. Unlinking one deletes its `user_identity` row; the last one cannot be unlinked, so nobody is left without a way in.
+
 Nothing is used for advertising, profiling or sold. The only cookie is the session cookie;
 the colour scheme choice stays in the browser's localStorage. Both are strictly necessary or chosen by the person, so no consent banner is needed.
 

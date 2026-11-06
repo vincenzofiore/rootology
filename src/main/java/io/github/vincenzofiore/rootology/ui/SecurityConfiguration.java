@@ -2,8 +2,10 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
+import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
+import io.github.vincenzofiore.rootology.spaces.IdentityProvider;
 import io.github.vincenzofiore.rootology.spaces.IdentityService;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
@@ -12,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.HeaderWriterFilter;
@@ -37,6 +40,16 @@ class SecurityConfiguration {
 
     /** Public page shown after logout (see LoggedOutView). */
     static final String LOGGED_OUT_PAGE = "logged-out";
+
+    /** The OAuth2 page that starts signing in with a provider (also the link started in My account, #28). */
+    static String loginPage(IdentityProvider provider) {
+        return provider == IdentityProvider.GOOGLE ? GOOGLE_LOGIN_PAGE : GITHUB_LOGIN_PAGE;
+    }
+
+    /** True when a Google client id is set; the placeholder from application.yaml means it is not. */
+    static boolean googleConfigured(String clientId) {
+        return clientId != null && !clientId.isBlank() && !"not-set".equals(clientId);
+    }
 
     /**
      * Vaadin needs inline scripts and styles and eval for its client engine; everything else comes from this
@@ -88,9 +101,16 @@ class SecurityConfiguration {
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin
                 .oauth2LoginPage(GITHUB_LOGIN_PAGE)
                 .logoutSuccessHandler(loggedOut));
-        http.oauth2Login(login -> login.userInfoEndpoint(info -> info
-                .userService(userService)
-                .oidcUserService(googleService)));
+        http.oauth2Login(login -> {
+            login.userInfoEndpoint(info -> info
+                    .userService(userService)
+                    .oidcUserService(googleService));
+            // A link started in My account (#28) always leaves the person signed in: a refusal goes back there
+            // with its code (see LinkFailureHandler). Every other sign-in keeps Vaadin's handler.
+            login.failureHandler(new LinkFailureHandler());
+        });
+        // Added after Vaadin's configurer, so its success handler exists and is the one wrapped (see below).
+        http.with(new LinkSuccessConfiguration());
         // Security headers (#41) beyond Spring's defaults (nosniff, frame DENY, no-store).
         http.headers(headers -> headers
                 // Written at the start of every response: in production mode Vaadin sends its bootstrap page
@@ -108,5 +128,22 @@ class SecurityConfiguration {
                 .permissionsPolicyHeader(permissions -> permissions.policy(
                         "geolocation=(self), camera=(), microphone=(), payment=(), usb=()")));
         return http.build();
+    }
+
+    /**
+     * Wraps the success handler of sign-ins (#28). It cannot be done where the rest of the login is configured:
+     * Vaadin's own configurer sets that handler later, when the chain is built, so this one runs after it.
+     */
+    private static final class LinkSuccessConfiguration
+            extends AbstractHttpConfigurer<LinkSuccessConfiguration, HttpSecurity> {
+
+        @Override
+        public void init(HttpSecurity http) {
+            VaadinSavedRequestAwareAuthenticationSuccessHandler signIn =
+                    http.getSharedObject(VaadinSavedRequestAwareAuthenticationSuccessHandler.class);
+            if (signIn != null) {
+                http.oauth2Login(login -> login.successHandler(new LinkSuccessHandler(signIn)));
+            }
+        }
     }
 }

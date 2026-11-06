@@ -43,7 +43,25 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
         OAuth2User user = super.loadUser(request);
         GitHubEmails.Verified verified = gitHubEmails.verified(request.getAccessToken().getTokenValue());
+        PendingLink.Link marker = PendingLink.current();
+        if (marker != null) {
+            return link(user, verified, marker);
+        }
         return signIn(user, verified, PendingInvitation.current());
+    }
+
+    /**
+     * A link started in My account (#28): the person is already in, so no admission, no invitation and no new
+     * person — only the account just handed over is linked to the marker's person.
+     */
+    OAuth2User link(OAuth2User user, GitHubEmails.Verified verified, PendingLink.Link marker) {
+        String subject = subject(user);
+        Set<String> emails = verified.all();
+        PendingLink.Result result = steps.link(marker, IdentityProvider.GITHUB, subject, verified.primary());
+        if (result != PendingLink.Result.LINKED) {
+            throw SignInSteps.refused(result);
+        }
+        return withRoles(user, SpaceService.normalizeLogin(marker.login()), emails);
     }
 
     /**

@@ -13,10 +13,12 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -70,6 +72,50 @@ class SignInSteps {
         notifications.rememberEmail(login, email);
     }
 
+    /**
+     * Links the account a provider has just handed us to the person who asked for the link in My account (#28),
+     * and nothing else: no admission, no invitation, no sign-in of anyone else, no address remembered. The
+     * marker is forgotten whatever happens.
+     *
+     * <p>The rules, in order: an old marker, a marker of another provider and a marker whose person is gone are
+     * all {@code EXPIRED}; an account already linked to this person is a success with nothing written; an
+     * account linked to another person is {@code TAKEN} and never moved; another account of the same provider
+     * is {@code ALREADY_LINKED}.
+     */
+    PendingLink.Result link(PendingLink.Link marker, IdentityProvider provider, String subject, String email) {
+        try {
+            if (Instant.now().isAfter(marker.createdAt().plus(PendingLink.WINDOW))) {
+                return PendingLink.Result.EXPIRED;
+            }
+            if (marker.provider() != provider) {
+                return PendingLink.Result.EXPIRED;
+            }
+            String login = SpaceService.normalizeLogin(marker.login());
+            if (!identities.isKnownPerson(login)) {
+                return PendingLink.Result.EXPIRED;
+            }
+            Optional<String> owner = identities.loginOf(provider, subject);
+            if (owner.filter(login::equals).isPresent()) {
+                PendingLink.markLinked();
+                return PendingLink.Result.LINKED;
+            }
+            if (owner.isPresent()) {
+                return PendingLink.Result.TAKEN;
+            }
+            if (identities.hasIdentity(login, provider)) {
+                return PendingLink.Result.ALREADY_LINKED;
+            }
+            identities.link(login, provider, subject, email);
+            PendingLink.markLinked();
+            return PendingLink.Result.LINKED;
+        } catch (SpaceAccessException e) {
+            // Only a link racing this one can get here: the account went to someone else meanwhile.
+            return PendingLink.Result.TAKEN;
+        } finally {
+            PendingLink.clear();
+        }
+    }
+
     /** The person's app roles as authorities (ROLE_ADMIN, ...), read once at sign-in as Spring intends. */
     List<GrantedAuthority> authorities(OAuth2User user, String login) {
         List<GrantedAuthority> authorities = new ArrayList<>(user.getAuthorities());
@@ -87,5 +133,14 @@ class SignInSteps {
 
     static OAuth2AuthenticationException denied(String reason) {
         return new OAuth2AuthenticationException(new OAuth2Error("access_denied"), reason);
+    }
+
+    /**
+     * A refused link, carrying its code: the failure handler turns this code, and only this code, into the URL
+     * of My account (#28).
+     */
+    static OAuth2AuthenticationException refused(PendingLink.Result result) {
+        return new OAuth2AuthenticationException(new OAuth2Error(result.code()),
+                "Linking an account was refused: " + result.code());
     }
 }

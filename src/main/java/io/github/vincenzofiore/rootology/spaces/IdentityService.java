@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,6 +46,23 @@ public class IdentityService {
                 .orElse(false);
     }
 
+    /** True if a person with this login exists, whether or not they have an identity. */
+    @Transactional(readOnly = true)
+    public boolean isKnownPerson(String login) {
+        return users.findByLogin(SpaceService.normalizeLogin(login)).isPresent();
+    }
+
+    /** The person's sign-in accounts, oldest first, as My account shows them (#28). */
+    @Transactional(readOnly = true)
+    public List<LinkedIdentity> linkedTo(String login) {
+        return users.findByLogin(SpaceService.normalizeLogin(login))
+                .map(user -> identities.findByUserIdOrderByLinkedAtAsc(user.getId()).stream()
+                        .map(identity -> new LinkedIdentity(identity.getProvider(), identity.getEmail(),
+                                identity.getLinkedAt()))
+                        .toList())
+                .orElse(List.of());
+    }
+
     /**
      * A login derived from {@code base} that nobody has yet: the base itself, or the base with 2, 3, ... after
      * it. Used for a person whose login must be invented, as for Google (#28).
@@ -83,5 +101,23 @@ public class IdentityService {
             throw new SpaceAccessException(normalized + " already has another " + provider.id() + " account");
         }
         identities.save(new UserIdentity(user, provider, subject, email, Instant.now()));
+    }
+
+    /**
+     * Removes the person's account with {@code provider} (#28). Refuses when it is their last one: nobody may be
+     * left without a way in. Nothing else about the person changes.
+     */
+    @Transactional
+    public void unlink(String login, IdentityProvider provider) {
+        String normalized = SpaceService.normalizeLogin(login);
+        AppUser user = users.findByLogin(normalized)
+                .orElseThrow(() -> new SpaceAccessException(normalized + " is not a known person"));
+        List<UserIdentity> own = identities.findByUserIdOrderByLinkedAtAsc(user.getId());
+        UserIdentity target = own.stream().filter(identity -> identity.getProvider() == provider).findFirst()
+                .orElseThrow(() -> new SpaceAccessException(normalized + " has no " + provider.id() + " account"));
+        if (own.size() < 2) {
+            throw new SpaceAccessException(normalized + " would be left without a way in");
+        }
+        identities.delete(target);
     }
 }

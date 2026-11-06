@@ -14,7 +14,8 @@ import java.time.Instant;
 
 /**
  * One external identity of a person (#28): the provider and the stable id it gives them, so the person is
- * found again even when their name there changes. Not used yet: identities are recorded from the next step.
+ * found again even when their name there changes. A person may have several, one per provider, linked from
+ * My account and never merged automatically.
  */
 @Entity
 @Table(name = "user_identity")

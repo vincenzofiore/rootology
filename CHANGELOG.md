@@ -18,6 +18,7 @@ in memory, and the ones from before the release are not recognised.
 - The health check reports `DEGRADED`, still with HTTP 200, while an external service is not answering;
   liveness and readiness (Postgres and Neo4j) checks for the deployment (#27).
 - Sign in with Google, for people invited by email or to an open invitation link (#28).
+- Link a GitHub and a Google account to the same person from My account, and unlink one when two are linked (#28)
 
 ### Changed
 

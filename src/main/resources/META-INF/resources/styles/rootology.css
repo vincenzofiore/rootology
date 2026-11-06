@@ -93,3 +93,8 @@ vaadin-grid {
     .rootology-app-title { font-size: 1.5rem; }
     .rootology-public-title { font-size: var(--lumo-font-size-xl); }
 }
+
+/* The sign-in accounts of My account (#28): one line per account, the ways to link below. */
+.rootology-signin-accounts { gap: var(--lumo-space-xs); margin: 0 0 var(--lumo-space-l); }
+.rootology-signin-account { flex-wrap: wrap; gap: var(--lumo-space-s); border-bottom: 1px solid var(--lumo-contrast-10pct); padding: var(--lumo-space-xs) 0; }
+.rootology-signin-provider { font-weight: 600; min-width: 5rem; }

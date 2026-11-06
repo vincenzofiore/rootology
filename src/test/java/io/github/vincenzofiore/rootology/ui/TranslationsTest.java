@@ -71,6 +71,9 @@ class TranslationsTest {
                 Stream.of(io.github.vincenzofiore.rootology.garden.PlantingMethod.values()).map(v -> "method." + v.name()),
                 Stream.of(io.github.vincenzofiore.rootology.enrichment.ProposalStatus.values())
                         .map(v -> "proposal." + v.name()),
+                Stream.of(io.github.vincenzofiore.rootology.spaces.IdentityProvider.values())
+                        .map(v -> "provider." + v.id()),
+                Stream.of(PendingLink.Result.values()).map(v -> "account.signin." + v.code()),
                 Stream.of("ALIAS", "PAIR", "HOST").map(v -> "knowledge.kind." + v),
                 Stream.of("it", "en").map(v -> "knowledge.language." + v),
                 Stream.of("COMPANION", "ANTAGONIST").map(v -> "knowledge.relation." + v)).flatMap(k -> k);

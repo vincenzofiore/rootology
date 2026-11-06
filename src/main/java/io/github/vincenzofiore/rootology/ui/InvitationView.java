@@ -81,17 +81,12 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
         github.setRouterIgnore(true);
         HorizontalLayout buttons = new HorizontalLayout(github);
         buttons.addClassName("rootology-signin");
-        if (googleConfigured(googleClientId)) {
+        if (SecurityConfiguration.googleConfigured(googleClientId)) {
             Anchor google = new Anchor(SecurityConfiguration.GOOGLE_LOGIN_PAGE, getTranslation("invite.signin.google"));
             google.setRouterIgnore(true);
             buttons.add(google);
         }
         return buttons;
-    }
-
-    /** True when a Google client id is set; the placeholder from application.yaml means it is not. */
-    static boolean googleConfigured(String clientId) {
-        return clientId != null && !clientId.isBlank() && !"not-set".equals(clientId);
     }
 
     /** The refusal in the person's language; the service words it in English for its logs. */
