@@ -1,5 +1,7 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
@@ -81,6 +83,9 @@ class ViewsTest {
     com.vaadin.flow.spring.security.AuthenticationContext authentication;
 
     @Autowired
+    io.github.vincenzofiore.rootology.spaces.IdentityService identityService;
+
+    @Autowired
     io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment enrichment;
 
     @Autowired
@@ -112,7 +117,8 @@ class ViewsTest {
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new HomeView(gardens, weatherService, notificationService, pipeline, viewer()).getChildren()).isNotEmpty();
         assertThat(new NotificationsView(notificationService, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication).getChildren()).isNotEmpty();
+        assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
+                .getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("ADMIN");
@@ -180,5 +186,24 @@ class ViewsTest {
         EscalationView view = new EscalationView(pipeline, viewer());
 
         assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isTrue();
+    }
+
+    @Test
+    void theWelcomeAndLoggedOutPagesOfferTheSameWaysIn() {
+        assertThat(hrefs(new WelcomeView(authentication, "not-set")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
+        assertThat(hrefs(new WelcomeView(authentication, "1234.apps.googleusercontent.com")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
+        assertThat(hrefs(new LoggedOutView("not-set")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
+        assertThat(hrefs(new LoggedOutView("1234.apps.googleusercontent.com")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
+    }
+
+    private static List<String> hrefs(Component view) {
+        SignInButtons buttons = view.getChildren().filter(SignInButtons.class::isInstance)
+                .map(SignInButtons.class::cast).findFirst().orElseThrow();
+        return buttons.getChildren().filter(Anchor.class::isInstance).map(Component::getElement)
+                .map(element -> element.getAttribute("href")).toList();
     }
 }

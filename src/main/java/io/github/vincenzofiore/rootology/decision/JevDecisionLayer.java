@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.decision;
 
 import io.github.vincenzofiore.rootology.facts.Fact;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestClient;
@@ -86,12 +87,14 @@ public class JevDecisionLayer implements DecisionLayer {
             return Decision.escalated("the decision layer is not available right now");
         }
         Judgments judgments;
+        Timer.Sample call = breaker.startCall();
         try {
             judgments = judge(intent, facts);
-            breaker.success();
+            breaker.success(call);
         } catch (RuntimeException e) {
-            breaker.failure();
-            log.warn("Jev call failed: {}", e.getMessage());
+            breaker.failure(call);
+            // The exception's message may carry the response body, which can repeat the request's facts (#27).
+            log.warn("Jev call failed: {}", e.getClass().getSimpleName());
             return Decision.escalated("the decision layer did not answer");
         }
         return decide(judgments, MIN_CONFIDENCE);

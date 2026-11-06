@@ -17,6 +17,7 @@ import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
 
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
+import io.micrometer.core.instrument.Timer;
 import io.github.vincenzofiore.rootology.weather.Forecast;
 
 import java.util.List;
@@ -124,13 +125,14 @@ public class GardenPipelineAgent {
             throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE);
         }
         Intent intent;
+        Timer.Sample call = claude.breaker.startCall();
         try {
             // Claude's fields are bounded before use (#41): whatever a question says, they stay short plain text.
             intent = context.ai().withDefaultLlm()
                     .createObject(UNDERSTAND_PROMPT.formatted(question.text()), Intent.class).bounded();
-            claude.breaker.success();
+            claude.breaker.success(call);
         } catch (RuntimeException e) {
-            claude.breaker.failure();
+            claude.breaker.failure(call);
             throw new ServiceUnavailableException(ClaudeCircuit.UNAVAILABLE, e);
         }
         // The question's zone first, then the zone of the asking space's garden, then CENTRO.
@@ -245,13 +247,14 @@ public class GardenPipelineAgent {
     /** Claude's phrasing, or a plain sentence from the values when Claude is not available (#29). */
     private String phrase(String prompt, Resolution resolution, GraphFacts facts, OperationContext context) {
         if (claude.breaker.allowsCall()) {
+            Timer.Sample call = claude.breaker.startCall();
             try {
                 String text = context.ai().withDefaultLlm().generateText(prompt);
-                claude.breaker.success();
+                claude.breaker.success(call);
                 return text;
             } catch (RuntimeException e) {
-                claude.breaker.failure();
-                log.warn("Claude could not phrase the answer: {}", e.getMessage());
+                claude.breaker.failure(call);
+                log.warn("Claude could not phrase the answer: {}", e.getClass().getSimpleName());
             }
         }
         return plainText(resolution, facts);

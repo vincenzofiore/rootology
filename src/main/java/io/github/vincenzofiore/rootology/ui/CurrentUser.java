@@ -29,7 +29,7 @@ public class CurrentUser {
     @Autowired
     CurrentUser(SpaceService spaces, AuthenticationContext authentication) {
         this(spaces, authentication.getAuthenticatedUser(OAuth2User.class)
-                .map(user -> String.valueOf(user.<Object>getAttribute("login")))
+                .map(user -> user.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE))
                 .orElseThrow(() -> new IllegalStateException("No signed-in user")));
     }
 

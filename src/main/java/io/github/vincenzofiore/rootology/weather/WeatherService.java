@@ -1,7 +1,9 @@
 package io.github.vincenzofiore.rootology.weather;
 
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreakers;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,8 +39,8 @@ public class WeatherService {
     private final CircuitBreaker breaker;
 
     @Autowired
-    WeatherService(MetNorwayClient client, JdbcClient jdbc) {
-        this(client, jdbc, Clock.systemUTC(), new CircuitBreaker("MET Norway"));
+    WeatherService(MetNorwayClient client, JdbcClient jdbc, CircuitBreakers circuits) {
+        this(client, jdbc, Clock.systemUTC(), circuits.create("MET Norway"));
     }
 
     WeatherService(MetNorwayClient client, JdbcClient jdbc, Clock clock, CircuitBreaker breaker) {
@@ -61,6 +63,7 @@ public class WeatherService {
         if (cached.isPresent() && now.isBefore(cached.get().expiresAt())) {
             return Optional.of(read(lat, lon, now, cached.get().fetchedAt(), false));
         }
+        Timer.Sample call = breaker.startCall();
         try {
             if (!breaker.allowsCall()) {
                 // Recently failing: do not wait for another timeout (#29).
@@ -76,13 +79,14 @@ public class WeatherService {
                             + "fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at, "
                             + "last_modified = EXCLUDED.last_modified")
                     .params(lat, lon, ts(now), ts(response.expires()), response.lastModified()).update();
-            breaker.success();
+            breaker.success(call);
             return Optional.of(read(lat, lon, now, now, false));
         } catch (ServiceUnavailableException e) {
             return fallback(cached, lat, lon, now);
         } catch (RuntimeException e) {
-            breaker.failure();
-            log.warn("Weather service unavailable for {},{}: {}", lat, lon, e.getMessage());
+            breaker.failure(call);
+            // The exception's message may carry the request URL, with the garden's coordinates (#27).
+            log.warn("MET Norway unavailable: {}", e.getClass().getSimpleName());
             return fallback(cached, lat, lon, now);
         }
     }

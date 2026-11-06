@@ -7,3 +7,9 @@ server:
     session:
       cookie:
         secure: true
+
+# One JSON object per log line, with the request's traceId (#27); development keeps the readable console.
+logging:
+  structured:
+    format:
+      console: logstash

@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.decision;
 
+import io.github.vincenzofiore.rootology.resilience.CircuitBreakers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +20,7 @@ class DecisionLayerConfiguration {
     @Bean
     DecisionLayer decisionLayer(@Value("${rootology.jev.api-key:}") String apiKey,
                                 @Value("${rootology.jev.base-url}") String baseUrl,
-                                @Value("${rootology.jev.model}") String model) {
+                                @Value("${rootology.jev.model}") String model, CircuitBreakers circuits) {
         if (apiKey.isBlank()) {
             log.info("No TypeSafe API key: using StubDecisionLayer");
             return new StubDecisionLayer();
@@ -34,6 +35,6 @@ class DecisionLayerConfiguration {
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
-        return new JevDecisionLayer(restClient, model);
+        return new JevDecisionLayer(restClient, model, circuits.create("Jev"));
     }
 }

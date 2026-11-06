@@ -74,7 +74,7 @@ class Invitation {
         }
         if (login != null && invitedEmail != null && (verifiedEmails == null || !verifiedEmails.contains(invitedEmail))) {
             return "This invitation is for " + io.github.vincenzofiore.rootology.mail.MailService.mask(invitedEmail)
-                    + ": sign in with a GitHub account where that address is verified";
+                    + ": sign in with GitHub or Google using that address";
         }
         return null;
     }

@@ -14,9 +14,9 @@ import java.net.http.HttpResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Public pages, served without a login by the real Vaadin servlet (MockMvc has none): the page
- * logout lands on (if it were protected, the browser would go straight back through GitHub and
- * log the user in again), and invitation links (the invited person has no account yet).
+ * Public pages, served without a login by the real Vaadin servlet (MockMvc has none): the welcome page (#47),
+ * the page logout lands on (if it were protected, the browser would go straight back through the provider and
+ * log the user in again), invitation links (the invited person has no account yet) and the mascot.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -34,6 +34,16 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void theWelcomePageIsPublic() throws Exception {
+        assertThat(get("/" + WelcomeView.ROUTE).statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void theMascotIsPublic() throws Exception {
+        assertThat(get("/images/mascot-radish.svg").statusCode()).isEqualTo(200);
+    }
+
+    @Test
     void invitationLinksArePublic() throws Exception {
         // The invited person has no account yet; the page itself decides whether the token is valid.
         assertThat(get("/" + InvitationView.ROUTE + "/some-token").statusCode()).isEqualTo(200);
@@ -47,6 +57,19 @@ class LoggedOutPageTest {
     @Test
     void thePrivacyPageIsPublic() throws Exception {
         assertThat(get("/" + PrivacyView.ROUTE).statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void metricsEndpointRequiresAuthentication() throws Exception {
+        var response = get("/actuator/metrics");
+        assertThat(response.statusCode()).isIn(302, 401, 403);
+    }
+
+    @Test
+    void readinessIsPublicButDoesNotRevealComponentDetails() throws Exception {
+        var response = get("/actuator/health/readiness");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("\"status\"").doesNotContain("components");
     }
 
     @Test

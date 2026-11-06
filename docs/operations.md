@@ -6,7 +6,9 @@ signs in) never goes into the repository, which is public.
 ## First admin of an environment (#32)
 
 App roles live in `app_role_grant`. The first admin is inserted once per environment, after Flyway has
-created the table (start the app once); every later role is granted in the Admin view by an admin.
+created the table (start the app once) and **after that person has signed in once**: a login with no person
+behind it could otherwise be given to someone signing in with Google, whose login is derived from their email
+(#28). Every later role is granted in the Admin view by an admin.
 GitHub logins are stored in lower case.
 
 ```sql
@@ -70,6 +72,16 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
 1. A separate GitHub OAuth App for production: homepage `https://rootology.app`, callback
    `https://rootology.app/login/oauth2/code/github`. Production keys for Anthropic and TypeSafe, separate
    from the development ones.
+   Google sign-in (#28), optional: a Google Cloud project with the Google Auth Platform set up (External
+   audience, branding with home page `https://rootology.app` and privacy policy `https://rootology.app/privacy`,
+   `rootology.app` as authorized domain, verified in Search Console by a DNS TXT record at OVH that must stay
+   there), only the non-sensitive scopes `openid`, `email` and `profile`, published "In production". One web
+   client per environment: production with callback `https://rootology.app/login/oauth2/code/google`,
+   development with `http://localhost:8080/login/oauth2/code/google`. Its id and secret go in
+   `ROOTOLOGY_GOOGLE_CLIENT_ID` and `ROOTOLOGY_GOOGLE_CLIENT_SECRET`; without them the Google buttons are not
+   shown. `ROOTOLOGY_ALLOWED_GOOGLE_EMAILS` stays empty in production: people come in by invitation, and
+   whoever already signs in with GitHub links Google from My account. To rotate the secret, add a new one to
+   the client in the console, update `.env`, `up -d`, then delete the old one.
 2. On the server:
    ```sh
    git clone https://github.com/vincenzofiore/rootology.git ~/rootology
@@ -85,6 +97,11 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
    ```
 
 ### Releases
+
+Each change people or the server notice goes into `CHANGELOG.md` under `[Unreleased]` as it lands on
+`develop`. Before a release, that section is renamed `[X.Y.Z] - <date>` (with its compare link) and a new
+empty `[Unreleased]` is opened; after the tag, the section becomes the text of the GitHub Release, above the
+generated notes.
 
 A release is a tag `vX.Y.Z` on a commit of `main`, made by the owner once `main` is updated:
 ```sh
@@ -106,10 +123,10 @@ Which version runs is `APP_VERSION` in `.env`: a release (`0.1.0`), `latest` (th
 
 ### Backups
 
-`deploy/backup.sh` dumps Postgres every night and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
+`deploy/backup.sh` dumps Postgres every night (1:30 UTC, the server's time zone: before the app's retention job at 3:30 Italian time) and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
 off the server. In the `rootology` user's crontab (`crontab -e`):
 ```
-30 2 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
+30 1 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
 ```
 Restore (stops nothing else; the app may need a restart afterwards):
 ```sh
@@ -122,7 +139,29 @@ from Postgres: it needs no backup.
 
 ### Watching it
 
-`https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j and disk;
-email is left out: it is sent in the background with retries). An external uptime monitor checks it every
-few minutes and emails the owner (#27 adds metrics and alerts). Logs: `docker compose -f compose.prod.yaml
-logs --since 1h app`.
+`https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j, disk and
+the external services; email is left out: it is sent in the background with retries). An external uptime
+monitor checks it every few minutes and emails the owner. While Claude, Jev, MET Norway or GeoNames keep
+failing (an open circuit, #29) the status is `DEGRADED`, still with HTTP 200, since the app works with its
+fallbacks. `/actuator/health/liveness` and `/actuator/health/readiness` (Postgres and Neo4j) are public too.
+
+Logs are one JSON object per line in production (Spring Boot's Logstash format), with a `traceId` per HTTP
+request, also sent back as the `X-Trace-Id` header: `docker compose -f compose.prod.yaml logs --since 1h app`,
+and `| grep <traceId>` to follow one request. No questions, prompts, coordinates or email addresses in them.
+
+Metrics (#27), for a signed-in admin at `/actuator/metrics/<name>`:
+
+- `rootology.questions`: questions people asked, timed from start to answer or escalation, by `scope`
+  (`knowledge-base` for real questions, `suite`) and `outcome` (`answered`, `escalated`: waiting for a
+  person, `failed`). The escalation rate is escalated over answered plus escalated:
+  `/actuator/metrics/rootology.questions?tag=scope:knowledge-base&tag=outcome:escalated`.
+- `rootology.questions.confidence`: the decision layer's confidence.
+- `rootology.external.calls`: calls to Claude, Jev, MET Norway and GeoNames, timed, by `service` and
+  `outcome` (`success`, `failure`).
+- Tokens and cost per person are in `usage_record` (#19), shown in the Admin view.
+
+They are kept in memory since the last start; a place to keep and chart them comes with #27's second part.
+
+Alerts (#27): every minute the app checks the circuits and the disk (`rootology.operations`), and emails the
+admins once per event, in Italian: when a service's circuit opens, and when the disk is 90 % full. An admin
+receives them only with an address in Notifications (set from GitHub at sign-in); quiet hours do not apply.

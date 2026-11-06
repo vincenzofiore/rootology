@@ -11,8 +11,9 @@ The controller is the owner of the deployment, named on the privacy page through
 
 | Data | Where | Purpose | Legal basis | Kept |
 |---|---|---|---|---|
-| GitHub login, first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
-| Verified GitHub email addresses | session only (`verified_emails`), not stored | accept an invitation bound to an address; suggest a notification address | contract | the session |
+| Login (the internal user name), first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
+| GitHub or Google account: the numeric id GitHub gives, or Google's `sub`, and the verified email address the provider gives as primary | `user_identity` | recognise the person at sign-in, even when their name or address there changes | contract | until the account is deleted |
+| Verified email addresses | session only (`verified_emails`), not stored, except the primary one, kept in `user_identity` | accept an invitation bound to an address; suggest a notification address | contract | the session |
 | Notification address, email on/off, quiet hours | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |
 | Spaces and memberships, roles in a space | `space`, `space_member` | sharing a garden | contract | until the person leaves or the account is deleted |
 | Invitations (invited login or email address, who invited) | `invitation` | joining a space | contract | the address is cleared when the invitation is accepted, revoked or expires; the row is deleted 30 days after |
@@ -23,7 +24,10 @@ The controller is the owner of the deployment, named on the privacy page through
 | Knowledge proposals (who proposed, who reviewed, source, note) | `knowledge_proposal`, Neo4j | attribution of contributed facts | legitimate interest | as long as the fact is in use; the login is replaced when the account is deleted |
 | App roles with who granted and revoked them | `app_role_grant` | accountability of administration | legitimate interest | kept; the login is replaced when the account is deleted |
 | Weather forecasts and recent past hours for a rounded position | `weather_location`, `weather_hour` | weather in answers and alerts | contract | 30 days |
-| Application logs (logins in security events: invitations, joins; masked email addresses) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
+| Application logs (logins in security events: invitations, joins; masked email addresses; a random id per request; never questions, prompts or coordinates) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
+| Metrics (counts and durations by service, graph and outcome; never a person, a space or a question) | the app's memory, since the last start | operations (#27) | not personal data | until the next restart |
+
+The person may link a second account (GitHub or Google) to their own profile from My account, and nothing is merged by email: linking only happens when they ask for it while signed in. Unlinking one deletes its `user_identity` row; the last one cannot be unlinked, so nobody is left without a way in.
 
 Nothing is used for advertising, profiling or sold. The only cookie is the session cookie;
 the colour scheme choice stays in the browser's localStorage. Both are strictly necessary or chosen by the person, so no consent banner is needed.
@@ -35,6 +39,7 @@ the colour scheme choice stays in the browser's localStorage. Both are strictly 
 | Anthropic (Claude) | the question text, the facts and notes for the answer | processor; DPA incorporated into the Commercial Terms, with EU SCCs | USA | API inputs and outputs deleted within 30 days (up to 2 years if flagged for a usage policy violation); no training on customer content |
 | TypeSafe (Jev) | the understood intent (kind, subject, zone, month) and the facts; never the question text or the login. The subject may be a plot name | processor; DPA (24 April 2026) part of the agreement, with EU SCCs (module 2) | USA | "as long as reasonably necessary"; no training on inputs; zero data retention available at no cost (to enable on the owner's account) |
 | GitHub | sign-in (OAuth, scopes `read:user`, `user:email`) | independent controller of the person's GitHub account | USA, EU-US Data Privacy Framework | GitHub's own policy |
+| Google | sign-in (OpenID Connect, scopes `openid`, `email`, `profile`) | independent controller of the person's Google account | USA, EU-US Data Privacy Framework | Google's own policy |
 | Apple iCloud Mail | notification and invitation emails (address, text) | consumer terms, no DPA; "designed and intended for personal use" | Ireland / USA | Apple's own policy. Accepted for the prototype; replaced by a transactional email service before opening beyond invited friends (#12) |
 | GeoNames (Unxos GmbH) | place names typed in the garden dialog; rounded coordinates for the nearest town | no published request logging policy | Switzerland (EU adequacy decision) | unknown |
 | MET Norway | rounded coordinates | logs the caller's IP (the server's, not the person's) and coordinates | Norway (EEA) | MET Norway's own policy |

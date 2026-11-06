@@ -119,6 +119,15 @@ public class InvitationService {
                 .orElseGet(() -> new InvitationPreview(null, null, "This invitation does not exist", null));
     }
 
+    /**
+     * True if this invitation names a GitHub login. A Google sign-in may not use it: with Google there is no
+     * GitHub login to compare, and the derived login must not be mistaken for one (#28).
+     */
+    @Transactional(readOnly = true)
+    public boolean boundToLogin(String token) {
+        return find(token).map(invitation -> invitation.getInvitedLogin() != null).orElse(false);
+    }
+
     /** True if this person may sign in thanks to this invitation (checked before accepting it). */
     @Transactional(readOnly = true)
     public boolean admits(String token, String login, Set<String> verifiedEmails) {

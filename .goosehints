@@ -1,0 +1,12 @@
+The project's instructions are in @CLAUDE.md. They apply to every agent, not only Claude Code: follow them exactly.
+
+Notes for agents other than Claude Code:
+
+- `CLAUDE.md` mentions Claude in two senses: the LLM the app calls at runtime (through Embabel), and Claude Code, the tool that wrote that file. Both stay as they are. Do not replace the app's LLM or its configuration.
+- `.claude/skills/` belongs to the original experiment (the "Claude with skill" arm). Do not use it as domain knowledge and do not change it.
+- Secrets: never read, print or log the `ROOTOLOGY_*` environment variables, `deploy/.env` or any key. Do not run `env`, `printenv` or `set`. Do not put secrets in files, commands or messages.
+- Tests: `./mvnw test` is offline and free, and must pass (including `ModularityTest`, `TranslationsTest`, `GoldenQuestionsTest`) before you say a change is done. Never run `-Plive`: those tests make paid calls to Claude and Jev.
+- `./mvnw test` and `./mvnw spring-boot:run` need Docker (Testcontainers, `compose.yaml`).
+- Before going back to `spring-boot:run` after a `-Pproduction` build, run `./mvnw clean`.
+- Never commit, push, tag or open pull requests: stop, show the diff, and ask the owner. Ask the owner too before adding a dependency or an external data source.
+- Keep changes small and within the GitHub issue being worked on. Do not refactor unrelated code.

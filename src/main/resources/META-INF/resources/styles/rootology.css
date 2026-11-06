@@ -72,6 +72,14 @@ vaadin-grid {
 }
 .rootology-public-title { font-weight: 600; font-size: calc(var(--lumo-font-size-xl) * 1.5); line-height: 1; }
 
+/* The ways into the app on the invitation page (#28): GitHub, and Google when it is configured. */
+.rootology-signin { flex-wrap: wrap; gap: var(--lumo-space-s); }
+.rootology-signin a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--lumo-size-m);
+}
+
 /* The name with the sprout as its central "o" (Wordmark): the icon sized and seated like a lowercase o. */
 .rootology-wordmark { display: inline-flex; align-items: baseline; white-space: nowrap; }
 .rootology-wordmark img {
@@ -85,3 +93,27 @@ vaadin-grid {
     .rootology-app-title { font-size: 1.5rem; }
     .rootology-public-title { font-size: var(--lumo-font-size-xl); }
 }
+
+/* The sign-in accounts of My account (#28): one line per account, the ways to link below. */
+.rootology-signin-accounts { gap: var(--lumo-space-xs); margin: 0 0 var(--lumo-space-l); }
+.rootology-signin-account { flex-wrap: wrap; gap: var(--lumo-space-s); border-bottom: 1px solid var(--lumo-contrast-10pct); padding: var(--lumo-space-xs) 0; }
+.rootology-signin-provider { font-weight: 600; min-width: 5rem; }
+
+/* The public welcome page (#47): the brand at the top, the mascot, and the ways in. */
+.rootology-welcome-brand { font-size: 2.5rem; line-height: 1; margin: 0 0 var(--lumo-space-m); }
+.rootology-welcome-mascot {
+    display: block;
+    width: 12rem;
+    max-width: 60%;
+    height: auto;
+    margin: var(--lumo-space-m) 0;
+    border-radius: var(--lumo-border-radius-l);
+}
+.rootology-welcome-denied {
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-error-color-10pct);
+    color: var(--lumo-error-text-color);
+    border: 1px solid var(--lumo-error-color-50pct);
+}
+.rootology-welcome-links { flex-wrap: wrap; gap: var(--lumo-space-m); }

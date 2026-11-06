@@ -1,6 +1,8 @@
 package io.github.vincenzofiore.rootology.geocoding;
 
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreakers;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,9 +47,9 @@ public class GeoNames {
 
     @Autowired
     GeoNames(@Value("${rootology.geonames.base-url}") String baseUrl,
-             @Value("${rootology.geonames.username:}") String username) {
+             @Value("${rootology.geonames.username:}") String username, CircuitBreakers circuits) {
         this(RestClient.builder().requestFactory(timeouts()).baseUrl(baseUrl).build(), username,
-                new CircuitBreaker("GeoNames"));
+                circuits.create("GeoNames"));
     }
 
     GeoNames(RestClient restClient, String username, CircuitBreaker breaker) {
@@ -116,6 +118,7 @@ public class GeoNames {
         if (!breaker.allowsCall()) {
             return Optional.empty();
         }
+        Timer.Sample call = breaker.startCall();
         try {
             T reply = request.get();
             if (reply == null) {
@@ -124,16 +127,17 @@ public class GeoNames {
             if (reply.status() != null) {
                 // 15: no result (for example at sea); anything else is a service problem.
                 if (reply.status().value() == 15) {
-                    breaker.success();
+                    breaker.success(call);
                     return Optional.empty();
                 }
                 throw new IllegalStateException("GeoNames: " + reply.status().message());
             }
-            breaker.success();
+            breaker.success(call);
             return Optional.of(reply);
         } catch (RuntimeException e) {
-            breaker.failure();
-            log.warn("GeoNames call failed: {}", e.getMessage());
+            breaker.failure(call);
+            // The exception's message may carry the request URL, with the account and the place searched (#27).
+            log.warn("GeoNames call failed: {}", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }
