@@ -28,7 +28,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<revision>0.1.0-SNAPSHOT</revision>
+		<revision>0.3.0-SNAPSHOT</revision>
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
