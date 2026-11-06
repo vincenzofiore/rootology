@@ -86,6 +86,11 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
 
 ### Releases
 
+Each change people or the server notice goes into `CHANGELOG.md` under `[Unreleased]` as it lands on
+`develop`. Before a release, that section is renamed `[X.Y.Z] - <date>` (with its compare link) and a new
+empty `[Unreleased]` is opened; after the tag, the section becomes the text of the GitHub Release, above the
+generated notes.
+
 A release is a tag `vX.Y.Z` on a commit of `main`, made by the owner once `main` is updated:
 ```sh
 git fetch origin && git tag -a v0.1.0 -m "Rootology 0.1.0" origin/main && git push origin v0.1.0

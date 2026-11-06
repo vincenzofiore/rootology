@@ -16,7 +16,7 @@ Sensors fit this design directly: missing and noisy readings are what the decisi
 
 - Talk to the owner (Vincenzo) in Italian. Write all code, comments, commit messages, README and docs in English.
 - Prototype for a few real users: keep it small, readable and easy to inspect, with no speculative abstractions. Real users mean real basics: their data is kept separate, secrets stay outside the repository, inputs from outside are validated, the app survives a failing external service.
-- Never commit or push on your own; ask the owner each time. Commit messages are short, lowercase and imperative, and reference the GitHub issue (`refs #N`, `closes #N` on the last commit of an item). Work happens on `develop`; `main` is updated only by the owner.
+- Never commit or push on your own; ask the owner each time. Commit messages are short, lowercase and imperative, and reference the GitHub issue (`refs #N`, `closes #N` on the last commit of an item). Work happens on `develop`; `main` is updated only by the owner. A change that people or the server notice gets a line in `CHANGELOG.md` under `[Unreleased]` (Keep a Changelog, in English, with the issue number); internal refactors and tests do not.
 - The quality suite is ground truth: do not change `OntologyDefinition` (now the suite's fixture), the five cases, the recorded judgments under `src/test/resources/experiments/` or `ExperimentRecordingTest`, unless explicitly asked. The real knowledge base grows elsewhere (see the plan).
 - Jev is the decision layer by design. Do not build a Jev-vs-LLM comparison of decision layers.
 - This domain is deliberately unrelated to the owner's day job. Do not import concepts or code from any professional project.
