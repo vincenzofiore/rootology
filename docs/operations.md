@@ -72,6 +72,16 @@ Postgres and Neo4j. Only Caddy publishes ports. The app runs with the `prod` pro
 1. A separate GitHub OAuth App for production: homepage `https://rootology.app`, callback
    `https://rootology.app/login/oauth2/code/github`. Production keys for Anthropic and TypeSafe, separate
    from the development ones.
+   Google sign-in (#28), optional: a Google Cloud project with the Google Auth Platform set up (External
+   audience, branding with home page `https://rootology.app` and privacy policy `https://rootology.app/privacy`,
+   `rootology.app` as authorized domain, verified in Search Console by a DNS TXT record at OVH that must stay
+   there), only the non-sensitive scopes `openid`, `email` and `profile`, published "In production". One web
+   client per environment: production with callback `https://rootology.app/login/oauth2/code/google`,
+   development with `http://localhost:8080/login/oauth2/code/google`. Its id and secret go in
+   `ROOTOLOGY_GOOGLE_CLIENT_ID` and `ROOTOLOGY_GOOGLE_CLIENT_SECRET`; without them the Google buttons are not
+   shown. `ROOTOLOGY_ALLOWED_GOOGLE_EMAILS` stays empty in production: people come in by invitation, and
+   whoever already signs in with GitHub links Google from My account. To rotate the secret, add a new one to
+   the client in the console, update `.env`, `up -d`, then delete the old one.
 2. On the server:
    ```sh
    git clone https://github.com/vincenzofiore/rootology.git ~/rootology
