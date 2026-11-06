@@ -148,36 +148,36 @@ class GoogleSignInTest {
     @Test
     void anAddressGoogleDidNotVerifyIsRefused() {
         OidcUser unverified = googleUser("google-105", "unverified@example.org", Map.of("email_verified", false));
-        OidcUser missing = googleUser("google-106", "missing@example.org", Map.of());
+        OidcUser missing = googleUser("google-106", "gsi-missing@example.org", Map.of());
 
         assertThatThrownBy(() -> service("unverified@example.org").signIn(unverified, null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
-        assertThatThrownBy(() -> service("missing@example.org").signIn(missing, null))
+        assertThatThrownBy(() -> service("gsi-missing@example.org").signIn(missing, null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
 
         assertThat(count("select count(*) from app_user where login like 'unverified%'")).isZero();
-        assertThat(count("select count(*) from app_user where login like 'missing%'")).isZero();
+        assertThat(count("select count(*) from app_user where login like 'gsi-missing%'")).isZero();
         assertThat(count("select count(*) from user_identity where subject in ('google-105', 'google-106')")).isZero();
     }
 
     @Test
     void someoneWithNeitherListNorInvitationIsRefusedAndLeavesNothingBehind() {
         assertThatThrownBy(() -> service("someone-else@example.org")
-                .signIn(googleUser("google-107", "stranger@example.org"), null))
+                .signIn(googleUser("google-107", "gsi-stranger@example.org"), null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
 
-        assertThat(count("select count(*) from app_user where login like 'stranger%'")).isZero();
+        assertThat(count("select count(*) from app_user where login like 'gsi-stranger%'")).isZero();
         assertThat(count("select count(*) from user_identity where subject = 'google-107'")).isZero();
-        assertThat(count("select count(*) from notification_preference where github_login like 'stranger%'")).isZero();
+        assertThat(count("select count(*) from notification_preference where github_login like 'gsi-stranger%'")).isZero();
     }
 
     @Test
     void anExistingGitHubPersonWithTheSameAddressIsNotEntered() {
         spaces.signedIn("git-marco");
-        identities.link("git-marco", IdentityProvider.GITHUB, "github-108", "marco@example.org");
+        identities.link("git-marco", IdentityProvider.GITHUB, "github-108", "gsi-marco@example.org");
 
         // Not admitted: a Google account is never merged with an existing person by its address.
-        assertThatThrownBy(() -> service().signIn(googleUser("google-109", "marco@example.org"), null))
+        assertThatThrownBy(() -> service().signIn(googleUser("google-109", "gsi-marco@example.org"), null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
 
         assertThat(count("select count(*) from user_identity where subject = 'google-109'")).isZero();
@@ -187,28 +187,28 @@ class GoogleSignInTest {
                 + "where u.login = 'git-marco'")).isEqualTo(1);
 
         // Admitted, a separate person is created: the GitHub one keeps its account and its single identity.
-        OidcUser principal = service("marco@example.org").signIn(googleUser("google-109", "marco@example.org"), null);
+        OidcUser principal = service("gsi-marco@example.org").signIn(googleUser("google-109", "gsi-marco@example.org"), null);
 
-        assertThat(principal.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("marco");
-        assertThat(identity("marco", IdentityProvider.GOOGLE)).get()
+        assertThat(principal.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("gsi-marco");
+        assertThat(identity("gsi-marco", IdentityProvider.GOOGLE)).get()
                 .satisfies(row -> assertThat(row.get("subject")).isEqualTo("google-109"));
         assertThat(count("select count(*) from user_identity i join app_user u on u.id = i.user_id "
                 + "where u.login = 'git-marco'")).isEqualTo(1);
-        assertThat(jdbc.sql("select id from app_user where login = 'marco'").query(Long.class).single())
+        assertThat(jdbc.sql("select id from app_user where login = 'gsi-marco'").query(Long.class).single())
                 .isNotEqualTo(jdbc.sql("select id from app_user where login = 'git-marco'").query(Long.class).single());
     }
 
     @Test
     void aGitHubAccountCannotTakeTheLoginDerivedForAGooglePerson() {
-        service("gina@example.org").signIn(googleUser("google-110", "gina@example.org"), null);
+        service("gsi-gina@example.org").signIn(googleUser("google-110", "gsi-gina@example.org"), null);
 
-        AllowListOAuth2UserService github = new AllowListOAuth2UserService(Set.of("gina"), spaces, identities,
+        AllowListOAuth2UserService github = new AllowListOAuth2UserService(Set.of("gsi-gina"), spaces, identities,
                 new SignInSteps(spaces, identities, invitations, roles, notifications), null);
 
-        assertThatThrownBy(() -> github.signIn(githubUser(111, "gina"), GitHubEmails.Verified.NONE, null))
+        assertThatThrownBy(() -> github.signIn(githubUser(111, "gsi-gina"), GitHubEmails.Verified.NONE, null))
                 .isInstanceOf(OAuth2AuthenticationException.class);
         assertThat(count("select count(*) from user_identity where subject = '111'")).isZero();
-        assertThat(count("select count(*) from app_user where login = 'gina'")).isEqualTo(1);
+        assertThat(count("select count(*) from app_user where login = 'gsi-gina'")).isEqualTo(1);
     }
 
     @Test
