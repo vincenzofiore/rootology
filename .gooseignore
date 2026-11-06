@@ -1,0 +1,5 @@
+# Files goose must not read or change.
+deploy/.env
+**/.env
+**/*.pem
+**/*.key
