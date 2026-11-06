@@ -23,7 +23,8 @@ The controller is the owner of the deployment, named on the privacy page through
 | Knowledge proposals (who proposed, who reviewed, source, note) | `knowledge_proposal`, Neo4j | attribution of contributed facts | legitimate interest | as long as the fact is in use; the login is replaced when the account is deleted |
 | App roles with who granted and revoked them | `app_role_grant` | accountability of administration | legitimate interest | kept; the login is replaced when the account is deleted |
 | Weather forecasts and recent past hours for a rounded position | `weather_location`, `weather_hour` | weather in answers and alerts | contract | 30 days |
-| Application logs (logins in security events: invitations, joins; masked email addresses) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
+| Application logs (logins in security events: invitations, joins; masked email addresses; a random id per request; never questions, prompts or coordinates) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
+| Metrics (counts and durations by service, graph and outcome; never a person, a space or a question) | the app's memory, since the last start | operations (#27) | not personal data | until the next restart |
 
 Nothing is used for advertising, profiling or sold. The only cookie is the session cookie;
 the colour scheme choice stays in the browser's localStorage. Both are strictly necessary or chosen by the person, so no consent banner is needed.

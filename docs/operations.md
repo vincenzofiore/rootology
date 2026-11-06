@@ -122,7 +122,29 @@ from Postgres: it needs no backup.
 
 ### Watching it
 
-`https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j and disk;
-email is left out: it is sent in the background with retries). An external uptime monitor checks it every
-few minutes and emails the owner (#27 adds metrics and alerts). Logs: `docker compose -f compose.prod.yaml
-logs --since 1h app`.
+`https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j, disk and
+the external services; email is left out: it is sent in the background with retries). An external uptime
+monitor checks it every few minutes and emails the owner. While Claude, Jev, MET Norway or GeoNames keep
+failing (an open circuit, #29) the status is `DEGRADED`, still with HTTP 200, since the app works with its
+fallbacks. `/actuator/health/liveness` and `/actuator/health/readiness` (Postgres and Neo4j) are public too.
+
+Logs are one JSON object per line in production (Spring Boot's Logstash format), with a `traceId` per HTTP
+request, also sent back as the `X-Trace-Id` header: `docker compose -f compose.prod.yaml logs --since 1h app`,
+and `| grep <traceId>` to follow one request. No questions, prompts, coordinates or email addresses in them.
+
+Metrics (#27), for a signed-in admin at `/actuator/metrics/<name>`:
+
+- `rootology.questions`: questions people asked, timed from start to answer or escalation, by `scope`
+  (`knowledge-base` for real questions, `suite`) and `outcome` (`answered`, `escalated`: waiting for a
+  person, `failed`). The escalation rate is escalated over answered plus escalated:
+  `/actuator/metrics/rootology.questions?tag=scope:knowledge-base&tag=outcome:escalated`.
+- `rootology.questions.confidence`: the decision layer's confidence.
+- `rootology.external.calls`: calls to Claude, Jev, MET Norway and GeoNames, timed, by `service` and
+  `outcome` (`success`, `failure`).
+- Tokens and cost per person are in `usage_record` (#19), shown in the Admin view.
+
+They are kept in memory since the last start; a place to keep and chart them comes with #27's second part.
+
+Alerts (#27): every minute the app checks the circuits and the disk (`rootology.operations`), and emails the
+admins once per event, in Italian: when a service's circuit opens, and when the disk is 90 % full. An admin
+receives them only with an address in Notifications (set from GitHub at sign-in); quiet hours do not apply.

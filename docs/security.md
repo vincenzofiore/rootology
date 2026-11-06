@@ -13,8 +13,8 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 
 ### A02 Security misconfiguration
 - In place: only `/logged-out`, `/invite/**`, `/sources`, `/privacy`, weather icons and styles are public; everything else needs sign-in. Spring's default headers (nosniff, `X-Frame-Options: DENY`, no-store cache control).
-- Fixed: `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` (geolocation for this origin only; no camera, microphone, payment, USB), a Content-Security-Policy, the session cookie `SameSite=Lax`, actuator exposure stated explicitly (health only, no details).
-- The CSP is enforced, checked by browsing every page in Safari on 2026-11-05 with no violation. Accepted: Vaadin needs `'unsafe-inline'` and `'unsafe-eval'` for scripts. HSTS and the `Secure` cookie come with HTTPS in #12. Vaadin runs in development mode locally, which shows stack traces; the deployment runs in production mode (#12). Who may reach `/actuator/health` is decided with the deploy (#12, #27).
+- Fixed: `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` (geolocation for this origin only; no camera, microphone, payment, USB), a Content-Security-Policy, the session cookie `SameSite=Lax`, actuator exposure stated explicitly (health only, no details; metrics for admins since #27).
+- The CSP is enforced, checked by browsing every page in Safari on 2026-11-05 with no violation. Accepted: Vaadin needs `'unsafe-inline'` and `'unsafe-eval'` for scripts. HSTS and the `Secure` cookie come with HTTPS in #12. Vaadin runs in development mode locally, which shows stack traces; the deployment runs in production mode (#12). `/actuator/health` and its liveness and readiness groups are public with the status only, for Caddy and an uptime monitor; `/actuator/metrics` needs the ADMIN role (#27).
 - Tested: `LoggedOutPageTest` (public pages, headers), `SecurityTest`.
 
 ### A03 Software supply chain failures
@@ -39,8 +39,8 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 - In place: the curated knowledge files are validated at startup and the app refuses to start on invalid data; proposals are checked with the same rules and global ones approved by a curator; the quality suite in CI fails on silent wrong answers.
 
 ### A09 Security logging and alerting failures
-- In place: invitations, joins and account deletions are logged; email addresses are masked; Jev's judgments are debug only.
-- Accepted for now: no alerting and no structured security events yet; part of #27 (observability), with no personal data in logs.
+- In place: invitations, joins and account deletions are logged; email addresses are masked; Jev's judgments are debug only. In production the logs are structured JSON with a random `traceId` per request (#27). Failed calls to external services log the service and the exception's type, not its message, which may carry the request (coordinates, the account, facts). `ObservabilityTest` checks that a whole run, notifications included, logs neither the question nor the asker's address. Admins are emailed when an external service keeps failing or the disk is nearly full (`docs/operations.md`).
+- Accepted for now: no structured security events and no central log store; part of #27's second part.
 
 ### A10 Mishandling of exceptional conditions
 - In place: every external call has short timeouts and a circuit breaker (#29); Claude down fails the question clearly; Jev down escalates to a person; no weather means no weather, with a note; saving a garden never depends on GeoNames.

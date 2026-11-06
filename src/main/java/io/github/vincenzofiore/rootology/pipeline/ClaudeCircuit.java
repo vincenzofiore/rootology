@@ -1,6 +1,8 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreakers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** The circuit breaker shared by every call to Claude (#29). */
@@ -11,8 +13,9 @@ class ClaudeCircuit {
 
     final CircuitBreaker breaker;
 
-    ClaudeCircuit() {
-        this(new CircuitBreaker("Claude"));
+    @Autowired
+    ClaudeCircuit(CircuitBreakers circuits) {
+        this(circuits.create("Claude"));
     }
 
     ClaudeCircuit(CircuitBreaker breaker) {

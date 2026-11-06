@@ -43,6 +43,13 @@ public class RoleService {
         return roles;
     }
 
+    /** The people holding a role now: a system query, for the operational alerts to the admins (#27). */
+    @Transactional(readOnly = true)
+    public List<String> holders(AppRole role) {
+        return grants.findByRevokedAtIsNull().stream().filter(g -> g.getRole() == role)
+                .map(RoleGrant::getGithubLogin).sorted().toList();
+    }
+
     /** Everyone the app knows, with their active roles, by login. */
     @PreAuthorize("hasRole(\'ADMIN\')")
     @Transactional(readOnly = true)

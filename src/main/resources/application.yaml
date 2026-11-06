@@ -64,15 +64,25 @@ server:
         same-site: lax
 
 management:
-  # Only health over HTTP, without details (#41); who may reach it is decided with the deploy (#12, #27).
+  # Health is public with status only (#41); metrics are for signed-in admins (#27).
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,metrics
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      group:
+        # Ready when Postgres and Neo4j answer; external services only make it DEGRADED, still ready (#27, #29).
+        readiness:
+          include: readinessState,db,neo4j,externalServices
   health:
+    status:
+      order: DOWN, OUT_OF_SERVICE, DEGRADED, UP, UNKNOWN
+      http-mapping:
+        degraded: 200
     mail:
       # Email goes out in the background with retries (#25): an unreachable SMTP server is not the app being down.
       enabled: false
@@ -97,6 +107,11 @@ rootology:
   alerts:
     # Weather alerts (#37): every morning at 7, Italian time.
     cron: "0 0 7 * * *"
+  operations:
+    # Operational alerts to the admins (#27): an open circuit or a nearly full disk, checked this often.
+    check-every: PT1M
+    disk-path: /
+    disk-threshold: 0.9
   notifications:
     # Emails of waiting questions (#26): grouped once at least this old, checked this often.
     group-window: PT2M

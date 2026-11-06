@@ -50,6 +50,19 @@ class LoggedOutPageTest {
     }
 
     @Test
+    void metricsEndpointRequiresAuthentication() throws Exception {
+        var response = get("/actuator/metrics");
+        assertThat(response.statusCode()).isIn(302, 401, 403);
+    }
+
+    @Test
+    void readinessIsPublicButDoesNotRevealComponentDetails() throws Exception {
+        var response = get("/actuator/health/readiness");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("\"status\"").doesNotContain("components");
+    }
+
+    @Test
     void theHealthCheckIsPublicAndGivesNoDetails() throws Exception {
         // For Caddy and an uptime monitor (#12): the status only, no components.
         var response = get("/actuator/health");

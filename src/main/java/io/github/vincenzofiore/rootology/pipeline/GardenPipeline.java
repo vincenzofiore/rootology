@@ -22,6 +22,7 @@ import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.usage.RunUsage;
 import io.github.vincenzofiore.rootology.usage.UsageKind;
 import io.github.vincenzofiore.rootology.usage.UsageService;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -54,10 +55,11 @@ public class GardenPipeline {
     private final SpaceService spaces;
     private final UsageService usage;
     private final DecisionLayer decisionLayer;
+    private final PipelineMetrics metrics;
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
                    SpaceService spaces, UsageService usage, DecisionLayer decisionLayer, PendingEscalations pending,
-                   PlatformTransactionManager transactions) {
+                   PlatformTransactionManager transactions, PipelineMetrics metrics) {
         this.agentPlatform = agentPlatform;
         this.pending = pending;
         this.transaction = new TransactionTemplate(transactions);
@@ -66,6 +68,7 @@ public class GardenPipeline {
         this.spaces = spaces;
         this.usage = usage;
         this.decisionLayer = decisionLayer;
+        this.metrics = metrics;
     }
 
     /** Fails at once while Claude's circuit is open, instead of waiting for Claude's retries (#29). */
@@ -117,10 +120,16 @@ public class GardenPipeline {
             usage.requireQuestionAvailable(context.startedBy());
         }
         requireClaude();
+        Timer.Sample timing = metrics.start();
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
         try {
-            return settle(process.run(), question, context);
+            Run run = settle(process.run(), question, context);
+            metrics.finished(timing, scope, run);
+            return run;
+        } catch (RuntimeException e) {
+            metrics.failed(timing, scope);
+            throw e;
         } finally {
             if (context.hasSpace()) {
                 usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
