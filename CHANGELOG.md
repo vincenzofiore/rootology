@@ -6,7 +6,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
-Nothing changes for gardeners, members and guests.
+Nothing changes for gardeners, members and guests, except that everyone signs in again once: sessions live
+in memory, and the ones from before the release are not recognised.
 
 ### Added
 
@@ -24,6 +25,8 @@ Nothing changes for gardeners, members and guests.
 
 ### Security
 
+- A GitHub account is now recognised by its stable id: renaming it keeps its spaces, and whoever takes a
+  freed GitHub name cannot enter someone else's account (#28).
 - Failed calls to external services no longer log the exception's message, which could carry a garden's
   coordinates or the facts sent to Jev (#27).
 

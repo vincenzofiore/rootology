@@ -1,7 +1,7 @@
 package io.github.vincenzofiore.rootology.spaces;
 
 /** The external providers a person can sign in with (#28). */
-enum IdentityProvider {
+public enum IdentityProvider {
 
     GITHUB("github"),
     GOOGLE("google");
@@ -13,7 +13,7 @@ enum IdentityProvider {
     }
 
     /** As stored: the lowercase name the database check constraint allows. */
-    String id() {
+    public String id() {
         return id;
     }
 

@@ -11,8 +11,9 @@ The controller is the owner of the deployment, named on the privacy page through
 
 | Data | Where | Purpose | Legal basis | Kept |
 |---|---|---|---|---|
-| GitHub login, first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
-| Verified GitHub email addresses | session only (`verified_emails`), not stored | accept an invitation bound to an address; suggest a notification address | contract | the session |
+| Login (the internal user name), first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
+| GitHub account: its numeric id and the verified email address GitHub gives as primary | `user_identity` | recognise the person at sign-in, even when their GitHub name changes | contract | until the account is deleted |
+| Verified GitHub email addresses | session only (`verified_emails`), not stored, except the primary one, kept in `user_identity` | accept an invitation bound to an address; suggest a notification address | contract | the session |
 | Notification address, email on/off, quiet hours | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |
 | Spaces and memberships, roles in a space | `space`, `space_member` | sharing a garden | contract | until the person leaves or the account is deleted |
 | Invitations (invited login or email address, who invited) | `invitation` | joining a space | contract | the address is cleared when the invitation is accepted, revoked or expires; the row is deleted 30 days after |

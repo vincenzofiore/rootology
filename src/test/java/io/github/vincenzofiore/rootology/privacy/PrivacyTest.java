@@ -57,6 +57,9 @@ class PrivacyTest {
         run(bobSpace, "del-ada", "a question in bob's space", Instant.now());
         run(bobSpace, "del-bob", "bob's own question", Instant.now());
         jdbc.sql("insert into notification_preference (github_login, email) values ('del-ada', 'ada@example.org')").update();
+        jdbc.sql("""
+                insert into user_identity (user_id, provider, subject, email, linked_at)
+                values ((select id from app_user where login = 'del-ada'), 'github', '4242', 'ada@example.org', now())""").update();
         notification("del-ada", bobSpace);
         notification("del-bob", bobSpace);
         jdbc.sql("""
@@ -72,6 +75,8 @@ class PrivacyTest {
         deletion.delete("DEL-Ada");
 
         assertThat(count("select count(*) from app_user where login = 'del-ada'")).isZero();
+        // The GitHub identity goes with the account (#28), by the foreign key's cascade.
+        assertThat(count("select count(*) from user_identity where subject = '4242'")).isZero();
         assertThat(count("select count(*) from space where id = " + adaSpace)).isZero();
         assertThat(count("select count(*) from garden where id = " + garden)).isZero();
         assertThat(count("select count(*) from notification_preference where github_login = 'del-ada'")).isZero();
@@ -134,10 +139,14 @@ class PrivacyTest {
         run(gusSpace, "exp-fay", "fay asks about basil", Instant.now());
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
+        jdbc.sql("""
+                insert into user_identity (user_id, provider, subject, email, linked_at)
+                values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
 
         String json = new String(export.export("exp-fay"), StandardCharsets.UTF_8);
 
-        assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden")
+        assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
+                        "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org")
                 .doesNotContain("gus asks about leeks");
     }
 

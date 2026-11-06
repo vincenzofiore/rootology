@@ -4,6 +4,7 @@ import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
+import io.github.vincenzofiore.rootology.spaces.IdentityService;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,12 +46,13 @@ class SecurityConfiguration {
     @Bean
     AllowListOAuth2UserService allowListOAuth2UserService(
             @Value("${rootology.security.allowed-github-users:}") String allowedUsers, SpaceService spaces,
-            InvitationService invitations, RoleService roles, NotificationService notifications) {
+            IdentityService identities, InvitationService invitations, RoleService roles,
+            NotificationService notifications) {
         Set<String> allowed = Arrays.stream(allowedUsers.split(","))
                 .map(SpaceService::normalizeLogin)
                 .filter(u -> !u.isEmpty())
                 .collect(Collectors.toSet());
-        return new AllowListOAuth2UserService(allowed, spaces, invitations, roles,
+        return new AllowListOAuth2UserService(allowed, spaces, identities, invitations, roles,
                 new GitHubEmails("https://api.github.com"), notifications);
     }
 

@@ -42,7 +42,7 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
         removeAll();
         String token = event.getRouteParameters().get("token").orElse("");
         Optional<OAuth2User> user = authentication.getAuthenticatedUser(OAuth2User.class);
-        Optional<String> login = user.map(u -> String.valueOf(u.<Object>getAttribute("login")));
+        Optional<String> login = user.map(u -> u.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE));
         java.util.Set<String> emails = user.map(u -> u.<java.util.List<String>>getAttribute(GitHubEmails.ATTRIBUTE))
                 .map(java.util.Set::copyOf).orElse(java.util.Set.of());
         InvitationPreview preview = invitations.preview(token, login.orElse(null), emails);

@@ -71,6 +71,12 @@ public class SpacePersonalData {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("account", jdbc.sql("select login, created_at, first_login_at from app_user where login = :login")
                 .param("login", login).query().listOfRows());
+        // The GitHub account behind this person, by its id and the address GitHub verified (#28).
+        data.put("identities", jdbc.sql("""
+                        select i.provider, i.subject, i.email, i.linked_at
+                        from user_identity i join app_user u on u.id = i.user_id
+                        where u.login = :login order by i.id""")
+                .param("login", login).query().listOfRows());
         data.put("spaces", jdbc.sql("""
                         select s.id, s.name, m.role, m.joined_at, s.personal_of = u.id as personal
                         from space_member m join space s on s.id = m.space_id join app_user u on u.id = m.user_id
