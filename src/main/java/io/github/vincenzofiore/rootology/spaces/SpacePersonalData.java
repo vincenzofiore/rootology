@@ -41,7 +41,7 @@ public class SpacePersonalData {
                                (select count(*) from space_member a where a.space_id = s.id) as members,
                                (select count(*) from space_member o where o.space_id = s.id and o.role = 'OWNER') as owners
                         from space_member m join space s on s.id = m.space_id join app_user u on u.id = m.user_id
-                        where u.github_login = :login order by s.id""")
+                        where u.login = :login order by s.id""")
                 .param("login", login)
                 .query((rs, n) -> {
                     long id = rs.getLong("id");
@@ -63,18 +63,18 @@ public class SpacePersonalData {
     public List<Long> spacesOf(String login) {
         return jdbc.sql("""
                         select m.space_id from space_member m join app_user u on u.id = m.user_id
-                        where u.github_login = :login order by m.space_id""")
+                        where u.login = :login order by m.space_id""")
                 .param("login", login).query(Long.class).list();
     }
 
     public Map<String, Object> export(String login) {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("account", jdbc.sql("select github_login, created_at, first_login_at from app_user where github_login = :login")
+        data.put("account", jdbc.sql("select login, created_at, first_login_at from app_user where login = :login")
                 .param("login", login).query().listOfRows());
         data.put("spaces", jdbc.sql("""
                         select s.id, s.name, m.role, m.joined_at, s.personal_of = u.id as personal
                         from space_member m join space s on s.id = m.space_id join app_user u on u.id = m.user_id
-                        where u.github_login = :login order by s.id""")
+                        where u.login = :login order by s.id""")
                 .param("login", login).query().listOfRows());
         // Only what the person did; the invited person's address is theirs, not part of this export.
         data.put("invitationsCreated", jdbc.sql("""
@@ -103,14 +103,14 @@ public class SpacePersonalData {
         if (!spaces.isEmpty()) {
             jdbc.sql("delete from space_member where space_id in (:spaces)").param("spaces", spaces).update();
         }
-        jdbc.sql("delete from space_member where user_id = (select id from app_user where github_login = :login)")
+        jdbc.sql("delete from space_member where user_id = (select id from app_user where login = :login)")
                 .param("login", login).update();
-        jdbc.sql("update space set personal_of = null where personal_of = (select id from app_user where github_login = :login)")
+        jdbc.sql("update space set personal_of = null where personal_of = (select id from app_user where login = :login)")
                 .param("login", login).update();
         if (!spaces.isEmpty()) {
             jdbc.sql("delete from space where id in (:spaces)").param("spaces", spaces).update();
         }
-        jdbc.sql("delete from app_user where github_login = :login").param("login", login).update();
+        jdbc.sql("delete from app_user where login = :login").param("login", login).update();
     }
 
     /** Invitations accepted, revoked or expired before the cutoff. */

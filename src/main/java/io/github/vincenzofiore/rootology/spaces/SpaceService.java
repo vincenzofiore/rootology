@@ -34,7 +34,7 @@ public class SpaceService {
     public void signedIn(String githubLogin) {
         String login = normalizeLogin(githubLogin);
         Instant now = Instant.now();
-        AppUser user = users.findByGithubLogin(login).orElseGet(() -> users.save(new AppUser(login, now)));
+        AppUser user = users.findByLogin(login).orElseGet(() -> users.save(new AppUser(login, now)));
         if (user.hasSignedIn()) {
             return;
         }
@@ -46,7 +46,7 @@ public class SpaceService {
     /** The spaces this person belongs to, oldest first (their personal space comes first). */
     @Transactional(readOnly = true)
     public List<SpaceSummary> spacesOf(String githubLogin) {
-        return users.findByGithubLogin(normalizeLogin(githubLogin))
+        return users.findByLogin(normalizeLogin(githubLogin))
                 .map(user -> members.findByUserOrderBySpaceId(user).stream()
                         .map(m -> new SpaceSummary(m.getSpace().getId(), m.getSpace().getName(), m.getRole(),
                                 m.getSpace().isPersonalSpaceOf(user)))
@@ -57,13 +57,13 @@ public class SpaceService {
     /** True if this person is a member of the space. */
     @Transactional(readOnly = true)
     public boolean isMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserGithubLogin(spaceId, normalizeLogin(githubLogin)).isPresent();
+        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin)).isPresent();
     }
 
     /** True for an OWNER or MEMBER of the space; a GUEST only looks (#33). */
     @Transactional(readOnly = true)
     public boolean canContribute(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserGithubLogin(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin))
                 .map(m -> m.getRole().contributes()).orElse(false);
     }
 
@@ -80,7 +80,7 @@ public class SpaceService {
     public List<Member> membersOf(long spaceId, String requester) {
         requireMember(spaceId, requester);
         return members.findBySpaceIdOrderById(spaceId).stream()
-                .map(m -> new Member(m.getUser().getGithubLogin(), m.getRole()))
+                .map(m -> new Member(m.getUser().getLogin(), m.getRole()))
                 .toList();
     }
 
@@ -98,10 +98,10 @@ public class SpaceService {
         if (login.isEmpty()) {
             throw new IllegalArgumentException("A GitHub login is required");
         }
-        if (members.findBySpaceIdAndUserGithubLogin(spaceId, login).isPresent()) {
+        if (members.findBySpaceIdAndUserLogin(spaceId, login).isPresent()) {
             return;
         }
-        AppUser user = users.findByGithubLogin(login)
+        AppUser user = users.findByLogin(login)
                 .orElseGet(() -> users.save(new AppUser(login, Instant.now())));
         members.save(new SpaceMember(owner.getSpace(), user, role, Instant.now()));
     }
@@ -110,19 +110,19 @@ public class SpaceService {
     @Transactional(readOnly = true)
     public List<Member> membersForSystem(long spaceId) {
         return members.findBySpaceIdOrderById(spaceId).stream()
-                .map(m -> new Member(m.getUser().getGithubLogin(), m.getRole())).toList();
+                .map(m -> new Member(m.getUser().getLogin(), m.getRole())).toList();
     }
 
     /** Every person the app knows (signed in, or added to a space), by login. */
     @Transactional(readOnly = true)
     public List<String> people() {
-        return users.findAll().stream().map(AppUser::getGithubLogin).sorted().toList();
+        return users.findAll().stream().map(AppUser::getLogin).sorted().toList();
     }
 
     /** True if this person belongs to at least one space, which lets them sign in. */
     @Transactional(readOnly = true)
     public boolean belongsToAnySpace(String githubLogin) {
-        return members.existsByUserGithubLogin(normalizeLogin(githubLogin));
+        return members.existsByUserLogin(normalizeLogin(githubLogin));
     }
 
     /**
@@ -134,7 +134,7 @@ public class SpaceService {
     public void removeMember(long spaceId, String requester, String githubLogin) {
         String login = normalizeLogin(githubLogin);
         SpaceMember actor = requireMember(spaceId, requester);
-        boolean leaving = actor.getUser().getGithubLogin().equals(login);
+        boolean leaving = actor.getUser().getLogin().equals(login);
         if (!leaving && actor.getRole() != Role.OWNER) {
             throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
         }
@@ -165,10 +165,10 @@ public class SpaceService {
     @Transactional
     void join(long spaceId, String githubLogin, Role role) {
         String login = normalizeLogin(githubLogin);
-        if (members.findBySpaceIdAndUserGithubLogin(spaceId, login).isPresent()) {
+        if (members.findBySpaceIdAndUserLogin(spaceId, login).isPresent()) {
             return;
         }
-        AppUser user = users.findByGithubLogin(login).orElseGet(() -> users.save(new AppUser(login, Instant.now())));
+        AppUser user = users.findByLogin(login).orElseGet(() -> users.save(new AppUser(login, Instant.now())));
         members.save(new SpaceMember(spaces.getReferenceById(spaceId), user, role, Instant.now()));
     }
 
@@ -191,7 +191,7 @@ public class SpaceService {
     }
 
     private SpaceMember requireMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserGithubLogin(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin))
                 .orElseThrow(() -> new SpaceAccessException(githubLogin + " is not a member of space " + spaceId));
     }
 }

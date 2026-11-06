@@ -8,7 +8,7 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 
-/** A person, known by their GitHub login (stored in lower case). */
+/** A person, known by their login (stored in lower case), whatever provider they sign in with. */
 @Entity
 @Table(name = "app_user")
 class AppUser {
@@ -17,15 +17,15 @@ class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String githubLogin;
+    private String login;
     private Instant createdAt;
     private Instant firstLoginAt;
 
     protected AppUser() {
     }
 
-    AppUser(String githubLogin, Instant createdAt) {
-        this.githubLogin = githubLogin;
+    AppUser(String login, Instant createdAt) {
+        this.login = login;
         this.createdAt = createdAt;
     }
 
@@ -33,8 +33,8 @@ class AppUser {
         return id;
     }
 
-    String getGithubLogin() {
-        return githubLogin;
+    String getLogin() {
+        return login;
     }
 
     /** False for a person added to a space who has not signed in yet. */

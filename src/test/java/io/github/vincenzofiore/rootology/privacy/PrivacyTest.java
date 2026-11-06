@@ -71,7 +71,7 @@ class PrivacyTest {
         assertThat(deletion.preview("del-ada").spacesDeleted()).containsExactly("del-ada's garden");
         deletion.delete("DEL-Ada");
 
-        assertThat(count("select count(*) from app_user where github_login = 'del-ada'")).isZero();
+        assertThat(count("select count(*) from app_user where login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from space where id = " + adaSpace)).isZero();
         assertThat(count("select count(*) from garden where id = " + garden)).isZero();
         assertThat(count("select count(*) from notification_preference where github_login = 'del-ada'")).isZero();
@@ -106,7 +106,7 @@ class PrivacyTest {
         assertThat(preview.allowed()).isFalse();
         assertThat(preview.blockingSpaces()).containsExactly("Community garden");
         assertThatThrownBy(() -> deletion.delete("own-cleo")).isInstanceOf(IllegalStateException.class);
-        assertThat(count("select count(*) from app_user where github_login = 'own-cleo'")).isEqualTo(1);
+        assertThat(count("select count(*) from app_user where login = 'own-cleo'")).isEqualTo(1);
 
         // Dan, a plain member, can go: the space stays with Cleo.
         deletion.delete("own-dan");
@@ -162,7 +162,7 @@ class PrivacyTest {
     private void member(long space, String login, String role) {
         jdbc.sql("""
                 insert into space_member (space_id, user_id, role, joined_at)
-                values (:s, (select id from app_user where github_login = :l), :r, now())""")
+                values (:s, (select id from app_user where login = :l), :r, now())""")
                 .param("s", space).param("l", login).param("r", role).update();
     }
 

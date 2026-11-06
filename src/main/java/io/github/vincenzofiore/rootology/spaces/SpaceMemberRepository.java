@@ -11,9 +11,9 @@ interface SpaceMemberRepository extends JpaRepository<SpaceMember, Long> {
 
     List<SpaceMember> findBySpaceIdOrderById(Long spaceId);
 
-    Optional<SpaceMember> findBySpaceIdAndUserGithubLogin(Long spaceId, String githubLogin);
+    Optional<SpaceMember> findBySpaceIdAndUserLogin(Long spaceId, String login);
 
     long countBySpaceIdAndRole(Long spaceId, Role role);
 
-    boolean existsByUserGithubLogin(String githubLogin);
+    boolean existsByUserLogin(String login);
 }
