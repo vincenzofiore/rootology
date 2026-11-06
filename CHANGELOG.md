@@ -11,6 +11,8 @@ in memory, and the ones from before the release are not recognised.
 
 ### Added
 
+- A public welcome page explains Rootology and offers sign-in with GitHub or Google; visitors no longer land
+  straight on GitHub (#47).
 - Admins get an email, in Italian and once per event, when Claude, Jev, MET Norway or GeoNames keep failing,
   and when the server's disk is 90 % full. It reaches admins with an address in Notifications (#27).
 - Metrics for admins at `/actuator/metrics`: questions by outcome (answered, escalated, failed), the decision

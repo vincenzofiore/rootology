@@ -26,8 +26,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Every view needs a GitHub login, except the logged-out page, invitation links and the sources page. Who may sign
- * in is decided by AllowListOAuth2UserService.
+ * Every view needs a sign-in, except the welcome page, the logged-out page, invitation links and the public
+ * pages. Who may sign in is decided by AllowListOAuth2UserService.
  */
 @Configuration
 @EnableMethodSecurity
@@ -90,23 +90,25 @@ class SecurityConfiguration {
                                             GoogleOidcUserService googleService) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE,
-                        "/" + PrivacyView.ROUTE, "/weather-icons/**", "/styles/**", "/icons/**", "/actuator/health",
-                        "/actuator/health/**")
+                        "/" + PrivacyView.ROUTE, "/" + WelcomeView.ROUTE, "/weather-icons/**", "/styles/**", "/icons/**",
+                        "/images/**", "/actuator/health", "/actuator/health/**")
                 .permitAll()
                 .requestMatchers("/actuator/**").hasRole("ADMIN"));
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
         loggedOut.setDefaultTargetUrl("/" + LOGGED_OUT_PAGE);
         loggedOut.setRedirectStrategy(new UidlRedirectStrategy()); // also redirects Vaadin's own requests
+        // A visitor who is not signed in lands on the welcome page, not straight on GitHub (#47).
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin
-                .oauth2LoginPage(GITHUB_LOGIN_PAGE)
+                .oauth2LoginPage("/" + WelcomeView.ROUTE)
                 .logoutSuccessHandler(loggedOut));
         http.oauth2Login(login -> {
             login.userInfoEndpoint(info -> info
                     .userService(userService)
                     .oidcUserService(googleService));
             // A link started in My account (#28) always leaves the person signed in: a refusal goes back there
-            // with its code (see LinkFailureHandler). Every other sign-in keeps Vaadin's handler.
+            // with its code (see LinkFailureHandler). An ordinary refusal goes to the welcome page with one
+            // generic message (#47).
             login.failureHandler(new LinkFailureHandler());
         });
         // Added after Vaadin's configurer, so its success handler exists and is the one wrapped (see below).

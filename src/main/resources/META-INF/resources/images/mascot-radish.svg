@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Rootology: Rava, the radish</title>
+  <rect width="512" height="512" rx="112" fill="#EEF6E8"/>
+  <!-- leaves -->
+  <path d="M256 196 C 214 150, 160 132, 120 150 C 150 196, 206 214, 256 206 Z" fill="#4E9F3D"/>
+  <path d="M256 200 C 300 140, 360 116, 404 136 C 376 190, 314 216, 256 210 Z" fill="#6BBF59"/>
+  <path d="M256 210 C 250 160, 262 110, 288 78 C 304 120, 290 168, 262 212 Z" fill="#3E8E41"/>
+  <!-- root -->
+  <path d="M256 420 C 258 448, 250 470, 236 484" stroke="#E9DCC9" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <!-- body -->
+  <path d="M256 196 C 352 196, 396 262, 380 324 C 364 388, 306 428, 256 428 C 206 428, 148 388, 132 324 C 116 262, 160 196, 256 196 Z" fill="#D9435E"/>
+  <path d="M190 246 C 210 226, 236 218, 256 218" stroke="#F08AA0" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- face -->
+  <circle cx="214" cy="306" r="17" fill="#2B2B2B"/>
+  <circle cx="298" cy="306" r="17" fill="#2B2B2B"/>
+  <circle cx="220" cy="300" r="6" fill="#FFFFFF"/>
+  <circle cx="304" cy="300" r="6" fill="#FFFFFF"/>
+  <ellipse cx="184" cy="342" rx="18" ry="11" fill="#F28CA0" opacity="0.8"/>
+  <ellipse cx="328" cy="342" rx="18" ry="11" fill="#F28CA0" opacity="0.8"/>
+  <path d="M232 346 Q 256 368 280 346" stroke="#2B2B2B" stroke-width="9" stroke-linecap="round" fill="none"/>
+</svg>

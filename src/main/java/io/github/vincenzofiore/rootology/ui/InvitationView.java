@@ -1,7 +1,6 @@
 package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -75,18 +74,11 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
     /**
      * The ways in. GitHub always; Google only when it is configured (#28), since an unconfigured provider would
      * send the person to an error page. Both keep the invitation in the session, so signing in joins them.
+     * The buttons come from the shared component so the welcome, invitation and logged-out pages match (#47).
      */
     HorizontalLayout signInButtons() {
-        Anchor github = new Anchor(SecurityConfiguration.GITHUB_LOGIN_PAGE, getTranslation("invite.signin"));
-        github.setRouterIgnore(true);
-        HorizontalLayout buttons = new HorizontalLayout(github);
-        buttons.addClassName("rootology-signin");
-        if (SecurityConfiguration.googleConfigured(googleClientId)) {
-            Anchor google = new Anchor(SecurityConfiguration.GOOGLE_LOGIN_PAGE, getTranslation("invite.signin.google"));
-            google.setRouterIgnore(true);
-            buttons.add(google);
-        }
-        return buttons;
+        return new SignInButtons(getTranslation("invite.signin"), getTranslation("invite.signin.google"),
+                SecurityConfiguration.googleConfigured(googleClientId));
     }
 
     /** The refusal in the person's language; the service words it in English for its logs. */

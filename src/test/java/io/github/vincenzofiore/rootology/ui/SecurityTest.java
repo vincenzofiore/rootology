@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Without a login, the UI sends the browser to GitHub's OAuth flow. */
+/** Without a login, the UI sends the browser to the welcome page (#47). */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,10 +33,17 @@ class SecurityTest {
     FilterChainProxy securityFilterChain;
 
     @Test
-    void anonymousVisitorsAreSentToGitHubLogin() throws Exception {
+    void anonymousVisitorsAreSentToTheWelcomePage() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl(SecurityConfiguration.GITHUB_LOGIN_PAGE));
+                .andExpect(redirectedUrl("/" + WelcomeView.ROUTE));
+    }
+
+    @Test
+    void anonymousVisitorsOnAProtectedRouteAreSentToTheWelcomePage() throws Exception {
+        mockMvc.perform(get("/ask"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/" + WelcomeView.ROUTE));
     }
 
     @Test

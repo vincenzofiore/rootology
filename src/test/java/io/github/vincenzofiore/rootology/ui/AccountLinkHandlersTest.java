@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Where a link ends in the browser (#28): a refusal goes back to My account with its fixed code and leaves the
- * person signed in; every other failure and every plain sign-in keeps the behaviour it had.
+ * person signed in; an ordinary sign-in failure goes back to the welcome page with one generic message (#47).
  */
 class AccountLinkHandlersTest {
 
@@ -68,12 +68,11 @@ class AccountLinkHandlersTest {
     }
 
     @Test
-    void anOrdinarySignInFailureKeepsTheDefaultBehaviour() throws Exception {
+    void anOrdinarySignInFailureGoesToTheWelcomePage() throws Exception {
         new LinkFailureHandler().onAuthenticationFailure(request, response,
                 new OAuth2AuthenticationException(new OAuth2Error("access_denied"), "not admitted"));
 
-        assertThat(response.getRedirectedUrl()).isNull();
-        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getRedirectedUrl()).isEqualTo("/" + WelcomeView.ROUTE + "?error=denied");
     }
 
     @Test

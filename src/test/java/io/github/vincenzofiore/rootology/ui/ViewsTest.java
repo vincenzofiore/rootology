@@ -1,5 +1,7 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
@@ -184,5 +186,24 @@ class ViewsTest {
         EscalationView view = new EscalationView(pipeline, viewer());
 
         assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isTrue();
+    }
+
+    @Test
+    void theWelcomeAndLoggedOutPagesOfferTheSameWaysIn() {
+        assertThat(hrefs(new WelcomeView(authentication, "not-set")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
+        assertThat(hrefs(new WelcomeView(authentication, "1234.apps.googleusercontent.com")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
+        assertThat(hrefs(new LoggedOutView("not-set")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
+        assertThat(hrefs(new LoggedOutView("1234.apps.googleusercontent.com")))
+                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
+    }
+
+    private static List<String> hrefs(Component view) {
+        SignInButtons buttons = view.getChildren().filter(SignInButtons.class::isInstance)
+                .map(SignInButtons.class::cast).findFirst().orElseThrow();
+        return buttons.getChildren().filter(Anchor.class::isInstance).map(Component::getElement)
+                .map(element -> element.getAttribute("href")).toList();
     }
 }

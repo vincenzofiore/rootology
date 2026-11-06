@@ -18,7 +18,7 @@ public class PublicLayout extends Div implements RouterLayout {
 
     public PublicLayout() {
         boolean signedIn = VaadinRequest.getCurrent() != null && VaadinRequest.getCurrent().getUserPrincipal() != null;
-        // A plain link, not a RouterLink: for someone not signed in "/" starts the GitHub sign-in.
+        // A plain link, not a RouterLink: for someone not signed in "/" leads to the welcome page (#47).
         Anchor back = new Anchor("/", "");
         back.setRouterIgnore(!signedIn);
         back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(signedIn ? "public.back" : "public.signin")));
