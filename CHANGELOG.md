@@ -6,8 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
-Nothing changes for gardeners, members and guests, except that everyone signs in again once: sessions live
-in memory, and the ones from before the release are not recognised.
+## [0.2.0] - 2026-11-06
+
+Everyone signs in again once after this release: sessions live in memory, and the ones from before it are not
+recognised.
 
 ### Added
 
@@ -20,7 +22,7 @@ in memory, and the ones from before the release are not recognised.
 - The health check reports `DEGRADED`, still with HTTP 200, while an external service is not answering;
   liveness and readiness (Postgres and Neo4j) checks for the deployment (#27).
 - Sign in with Google, for people invited by email or to an open invitation link (#28).
-- Link a GitHub and a Google account to the same person from My account, and unlink one when two are linked (#28)
+- Link a GitHub and a Google account to the same person from My account, and unlink one when two are linked (#28).
 
 ### Changed
 
@@ -56,5 +58,6 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.1.0...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.2.0...develop
+[0.2.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.2.0
 [0.1.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.1.0
