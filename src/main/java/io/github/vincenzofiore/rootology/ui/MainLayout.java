@@ -17,6 +17,8 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.page.ColorScheme;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.AppRole;
@@ -25,12 +27,14 @@ import jakarta.annotation.security.PermitAll;
 
 /** Shell with navigation between the comparison view and the escalation queue, and the signed-in user. */
 @PermitAll
-public class MainLayout extends AppLayout {
+public class MainLayout extends AppLayout implements AfterNavigationObserver {
 
     private final NotificationService notifications;
     private final NotificationBroadcaster broadcaster;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
+    /** The current space; a view may switch it on entering (a notification's link, #51). */
+    private final ComboBox<SpaceSummary> space = new ComboBox<>();
     /** Light or dark (#31): automatic (the device's setting), light or dark; kept in this browser. */
     private final Button scheme = new Button();
     private ColorScheme.Value colorScheme = ColorScheme.Value.LIGHT_DARK;
@@ -47,7 +51,6 @@ public class MainLayout extends AppLayout {
         DrawerToggle toggle = new DrawerToggle();
         toggle.setAriaLabel(getTranslation("nav.menu"));
         addToNavbar(toggle, title);
-        ComboBox<SpaceSummary> space = new ComboBox<>();
         space.setItems(currentUser.spaces());
         space.setItemLabelGenerator(SpaceSummary::name);
         space.setValue(currentUser.space());
@@ -103,6 +106,15 @@ public class MainLayout extends AppLayout {
             nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminView.class, VaadinIcon.COG_O.create()));
         }
         addToDrawer(nav);
+    }
+
+    /** Shows the space the view ended up in, also when the view switched it from a link (#51). */
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        if (!currentUser.space().equals(space.getValue())) {
+            space.setItems(currentUser.spaces());
+            space.setValue(currentUser.space());
+        }
     }
 
     private Div menuItem(VaadinIcon icon, String key) {

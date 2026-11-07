@@ -3,6 +3,9 @@ package io.github.vincenzofiore.rootology.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.experiments.ExperimentRunner;
@@ -12,7 +15,9 @@ import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
+import io.github.vincenzofiore.rootology.spaces.Role;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
+import io.github.vincenzofiore.rootology.spaces.SpaceSummary;
 import jakarta.annotation.security.PermitAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -179,6 +184,39 @@ class ViewsTest {
                 .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
 
         assertThat(suiteColumnsForQa - columnsForMember).as("case, input, Jena, matches").isEqualTo(4);
+    }
+
+    /** A person's own space, signed in so it exists. */
+    private long personalSpace(String login) {
+        spaces.signedIn(login);
+        return spaces.spacesOf(login).stream().filter(SpaceSummary::personal).findFirst().orElseThrow().id();
+    }
+
+    @Test
+    void aHistoryLinkOpensItsOwnSpaceAndIgnoresTheOthers() {
+        long personal = personalSpace("history-link-user");
+        long foreign = personalSpace("history-owner");
+        long shared = personalSpace("history-other");
+        spaces.addMember(shared, "history-other", "history-link-user", Role.MEMBER);
+        CurrentUser me = new CurrentUser(spaces, "history-link-user");
+        me.switchTo(personal);
+        HistoryView view = new HistoryView(history, me);
+
+        view.beforeEnter(entering(HistoryView.SPACE, String.valueOf(foreign)));
+        assertThat(me.space().id()).as("a space the person is not in is ignored").isEqualTo(personal);
+
+        view.beforeEnter(entering(HistoryView.SPACE, "nonsense"));
+        assertThat(me.space().id()).as("a malformed id is ignored").isEqualTo(personal);
+
+        view.beforeEnter(entering(HistoryView.SPACE, String.valueOf(shared)));
+        assertThat(me.space().id()).as("the link's own space wins").isEqualTo(shared);
+    }
+
+    private static BeforeEnterEvent entering(String name, String value) {
+        BeforeEnterEvent event = org.mockito.Mockito.mock(BeforeEnterEvent.class);
+        org.mockito.Mockito.when(event.getLocation())
+                .thenReturn(new Location("history", QueryParameters.of(name, value)));
+        return event;
     }
 
     @Test

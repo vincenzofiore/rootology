@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * the logs of the whole run, notifications included, hold neither the question's text nor the asker's address.
  */
 @Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
+@TestPropertySource(properties = {"rootology.jev.api-key=", "rootology.notifications.group-window=PT0S"})
 class ObservabilityTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
@@ -106,9 +106,36 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(run.pending()).isNotNull();
         assertThat(questions("escalated")).isEqualTo(before + 1);
-        List<String> logged = logs.list.stream().flatMap(e -> Stream.concat(
-                Stream.of(e.getFormattedMessage(), e.getThrowableProxy() == null ? null : e.getThrowableProxy().getMessage()),
-                e.getMDCPropertyMap().values().stream())).filter(Objects::nonNull).toList();
-        assertThat(logged).isNotEmpty().noneMatch(line -> line.contains(text) || line.contains(email));
+        assertThat(logged()).isNotEmpty().noneMatch(line -> line.contains(text) || line.contains(email));
+    }
+
+    @Test
+    void anAnswerToAWaitingQuestionLogsNoQuestionTextOrAddress() {
+        String text = "Which plants are companions of zzyzxberry? 5521";
+        String email = "ugo.private@example.test";
+        whenCreateObject(prompt -> prompt.contains(text), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "zzyzxberry"));
+        double escalated = questions("escalated");
+        double answered = questions("answered");
+
+        RunContext asker = signedIn("ugo", email);
+        spaces.addMember(asker.spaceId(), asker.startedBy(), "vera", io.github.vincenzofiore.rootology.spaces.Role.MEMBER);
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text), asker);
+
+        pipeline.respond(run.pending().processId(), asker.spaceId(),
+                new HumanAnswer(List.of("Rosmarino"), "", "vera"));
+        notifications.digest();
+
+        assertThat(questions("escalated")).isEqualTo(escalated + 1);
+        assertThat(questions("answered")).as("answering is not a new question").isEqualTo(answered);
+        assertThat(logged()).isNotEmpty().noneMatch(line -> line.contains(text) || line.contains(email));
+    }
+
+    /** Every line a run leaves in the logs, with its throwable and MDC values. */
+    private List<String> logged() {
+        return logs.list.stream().flatMap(e -> Stream.concat(
+                        Stream.of(e.getFormattedMessage(), e.getThrowableProxy() == null ? null : e.getThrowableProxy().getMessage()),
+                        e.getMDCPropertyMap().values().stream()))
+                .filter(Objects::nonNull).toList();
     }
 }

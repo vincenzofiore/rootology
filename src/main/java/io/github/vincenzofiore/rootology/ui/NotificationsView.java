@@ -38,10 +38,12 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         this.currentUser = currentUser;
 
         grid.addColumn(n -> WHEN.format(n.createdAt())).setHeader(getTranslation("notifications.when")).setAutoWidth(true);
-        grid.addColumn(n -> (n.unread() ? "● " : "") + (n.weather() ? n.title() : getTranslation("notifications.waiting")))
+        grid.addColumn(n -> (n.unread() ? "● " : "") + (n.weather() ? n.title()
+                : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting")))
                 .setHeader(getTranslation("notifications.what")).setAutoWidth(true);
         grid.addColumn(NotificationView::body).setHeader(getTranslation("notifications.details")).setFlexGrow(3);
-        grid.addColumn(n -> n.weather() ? "" : n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
+        grid.addColumn(n -> n.weather() || n.answered() ? ""
+                        : n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
                         : getTranslation("notifications.status.answered", n.resolvedBy()))
                 .setHeader(getTranslation("notifications.status")).setAutoWidth(true);
         grid.addComponentColumn(n -> {
@@ -59,7 +61,10 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         refresh();
     }
 
-    /** To the waiting question, or to the garden for a weather alert: switching to its space if needed. */
+    /**
+     * To the waiting question, to the answer in the history (#51), or to the garden for a weather alert:
+     * switching to its space if needed.
+     */
     private void open(NotificationView n) {
         notifications.markRead(currentUser.login(), n.id());
         if (currentUser.space().id() != n.spaceId()) {
@@ -68,6 +73,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         getUI().ifPresent(ui -> {
             if (n.weather()) {
                 ui.navigate(GardenView.class);
+            } else if (n.answered()) {
+                ui.navigate(HistoryView.class);
             } else {
                 ui.navigate(EscalationView.class);
             }

@@ -10,6 +10,11 @@ public record NotificationView(long id, long spaceId, String kind, String proces
         return "WEATHER_ALERT".equals(kind);
     }
 
+    /** The asker's own question was answered (#51): it leads to the answer, not to a waiting question. */
+    public boolean answered() {
+        return "ESCALATION_ANSWERED".equals(kind);
+    }
+
     public boolean unread() {
         return readAt == null;
     }

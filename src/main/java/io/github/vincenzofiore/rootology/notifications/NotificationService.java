@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -83,11 +84,25 @@ public class NotificationService {
     @EventListener
     @Transactional
     void on(EscalationResolved resolved) {
-        List<String> recipients = jdbc.sql("SELECT DISTINCT recipient FROM notification WHERE process_id = ?")
-                .params(resolved.processId()).query(String.class).list();
+        Set<String> changed = new HashSet<>(jdbc.sql("SELECT DISTINCT recipient FROM notification WHERE process_id = ?")
+                .params(resolved.processId()).query(String.class).list());
         jdbc.sql("UPDATE notification SET resolved_at = ?, resolved_by = ? WHERE process_id = ? AND resolved_at IS NULL")
                 .params(Timestamp.from(resolved.at()), resolved.reviewer(), resolved.processId()).update();
-        events.publishEvent(new NotificationsChanged(Set.copyOf(recipients)));
+        // #51: the asker gets a new, unread notification with the answer; the other recipients only see their
+        // waiting notification resolved. The person who answered gets nothing new, unless someone else asked,
+        // and someone who left the space while the question waited cannot open it: no notification.
+        String asker = normalize(resolved.askedBy());
+        if (!asker.isEmpty() && !asker.equals(normalize(resolved.reviewer()))
+                && spaces.isMember(resolved.spaceId(), asker)) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, kind, process_id, title, body, resolved_by, "
+                            + "created_at) VALUES (?, ?, 'ESCALATION_ANSWERED', ?, ?, ?, ?, ?)")
+                    .params(asker, resolved.spaceId(), resolved.processId(), "Your question has an answer",
+                            truncate(resolved.reviewer() + " answered your question", 1000), resolved.reviewer(),
+                            Timestamp.from(resolved.at()))
+                    .update();
+            changed.add(asker);
+        }
+        events.publishEvent(new NotificationsChanged(Set.copyOf(changed)));
     }
 
     /** The latest notifications of a person, newest first. */
@@ -191,11 +206,11 @@ public class NotificationService {
     public int digest() {
         Instant now = clock.instant();
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
-        jdbc.sql("SELECT id, recipient, kind, title, body FROM notification WHERE emailed_at IS NULL "
-                        + "AND resolved_at IS NULL AND created_at <= ? ORDER BY created_at")
+        jdbc.sql("SELECT id, recipient, kind, title, body, resolved_by, space_id FROM notification "
+                        + "WHERE emailed_at IS NULL AND resolved_at IS NULL AND created_at <= ? ORDER BY created_at")
                 .params(Timestamp.from(now.minus(groupWindow)))
                 .query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5))).list()
+                        rs.getString(5), rs.getString(6), rs.getLong(7))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : byRecipient.entrySet()) {
@@ -221,25 +236,50 @@ public class NotificationService {
     }
 
     private OutgoingMail digestMail(String to, List<Pending> pending) {
-        List<Pending> questions = pending.stream().filter(p -> !p.weather()).toList();
+        List<Pending> questions = pending.stream().filter(Pending::waiting).toList();
+        List<Pending> answers = pending.stream().filter(Pending::answered).toList();
         List<Pending> weather = pending.stream().filter(Pending::weather).toList();
-        String subject = weather.isEmpty()
-                ? (questions.size() == 1 ? "Rootology: una domanda aspetta una risposta"
-                        : "Rootology: " + questions.size() + " domande aspettano una risposta")
-                : questions.isEmpty() ? (weather.size() == 1 ? "Rootology: " + weather.getFirst().title()
-                        : "Rootology: " + weather.size() + " avvisi meteo")
-                : "Rootology: domande in attesa e avvisi meteo";
+        String subject;
+        if (!weather.isEmpty()) {
+            subject = questions.isEmpty() && answers.isEmpty()
+                    ? (weather.size() == 1 ? "Rootology: " + weather.getFirst().title()
+                            : "Rootology: " + weather.size() + " avvisi meteo")
+                    : answers.isEmpty() ? "Rootology: domande in attesa e avvisi meteo"
+                    : questions.isEmpty() ? "Rootology: risposte e avvisi meteo"
+                    : "Rootology: risposte, domande in attesa e avvisi meteo";
+        } else if (questions.isEmpty()) {
+            subject = "Rootology: la tua domanda ha una risposta";
+        } else if (answers.isEmpty()) {
+            subject = questions.size() == 1 ? "Rootology: una domanda aspetta una risposta"
+                    : "Rootology: " + questions.size() + " domande aspettano una risposta";
+        } else {
+            subject = "Rootology: risposte e domande in attesa";
+        }
         StringBuilder text = new StringBuilder("Ciao,\n\n");
         StringBuilder html = new StringBuilder("<p>Ciao,</p>");
+        if (!answers.isEmpty()) {
+            text.append(answers.size() == 1 ? "la tua domanda ha una risposta:\n"
+                    : "le tue domande hanno una risposta:\n");
+            answers.forEach(p -> text.append("- ").append(p.resolvedBy()).append(" ha risposto: ")
+                    .append(link("/history", p)).append('\n'));
+            html.append("<p>").append(answers.size() == 1 ? "La tua domanda ha una risposta:"
+                    : "Le tue domande hanno una risposta:").append("</p><ul>");
+            answers.forEach(p -> html.append("<li><strong>").append(HtmlUtils.htmlEscape(p.resolvedBy()))
+                    .append("</strong> ha risposto — <a href=\"").append(HtmlUtils.htmlEscape(link("/history", p)))
+                    .append("\">Cronologia</a></li>"));
+            html.append("</ul>");
+        }
         if (!questions.isEmpty()) {
             text.append(questions.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:\n"
                     : "alcune domande nei tuoi spazi aspettano una risposta:\n");
-            questions.forEach(p -> text.append("- ").append(p.body()).append('\n'));
-            text.append("Per rispondere: ").append(baseUrl).append("/escalations\n\n");
+            questions.forEach(p -> text.append("- ").append(p.body()).append('\n')
+                    .append("  Per rispondere: ").append(link("/escalations", p)).append('\n'));
             html.append("<p>").append(questions.size() == 1 ? "Una domanda nel tuo spazio aspetta una risposta:"
                     : "Alcune domande nei tuoi spazi aspettano una risposta:").append("</p><ul>");
-            questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body())).append("</li>"));
-            html.append("</ul><p><a href=\"").append(HtmlUtils.htmlEscape(baseUrl + "/escalations")).append("\">Rispondi</a></p>");
+            questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body()))
+                    .append(" — <a href=\"").append(HtmlUtils.htmlEscape(link("/escalations", p)))
+                    .append("\">Rispondi</a></li>"));
+            html.append("</ul>");
         }
         if (!weather.isEmpty()) {
             text.append("Avvisi meteo per il tuo orto:\n");
@@ -255,10 +295,24 @@ public class NotificationService {
         return new OutgoingMail(to, subject, text.toString(), html.toString());
     }
 
-    private record Pending(long id, String recipient, String kind, String title, String body) {
+    /** A link that opens the right space even when the session's current space is another (#51). */
+    private String link(String path, Pending p) {
+        return baseUrl + path + "?space=" + p.spaceId();
+    }
+
+    private record Pending(long id, String recipient, String kind, String title, String body, String resolvedBy,
+                           long spaceId) {
 
         boolean weather() {
             return "WEATHER_ALERT".equals(kind);
+        }
+
+        boolean answered() {
+            return "ESCALATION_ANSWERED".equals(kind);
+        }
+
+        boolean waiting() {
+            return !weather() && !answered();
         }
     }
 

@@ -8,6 +8,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
@@ -16,14 +18,21 @@ import io.github.vincenzofiore.rootology.pipeline.GardenPipeline.PendingReview;
 import io.github.vincenzofiore.rootology.pipeline.HumanAnswer;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
+import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
 
 import java.util.Arrays;
 import java.util.List;
 
-/** Escalated questions of the current space whose agent is paused. A member answers one and the agent finishes. */
+/**
+ * Escalated questions of the current space whose agent is paused. A member answers one and the agent finishes.
+ * A link from a notification (#51) names its space with {@code ?space=<id>}, since the current one may be another.
+ */
 @Route(value = "escalations", layout = MainLayout.class)
 @PermitAll
-public class EscalationView extends VerticalLayout implements HasDynamicTitle {
+public class EscalationView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
+
+    /** The space a notification's link opens, when it is not the session's current one (#51). */
+    static final String SPACE = "space";
 
     private final GardenPipeline pipeline;
     private final CurrentUser currentUser;
@@ -87,6 +96,33 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle {
         }
         note.clear();
         refresh();
+    }
+
+    /**
+     * Opens the space named in the link. A malformed id or a space the person does not belong to is ignored:
+     * the current space is shown, never an error page and never another space's questions.
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        long id = event.getLocation().getQueryParameters().getSingleParameter(SPACE)
+                .map(EscalationView::id).orElse(-1L);
+        if (id <= 0 || id == currentUser.space().id()) {
+            return;
+        }
+        try {
+            currentUser.switchTo(id);
+        } catch (SpaceAccessException ignored) {
+            return;
+        }
+        refresh();
+    }
+
+    private static long id(String value) {
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     private void refresh() {

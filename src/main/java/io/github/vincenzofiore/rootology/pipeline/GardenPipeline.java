@@ -201,7 +201,8 @@ public class GardenPipeline {
         }
         transaction.executeWithoutResult(status -> {
             pending.resolve(processId, human.reviewer(), Instant.now());
-            events.publishEvent(new EscalationResolved(processId, spaceId, human.reviewer(), Instant.now()));
+            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().startedBy(),
+                    human.reviewer(), Instant.now()));
         });
         return run.answer();
     }

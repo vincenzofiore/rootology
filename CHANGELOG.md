@@ -6,6 +6,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Added
+
+- When someone answers a waiting question, the person who asked gets a notification in the app and an email
+  with who answered and a link to the answer; the other members only see their notification resolved (#51).
+
 ### Fixed
 
 - The welcome page no longer shows a back link to itself for visitors (#50).
