@@ -6,6 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Fixed
+
+- The welcome page no longer shows a back link to itself for visitors (#50).
+
 ## [0.2.0] - 2026-11-06
 
 Everyone signs in again once after this release: sessions live in memory, and the ones from before it are not
