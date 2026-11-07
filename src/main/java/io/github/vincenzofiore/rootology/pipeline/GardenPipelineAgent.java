@@ -98,6 +98,7 @@ public class GardenPipelineAgent {
     private final KnowledgeGraph knowledge;
     private final GardenFacts garden;
     private final WeatherFacts weather;
+    private final LightFacts light;
     private final DecisionLayer decisionLayer;
     private final ClaudeCircuit claude;
     private final java.time.Clock clock;
@@ -105,12 +106,13 @@ public class GardenPipelineAgent {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GardenPipelineAgent.class);
 
     GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden, WeatherFacts weather,
-                        DecisionLayer decisionLayer, ClaudeCircuit claude, java.time.Clock clock) {
+                        LightFacts light, DecisionLayer decisionLayer, ClaudeCircuit claude, java.time.Clock clock) {
         this.clock = clock;
         this.factSource = factSource;
         this.knowledge = knowledge;
         this.garden = garden;
         this.weather = weather;
+        this.light = light;
         this.decisionLayer = decisionLayer;
         this.claude = claude;
     }
@@ -188,13 +190,21 @@ public class GardenPipelineAgent {
                 case PEST_RISK -> weather.blight(run, full.month(), full.languageOrDefault());
                 default -> WeatherFacts.Result.NONE;
             };
+            // The plot's declared exposure (#54): sowing warnings for light, plus the declared readings themselves.
+            LightFacts.Result exposure = switch (full.kind()) {
+                case SOW_NOW -> light.now(run, facts);
+                case SOW_IN_PLOT -> light.inPlot(run, full.subject(), facts);
+                default -> LightFacts.Result.NONE;
+            };
             List<Reading> readings = new java.util.ArrayList<>(facts.stream()
                     .map(f -> new Reading(f.fact(), f.derivedBy() != null ? Reading.Source.INFERRED
                             : f.proposed() ? Reading.Source.PROPOSED : Reading.Source.CURATED,
                             f.sourceIds(), f.derivedBy()))
                     .toList());
             readings.addAll(local.readings());
+            readings.addAll(exposure.readings());
             List<io.github.vincenzofiore.rootology.decision.Note> notes = new java.util.ArrayList<>(local.notes());
+            notes.addAll(exposure.notes());
             if (io.github.vincenzofiore.rootology.garden.GardenService.OUTSIDE_ITALY.equals(full.zone())) {
                 // No window matches this zone, so the question escalates; say why (#30).
                 notes.add(0, io.github.vincenzofiore.rootology.decision.Note.of(

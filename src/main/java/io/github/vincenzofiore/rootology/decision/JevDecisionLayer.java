@@ -44,6 +44,10 @@ public class JevDecisionLayer implements DecisionLayer {
     static final Map<String, Object> FORECAST = ordered(
             "FORECAST", "From the weather forecast for the garden's location. Likely, but less certain further ahead.");
 
+    /** Added only when some reading is declared by the gardener (#54), such as a plot's sun and wind. */
+    static final Map<String, Object> DECLARED = ordered(
+            "DECLARED", "Declared by the person who grows, not measured. Plausible, but less reliable than a measurement.");
+
     private final RestClient restClient;
     private final String model;
     private final CircuitBreaker breaker;
@@ -58,9 +62,10 @@ public class JevDecisionLayer implements DecisionLayer {
         this.breaker = breaker;
     }
 
-    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast) {
+    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast,
+                                       boolean anyDeclared) {
         Map<String, Object> sources = anyInferred ? SOURCES_WITH_INFERRED : SOURCES;
-        if (!anyProposed && !anyForecast) {
+        if (!anyProposed && !anyForecast && !anyDeclared) {
             return sources;
         }
         Map<String, Object> extended = new LinkedHashMap<>(sources);
@@ -69,6 +74,9 @@ public class JevDecisionLayer implements DecisionLayer {
         }
         if (anyForecast) {
             extended.putAll(FORECAST);
+        }
+        if (anyDeclared) {
+            extended.putAll(DECLARED);
         }
         return extended;
     }
@@ -151,13 +159,14 @@ public class JevDecisionLayer implements DecisionLayer {
         boolean anyInferred = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.INFERRED);
         boolean anyProposed = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.PROPOSED);
         boolean anyForecast = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.FORECAST);
+        boolean anyDeclared = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.DECLARED);
         Map<String, Object> request = ordered(
                 "model", model,
                 "state", ordered(
                         // Field by field, so the language (not needed to decide) never changes what Jev sees.
                         "intent", intent(intent),
                         "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
-                        "sources", sources(anyInferred, anyProposed, anyForecast),
+                        "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
                         "facts", stateFacts),
                 "questions", questions);
 
@@ -310,11 +319,12 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "`intent.season`) and (X, affects, `intent.subject`) are facts. The knowledge base declares "
                     + "no repels facts, so no pest is excluded for being repelled.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, frost) is a fact. The facts are "
-                    + "already those of `intent.zone`.";
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
+                    + "such as frost or too little light. The facts are already those of `intent.zone`.";
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
-                    + "(X, avoidNow, frost) is a fact. The facts are already those of `intent.zone`.";
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
+                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. The facts "
+                    + "are already those of `intent.zone`.";
             default -> rule(kind);
         };
     }

@@ -17,7 +17,9 @@ public record Reading(Fact fact, Source source, List<String> sourceIds, String d
         /** Added by a member of the asking space, not reviewed by a curator; plausible but may be wrong. */
         PROPOSED,
         /** From a weather forecast for the garden's location; likely, and less certain further ahead. */
-        FORECAST
+        FORECAST,
+        /** Declared by the person who grows (the plot's exposure, #54), not measured: plausible, and less reliable. */
+        DECLARED
     }
 
     /** sourceIds: where the fact comes from (ids of the knowledge base's sources); derivedBy: the rule, for INFERRED. */

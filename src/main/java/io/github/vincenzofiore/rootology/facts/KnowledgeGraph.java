@@ -76,6 +76,17 @@ public class KnowledgeGraph {
         return result;
     }
 
+    /**
+     * ECOCROP's light optimum of each crop, as `crop-needs.csv` writes it (for example "very bright",
+     * "clear skies", "cloudy skies"), for the light rule (#54).
+     */
+    public Map<String, String> lightNeeds() {
+        Map<String, String> result = new java.util.TreeMap<>();
+        list("MATCH (c:Kb:Crop) WHERE c.light IS NOT NULL RETURN c.id AS id, c.light AS light", Map.of(),
+                r -> r).forEach(r -> result.put(r.get("id").asString(), r.get("light").asString()));
+        return result;
+    }
+
     /** The pairs declared from this crop (the reverse direction is never inferred). */
     public List<CropPair> pairsOf(String cropId) {
         return list("MATCH (a:Kb:Crop {id: $id})-[r:COMPANION_OF|ANTAGONIST_OF]->(b:Kb:Crop) WHERE r.spaceId IS NULL "

@@ -143,6 +143,10 @@ class PrivacyTest {
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
+                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor)
+                values ((select id from garden where space_id = :s), 'Gus pot', 'CONTAINER', 'POTTING_MIX',
+                        'N', 'SHADE', 'EXPOSED', 3)""").param("s", gusSpace).update();
+        jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
         jdbc.sql("""
@@ -153,7 +157,8 @@ class PrivacyTest {
 
         assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
-                        "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com")
+                        "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
+                        "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3")
                 .doesNotContain("gus asks about leeks");
     }
 

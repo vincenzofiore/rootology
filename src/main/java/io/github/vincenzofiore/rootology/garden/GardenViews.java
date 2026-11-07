@@ -12,7 +12,9 @@ public final class GardenViews {
                                 String countryCode) {
     }
 
-    public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2) {
+    /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */
+    public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
+                              Orientation orientation, DirectSun directSun, Wind wind, Integer floor) {
     }
 
     /** cropName is the crop's Italian name from the knowledge base, or the id if unknown. */

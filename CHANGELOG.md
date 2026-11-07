@@ -8,6 +8,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Each plot can record its orientation, direct sun, wind and floor (balconies and terraces), declared by the
+  gardener; the "what to sow now" and "what to sow in this plot" answers warn when a crop needs more light
+  than the plot gets, and name the crops whose light needs are unknown (#54).
 - When someone answers a waiting question, the person who asked gets a notification in the app and an email
   with who answered and a link to the answer; the other members only see their notification resolved (#51).
 

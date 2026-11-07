@@ -64,6 +64,34 @@ class GardenServiceTest {
     }
 
     @Test
+    void aPlotKeepsTheExposureTheGardenerDeclaresAndCanClearIt() {
+        long space = spaceOf("nino");
+        GardenSummary balcony = gardens.saveGarden(space, "nino", null, "Balcony", "Torino", null, null);
+
+        PlotSummary pot = gardens.savePlot(space, "nino", balcony.id(), null, "Pot", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null, Orientation.NW, DirectSun.PART_SHADE, Wind.SHELTERED, 3);
+
+        assertThat(pot.orientation()).isEqualTo(Orientation.NW);
+        assertThat(pot.directSun()).isEqualTo(DirectSun.PART_SHADE);
+        assertThat(pot.wind()).isEqualTo(Wind.SHELTERED);
+        assertThat(pot.floor()).isEqualTo(3);
+        assertThat(gardens.plots(space, "nino", balcony.id())).singleElement().satisfies(p -> {
+            assertThat(p.orientation()).isEqualTo(Orientation.NW);
+            assertThat(p.floor()).isEqualTo(3);
+        });
+
+        PlotSummary cleared = gardens.savePlot(space, "nino", balcony.id(), pot.id(), "Pot", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null);
+        assertThat(cleared.orientation()).isNull();
+        assertThat(cleared.directSun()).isNull();
+        assertThat(cleared.wind()).isNull();
+        assertThat(cleared.floor()).isNull();
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino", balcony.id(), null, "Bad", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null, null, null, null, -1))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void growingOnLeavesOutWhatIsHarvestedOrNotYetPlanted() {
         long space = spaceOf("hugo");
         GardenSummary garden = gardens.saveGarden(space, "hugo", null, "Allotment", null, null, null);

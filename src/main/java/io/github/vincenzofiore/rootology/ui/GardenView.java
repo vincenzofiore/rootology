@@ -14,6 +14,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
@@ -22,10 +23,13 @@ import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.garden.GardenViews.GardenSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlantingSummary;
+import io.github.vincenzofiore.rootology.garden.DirectSun;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlotSummary;
+import io.github.vincenzofiore.rootology.garden.Orientation;
 import io.github.vincenzofiore.rootology.garden.PlantingMethod;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
+import io.github.vincenzofiore.rootology.garden.Wind;
 import io.github.vincenzofiore.rootology.geocoding.GeoNames;
 import io.github.vincenzofiore.rootology.geocoding.Place;
 import io.github.vincenzofiore.rootology.weather.DailyForecast;
@@ -79,6 +83,7 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         plotGrid.addColumn(PlotSummary::name).setHeader(getTranslation("garden.plot"));
         plotGrid.addColumn(p -> getTranslation("plotkind." + p.kind().name())).setHeader(getTranslation("garden.kind"));
         plotGrid.addColumn(p -> getTranslation("soil." + p.soil().name())).setHeader(getTranslation("garden.soil"));
+        plotGrid.addColumn(this::exposure).setHeader(getTranslation("garden.exposure")).setAutoWidth(true);
         plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader(getTranslation("garden.area"));
         plotGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("common.edit"), e -> plotDialog(p)),
@@ -260,6 +265,20 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         ComboBox<Soil> soil = new ComboBox<>(getTranslation("garden.soil"), Soil.values());
         soil.setItemLabelGenerator(k -> getTranslation("soil." + k.name()));
         BigDecimalField area = new BigDecimalField(getTranslation("garden.area.field"));
+        // The declared exposure (#54): all optional, so they can be cleared.
+        ComboBox<Orientation> orientation = new ComboBox<>(getTranslation("garden.orientation"), Orientation.values());
+        orientation.setItemLabelGenerator(o -> getTranslation("orientation." + o.name()));
+        orientation.setClearButtonVisible(true);
+        ComboBox<DirectSun> sun = new ComboBox<>(getTranslation("garden.sun"), DirectSun.values());
+        sun.setItemLabelGenerator(d -> getTranslation("directsun." + d.name()));
+        sun.setClearButtonVisible(true);
+        ComboBox<Wind> wind = new ComboBox<>(getTranslation("garden.wind"), Wind.values());
+        wind.setItemLabelGenerator(w -> getTranslation("wind." + w.name()));
+        wind.setClearButtonVisible(true);
+        IntegerField floor = new IntegerField(getTranslation("garden.floor"));
+        floor.setMin(0);
+        floor.setMax(200);
+        floor.setClearButtonVisible(true);
         kind.setValue(PlotKind.GROUND);
         soil.setValue(Soil.UNKNOWN);
         if (existing != null) {
@@ -267,14 +286,19 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
             kind.setValue(existing.kind());
             soil.setValue(existing.soil());
             area.setValue(existing.areaM2());
+            orientation.setValue(existing.orientation());
+            sun.setValue(existing.directSun());
+            wind.setValue(existing.wind());
+            floor.setValue(existing.floor());
         }
         Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.addplot" : "garden.editplot"));
-        dialog.add(new FormLayout(name, kind, soil, area));
+        dialog.add(new FormLayout(name, kind, soil, area, orientation, sun, wind, floor));
         dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
                 new Button(getTranslation("common.save"), e -> {
             try {
                 gardens.savePlot(spaceId, login, garden.id(), existing == null ? null : existing.id(),
-                        name.getValue(), kind.getValue(), soil.getValue(), area.getValue());
+                        name.getValue(), kind.getValue(), soil.getValue(), area.getValue(),
+                        orientation.getValue(), sun.getValue(), wind.getValue(), floor.getValue());
                 dialog.close();
                 showGarden(garden);
             } catch (RuntimeException ex) {
@@ -282,6 +306,18 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
             }
         }));
         dialog.open();
+    }
+
+    /** Orientation and direct sun as declared, when they are (#54). */
+    private String exposure(PlotSummary plot) {
+        List<String> parts = new java.util.ArrayList<>();
+        if (plot.orientation() != null) {
+            parts.add(getTranslation("orientation." + plot.orientation().name()));
+        }
+        if (plot.directSun() != null) {
+            parts.add(getTranslation("directsun." + plot.directSun().name()));
+        }
+        return String.join(", ", parts);
     }
 
     private void plantingDialog() {

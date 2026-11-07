@@ -17,7 +17,7 @@ The controller is the owner of the deployment, named on the privacy page through
 | Notification address, email on/off, quiet hours | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |
 | Spaces and memberships, roles in a space | `space`, `space_member` | sharing a garden | contract | until the person leaves or the account is deleted |
 | Invitations (invited login or email address, who invited) | `invitation` | joining a space | contract | the address is cleared when the invitation is accepted, revoked or expires; the row is deleted 30 days after |
-| Gardens (name, town, country, coordinates rounded to 0.01°, about 1 km), plots, plantings with optional notes | `garden`, `plot`, `planting` | garden questions, weather, alerts | contract | until deleted by the space, or with the space |
+| Gardens (name, town, country, coordinates rounded to 0.01°, about 1 km), plots (with their optional declared exposure: orientation, direct sun, wind, floor), plantings with optional notes | `garden`, `plot`, `planting` | garden questions, weather, alerts | contract | until deleted by the space, or with the space |
 | Questions (free text) and answers, who asked and who answered | `pipeline_run`, `pending_escalation` | history, escalations to a person | contract | 12 months; resolved escalations 90 days |
 | Notifications | `notification` | in-app bell and email digest | contract | 90 days after they are resolved or read; weather alerts 90 days, read or not |
 | Usage records (who, when, calls, tokens, cost) and personal limits | `usage_record`, `usage_limit` | fair use, cost control | legitimate interest | 12 months |

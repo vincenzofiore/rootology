@@ -86,9 +86,27 @@ public class GardenService {
                 .map(GardenService::summary).toList();
     }
 
+    /** Every plot of the space, across its gardens, for questions about the space as a whole (#54). */
+    @Transactional(readOnly = true)
+    public List<PlotSummary> plots(long spaceId, String login) {
+        requireMember(spaceId, login);
+        return gardens.findBySpaceIdOrderById(spaceId).stream()
+                .flatMap(g -> plots.findByGardenIdOrderByName(g.getId()).stream())
+                .map(GardenService::summary).toList();
+    }
+
+    /** Without the declared exposure (#54): use the other overload to set it. */
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
                                 PlotKind kind, Soil soil, BigDecimal areaM2) {
+        return savePlot(spaceId, login, gardenId, plotId, name, kind, soil, areaM2, null, null, null, null);
+    }
+
+    /** orientation, directSun, wind and floor are declared by the gardener; all optional (#54). */
+    @Transactional
+    public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
+                                PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
+                                DirectSun directSun, Wind wind, Integer floor) {
         requireContributor(spaceId, login);
         String cleanName = required(name, "A plot needs a name");
         if (kind == null || soil == null) {
@@ -97,9 +115,12 @@ public class GardenService {
         if (areaM2 != null && areaM2.signum() <= 0) {
             throw new IllegalArgumentException("The area must be positive");
         }
+        if (floor != null && (floor < 0 || floor > 200)) {
+            throw new IllegalArgumentException("The floor must be between 0 and 200");
+        }
         Garden garden = garden(spaceId, gardenId);
         Plot plot = plotId == null ? new Plot(garden, cleanName, kind, soil, areaM2) : plot(spaceId, plotId);
-        plot.update(cleanName, kind, soil, areaM2);
+        plot.update(cleanName, kind, soil, areaM2, orientation, directSun, wind, floor);
         return summary(plots.save(plot));
     }
 
@@ -276,7 +297,8 @@ public class GardenService {
     }
 
     private static PlotSummary summary(Plot p) {
-        return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2());
+        return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2(),
+                p.getOrientation(), p.getDirectSun(), p.getWind(), p.getFloor());
     }
 
     private PlantingSummary summary(Planting p) {

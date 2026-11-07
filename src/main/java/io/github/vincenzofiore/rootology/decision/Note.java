@@ -30,7 +30,13 @@ public record Note(Kind kind, List<String> args) {
         NO_FORECAST_DAYS,
         NO_COORDINATES_FROST,
         NO_COORDINATES_RISK,
-        OUTSIDE_ITALY
+        OUTSIDE_ITALY,
+        /** args: plot, crops (comma-separated), rule. */
+        LIGHT_IN_PLOT,
+        /** args: crops (comma-separated), rule. */
+        LIGHT_ANYWHERE,
+        /** args: crops (comma-separated). */
+        LIGHT_UNKNOWN
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -65,6 +71,10 @@ public record Note(Kind kind, List<String> args) {
             case NO_COORDINATES_RISK -> "Add your garden's coordinates to use the local forecast: weather-driven risk "
                     + "was not checked.";
             case OUTSIDE_ITALY -> "The sowing and harvest calendars cover Italy only, and your garden is outside Italy.";
+            case LIGHT_IN_PLOT -> "Not advised in " + arg(0) + ": they need more light than the plot gets ("
+                    + arg(2) + "): " + arg(1) + ".";
+            case LIGHT_ANYWHERE -> "Not advised now: no plot gets enough light for them (" + arg(1) + "): " + arg(0) + ".";
+            case LIGHT_UNKNOWN -> "Light needs not known, not checked: " + arg(0) + ".";
         };
     }
 
