@@ -103,7 +103,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     io.github.vincenzofiore.rootology.weather.WeatherService weatherService;
 
-    /** A space with a garden in Milan (zone NORD): bed B with a tomato since April 2026, an old pea ended. */
+    /** A garden of the person's space, in Milan (zone NORD); the question is asked inside it (#55). */
     private RunContext withGarden(String login) {
         RunContext run = signedIn(login);
         var garden = gardens.saveGarden(run.spaceId(), login, null, "Balcony", "Milano",
@@ -114,7 +114,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         var peas = gardens.plant(run.spaceId(), login, bed.id(), "pea", PlantingMethod.SOWN,
                 java.time.LocalDate.of(2026, 2, 1), null);
         gardens.endPlanting(run.spaceId(), login, peas.id(), java.time.LocalDate.of(2026, 4, 1));
-        return run;
+        return new RunContext(run.spaceId(), garden.id(), login);
     }
 
     /** A person with a garden of their own, working inside it (#56). */
@@ -364,9 +364,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void aGardenAbroadGetsNoItalianCalendarAndIsToldWhy() {
-        RunContext run = signedIn("gino");
-        gardens.saveGarden(run.spaceId(), "gino", null, "Allotment", "Lyon", new java.math.BigDecimal("45.76"),
-                new java.math.BigDecimal("4.84"), "FR");
+        RunContext space = signedIn("gino");
+        var lyon = gardens.saveGarden(space.spaceId(), "gino", null, "Allotment", "Lyon",
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+        RunContext run = new RunContext(space.spaceId(), lyon.id(), "gino");
         whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato?"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOWING_TIME, "tomato", null, "en"));
 
@@ -550,12 +551,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void defaultsGiveTheCentreAndTheCurrentMonth() {
-        Intent now = GardenPipelineAgent.withDefaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
+        Intent now = ContextResolver.defaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
                 java.time.Month.NOVEMBER);
 
         assertThat(now.zone()).isEqualTo("CENTRO");
         assertThat(now.month()).isEqualTo("NOVEMBER");
-        assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
+        assertThat(ContextResolver.defaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
                 .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));
     }
 

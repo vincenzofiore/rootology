@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /** Who belongs to which space. Every check that a person may see a space goes through here. */
 @Service
@@ -73,6 +74,15 @@ public class SpaceService {
             throw new SpaceAccessException(githubLogin + " may not change space " + spaceId
                     + (isMember(spaceId, githubLogin) ? " as a guest" : ""));
         }
+    }
+
+    /** The name of a space, for the context line of a question (#55); only its members may read it. */
+    @Transactional(readOnly = true)
+    public Optional<String> spaceName(long spaceId, String requester) {
+        if (!isMember(spaceId, requester)) {
+            throw new SpaceAccessException(requester + " is not a member of space " + spaceId);
+        }
+        return spaces.findById(spaceId).map(Space::getName);
     }
 
     /** The members of a space; only its members may list them. */

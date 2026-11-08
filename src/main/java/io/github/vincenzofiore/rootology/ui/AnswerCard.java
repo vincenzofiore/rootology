@@ -39,6 +39,14 @@ class AnswerCard extends Div {
                 MaxWidth.SCREEN_MEDIUM, Margin.Top.MEDIUM);
     }
 
+    /** The context the answer was given in (#55), above the answer itself. */
+    AnswerCard context(String line) {
+        Span context = new Span(line);
+        context.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+        add(context);
+        return this;
+    }
+
     AnswerCard answered(String text, List<String> values, double confidence) {
         add(header(VaadinIcon.CHECK_CIRCLE_O, TextColor.SUCCESS, getTranslation("card.answer")));
         add(new Paragraph(text));

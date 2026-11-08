@@ -18,10 +18,11 @@ import java.util.Optional;
 
 /**
  * light-need-v1 on what could be sown or planted (#54): `SOW_IN_PLOT` warns about crops asking for more light
- * than the named plot gets, `SOW_NOW` only when none of the space's plots is bright enough (it does not ask
- * about one plot). Crops whose light need is unknown are named in a note, never guessed. Only the direct sun
- * behind an exclusion reaches the decision layer, tagged DECLARED (declared, not measured); orientation, wind
- * and floor are kept for later rules and never sent.
+ * than the named plot gets, `SOW_NOW` only when none of the run's garden's plots is bright enough (it does not
+ * ask about one plot). The plot and the garden come from the {@link QuestionContext} (#55). Crops whose light
+ * need is unknown are named in a note, never guessed. Only the direct sun behind an exclusion reaches the
+ * decision layer, tagged DECLARED (declared, not measured); orientation, wind and floor are kept for later
+ * rules and never sent.
  */
 @Component
 class LightFacts {
@@ -40,15 +41,11 @@ class LightFacts {
     }
 
     /** The named plot's declared exposure, and light-need-v1 on the crops that could be sown in it. */
-    Result inPlot(RunContext run, String plotName, List<SourcedFact> sowable) {
-        if (!run.hasSpace()) {
+    Result inPlot(QuestionContext context, List<SourcedFact> sowable) {
+        if (!context.hasSpace() || context.plot() == null || context.plot().found() == null) {
             return Result.NONE;
         }
-        Optional<PlotSummary> found = gardens.plotByName(run.spaceId(), run.startedBy(), plotName);
-        if (found.isEmpty()) {
-            return Result.NONE;
-        }
-        PlotSummary plot = found.get();
+        PlotSummary plot = context.plot().found();
         if (plot.directSun() == null) {
             return Result.NONE;
         }
@@ -57,7 +54,7 @@ class LightFacts {
         List<String> avoided = new ArrayList<>();
         List<String> unknown = new ArrayList<>();
         for (String crop : subjects(sowable)) {
-            Optional<DirectSun> needs = needs(crop, run, lightNeeds);
+            Optional<DirectSun> needs = needs(crop, context, lightNeeds);
             if (needs.isEmpty()) {
                 unknown.add(crop);
             } else if (LightRule.tooDark(plot.directSun(), needs.get())) {
@@ -78,14 +75,14 @@ class LightFacts {
     }
 
     /**
-     * light-need-v1 for "what to sow now": a crop is left out only when no plot with declared sun gives it
-     * enough light; if one plot is bright enough, it can be sown there.
+     * light-need-v1 for "what to sow now" in the run's garden: a crop is left out only when no plot of that
+     * garden with declared sun gives it enough light; if one plot is bright enough, it can be sown there.
      */
-    Result now(RunContext run, List<SourcedFact> sowable) {
-        if (!run.hasSpace()) {
+    Result now(QuestionContext context, RunContext run, List<SourcedFact> sowable) {
+        if (!context.hasSpace() || context.gardenId() == 0) {
             return Result.NONE;
         }
-        List<PlotSummary> plots = gardens.plots(run.spaceId(), run.startedBy()).stream()
+        List<PlotSummary> plots = gardens.plots(context.spaceId(), run.startedBy(), context.gardenId()).stream()
                 .filter(p -> p.directSun() != null).toList();
         if (plots.isEmpty()) {
             return Result.NONE;
@@ -96,7 +93,7 @@ class LightFacts {
         List<String> avoided = new ArrayList<>();
         List<String> unknown = new ArrayList<>();
         for (String crop : subjects(sowable)) {
-            Optional<DirectSun> needs = needs(crop, run, lightNeeds);
+            Optional<DirectSun> needs = needs(crop, context, lightNeeds);
             if (needs.isEmpty()) {
                 unknown.add(crop);
             } else if (sun.stream().allMatch(plot -> LightRule.tooDark(plot, needs.get()))) {
@@ -117,8 +114,8 @@ class LightFacts {
     }
 
     /** The crop's least direct sun according to ECOCROP; empty when the need is not known. */
-    private Optional<DirectSun> needs(String crop, RunContext run, Map<String, String> lightNeeds) {
-        return knowledge.resolve(crop, run.spaceId()).map(KnowledgeGraph.Entity::id)
+    private Optional<DirectSun> needs(String crop, QuestionContext context, Map<String, String> lightNeeds) {
+        return knowledge.resolve(crop, context.spaceId()).map(KnowledgeGraph.Entity::id)
                 .map(lightNeeds::get).flatMap(LightRule::needs);
     }
 

@@ -86,15 +86,6 @@ public class GardenService {
                 .map(GardenService::summary).toList();
     }
 
-    /** Every plot of the space, across its gardens, for questions about the space as a whole (#54). */
-    @Transactional(readOnly = true)
-    public List<PlotSummary> plots(long spaceId, String login) {
-        requireMember(spaceId, login);
-        return gardens.findBySpaceIdOrderById(spaceId).stream()
-                .flatMap(g -> plots.findByGardenIdOrderByName(g.getId()).stream())
-                .map(GardenService::summary).toList();
-    }
-
     /** Without the declared exposure (#54): use the other overload to set it. */
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
@@ -193,16 +184,6 @@ public class GardenService {
                 .toList();
     }
 
-    /** What grows in the space's gardens on a given day: the context for questions about my garden. */
-    @Transactional(readOnly = true)
-    public List<PlantingSummary> growingOn(long spaceId, String login, LocalDate day) {
-        requireMember(spaceId, login);
-        return plantings.findByPlotGardenSpaceIdOrderByPlantedOnDesc(spaceId).stream()
-                .filter(p -> p.isGrowingOn(day))
-                .map(this::summary)
-                .toList();
-    }
-
     /**
      * For system jobs, not for people (weather alerts, #37): every garden with coordinates and what grows
      * in it on that day, across all spaces. No person acts here, so there is no membership check; never
@@ -221,17 +202,18 @@ public class GardenService {
     }
 
     /**
-     * The zone of Italy the space's first located garden lies in (NORD, CENTRO or SUD), for the
-     * knowledge base's sowing windows. Coarse on purpose: north of about 44° N is NORD (Emilia-Romagna
-     * and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands), CENTRO in between.
+     * The zone of Italy a garden lies in (NORD, CENTRO or SUD), for the knowledge base's sowing windows;
+     * empty when the garden has no latitude. Coarse on purpose: north of about 44° N is NORD
+     * (Emilia-Romagna and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands),
+     * CENTRO in between. A garden abroad has no zone of the knowledge base.
      */
-    @Transactional(readOnly = true)
-    public Optional<String> zone(long spaceId, String login) {
-        requireMember(spaceId, login);
-        return gardens.findBySpaceIdOrderById(spaceId).stream()
-                .filter(g -> g.getLatitude() != null)
-                .findFirst()
-                .map(g -> g.inItaly() ? zoneOf(g.getLatitude().doubleValue()) : OUTSIDE_ITALY);
+    public static Optional<String> zone(GardenSummary garden) {
+        if (garden.latitude() == null) {
+            return Optional.empty();
+        }
+        // A garden with no country was saved before the country was recorded (#30), so it is in Italy.
+        boolean inItaly = garden.countryCode() == null || garden.countryCode().equals("IT");
+        return Optional.of(inItaly ? zoneOf(garden.latitude().doubleValue()) : OUTSIDE_ITALY);
     }
 
     /** The zone of a garden abroad: the knowledge base's calendars cover Italy only. */
@@ -241,25 +223,32 @@ public class GardenService {
         return latitude >= 44.0 ? "NORD" : latitude >= 41.5 ? "CENTRO" : "SUD";
     }
 
-    /** A plot of the space by name, ignoring case; a unique partial match ("B" for "Bed B") also works. */
+    /**
+     * The plots of one garden that answer to a name (#55), ignoring case; a unique partial match ("B" for
+     * "Bed B") also works. Only that garden is looked at: the same name in another garden is not a match.
+     * Several plots matching is reported, never guessed.
+     */
     @Transactional(readOnly = true)
-    public Optional<PlotSummary> plotByName(long spaceId, String login, String name) {
+    public GardenViews.PlotLookup plotNamed(long spaceId, String login, long gardenId, String name) {
         requireMember(spaceId, login);
         if (name == null || name.isBlank()) {
-            return Optional.empty();
+            return GardenViews.PlotLookup.none();
         }
         String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
-        List<PlotSummary> all = gardens.findBySpaceIdOrderById(spaceId).stream()
-                .flatMap(g -> plots.findByGardenIdOrderByName(g.getId()).stream())
+        List<PlotSummary> all = plots.findByGardenIdOrderByName(garden(spaceId, gardenId).getId()).stream()
                 .map(GardenService::summary).toList();
-        Optional<PlotSummary> exact = all.stream()
-                .filter(p -> p.name().toLowerCase(java.util.Locale.ROOT).equals(wanted)).findFirst();
-        if (exact.isPresent()) {
-            return exact;
+        List<PlotSummary> exact = all.stream()
+                .filter(p -> p.name().toLowerCase(java.util.Locale.ROOT).equals(wanted)).toList();
+        if (exact.size() == 1) {
+            return GardenViews.PlotLookup.one(exact.getFirst());
+        }
+        if (exact.size() > 1) {
+            return GardenViews.PlotLookup.ambiguous(exact);
         }
         List<PlotSummary> partial = all.stream().filter(p -> java.util.Arrays.asList(
                 p.name().toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
-        return partial.size() == 1 ? Optional.of(partial.getFirst()) : Optional.empty();
+        return partial.size() == 1 ? GardenViews.PlotLookup.one(partial.getFirst())
+                : partial.isEmpty() ? GardenViews.PlotLookup.none() : GardenViews.PlotLookup.ambiguous(partial);
     }
 
     /** Changes need an OWNER or MEMBER: a GUEST only looks (#33). */

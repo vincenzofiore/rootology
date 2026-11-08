@@ -55,6 +55,9 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         submit.setText(getTranslation("escalations.answer"));
 
         grid.addColumn(r -> r.question().text()).setHeader(getTranslation("escalations.question")).setFlexGrow(2);
+        // Whoever answers must know the garden, zone and month the question was asked for (#55).
+        grid.addColumn(r -> r.snapshot() == null ? "" : ContextText.line(r.snapshot(), this))
+                .setHeader(getTranslation("history.context")).setAutoWidth(true);
         grid.addColumn(r -> ReasonText.text(r.decision().reason(), this)).setHeader(getTranslation("escalations.why"))
                 .setFlexGrow(2);
         grid.addColumn(r -> String.join(", ", r.decision().answer())).setHeader(getTranslation("escalations.proposed"));

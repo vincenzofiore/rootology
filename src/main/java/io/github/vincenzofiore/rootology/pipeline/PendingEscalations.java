@@ -18,8 +18,8 @@ import java.util.Optional;
 @Component
 class PendingEscalations {
 
-    /** A stored waiting question with what the paused agent knew. */
-    record Stored(GardenPipeline.PendingReview review, GraphFacts facts, NoiseProfile noise) {
+    /** A stored waiting question with what the paused agent knew, and the context it was asked in (#55). */
+    record Stored(GardenPipeline.PendingReview review, GraphFacts facts, NoiseProfile noise, ContextSnapshot context) {
     }
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -30,15 +30,18 @@ class PendingEscalations {
         this.jdbc = jdbc;
     }
 
-    void save(String processId, RunContext context, Question question, Decision decision, GraphFacts facts,
-              NoiseProfile noise, Instant at) {
+    void save(String processId, RunContext context, long gardenId, Question question, Decision decision,
+              GraphFacts facts, NoiseProfile noise, QuestionContext questionContext, Instant at) {
+        // The snapshot, not the internal record (#55), so the row stays readable when the pipeline changes.
+        ContextSnapshot snapshot = questionContext == null ? null : questionContext.snapshot();
         jdbc.sql("INSERT INTO pending_escalation (process_id, space_id, garden_id, started_by, question_id, "
-                        + "question_text, decision_json, facts_json, noise_json, created_at) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-                .params(processId, context.spaceId(), garden(context.gardenId()), context.startedBy(), question.id(),
+                        + "question_text, decision_json, facts_json, noise_json, context_json, created_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .params(processId, context.spaceId(), garden(gardenId), context.startedBy(), question.id(),
                         question.text(),
                         JSON.writeValueAsString(decision), JSON.writeValueAsString(facts),
-                        JSON.writeValueAsString(noise == null ? NoiseProfile.NONE : noise), Timestamp.from(at))
+                        JSON.writeValueAsString(noise == null ? NoiseProfile.NONE : noise),
+                        snapshot == null ? null : JSON.writeValueAsString(snapshot), Timestamp.from(at))
                 .update();
     }
 
@@ -69,7 +72,7 @@ class PendingEscalations {
     }
 
     private static final String SELECT = "SELECT process_id, space_id, garden_id, started_by, question_id, "
-            + "question_text, decision_json, facts_json, noise_json FROM pending_escalation ";
+            + "question_text, decision_json, facts_json, noise_json, context_json FROM pending_escalation ";
 
     private static Stored stored(java.sql.ResultSet rs) throws java.sql.SQLException {
         long garden = rs.getLong("garden_id");
@@ -77,8 +80,12 @@ class PendingEscalations {
                 rs.getString("started_by"));
         Question question = new Question(rs.getString("question_id"), rs.getString("question_text"));
         Decision decision = JSON.readValue(rs.getString("decision_json"), Decision.class);
-        return new Stored(new GardenPipeline.PendingReview(rs.getString("process_id"), context, question, decision),
+        String json = rs.getString("context_json");
+        ContextSnapshot snapshot = json == null ? null : JSON.readValue(json, ContextSnapshot.class);
+        return new Stored(new GardenPipeline.PendingReview(rs.getString("process_id"), context, question, decision,
+                snapshot),
                 JSON.readValue(rs.getString("facts_json"), GraphFacts.class),
-                JSON.readValue(rs.getString("noise_json"), NoiseProfile.class));
+                JSON.readValue(rs.getString("noise_json"), NoiseProfile.class),
+                snapshot);
     }
 }

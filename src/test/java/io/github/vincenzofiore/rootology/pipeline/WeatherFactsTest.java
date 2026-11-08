@@ -54,10 +54,13 @@ class WeatherFactsTest {
 
     private final WeatherService weather = mock(WeatherService.class);
 
+    static final Clock CLOCK = Clock.fixed(NOW, GardenPipelineAgent.ITALY);
+
     private WeatherFacts facts() {
-        return new WeatherFacts(gardens, weather, knowledge, crops, Clock.fixed(NOW, GardenPipelineAgent.ITALY));
+        return new WeatherFacts(gardens, weather, knowledge, crops, CLOCK);
     }
 
+    /** A person with one garden, asked in it: the forecast is that garden's. */
     private RunContext space(String login, boolean withCoordinates) {
         spaces.signedIn(login);
         long id = spaces.spacesOf(login).getFirst().id();
@@ -65,7 +68,15 @@ class WeatherFactsTest {
                 withCoordinates ? new BigDecimal("41.90") : null, withCoordinates ? new BigDecimal("12.50") : null);
         var bed = gardens.savePlot(id, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
         gardens.plant(id, login, bed.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
-        return new RunContext(id, 0, login);
+        return new RunContext(id, garden.id(), login);
+    }
+
+    /** The context the pipeline resolves for that run, before the facts are gathered (#55). */
+    private QuestionContext context(RunContext run, io.github.vincenzofiore.rootology.decision.QueryKind kind,
+                                    String month) {
+        ContextResolver resolver = new ContextResolver(spaces, gardens, CLOCK);
+        return resolver.resolve(new io.github.vincenzofiore.rootology.decision.Intent(kind, null, null, "it", null, month),
+                run);
     }
 
     /** Hourly from two days ago for a week, at this temperature and humidity. */
@@ -87,7 +98,8 @@ class WeatherFactsTest {
     void frostRulesOutTenderCropsAndSaysWhatItCouldNotCheck() {
         when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
 
-        WeatherFacts.Result result = facts().frost(space("wanda", true), "NOVEMBER", SOWABLE);
+        WeatherFacts.Result result = facts().frost(context(space("wanda", true),
+                io.github.vincenzofiore.rootology.decision.QueryKind.SOW_NOW, "NOVEMBER"), SOWABLE);
 
         // Lettuce dies at 0 degrees (within the margin of -2), garlic stands -5, tomato has no ECOCROP value.
         assertThat(result.readings()).extracting(Reading::fact).containsExactly(
@@ -104,8 +116,11 @@ class WeatherFactsTest {
     void anotherMonthOrNoCoordinatesMeansNoWeather() {
         when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
 
-        assertThat(facts().frost(space("xavi", true), "MARCH", SOWABLE)).isEqualTo(WeatherFacts.Result.NONE);
-        WeatherFacts.Result noCoordinates = facts().frost(space("yuri", false), "NOVEMBER", SOWABLE);
+        assertThat(facts().frost(context(space("xavi", true),
+                io.github.vincenzofiore.rootology.decision.QueryKind.SOW_NOW, "MARCH"), SOWABLE))
+                .isEqualTo(WeatherFacts.Result.NONE);
+        WeatherFacts.Result noCoordinates = facts().frost(context(space("yuri", false),
+                io.github.vincenzofiore.rootology.decision.QueryKind.SOW_NOW, "NOVEMBER"), SOWABLE);
         assertThat(noCoordinates.readings()).isEmpty();
         assertThat(noCoordinates.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().startsWith("Add your garden's coordinates");
     }
@@ -114,7 +129,8 @@ class WeatherFactsTest {
     void aMissingForecastIsSaidAndChangesNothing() {
         when(weather.around(any(), any())).thenReturn(Optional.empty());
 
-        WeatherFacts.Result result = facts().frost(space("zoe", true), "NOVEMBER", SOWABLE);
+        WeatherFacts.Result result = facts().frost(context(space("zoe", true),
+                io.github.vincenzofiore.rootology.decision.QueryKind.SOW_NOW, "NOVEMBER"), SOWABLE);
 
         assertThat(result.readings()).isEmpty();
         assertThat(result.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().contains("not available");
@@ -124,7 +140,9 @@ class WeatherFactsTest {
     void warmHumidDaysFavourLateBlightOnTheTomatoGrowingNow() {
         when(weather.around(any(), any())).thenReturn(Optional.of(steady(14.0, 95.0)));
 
-        WeatherFacts.Result result = facts().blight(space("abel", true), "NOVEMBER", "it");
+        RunContext abel = space("abel", true);
+        WeatherFacts.Result result = facts().blight(context(abel,
+                io.github.vincenzofiore.rootology.decision.QueryKind.PEST_RISK, "NOVEMBER"), abel, "it");
 
         assertThat(result.readings()).extracting(Reading::fact).containsExactly(
                 new Fact("Peronospora del pomodoro e della patata", "favouredByWeather", "Pomodoro"));
@@ -136,7 +154,9 @@ class WeatherFactsTest {
     void dryWeatherGivesNoBlightReading() {
         when(weather.around(any(), any())).thenReturn(Optional.of(steady(14.0, 60.0)));
 
-        WeatherFacts.Result result = facts().blight(space("bice", true), "NOVEMBER", "it");
+        RunContext bice = space("bice", true);
+        WeatherFacts.Result result = facts().blight(context(bice,
+                io.github.vincenzofiore.rootology.decision.QueryKind.PEST_RISK, "NOVEMBER"), bice, "it");
 
         assertThat(result.readings()).isEmpty();
         assertThat(result.notes()).singleElement().extracting(io.github.vincenzofiore.rootology.decision.Note::english).asString().startsWith("No Smith period");

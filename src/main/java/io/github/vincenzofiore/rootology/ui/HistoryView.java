@@ -59,6 +59,8 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
                 .setHeader(getTranslation("history.matches")).setAutoWidth(true).setVisible(qa);
         grid.addColumn(r -> "%.2f".formatted(r.getDecisionConfidence())).setHeader(getTranslation("history.confidence"))
                 .setAutoWidth(true);
+        grid.addColumn(r -> history.contextOf(r).map(context -> ContextText.line(context, this)).orElse(""))
+                .setHeader(getTranslation("history.context")).setAutoWidth(true);
         grid.addColumn(r -> r.isAnsweredByHuman() ? getTranslation("history.byhuman", r.getReviewer())
                 : r.isDecisionEscalated() ? getTranslation("history.escalated") : "-")
                 .setHeader(getTranslation("history.person")).setAutoWidth(true);

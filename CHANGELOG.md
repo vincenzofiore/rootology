@@ -8,6 +8,12 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- One question, one context: the answer, the history and the waiting question use only the garden the
+  question was asked in (zone, month, forecast, what grows, plots), the question's own words win over the
+  garden with a note when they disagree, and a plot that does not exist or matches several, a garden question
+  asked outside a garden and a garden deleted meanwhile wait for a person instead of guessing. Every answer,
+  history row and waiting question says what context it used (space, garden, plot, zone, month), and keeps
+  it, so whoever answers knows what the question was about (#55).
 - The space and the garden are the working context, and the URL is the only source of it: the gardens
   overview, the garden's home (today, weather, what grows), and Ask, Plots, Escalations, History and
   Knowledge under the garden, plus the space level for the questions asked outside a garden; members and

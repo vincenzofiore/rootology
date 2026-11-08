@@ -4,6 +4,8 @@ import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.decision.Reading;
 import io.github.vincenzofiore.rootology.facts.Fact;
+import io.github.vincenzofiore.rootology.decision.Intent;
+import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
 import io.github.vincenzofiore.rootology.garden.DirectSun;
@@ -47,7 +49,13 @@ class LightFactsTest {
         var garden = gardens.saveGarden(id, login, null, "Balcony", "Torino", null, null);
         gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.CONTAINER, Soil.POTTING_MIX, null,
                 Orientation.N, sun, Wind.EXPOSED, 3);
-        return new RunContext(id, 0, login);
+        return new RunContext(id, garden.id(), login);
+    }
+
+    /** The context the pipeline resolves for a plot question, in the run's garden (#55). */
+    private QuestionContext context(RunContext run, QueryKind kind, String plotName) {
+        return new ContextResolver(spaces, gardens, java.time.Clock.systemDefaultZone())
+                .resolve(new Intent(kind, plotName, null, "it", null, null), run);
     }
 
     /** What the knowledge base's sowing facts look like: the crop's name as a subject, sowIn with the month. */
@@ -65,7 +73,7 @@ class LightFactsTest {
     void cropsAskingForMoreLightAreLeftOutWithTheDeclaredSunBehindThem() {
         RunContext run = garden("light-anna", "Davanzale", DirectSun.SHADE);
 
-        LightFacts.Result result = facts().inPlot(run, "Davanzale",
+        LightFacts.Result result = facts().inPlot(context(run, QueryKind.SOW_IN_PLOT, "Davanzale"),
                 sowable("Basilico", "Pomodoro", "Broccolo"));
 
         assertThat(result.readings()).filteredOn(r -> r.source() == Reading.Source.DECLARED)
@@ -88,7 +96,7 @@ class LightFactsTest {
     void cropsWithUnknownLightNeedsAreNamedAndNeverGuessed() {
         RunContext run = garden("light-bea", "Davanzale", DirectSun.PART_SHADE);
 
-        LightFacts.Result result = facts().inPlot(run, "Davanzale",
+        LightFacts.Result result = facts().inPlot(context(run, QueryKind.SOW_IN_PLOT, "Davanzale"),
                 sowable("Broccolo", "Valerianella (songino)"));
 
         assertThat(avoided(result.readings(), "avoidIn")).as("cloudy skies: part shade is enough").isEmpty();
@@ -102,7 +110,8 @@ class LightFactsTest {
     void withoutTheDeclaredSunThereIsNoLightJudgment() {
         RunContext run = garden("light-carla", "Davanzale", null);
 
-        LightFacts.Result result = facts().inPlot(run, "Davanzale", sowable("Basilico"));
+        LightFacts.Result result = facts().inPlot(context(run, QueryKind.SOW_IN_PLOT, "Davanzale"),
+                sowable("Basilico"));
 
         assertThat(result.readings()).isEmpty();
         assertThat(result.notes()).isEmpty();
@@ -112,7 +121,8 @@ class LightFactsTest {
     void sowingNowLeavesACropOutOnlyWhenNoPlotGetsEnoughLight() {
         RunContext dark = garden("light-dino", "Davanzale", DirectSun.PART_SHADE);
 
-        LightFacts.Result onlyShade = facts().now(dark, sowable("Basilico", "Broccolo"));
+        LightFacts.Result onlyShade = facts().now(context(dark, QueryKind.SOW_NOW, null), dark,
+                sowable("Basilico", "Broccolo"));
 
         assertThat(avoided(onlyShade.readings(), "avoidNow")).containsExactly("Basilico");
         assertThat(onlyShade.readings()).filteredOn(r -> r.source() == Reading.Source.DECLARED)
@@ -126,8 +136,9 @@ class LightFactsTest {
                 null, DirectSun.SHADE, null, null);
         gardens.savePlot(id, "light-elio", terrace.id(), null, "Sunny", PlotKind.CONTAINER, Soil.POTTING_MIX, null,
                 null, DirectSun.FULL_SUN, null, null);
+        RunContext sunnier = new RunContext(id, terrace.id(), "light-elio");
 
-        LightFacts.Result both = facts().now(new RunContext(id, 0, "light-elio"), sowable("Basilico"));
+        LightFacts.Result both = facts().now(context(sunnier, QueryKind.SOW_NOW, null), sunnier, sowable("Basilico"));
 
         assertThat(both.readings()).as("the sunny plot is enough, so nothing is sent").isEmpty();
         assertThat(both.notes()).isEmpty();

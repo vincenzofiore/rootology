@@ -44,32 +44,36 @@ final class GoldenFixtures {
         return Clock.fixed(golden.today().atTime(10, 0).atZone(ITALY).toInstant(), ITALY);
     }
 
-    /** A new space per case (prefix keeps runs apart), so cases never see each other's garden or facts. */
+    /**
+     * A new space per case (prefix keeps runs apart), so cases never see each other's garden or facts.
+     * The run is inside the case's garden (#55), and at the space level only when the case has none.
+     */
     RunContext space(String prefix, GoldenQuestions.Case c) {
         String login = prefix + "-" + c.id();
         spaces.signedIn(login);
         long space = spaces.spacesOf(login).getFirst().id();
-        switch (c.garden()) {
+        long garden = switch (c.garden()) {
             case "rome" -> {
-                var garden = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
+                var created = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
                         new BigDecimal("12.50"), "IT");
-                var a = gardens.savePlot(space, login, garden.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
-                var b = gardens.savePlot(space, login, garden.id(), null, "Aiuola B", PlotKind.RAISED_BED, Soil.LOAMY, null);
+                var a = gardens.savePlot(space, login, created.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+                var b = gardens.savePlot(space, login, created.id(), null, "Aiuola B", PlotKind.RAISED_BED, Soil.LOAMY, null);
                 gardens.plant(space, login, a.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
                 gardens.plant(space, login, a.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
                 var pea = gardens.plant(space, login, b.id(), "pea", PlantingMethod.SOWN, LocalDate.of(2026, 3, 1), null);
                 gardens.endPlanting(space, login, pea.id(), LocalDate.of(2026, 6, 30));
+                yield created.id();
             }
             case "lyon" -> gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
-                    new BigDecimal("4.84"), "FR");
-            case "none" -> { }
+                    new BigDecimal("4.84"), "FR").id();
+            case "none" -> 0L;
             default -> throw new IllegalArgumentException("Unknown garden fixture " + c.garden());
-        }
+        };
         for (GoldenQuestions.SpaceAlias alias : c.spaceFacts()) {
             contributions.apply(proposalIds.incrementAndGet(), space,
                     new Contribution.Alias(alias.targetId(), alias.name(), alias.language()));
         }
-        return new RunContext(space, 0, login);
+        return new RunContext(space, garden, login);
     }
 
     static Optional<Forecast> forecast(String fixture, Clock clock) {

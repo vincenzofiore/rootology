@@ -155,7 +155,9 @@ cases:
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?
     intent: {kind: GROWING_NOW, language: it}
-    expect: {escalate: nothing is recorded as growing}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
 
   - id: calendar-abroad
     question: Quando semino il pomodoro?

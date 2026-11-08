@@ -47,6 +47,9 @@ public class PipelineRunRecord {
     private String reviewer;
     private String answerText;
 
+    /** The context the question was answered in, as JSON of the pipeline's snapshot (#55); null before. */
+    private String contextJson;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> jenaAnswer;
     private Boolean matchesJena;
@@ -62,7 +65,7 @@ public class PipelineRunRecord {
                       boolean noiseNearSubject,
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
-                      boolean answeredByHuman, String reviewer, String answerText,
+                      boolean answeredByHuman, String reviewer, String answerText, String contextJson,
                       List<String> jenaAnswer, Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
         this.spaceId = spaceId;
@@ -83,6 +86,7 @@ public class PipelineRunRecord {
         this.answeredByHuman = answeredByHuman;
         this.reviewer = reviewer;
         this.answerText = answerText;
+        this.contextJson = contextJson;
         this.jenaAnswer = jenaAnswer;
         this.matchesJena = matchesJena;
         this.finishedAt = finishedAt;
@@ -108,6 +112,7 @@ public class PipelineRunRecord {
     public boolean isAnsweredByHuman() { return answeredByHuman; }
     public String getReviewer() { return reviewer; }
     public String getAnswerText() { return answerText; }
+    public String getContextJson() { return contextJson; }
     public List<String> getJenaAnswer() { return jenaAnswer; }
     public Boolean getMatchesJena() { return matchesJena; }
     public Instant getFinishedAt() { return finishedAt; }

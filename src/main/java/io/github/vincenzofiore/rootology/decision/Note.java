@@ -36,7 +36,19 @@ public record Note(Kind kind, List<String> args) {
         /** args: crops (comma-separated), rule. */
         LIGHT_ANYWHERE,
         /** args: crops (comma-separated). */
-        LIGHT_UNKNOWN
+        LIGHT_UNKNOWN,
+        /** args: the zone of the question, the zone of the garden. */
+        ZONE_OF_QUESTION,
+        /** The question was asked outside a garden: the defaults were used (#55). */
+        NO_GARDEN_DEFAULTS,
+        /** A garden question was asked outside a garden: it cannot be answered (#55). */
+        NO_GARDEN_FOR_QUESTION,
+        /** The garden the page was opened in no longer exists (#55). */
+        GARDEN_GONE,
+        /** args: plot as asked, garden. */
+        PLOT_NOT_FOUND,
+        /** args: plot as asked, garden, the plots matching (comma-separated). */
+        PLOT_AMBIGUOUS
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -75,6 +87,16 @@ public record Note(Kind kind, List<String> args) {
                     + arg(2) + "): " + arg(1) + ".";
             case LIGHT_ANYWHERE -> "Not advised now: no plot gets enough light for them (" + arg(1) + "): " + arg(0) + ".";
             case LIGHT_UNKNOWN -> "Light needs not known, not checked: " + arg(0) + ".";
+            case ZONE_OF_QUESTION -> "The question names zone " + arg(0) + ", but the garden is in zone " + arg(1)
+                    + ": the question's zone was used.";
+            case NO_GARDEN_DEFAULTS -> "The question was asked outside a garden: zone CENTRO and the current month "
+                    + "were used, and no garden's weather or plants were read.";
+            case NO_GARDEN_FOR_QUESTION -> "This question is about a garden: ask it from inside one of the space's "
+                    + "gardens.";
+            case GARDEN_GONE -> "The garden this page was opened in no longer exists: the question was not answered.";
+            case PLOT_NOT_FOUND -> "There is no plot named \"" + arg(0) + "\" in " + arg(1)
+                    + ": what grows there and its rotation were not checked.";
+            case PLOT_AMBIGUOUS -> "More than one plot in " + arg(1) + " matches \"" + arg(0) + "\": " + arg(2) + ".";
         };
     }
 

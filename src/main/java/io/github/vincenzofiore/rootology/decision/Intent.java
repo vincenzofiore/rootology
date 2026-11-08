@@ -29,6 +29,11 @@ public record Intent(QueryKind kind, String subject, String season, String langu
         return new Intent(kind, subject, season, language, zone, month);
     }
 
+    /** The same intent about another subject, for example the plot a question named as it is really called. */
+    public Intent withSubject(String subject) {
+        return new Intent(kind, subject, season, language, zone, month);
+    }
+
     /**
      * The same intent with every text trimmed, stripped of control characters and cut to a sane length
      * (#41). Values are not otherwise changed: an unknown zone or month still finds no facts and escalates,

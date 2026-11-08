@@ -7,7 +7,6 @@ import io.github.vincenzofiore.rootology.facts.Fact;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
 import io.github.vincenzofiore.rootology.garden.GardenService;
-import io.github.vincenzofiore.rootology.garden.GardenViews.GardenSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlantingSummary;
 import io.github.vincenzofiore.rootology.weather.Forecast;
 import io.github.vincenzofiore.rootology.weather.ForecastHour;
@@ -28,8 +27,8 @@ import java.util.Optional;
 
 /**
  * The local forecast (#18) as readings for the decision layer, plus notes for the person. Used only for
- * questions about the current month, from the space's first garden with coordinates. Without coordinates
- * or without a usable forecast, the answer is given without weather and a note says so.
+ * questions about the current month, at the run's garden (#55). Without a garden or without a usable
+ * forecast, the answer is given without weather and a note says so.
  */
 @Component
 class WeatherFacts {
@@ -58,15 +57,19 @@ class WeatherFacts {
     }
 
     /** frost-risk-v1 on the crops that could be sown or planted now: (crop, avoidNow, frost) when too cold. */
-    Result frost(RunContext run, String month, List<SourcedFact> sowable) {
-        Optional<Optional<Forecast>> located = forecast(run, month);
-        if (located.isEmpty()) {
-            return noLocation(run, month, Note.Kind.NO_COORDINATES_FROST);
+    Result frost(QuestionContext context, List<SourcedFact> sowable) {
+        if (!aboutNow(context)) {
+            return Result.NONE;
         }
-        if (located.get().isEmpty()) {
+        if (context.weather() == null) {
+            return context.gardenId() > 0
+                    ? new Result(List.of(), List.of(Note.of(Note.Kind.NO_COORDINATES_FROST))) : Result.NONE;
+        }
+        Optional<Forecast> found = forecast(context);
+        if (found.isEmpty()) {
             return new Result(List.of(), List.of(Note.of(Note.Kind.FORECAST_UNAVAILABLE_FROST)));
         }
-        Forecast forecast = located.get().get();
+        Forecast forecast = found.get();
         Optional<ForecastHour> coldest = FrostRule.coldest(forecast, clock.instant());
         if (coldest.isEmpty()) {
             return new Result(List.of(), List.of(Note.of(Note.Kind.NO_FORECAST_DAYS)));
@@ -102,20 +105,24 @@ class WeatherFacts {
         return new Result(readings, notes);
     }
 
-    /** smith-period-v1 on the crops growing now: (Late blight, favouredByWeather, crop) around today. */
-    Result blight(RunContext run, String month, String language) {
-        Optional<Optional<Forecast>> located = forecast(run, month);
-        if (located.isEmpty()) {
-            return noLocation(run, month, Note.Kind.NO_COORDINATES_RISK);
+    /** smith-period-v1 on the crops growing now in the run's garden: (Late blight, favouredByWeather, crop). */
+    Result blight(QuestionContext context, RunContext run, String language) {
+        if (!aboutNow(context)) {
+            return Result.NONE;
         }
-        if (located.get().isEmpty()) {
+        if (context.weather() == null) {
+            return context.gardenId() > 0
+                    ? new Result(List.of(), List.of(Note.of(Note.Kind.NO_COORDINATES_RISK))) : Result.NONE;
+        }
+        Optional<Forecast> found = forecast(context);
+        if (found.isEmpty()) {
             return new Result(List.of(), List.of(Note.of(Note.Kind.FORECAST_UNAVAILABLE_RISK)));
         }
-        Forecast forecast = located.get().get();
+        Forecast forecast = found.get();
         LocalDate today = LocalDate.now(clock);
         Optional<LocalDate> period = SmithPeriodRule.firstPeriod(forecast, today.minusDays(2), today.plusDays(3),
                 GardenPipelineAgent.ITALY);
-        List<String> hosts = gardens.growingOn(run.spaceId(), run.startedBy(), today).stream()
+        List<String> hosts = gardens.growingOn(context.spaceId(), run.startedBy(), context.gardenId(), today).stream()
                 .map(PlantingSummary::cropId).filter(SmithPeriodRule.HOSTS::contains).distinct().toList();
         if (period.isEmpty() || hosts.isEmpty()) {
             return new Result(List.of(), List.of(Note.of(Note.Kind.NO_SMITH_PERIOD, staleSince(forecast))));
@@ -135,25 +142,18 @@ class WeatherFacts {
                 String.join(", ", names), SmithPeriodRule.ID, staleSince(forecast))));
     }
 
-    /** Empty when the question is not about now or the space has no garden with coordinates. */
-    private Optional<Optional<Forecast>> forecast(RunContext run, String month) {
-        if (!run.hasSpace() || !LocalDate.now(clock).getMonth().name().equals(month)) {
-            return Optional.empty();
+    /** The questions the forecast applies to: a real space, a garden, and the current month. */
+    private boolean aboutNow(QuestionContext context) {
+        if (!context.hasSpace() || context.gardenId() == 0 || context.intent() == null
+                || context.intent().month() == null) {
+            return false;
         }
-        return located(run).map(g -> weather.around(g.latitude(), g.longitude()));
+        return LocalDate.now(clock).getMonth().name().equals(context.intent().month());
     }
 
-    private Optional<GardenSummary> located(RunContext run) {
-        return gardens.gardens(run.spaceId(), run.startedBy()).stream()
-                .filter(g -> g.latitude() != null && g.longitude() != null).findFirst();
-    }
-
-    private Result noLocation(RunContext run, String month, Note.Kind kind) {
-        boolean now = LocalDate.now(clock).getMonth().name().equals(month);
-        if (!now || !run.hasSpace()) {
-            return Result.NONE;
-        }
-        return new Result(List.of(), List.of(Note.of(kind)));
+    /** The run's garden's forecast; empty when the weather service gives nothing usable. */
+    private Optional<Forecast> forecast(QuestionContext context) {
+        return weather.around(context.weather().latitude(), context.weather().longitude());
     }
 
     /** When the stored copy of a stale forecast was fetched, as an ISO local date-time in Italy; empty if fresh. */

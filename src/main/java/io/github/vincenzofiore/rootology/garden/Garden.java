@@ -44,11 +44,6 @@ class Garden {
         this.countryCode = countryCode;
     }
 
-    /** Gardens saved before the country was recorded (#30) were all in Italy. */
-    boolean inItaly() {
-        return countryCode == null || countryCode.equals("IT");
-    }
-
     Long getId() { return id; }
     Long getSpaceId() { return spaceId; }
     String getName() { return name; }

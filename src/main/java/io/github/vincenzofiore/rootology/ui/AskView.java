@@ -36,10 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A free question, answered from the curated knowledge base, with the sources behind the answer (#31).
- * An escalated question waits in Escalations, like the others. Inside a garden the question belongs to it;
- * at the space level there is no garden, and the answer uses the space's first garden for the zone until
- * #55 (#56).
+ * A free question, answered from the curated knowledge base, with the sources behind the answer (#31)
+ * and the context it was answered in (#55). An escalated question waits in Escalations, like the others.
+ * Inside a garden the question belongs to it; at the space level there is no garden, and the answer says
+ * which defaults it used (#56).
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/ask", layout = MainLayout.class)
 @RouteAlias(value = "spaces/:spaceId/ask", layout = MainLayout.class)
@@ -57,7 +57,6 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final GardenService gardens;
     private final Span questionsToday = new Span();
     private final Div result = new Div();
-    private final Paragraph noGarden = new Paragraph(getTranslation("ask.nogarden"));
     /** A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member. */
     private final Paragraph guest = new Paragraph(getTranslation("ask.guest"));
     private final HorizontalLayout form = new HorizontalLayout();
@@ -85,10 +84,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
 
-        noGarden.setVisible(false);
         guest.setVisible(false);
-        add(new H3(getTranslation("ask.title")), new Paragraph(getTranslation("ask.intro")), noGarden, guest, form,
-                result);
+        add(new H3(getTranslation("ask.title")), new Paragraph(getTranslation("ask.intro")), guest, form, result);
         showQuestionsToday();
     }
 
@@ -104,8 +101,6 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         boolean contributor = currentUser.canContribute(spaceId);
         form.setVisible(contributor);
         guest.setVisible(!contributor);
-        // The space level has no garden: with none at all, the answer says that the centre of Italy is assumed.
-        noGarden.setVisible(gardenId == 0 && gardens.gardens(spaceId, currentUser.login()).isEmpty());
         event.getLocation().getQueryParameters().getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(q -> {
             question.setValue(q);
             ask(q);
@@ -120,7 +115,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         try {
             GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text.trim()), context());
             if (run.answer() == null) {
-                result.add(new AnswerCard().waiting(ReasonText.text(run.pending().decision().reason(), this))
+                AnswerCard card = new AnswerCard();
+                if (run.pending().snapshot() != null) {
+                    card.context(ContextText.line(run.pending().snapshot(), this));
+                }
+                result.add(card.waiting(ReasonText.text(run.pending().decision().reason(), this))
                         .extra(propose(text.trim())));
                 return;
             }
@@ -175,7 +174,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                             : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id())), null)));
             sources.byId(id).ifPresent(s -> lines.add(new AnswerCard.SourceLine(VaadinIcon.BOOK, s.title(), s.url())));
         }
-        result.add(new AnswerCard().answered(answer.text(), answer.answer(), answer.confidence())
+        AnswerCard card = new AnswerCard();
+        if (answer.context() != null) {
+            card.context(ContextText.line(answer.context(), this));
+        }
+        result.add(card.answered(answer.text(), answer.answer(), answer.confidence())
                 .notes(answer.notes()).sources(lines));
     }
 
