@@ -55,9 +55,12 @@ public class CurrentUser {
      * The current space, re-read so a role change shows up. If the person was removed from it,
      * falls back to their first space (their personal space).
      */
-    /** False for a GUEST of the current space (#33): they look, and every change is hidden from them. */
-    public boolean canContribute() {
-        return space().role().contributes();
+    /**
+     * False for a GUEST of that space (#33): they look, and every change is hidden from them. Takes the
+     * space of the page, read from its route (#56): the session's space may be another, in another tab.
+     */
+    public boolean canContribute(long spaceId) {
+        return spaces.canContribute(spaceId, login);
     }
 
     public SpaceSummary space() {
@@ -73,6 +76,11 @@ public class CurrentUser {
         return spaces.spacesOf(login);
     }
 
+    /** True when the person belongs to the space; a page checks its route's space first (#56). */
+    public boolean memberOf(long spaceId) {
+        return spaces.isMember(spaceId, login);
+    }
+
     public void switchTo(long newSpaceId) {
         if (!spaces.isMember(newSpaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + newSpaceId);
@@ -80,8 +88,12 @@ public class CurrentUser {
         this.spaceId = newSpaceId;
     }
 
-    /** What a pipeline run started now belongs to. */
-    public RunContext runContext() {
-        return new RunContext(space().id(), login);
+    /**
+     * What a pipeline run started from a page belongs to (#56). The space and garden come from the page's
+     * route, never from this session: every browser tab shares the session, and two tabs on two gardens
+     * must not mix.
+     */
+    public RunContext runContext(long spaceId, long gardenId) {
+        return new RunContext(spaceId, gardenId, login);
     }
 }

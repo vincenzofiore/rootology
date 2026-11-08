@@ -47,7 +47,7 @@ class LightFactsTest {
         var garden = gardens.saveGarden(id, login, null, "Balcony", "Torino", null, null);
         gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.CONTAINER, Soil.POTTING_MIX, null,
                 Orientation.N, sun, Wind.EXPOSED, 3);
-        return new RunContext(id, login);
+        return new RunContext(id, 0, login);
     }
 
     /** What the knowledge base's sowing facts look like: the crop's name as a subject, sowIn with the month. */
@@ -127,7 +127,7 @@ class LightFactsTest {
         gardens.savePlot(id, "light-elio", terrace.id(), null, "Sunny", PlotKind.CONTAINER, Soil.POTTING_MIX, null,
                 null, DirectSun.FULL_SUN, null, null);
 
-        LightFacts.Result both = facts().now(new RunContext(id, "light-elio"), sowable("Basilico"));
+        LightFacts.Result both = facts().now(new RunContext(id, 0, "light-elio"), sowable("Basilico"));
 
         assertThat(both.readings()).as("the sunny plot is enough, so nothing is sent").isEmpty();
         assertThat(both.notes()).isEmpty();

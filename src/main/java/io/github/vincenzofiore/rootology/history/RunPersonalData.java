@@ -22,8 +22,8 @@ public class RunPersonalData {
     /** The questions the person asked, and the ones they answered for others. */
     public List<Map<String, Object>> export(String login) {
         return jdbc.sql("""
-                        select space_id, question, answer_text, answer, decision_escalated, answered_by_human,
-                               reviewer, finished_at, started_by
+                        select space_id, garden_id, question, answer_text, answer, decision_escalated,
+                               answered_by_human, reviewer, finished_at, started_by
                         from pipeline_run where started_by = :login or reviewer = :login order by id""")
                 .param("login", login).query().listOfRows();
     }

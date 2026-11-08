@@ -99,8 +99,10 @@ class ViewsTest {
     @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
-        for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, SpaceView.class,
-                GardenView.class, AskView.class, KnowledgeView.class, AdminView.class, NotificationsView.class, HomeView.class,
+        for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, MembersView.class,
+                InvitationsView.class, CuratorView.class,
+                PlotsView.class, GardensView.class, GardenHomeView.class, AskView.class, KnowledgeView.class,
+                AdminView.class, NotificationsView.class, StartView.class,
                 AccountView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)
@@ -114,21 +116,111 @@ class ViewsTest {
     }
 
     @Test
-    void historyAndSpaceViewsBuild() {
-        assertThat(new HistoryView(history, viewer()).getChildren()).isNotEmpty();
-        assertThat(new SpaceView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardenView(gardens, crops, geoNames, weatherService, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage).getChildren()).isNotEmpty();
+    void historySpaceAndCuratorViewsBuild() {
+        assertThat(new HistoryView(history, gardens, viewer()).getChildren()).isNotEmpty();
+        assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
+        assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
+        assertThat(new PlotsView(gardens, crops, geoNames, weatherService, viewer()).getChildren()).isNotEmpty();
+        assertThat(new GardensView(gardens, geoNames, ungardened, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
-        assertThat(new HomeView(gardens, weatherService, notificationService, pipeline, viewer()).getChildren()).isNotEmpty();
-        assertThat(new NotificationsView(notificationService, viewer()).getChildren()).isNotEmpty();
+        assertThat(new GardenHomeView(gardens, weatherService, notificationService, pipeline, viewer()).getChildren())
+                .isNotEmpty();
+        assertThat(new StartView(gardens, viewer()).getChildren()).isEmpty();
+        assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
                 .getChildren()).isNotEmpty();
-        assertThat(new KnowledgeView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
+        assertThat(new KnowledgeView(enrichment, crops, knowledge, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("ADMIN");
 
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
+    }
+
+    @Autowired
+    Ungardened ungardened;
+
+    @Test
+    void openingANotificationOfAnotherContextAsksFirst() {
+        CurrentUser me = viewer();
+        long mine = personalSpace(me.login());
+        long other = personalSpace("notifications-other-space");
+        long garden = registeredGarden(mine, me.login());
+        long otherGarden = registeredGarden(mine, me.login());
+        long strangerGarden = registeredGarden(other, "notifications-other-space");
+
+        NotificationsView fromGarden = new NotificationsView(notificationService, gardens, me);
+        fromGarden.beforeEnter(notificationsFrom(mine, garden));
+        assertThat(fromGarden.asksBeforeOpening(notification(mine, garden))).as("same garden").isFalse();
+        assertThat(fromGarden.asksBeforeOpening(notification(mine, otherGarden))).as("another garden").isTrue();
+        assertThat(fromGarden.asksBeforeOpening(notification(mine))).as("the space level while in a garden").isTrue();
+        assertThat(fromGarden.asksBeforeOpening(notification(other))).as("another space").isTrue();
+
+        NotificationsView fromSpace = new NotificationsView(notificationService, gardens, me);
+        fromSpace.beforeEnter(notificationsFrom(mine, 0));
+        assertThat(fromSpace.asksBeforeOpening(notification(mine))).as("the space level, from there").isFalse();
+        assertThat(fromSpace.asksBeforeOpening(notification(mine, garden))).as("a garden, from the space level").isTrue();
+
+        NotificationsView fromNowhere = new NotificationsView(notificationService, gardens, me);
+        fromNowhere.beforeEnter(notificationsFrom(0, 0));
+        assertThat(fromNowhere.asksBeforeOpening(notification(mine))).as("no context").isTrue();
+        assertThat(fromNowhere.asksBeforeOpening(notification(mine, garden))).as("no context, a garden").isTrue();
+
+        NotificationsView fromAStranger = new NotificationsView(notificationService, gardens, me);
+        fromAStranger.beforeEnter(notificationsFrom(other, strangerGarden));
+        assertThat(fromAStranger.asksBeforeOpening(notification(mine))).as("a space the person is not in is ignored").isTrue();
+    }
+
+    @Test
+    void aWeatherAlertWithoutAGardenOpensTheSpacesGardens() {
+        CurrentUser me = viewer();
+        long mine = personalSpace(me.login());
+        long garden = registeredGarden(mine, me.login());
+        NotificationsView view = new NotificationsView(notificationService, gardens, me);
+
+        NotificationsView.Target alertOfAGarden = view.target(weather(mine, garden));
+        assertThat(alertOfAGarden.view()).isEqualTo(GardenHomeView.class);
+        assertThat(alertOfAGarden.route().get(Routed.GARDEN)).contains(String.valueOf(garden));
+
+        // Stored before #56 in a space with several gardens, or of a deleted garden: no garden to open.
+        NotificationsView.Target alertWithoutAGarden = view.target(weather(mine, 0));
+        assertThat(alertWithoutAGarden.view()).isEqualTo(GardensView.class);
+        assertThat(alertWithoutAGarden.route().get(Routed.GARDEN)).isEmpty();
+        assertThat(alertWithoutAGarden.route().get(Routed.SPACE)).contains(String.valueOf(mine));
+    }
+
+    private long registeredGarden(long spaceId, String login) {
+        return gardens.saveGarden(spaceId, login, null, "Garden " + System.nanoTime(), null, null, null).id();
+    }
+
+    /** The context the bell hands to the notifications page (#56): a hint, read from the query string. */
+    private static BeforeEnterEvent notificationsFrom(long spaceId, long gardenId) {
+        BeforeEnterEvent event = org.mockito.Mockito.mock(BeforeEnterEvent.class);
+        java.util.Map<String, java.util.List<String>> query = new java.util.LinkedHashMap<>();
+        if (spaceId > 0) {
+            query.put(NotificationsView.SPACE, java.util.List.of(String.valueOf(spaceId)));
+        }
+        if (gardenId > 0) {
+            query.put(NotificationsView.GARDEN, java.util.List.of(String.valueOf(gardenId)));
+        }
+        org.mockito.Mockito.when(event.getLocation()).thenReturn(new Location("notifications",
+                new QueryParameters(query)));
+        return event;
+    }
+
+    private static io.github.vincenzofiore.rootology.notifications.NotificationView notification(long spaceId) {
+        return notification(spaceId, 0);
+    }
+
+    private static io.github.vincenzofiore.rootology.notifications.NotificationView weather(long spaceId, long gardenId) {
+        return new io.github.vincenzofiore.rootology.notifications.NotificationView(2, spaceId, gardenId,
+                "WEATHER_ALERT", null, "Rischio gelo", "Minima prevista", java.time.Instant.now(), null, null, null);
+    }
+
+    private static io.github.vincenzofiore.rootology.notifications.NotificationView notification(long spaceId,
+                                                                                              long gardenId) {
+        return new io.github.vincenzofiore.rootology.notifications.NotificationView(1, spaceId, gardenId,
+                "ESCALATION_WAITING", "p-1", "title", "body", java.time.Instant.now(), null, null, null);
     }
 
     @Autowired
@@ -166,6 +258,14 @@ class ViewsTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "CURATOR")
+    void curatorViewBuildsAndIsForCuratorsOnly() {
+        assertThat(new CuratorView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
+        assertThat(CuratorView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
+                .containsExactly("CURATOR");
+    }
+
+    @Test
     void comparisonViewBuildsAndIsForQaOnly() {
         assertThat(new ComparisonView(runner, pipeline, goldenRuns, viewer()).getChildren()).isNotEmpty();
         assertThat(ComparisonView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
@@ -175,11 +275,11 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "QA")
     void historyShowsTheArbiterToQaOnly() {
-        long suiteColumnsForQa = new HistoryView(history, viewer()).getChildren().filter(Grid.class::isInstance)
+        long suiteColumnsForQa = new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
                 .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
                 .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        long columnsForMember = new HistoryView(history, viewer()).getChildren().filter(Grid.class::isInstance)
+        long columnsForMember = new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
                 .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
                 .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
 
@@ -193,35 +293,8 @@ class ViewsTest {
     }
 
     @Test
-    void aHistoryLinkOpensItsOwnSpaceAndIgnoresTheOthers() {
-        long personal = personalSpace("history-link-user");
-        long foreign = personalSpace("history-owner");
-        long shared = personalSpace("history-other");
-        spaces.addMember(shared, "history-other", "history-link-user", Role.MEMBER);
-        CurrentUser me = new CurrentUser(spaces, "history-link-user");
-        me.switchTo(personal);
-        HistoryView view = new HistoryView(history, me);
-
-        view.beforeEnter(entering(HistoryView.SPACE, String.valueOf(foreign)));
-        assertThat(me.space().id()).as("a space the person is not in is ignored").isEqualTo(personal);
-
-        view.beforeEnter(entering(HistoryView.SPACE, "nonsense"));
-        assertThat(me.space().id()).as("a malformed id is ignored").isEqualTo(personal);
-
-        view.beforeEnter(entering(HistoryView.SPACE, String.valueOf(shared)));
-        assertThat(me.space().id()).as("the link's own space wins").isEqualTo(shared);
-    }
-
-    private static BeforeEnterEvent entering(String name, String value) {
-        BeforeEnterEvent event = org.mockito.Mockito.mock(BeforeEnterEvent.class);
-        org.mockito.Mockito.when(event.getLocation())
-                .thenReturn(new Location("history", QueryParameters.of(name, value)));
-        return event;
-    }
-
-    @Test
     void escalationViewListsPendingReviews() {
-        EscalationView view = new EscalationView(pipeline, viewer());
+        EscalationView view = new EscalationView(pipeline, gardens, viewer());
 
         assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isTrue();
     }

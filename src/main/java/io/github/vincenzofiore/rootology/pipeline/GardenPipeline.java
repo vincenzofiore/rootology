@@ -151,24 +151,37 @@ public class GardenPipeline {
         return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
     }
 
-    /** Escalated questions of one space waiting for a person, from the database (#36); for its members only (#41). */
-    public List<PendingReview> pending(long spaceId, String login) {
+    /**
+     * Escalated questions of one garden, or of the space level when gardenId is 0 (#56), waiting for a
+     * person: from the database (#36), for the space's members only (#41).
+     */
+    public List<PendingReview> pending(long spaceId, long gardenId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
         }
-        return pending.waitingIn(spaceId);
+        return pending.waitingIn(spaceId, gardenId);
+    }
+
+    /** True when the space has questions without a garden waiting for a person (#56). */
+    public boolean hasUngardened(long spaceId, String login) {
+        if (!spaces.isMember(spaceId, login)) {
+            throw new SpaceAccessException(login + " is not a member of space " + spaceId);
+        }
+        return !pending.waitingIn(spaceId, 0).isEmpty();
     }
 
     /**
-     * Hands a person's answer to a paused agent and lets it finish. The review must belong to
-     * the given space, so nobody can answer another space's escalation by guessing its id.
+     * Hands a person's answer to a paused agent and lets it finish. The review must belong to the given
+     * space and context (#56): the same garden, or no garden when the person is at the space level. So
+     * nobody can answer another space's or another garden's escalation by guessing its id.
      */
-    public PipelineAnswer respond(String processId, long spaceId, HumanAnswer human) {
+    public PipelineAnswer respond(String processId, long spaceId, long gardenId, HumanAnswer human) {
         spaces.requireContributor(spaceId, human.reviewer());
         PendingEscalations.Stored stored = pending.waiting(processId)
                 .filter(s -> s.review().context().spaceId() == spaceId)
+                .filter(s -> s.review().context().gardenId() == gardenId)
                 .orElseThrow(() -> new NoSuchElementException("No review waiting for process " + processId
-                        + " in this space"));
+                        + " in this space and garden"));
         PendingReview review = stored.review();
         AgentProcess paused = agentPlatform.getAgentProcess(processId);
         AgentProcess process;
@@ -201,8 +214,8 @@ public class GardenPipeline {
         }
         transaction.executeWithoutResult(status -> {
             pending.resolve(processId, human.reviewer(), Instant.now());
-            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().startedBy(),
-                    human.reviewer(), Instant.now()));
+            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
+                    review.context().startedBy(), human.reviewer(), Instant.now()));
         });
         return run.answer();
     }
@@ -215,8 +228,8 @@ public class GardenPipeline {
                 pending.save(process.getId(), context, question, review.decision(), process.last(GraphFacts.class),
                         process.last(NoiseProfile.class), Instant.now());
                 if (context.hasSpace()) {
-                    events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.startedBy(),
-                            question.text(), review.decision().reason(), Instant.now()));
+                    events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.gardenId(),
+                            context.startedBy(), question.text(), review.decision().reason(), Instant.now()));
                 }
             });
             return new Run(null, review, process.last(Intent.class));

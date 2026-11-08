@@ -65,7 +65,7 @@ class WeatherFactsTest {
                 withCoordinates ? new BigDecimal("41.90") : null, withCoordinates ? new BigDecimal("12.50") : null);
         var bed = gardens.savePlot(id, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
         gardens.plant(id, login, bed.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
-        return new RunContext(id, login);
+        return new RunContext(id, 0, login);
     }
 
     /** Hourly from two days ago for a week, at this temperature and humidity. */

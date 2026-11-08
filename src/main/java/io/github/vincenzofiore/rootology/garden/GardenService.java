@@ -175,6 +175,24 @@ public class GardenService {
         plantings.delete(planting(spaceId, plantingId));
     }
 
+    /** One of the space's gardens by id (#56), or nothing when it is not this space's: another space's garden is unknown. */
+    @Transactional(readOnly = true)
+    public Optional<GardenSummary> garden(long spaceId, String login, long gardenId) {
+        requireMember(spaceId, login);
+        return gardens.findById(gardenId).filter(g -> g.getSpaceId() == spaceId).map(GardenService::summary);
+    }
+
+    /** What grows in one garden of the space on a given day, for the garden's home page (#56). */
+    @Transactional(readOnly = true)
+    public List<PlantingSummary> growingOn(long spaceId, String login, long gardenId, LocalDate day) {
+        requireMember(spaceId, login);
+        return plantings.findByPlotGardenSpaceIdOrderByPlantedOnDesc(spaceId).stream()
+                .filter(p -> p.getPlot().getGarden().getId() == gardenId)
+                .filter(p -> p.isGrowingOn(day))
+                .map(this::summary)
+                .toList();
+    }
+
     /** What grows in the space's gardens on a given day: the context for questions about my garden. */
     @Transactional(readOnly = true)
     public List<PlantingSummary> growingOn(long spaceId, String login, LocalDate day) {

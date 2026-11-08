@@ -94,6 +94,43 @@ vaadin-grid {
     .rootology-public-title { font-size: var(--lumo-font-size-xl); }
 }
 
+/* The navbar (#56): the space switcher, the way back to the space and garden, the person menu. */
+.rootology-space-switcher {
+    margin-left: auto;
+    width: 12rem;
+    min-width: 6rem;
+}
+.rootology-where {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    margin-left: var(--lumo-space-s);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rootology-where a {
+    color: var(--lumo-body-text-color);
+    text-decoration: none;
+}
+.rootology-where a:hover { text-decoration: underline; }
+.rootology-person {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+}
+.rootology-user-menu { margin-right: 0.5rem; }
+.rootology-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+}
+@media (max-width: 640px) {
+    /* On a phone the navbar is full: the way back stays, the switcher narrows. */
+    .rootology-space-switcher { width: 7rem; }
+    .rootology-where { max-width: 8rem; }
+}
+
 /* The sign-in accounts of My account (#28): one line per account, the ways to link below. */
 .rootology-signin-accounts { gap: var(--lumo-space-xs); margin: 0 0 var(--lumo-space-l); }
 .rootology-signin-account { flex-wrap: wrap; gap: var(--lumo-space-s); border-bottom: 1px solid var(--lumo-contrast-10pct); padding: var(--lumo-space-xs) 0; }

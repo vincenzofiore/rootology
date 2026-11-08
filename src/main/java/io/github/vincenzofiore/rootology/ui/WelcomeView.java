@@ -68,7 +68,7 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (authentication.isAuthenticated()) {
-            event.rerouteTo(HomeView.class);
+            event.rerouteTo(StartView.class);
             return;
         }
         boolean refused = event.getLocation().getQueryParameters().getSingleParameter("error").isPresent();

@@ -16,6 +16,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import io.github.vincenzofiore.rootology.facts.Crop;
@@ -31,7 +33,6 @@ import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
 import io.github.vincenzofiore.rootology.garden.Wind;
 import io.github.vincenzofiore.rootology.geocoding.GeoNames;
-import io.github.vincenzofiore.rootology.geocoding.Place;
 import io.github.vincenzofiore.rootology.weather.DailyForecast;
 import io.github.vincenzofiore.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
@@ -39,45 +40,47 @@ import jakarta.annotation.security.PermitAll;
 import java.time.LocalDate;
 import java.util.List;
 
-/** The current space's gardens: plots, and what is sown or planted in each. */
-@Route(value = "garden", layout = MainLayout.class)
+/** One garden of the space: its plots, and what is sown or planted in each (#56). */
+@Route(value = "spaces/:spaceId/gardens/:gardenId/plots", layout = MainLayout.class)
 @PermitAll
-public class GardenView extends VerticalLayout implements HasDynamicTitle {
+public class PlotsView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
     private final GardenService gardens;
     private final CropCatalog crops;
     private final GeoNames geoNames;
     private final WeatherService weather;
     private final Div weatherCard = new Div();
-    private final long spaceId;
+    private final CurrentUser currentUser;
     private final String login;
+    /** The page's own context (#56), read from its route. */
+    private long spaceId;
+    private GardenSummary garden;
 
-    private final ComboBox<GardenSummary> gardenBox = new ComboBox<>();
     private final Paragraph gardenInfo = new Paragraph();
     private final Grid<PlotSummary> plotGrid = new Grid<>();
     private final Grid<PlantingSummary> plantingGrid = new Grid<>();
     private final H4 plantingTitle = new H4();
+    private final Button editGarden = new Button(getTranslation("garden.edit"));
+    private final HorizontalLayout top = new HorizontalLayout();
+    private final Button addPlot = new Button(getTranslation("garden.addplot"));
+    private final Button addPlanting = new Button(getTranslation("garden.sow"));
+    /** The actions that need an OWNER or MEMBER (#33). */
+    private Grid.Column<PlotSummary> plotActions;
+    private Grid.Column<PlantingSummary> plantingActions;
 
-    public GardenView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
-                      CurrentUser currentUser) {
+    public PlotsView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
+                     CurrentUser currentUser) {
         this.weather = weather;
         this.gardens = gardens;
         this.crops = crops;
         this.geoNames = geoNames;
-        this.spaceId = currentUser.space().id();
+        this.currentUser = currentUser;
         this.login = currentUser.login();
 
-        gardenBox.setItemLabelGenerator(GardenSummary::name);
-        gardenBox.addValueChangeListener(e -> showGarden(e.getValue()));
-        gardenBox.setLabel(getTranslation("garden.garden"));
         plantingTitle.setText(getTranslation("garden.selectplot"));
-        Button newGarden = new Button(getTranslation("garden.new"), e -> gardenDialog(null));
-        Button editGarden = new Button(getTranslation("garden.edit"), e -> gardenDialog(gardenBox.getValue()));
-        // A guest only looks (#33): every button that changes the garden is hidden.
-        boolean contributor = currentUser.canContribute();
-        newGarden.setVisible(contributor);
-        editGarden.setVisible(contributor);
-        HorizontalLayout top = new HorizontalLayout(gardenBox, newGarden, editGarden);
+        editGarden.addClickListener(e -> gardenDialog());
+        // A guest only looks (#33): every action is hidden, and the role is known in beforeEnter.
+        top.add(editGarden);
         top.setDefaultVerticalComponentAlignment(Alignment.END);
 
         plotGrid.addColumn(PlotSummary::name).setHeader(getTranslation("garden.plot"));
@@ -85,10 +88,10 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         plotGrid.addColumn(p -> getTranslation("soil." + p.soil().name())).setHeader(getTranslation("garden.soil"));
         plotGrid.addColumn(this::exposure).setHeader(getTranslation("garden.exposure")).setAutoWidth(true);
         plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader(getTranslation("garden.area"));
-        plotGrid.addComponentColumn(p -> new HorizontalLayout(
+        plotActions = plotGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("common.edit"), e -> plotDialog(p)),
                 new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))))
-                .setVisible(contributor);
+                .setAutoWidth(true);
         plotGrid.setAllRowsVisible(true);
         plotGrid.asSingleSelect().addValueChangeListener(e -> showPlantings(e.getValue()));
 
@@ -98,32 +101,45 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         plantingGrid.addColumn(p -> p.endedOn() == null ? getTranslation("garden.growing")
                 : getTranslation("garden.ended", p.endedOn().toString())).setHeader(getTranslation("garden.status"));
         plantingGrid.addColumn(p -> p.notes() == null ? "" : p.notes()).setHeader(getTranslation("garden.notes"));
-        plantingGrid.addComponentColumn(p -> new HorizontalLayout(
+        plantingActions = plantingGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("garden.harvested"), e -> act(() ->
                         gardens.endPlanting(spaceId, login, p.id(), LocalDate.now()))),
                 new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))))
-                .setVisible(contributor);
+                .setAutoWidth(true);
         plantingGrid.setAllRowsVisible(true);
 
-        Button addPlot = new Button(getTranslation("garden.addplot"), e -> plotDialog(null));
-        Button addPlanting = new Button(getTranslation("garden.sow"), e -> plantingDialog());
-        addPlot.setVisible(contributor);
-        addPlanting.setVisible(contributor);
+        addPlot.addClickListener(e -> plotDialog(null));
+        addPlanting.addClickListener(e -> plantingDialog());
+        showContributorActions(false);
 
         add(new H3(getTranslation("garden.title")), top, gardenInfo, weatherCard,
                 new HorizontalLayout(new H4(getTranslation("garden.plots")), addPlot), plotGrid,
                 new HorizontalLayout(plantingTitle, addPlanting), plantingGrid);
-        reloadGardens(null);
     }
 
-    private void reloadGardens(Long select) {
-        List<GardenSummary> all = gardens.gardens(spaceId, login);
-        gardenBox.setItems(all);
-        all.stream().filter(g -> select == null || g.id() == select).findFirst().ifPresentOrElse(
-                gardenBox::setValue, () -> showGarden(null));
+    /** The page works in its route's garden; a space or garden the person cannot see is not found. */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        java.util.Optional<Routed.Where> where = Routed.garden(event, currentUser, gardens);
+        if (where.isEmpty()) {
+            return;
+        }
+        spaceId = where.get().spaceId();
+        showContributorActions(currentUser.canContribute(spaceId));
+        showGarden(gardens.garden(spaceId, login, where.get().gardenId()).orElse(null));
+    }
+
+    /** Only an OWNER or MEMBER changes the garden; a guest only looks (#33). */
+    private void showContributorActions(boolean contributor) {
+        editGarden.setVisible(contributor);
+        addPlot.setVisible(contributor);
+        addPlanting.setVisible(contributor);
+        plotActions.setVisible(contributor);
+        plantingActions.setVisible(contributor);
     }
 
     private void showGarden(GardenSummary garden) {
+        this.garden = garden;
         if (garden == null) {
             weatherCard.removeAll();
             gardenInfo.setText(getTranslation("garden.none"));
@@ -157,104 +173,20 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
         }, () -> weatherCard.add(new Paragraph(getTranslation("note.FORECAST_UNAVAILABLE_FROST"))));
     }
 
-    private static java.math.BigDecimal coarse(double degrees) {
-        return java.math.BigDecimal.valueOf(degrees).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
     private void showPlantings(PlotSummary plot) {
         plantingTitle.setText(plot == null ? getTranslation("garden.selectplot") : getTranslation("garden.in", plot.name()));
         plantingGrid.setItems(plot == null ? List.of() : gardens.plantings(spaceId, login, plot.id()));
     }
 
-    private void gardenDialog(GardenSummary existing) {
-        TextField name = new TextField(getTranslation("garden.name"));
-        TextField town = new TextField(getTranslation("garden.town"));
-        BigDecimalField latitude = new BigDecimalField(getTranslation("garden.latitude"));
-        BigDecimalField longitude = new BigDecimalField(getTranslation("garden.longitude"));
-        TextField country = new TextField(getTranslation("garden.country"));
-        country.setMaxLength(2);
-        country.setPattern("[A-Za-z]{2}");
-        if (existing != null) {
-            name.setValue(existing.name());
-            town.setValue(existing.town() == null ? "" : existing.town());
-            latitude.setValue(existing.latitude());
-            longitude.setValue(existing.longitude());
-            country.setValue(existing.countryCode() == null ? "" : existing.countryCode());
-        }
-
-        // A place found by name fills in the town, the coordinates and the country (#30).
-        String language = getLocale() == null ? "en" : getLocale().getLanguage();
-        ComboBox<Place> place = new ComboBox<>(getTranslation("garden.place"));
-        place.setPlaceholder(getTranslation("garden.place.hint"));
-        place.setItemLabelGenerator(Place::label);
-        place.setItems(query -> geoNames.search(query.getFilter().orElse(""), language).stream()
-                .skip(query.getOffset()).limit(query.getLimit()));
-        place.addValueChangeListener(e -> {
-            Place p = e.getValue();
-            if (p != null) {
-                town.setValue(p.name());
-                latitude.setValue(coarse(p.latitude()));
-                longitude.setValue(coarse(p.longitude()));
-                country.setValue(p.countryCode() == null ? "" : p.countryCode());
-            }
-        });
-        place.setVisible(geoNames.enabled());
-
-        // The browser asks the person first; it works on localhost and over HTTPS only.
-        Button here = new Button(getTranslation("garden.position"), e -> getElement().executeJs("""
-                return new Promise((resolve, reject) => navigator.geolocation
-                    ? navigator.geolocation.getCurrentPosition(
-                        p => resolve(p.coords.latitude + ',' + p.coords.longitude),
-                        err => reject(err.message), {timeout: 10000})
-                    : reject('not supported'))""")
-                .then(String.class, position -> {
-                    String[] parts = position.split(",");
-                    double lat = Double.parseDouble(parts[0]);
-                    double lon = Double.parseDouble(parts[1]);
-                    latitude.setValue(coarse(lat));
-                    longitude.setValue(coarse(lon));
-                    // The nearest town and its country, as when a place is chosen from the search.
-                    geoNames.nearestPlace(lat, lon, language).ifPresent(p -> {
-                        town.setValue(p.name());
-                        country.setValue(p.countryCode());
-                    });
-                }, error -> Notification.show(getTranslation("garden.position.none", error))));
-
-        Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.new" : "garden.edit"));
-        dialog.add(new FormLayout(name, place, town, latitude, longitude, country), here,
-                new Paragraph(getTranslation("garden.location.note")
-                        + (geoNames.enabled() ? " " + getTranslation("garden.geonames") : "")));
-        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
-                new Button(getTranslation("common.save"), e -> {
-            try {
-                String countryCode = country.getValue().trim().toUpperCase(java.util.Locale.ROOT);
-                if ((countryCode.isEmpty() || town.getValue().isBlank())
-                        && latitude.getValue() != null && longitude.getValue() != null) {
-                    // Typed coordinates: fill what is missing from the nearest town; without GeoNames, save anyway.
-                    var nearest = geoNames.nearestPlace(latitude.getValue().doubleValue(),
-                            longitude.getValue().doubleValue(), language);
-                    if (nearest.isPresent()) {
-                        if (countryCode.isEmpty()) {
-                            countryCode = nearest.get().countryCode();
-                        }
-                        if (town.getValue().isBlank()) {
-                            town.setValue(nearest.get().name());
-                        }
-                    }
-                }
-                GardenSummary saved = gardens.saveGarden(spaceId, login, existing == null ? null : existing.id(),
-                        name.getValue(), town.getValue(), latitude.getValue(), longitude.getValue(), countryCode);
-                dialog.close();
-                reloadGardens(saved.id());
-            } catch (RuntimeException ex) {
-                Notification.show(ex.getMessage());
-            }
-        }));
-        dialog.open();
+    /** Creates or edits this garden: the overview adds new ones, this page edits the one it works in. */
+    private void gardenDialog() {
+        new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode) ->
+                gardens.saveGarden(spaceId, login, garden == null ? null : garden.id(), name, town, latitude,
+                        longitude, countryCode)).open(garden, this::showGarden);
     }
 
     private void plotDialog(PlotSummary existing) {
-        GardenSummary garden = gardenBox.getValue();
+        GardenSummary garden = this.garden;
         if (garden == null) {
             Notification.show(getTranslation("garden.first"));
             return;
@@ -366,7 +298,7 @@ public class GardenView extends VerticalLayout implements HasDynamicTitle {
             Notification.show(ex.getMessage());
         }
         PlotSummary selected = plotGrid.asSingleSelect().getValue();
-        showGarden(gardenBox.getValue());
+        showGarden(garden);
         if (selected != null) {
             plotGrid.asSingleSelect().setValue(selected);
         }

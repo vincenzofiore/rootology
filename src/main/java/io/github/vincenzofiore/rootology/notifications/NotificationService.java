@@ -71,9 +71,10 @@ public class NotificationService {
         Set<String> recipients = spaces.membersOf(waiting.spaceId(), waiting.askedBy()).stream()
                 .filter(m -> m.role().contributes()).map(Member::githubLogin).collect(Collectors.toSet());
         for (String recipient : recipients) {
-            jdbc.sql("INSERT INTO notification (recipient, space_id, kind, process_id, title, body, created_at) "
-                            + "VALUES (?, ?, 'ESCALATION_WAITING', ?, ?, ?, ?)")
-                    .params(recipient, waiting.spaceId(), waiting.processId(), "A question waits for an answer",
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, process_id, title, body, "
+                            + "created_at) VALUES (?, ?, ?, 'ESCALATION_WAITING', ?, ?, ?, ?)")
+                    .params(recipient, waiting.spaceId(), garden(waiting.gardenId()), waiting.processId(),
+                            "A question waits for an answer",
                             truncate(waiting.askedBy() + " asked: " + waiting.question() + " (" + waiting.reason() + ")", 1000),
                             Timestamp.from(clock.instant()))
                     .update();
@@ -94,9 +95,10 @@ public class NotificationService {
         String asker = normalize(resolved.askedBy());
         if (!asker.isEmpty() && !asker.equals(normalize(resolved.reviewer()))
                 && spaces.isMember(resolved.spaceId(), asker)) {
-            jdbc.sql("INSERT INTO notification (recipient, space_id, kind, process_id, title, body, resolved_by, "
-                            + "created_at) VALUES (?, ?, 'ESCALATION_ANSWERED', ?, ?, ?, ?, ?)")
-                    .params(asker, resolved.spaceId(), resolved.processId(), "Your question has an answer",
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, process_id, title, body, "
+                            + "resolved_by, created_at) VALUES (?, ?, ?, 'ESCALATION_ANSWERED', ?, ?, ?, ?, ?)")
+                    .params(asker, resolved.spaceId(), garden(resolved.gardenId()), resolved.processId(),
+                            "Your question has an answer",
                             truncate(resolved.reviewer() + " answered your question", 1000), resolved.reviewer(),
                             Timestamp.from(resolved.at()))
                     .update();
@@ -108,12 +110,20 @@ public class NotificationService {
     /** The latest notifications of a person, newest first. */
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
-        return jdbc.sql("SELECT id, space_id, kind, process_id, title, body, created_at, read_at, resolved_at, resolved_by "
-                        + "FROM notification WHERE recipient = ? ORDER BY created_at DESC, id DESC LIMIT ?")
+        return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
+                        + "resolved_at, resolved_by FROM notification WHERE recipient = ? "
+                        + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
-                .query((rs, i) -> new NotificationView(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), rs.getString(6), rs.getTimestamp(7).toInstant(), instant(rs.getTimestamp(8)),
-                        instant(rs.getTimestamp(9)), rs.getString(10)))
+                .query((rs, i) -> {
+                    long gardenId = rs.getLong(3);
+                    if (rs.wasNull()) {
+                        gardenId = 0;
+                    }
+                    return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
+                            rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
+                            rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
+                            instant(rs.getTimestamp(10)), rs.getString(11));
+                })
                 .list();
     }
 
@@ -129,12 +139,14 @@ public class NotificationService {
      * Returns how many people were newly notified.
      */
     @Transactional
-    public int weatherAlert(long spaceId, String dedupKey, String title, String body) {
+    public int weatherAlert(long spaceId, long gardenId, String dedupKey, String title, String body) {
         Set<String> notified = new java.util.HashSet<>();
         for (Member member : spaces.membersForSystem(spaceId)) {
-            int added = jdbc.sql("INSERT INTO notification (recipient, space_id, kind, dedup_key, title, body, created_at) "
-                            + "VALUES (?, ?, 'WEATHER_ALERT', ?, ?, ?, ?) ON CONFLICT (recipient, dedup_key) DO NOTHING")
-                    .params(member.githubLogin(), spaceId, dedupKey, truncate(title, 200), truncate(body, 1000),
+            int added = jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, dedup_key, title, "
+                            + "body, created_at) VALUES (?, ?, ?, 'WEATHER_ALERT', ?, ?, ?, ?) "
+                            + "ON CONFLICT (recipient, dedup_key) DO NOTHING")
+                    .params(member.githubLogin(), spaceId, garden(gardenId), dedupKey, truncate(title, 200),
+                            truncate(body, 1000),
                             Timestamp.from(clock.instant()))
                     .update();
             if (added > 0) {
@@ -206,11 +218,15 @@ public class NotificationService {
     public int digest() {
         Instant now = clock.instant();
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
-        jdbc.sql("SELECT id, recipient, kind, title, body, resolved_by, space_id FROM notification "
-                        + "WHERE emailed_at IS NULL AND resolved_at IS NULL AND created_at <= ? ORDER BY created_at")
+        jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, n.garden_id, "
+                        + "s.name, g.name FROM notification n JOIN space s ON s.id = n.space_id "
+                        + "LEFT JOIN garden g ON g.id = n.garden_id "
+                        + "WHERE n.emailed_at IS NULL AND n.resolved_at IS NULL AND n.created_at <= ? "
+                        + "ORDER BY n.created_at")
                 .params(Timestamp.from(now.minus(groupWindow)))
                 .query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), rs.getString(6), rs.getLong(7))).list()
+                        rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
+                        rs.getString(10))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : byRecipient.entrySet()) {
@@ -261,11 +277,11 @@ public class NotificationService {
             text.append(answers.size() == 1 ? "la tua domanda ha una risposta:\n"
                     : "le tue domande hanno una risposta:\n");
             answers.forEach(p -> text.append("- ").append(p.resolvedBy()).append(" ha risposto: ")
-                    .append(link("/history", p)).append('\n'));
+                    .append(link("history", p)).append('\n'));
             html.append("<p>").append(answers.size() == 1 ? "La tua domanda ha una risposta:"
                     : "Le tue domande hanno una risposta:").append("</p><ul>");
             answers.forEach(p -> html.append("<li><strong>").append(HtmlUtils.htmlEscape(p.resolvedBy()))
-                    .append("</strong> ha risposto — <a href=\"").append(HtmlUtils.htmlEscape(link("/history", p)))
+                    .append("</strong> ha risposto — <a href=\"").append(HtmlUtils.htmlEscape(link("history", p)))
                     .append("\">Cronologia</a></li>"));
             html.append("</ul>");
         }
@@ -273,35 +289,54 @@ public class NotificationService {
             text.append(questions.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:\n"
                     : "alcune domande nei tuoi spazi aspettano una risposta:\n");
             questions.forEach(p -> text.append("- ").append(p.body()).append('\n')
-                    .append("  Per rispondere: ").append(link("/escalations", p)).append('\n'));
+                    .append("  Per rispondere: ").append(link("escalations", p)).append('\n'));
             html.append("<p>").append(questions.size() == 1 ? "Una domanda nel tuo spazio aspetta una risposta:"
                     : "Alcune domande nei tuoi spazi aspettano una risposta:").append("</p><ul>");
             questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body()))
-                    .append(" — <a href=\"").append(HtmlUtils.htmlEscape(link("/escalations", p)))
+                    .append(" — <a href=\"").append(HtmlUtils.htmlEscape(link("escalations", p)))
                     .append("\">Rispondi</a></li>"));
             html.append("</ul>");
         }
         if (!weather.isEmpty()) {
-            text.append("Avvisi meteo per il tuo orto:\n");
-            weather.forEach(p -> text.append("- ").append(p.title()).append(": ").append(p.body()).append('\n'));
-            text.append("Il tuo orto: ").append(baseUrl).append("/garden\n\n");
-            html.append("<p>Avvisi meteo per il tuo orto:</p><ul>");
+            text.append("Avvisi meteo per i tuoi orti:\n");
+            // Each alert links to its own garden: two gardens in one email must not lead to the first one.
+            weather.forEach(p -> text.append("- ").append(p.title()).append(": ").append(p.body())
+                    .append(" (").append(p.place()).append(")\n  ").append(link("", p)).append('\n'));
+            html.append("<p>Avvisi meteo per i tuoi orti:</p><ul>");
             weather.forEach(p -> html.append("<li><strong>").append(HtmlUtils.htmlEscape(p.title())).append("</strong>: ")
-                    .append(HtmlUtils.htmlEscape(p.body())).append("</li>"));
-            html.append("</ul><p><a href=\"").append(HtmlUtils.htmlEscape(baseUrl + "/garden")).append("\">Il tuo orto</a></p>");
+                    .append(HtmlUtils.htmlEscape(p.body())).append(" (")
+                    .append(HtmlUtils.htmlEscape(p.place())).append(") — <a href=\"")
+                    .append(HtmlUtils.htmlEscape(link("", p))).append("\">")
+                    .append(HtmlUtils.htmlEscape(p.place())).append("</a></li>"));
+            html.append("</ul>");
         }
         text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
         html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
         return new OutgoingMail(to, subject, text.toString(), html.toString());
     }
 
-    /** A link that opens the right space even when the session's current space is another (#51). */
-    private String link(String path, Pending p) {
-        return baseUrl + path + "?space=" + p.spaceId();
+    /**
+     * The link that opens the page of its own space and garden (#51, #56), whichever the person is looking
+     * at. Without a garden: the space's questions when there is no garden to open (a deleted garden), and
+     * the space's gardens overview for a weather alert, which is about a garden.
+     */
+    private String link(String page, Pending p) {
+        String where = "/spaces/" + p.spaceId();
+        if (p.gardenId() > 0) {
+            where += "/gardens/" + p.gardenId();
+        } else if (page.isEmpty()) {
+            where += "/gardens";
+        }
+        return baseUrl + where + (page.isEmpty() ? "" : "/" + page);
     }
 
     private record Pending(long id, String recipient, String kind, String title, String body, String resolvedBy,
-                           long spaceId) {
+                           long spaceId, long gardenId, String spaceName, String gardenName) {
+
+        /** Where it happened, as the notification page shows it: space · garden, or the space alone. */
+        String place() {
+            return gardenName == null ? spaceName : spaceName + " · " + gardenName;
+        }
 
         boolean weather() {
             return "WEATHER_ALERT".equals(kind);
@@ -316,12 +351,23 @@ public class NotificationService {
         }
     }
 
+    /** The space level is stored as no garden (null), so the column's foreign key can hold. */
+    private static Long garden(long gardenId) {
+        return gardenId > 0 ? gardenId : null;
+    }
+
     private static String normalize(String login) {
         return login == null ? "" : login.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String truncate(String s, int max) {
         return s.length() <= max ? s : s.substring(0, max - 1) + "…";
+    }
+
+    /** The garden of a notification: 0 (the space level) when the column is null. */
+    private static long gardenOf(java.sql.ResultSet rs, int column) throws java.sql.SQLException {
+        long gardenId = rs.getLong(column);
+        return rs.wasNull() ? 0 : gardenId;
     }
 
     private static Instant instant(Timestamp t) {

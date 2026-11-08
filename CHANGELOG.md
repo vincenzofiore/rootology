@@ -8,6 +8,12 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- The space and the garden are the working context, and the URL is the only source of it: the gardens
+  overview, the garden's home (today, weather, what grows), and Ask, Plots, Escalations, History and
+  Knowledge under the garden, plus the space level for the questions asked outside a garden; members and
+  invitations on their own pages, the curators' queue on its own; questions, escalations and history
+  record their garden, and a notification of another space or garden asks before opening it. Old links
+  lead to the space's only garden, or to the overview (#56).
 - Each plot can record its orientation, direct sun, wind and floor (balconies and terraces), declared by the
   gardener; the "what to sow now" and "what to sow in this plot" answers warn when a crop needs more light
   than the plot gets, and name the crops whose light needs are unknown (#54).

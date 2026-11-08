@@ -114,7 +114,7 @@ public class WeatherAlerts {
                 garden.garden().name(), FrostRule.ID)
                 + (atRisk.isEmpty() ? "" : " A rischio: " + String.join(", ", atRisk) + ".")
                 + (unknownWorthIt ? " Tolleranza al gelo non nota: " + String.join(", ", unknown) + "." : "");
-        int notified = notifications.weatherAlert(garden.spaceId(),
+        int notified = notifications.weatherAlert(garden.spaceId(), garden.garden().id(),
                 "frost:" + garden.garden().id() + ":" + day, "Rischio gelo " + DAY.format(day), body);
         return notified > 0 ? 1 : 0;
     }
@@ -132,7 +132,7 @@ public class WeatherAlerts {
         String body = "Periodo caldo e umido fino a " + DAY.format(period.get()) + " a " + garden.garden().name()
                 + " (MET Norway, " + SmithPeriodRule.ID + "): favorevole alla peronospora su " + String.join(", ", hosts)
                 + ".";
-        int notified = notifications.weatherAlert(garden.spaceId(),
+        int notified = notifications.weatherAlert(garden.spaceId(), garden.garden().id(),
                 "blight:" + garden.garden().id() + ":" + period.get(), "Rischio peronospora " + DAY.format(period.get()),
                 body);
         return notified > 0 ? 1 : 0;

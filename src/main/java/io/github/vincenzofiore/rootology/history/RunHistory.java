@@ -39,7 +39,8 @@ public class RunHistory {
         NoiseProfile noise = run.noise();
         List<String> jena = experimentCase(run.question().id()).map(runner::jenaAnswer).orElse(null);
         Boolean matches = jena == null ? null : new HashSet<>(jena).equals(new HashSet<>(answer.answer()));
-        repository.save(new PipelineRunRecord(run.processId(), run.context().spaceId(), run.context().startedBy(),
+        repository.save(new PipelineRunRecord(run.processId(), run.context().spaceId(),
+                run.context().hasGarden() ? run.context().gardenId() : null, run.context().startedBy(),
                 run.question().id(), run.question().text(),
                 noise.dropout(), noise.spurious(), noise.mislabel(), noise.nearSubject(), noise.seed(),
                 decision.answer(), decision.confidence(), decision.escalate(), decision.reason(),
@@ -47,13 +48,27 @@ public class RunHistory {
                 jena, matches, run.finishedAt()));
     }
 
-    /** The most recent runs of one space, newest first; only its members may read them (#41). */
+    /**
+     * The most recent runs of one garden (#56), newest first, or the ones without a garden when gardenId is 0;
+     * only the space's members may read them (#41).
+     */
     @Transactional(readOnly = true)
-    public List<PipelineRunRecord> recent(long spaceId, String login) {
+    public List<PipelineRunRecord> recent(long spaceId, long gardenId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
         }
-        return repository.findTop100BySpaceIdOrderByFinishedAtDesc(spaceId);
+        return gardenId > 0
+                ? repository.findTop100BySpaceIdAndGardenIdOrderByFinishedAtDesc(spaceId, gardenId)
+                : repository.findTop100BySpaceIdAndGardenIdIsNullOrderByFinishedAtDesc(spaceId);
+    }
+
+    /** True when the space has questions without a garden (#56): the overview offers them only then. */
+    @Transactional(readOnly = true)
+    public boolean hasUngardened(long spaceId, String login) {
+        if (!spaces.isMember(spaceId, login)) {
+            throw new SpaceAccessException(login + " is not a member of space " + spaceId);
+        }
+        return !repository.findTop100BySpaceIdAndGardenIdIsNullOrderByFinishedAtDesc(spaceId).isEmpty();
     }
 
     private static Optional<ExperimentCase> experimentCase(String questionId) {

@@ -2,9 +2,13 @@ package io.github.vincenzofiore.rootology.notifications;
 
 import java.time.Instant;
 
-/** A notification as its recipient sees it; processId leads to the waiting question (null for weather alerts). */
-public record NotificationView(long id, long spaceId, String kind, String processId, String title, String body,
-                               Instant createdAt, Instant readAt, Instant resolvedAt, String resolvedBy) {
+/**
+ * A notification as its recipient sees it; processId leads to the waiting question (null for weather alerts).
+ * gardenId is 0 for a notification about the space level (a question asked outside a garden, #56).
+ */
+public record NotificationView(long id, long spaceId, long gardenId, String kind, String processId, String title,
+                               String body, Instant createdAt, Instant readAt, Instant resolvedAt,
+                               String resolvedBy) {
 
     public boolean weather() {
         return "WEATHER_ALERT".equals(kind);

@@ -7,10 +7,11 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
+import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.history.PipelineRunRecord;
 import io.github.vincenzofiore.rootology.history.RunHistory;
 import io.github.vincenzofiore.rootology.roles.AppRole;
-import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.ZoneId;
@@ -18,25 +19,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * The latest finished pipeline runs of the current space, stored in Postgres; QA also sees the arbiter's answer.
- * A link from a notification (#51) names its space with {@code ?space=<id>}, since the current one may be another.
+ * The latest finished pipeline runs of the page's context, stored in Postgres: one garden's, or the space's
+ * questions without a garden (#56). QA also sees the arbiter's answer.
  */
-@Route(value = "history", layout = MainLayout.class)
+@Route(value = "spaces/:spaceId/gardens/:gardenId/history", layout = MainLayout.class)
+@RouteAlias(value = "spaces/:spaceId/history", layout = MainLayout.class)
 @PermitAll
 public class HistoryView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
-
-    /** The space a notification's link opens, when it is not the session's current one (#51). */
-    static final String SPACE = "space";
 
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.systemDefault());
 
     private final RunHistory history;
+    private final GardenService gardens;
     private final CurrentUser currentUser;
     private final Grid<PipelineRunRecord> grid = new Grid<>();
+    /** The page's own context (#56), read from its route; 0 garden at the space level. */
+    private long spaceId;
+    private long gardenId;
 
-    public HistoryView(RunHistory history, CurrentUser currentUser) {
+    public HistoryView(RunHistory history, GardenService gardens, CurrentUser currentUser) {
         this.history = history;
+        this.gardens = gardens;
         this.currentUser = currentUser;
 
         grid.addColumn(r -> TIME.format(r.getFinishedAt())).setHeader(getTranslation("history.finished")).setAutoWidth(true);
@@ -59,41 +63,25 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
                 : r.isDecisionEscalated() ? getTranslation("history.escalated") : "-")
                 .setHeader(getTranslation("history.person")).setAutoWidth(true);
         grid.setSizeFull();
-        refresh();
 
         add(new Button(getTranslation("common.refresh"), e -> refresh()), grid);
         setSizeFull();
     }
 
-    /**
-     * Opens the space named in the link. A malformed id or a space the person does not belong to is ignored:
-     * the current space is shown, never an error page and never another space's history.
-     */
+    /** The page works in its route's garden, or at the space level: a space or garden the person cannot see is not found. */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        long id = event.getLocation().getQueryParameters().getSingleParameter(SPACE)
-                .map(HistoryView::id).orElse(-1L);
-        if (id <= 0 || id == currentUser.space().id()) {
+        java.util.Optional<Routed.Where> where = Routed.garden(event, currentUser, gardens);
+        if (where.isEmpty()) {
             return;
         }
-        try {
-            currentUser.switchTo(id);
-        } catch (SpaceAccessException ignored) {
-            return;
-        }
+        spaceId = where.get().spaceId();
+        gardenId = where.get().gardenId();
         refresh();
     }
 
-    private static long id(String value) {
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
     private void refresh() {
-        grid.setItems(history.recent(currentUser.space().id(), currentUser.login()));
+        grid.setItems(spaceId == 0 ? List.of() : history.recent(spaceId, gardenId, currentUser.login()));
     }
 
     private static String values(List<String> values) {

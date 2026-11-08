@@ -1,6 +1,7 @@
 package io.github.vincenzofiore.rootology.notifications;
 
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
+import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.pipeline.EscalationResolved;
 import io.github.vincenzofiore.rootology.pipeline.EscalationWaiting;
 import io.github.vincenzofiore.rootology.spaces.Role;
@@ -62,6 +63,9 @@ class NotificationServiceTest {
     SpaceService spaces;
 
     @Autowired
+    GardenService gardens;
+
+    @Autowired
     ApplicationEventPublisher events;
 
     @Value("${rootology.test.mailpit-api}")
@@ -80,7 +84,7 @@ class NotificationServiceTest {
     }
 
     private void waiting(String process, long space, String askedBy, String question) {
-        events.publishEvent(new EscalationWaiting(process, space, askedBy, question, "lavanda is not in the dataset", now));
+        events.publishEvent(new EscalationWaiting(process, space, 0, askedBy, question, "lavanda is not in the dataset", now));
     }
 
     private JsonNode messagesTo(String address) throws InterruptedException {
@@ -122,7 +126,7 @@ class NotificationServiceTest {
         });
 
         notifications.markRead("owen", null);
-        events.publishEvent(new EscalationResolved("p-1", space, "mia", "owen", now));
+        events.publishEvent(new EscalationResolved("p-1", space, 0, "mia", "owen", now));
 
         assertThat(notifications.unread("owen")).as("the person who answered gets nothing new").isZero();
         assertThat(notifications.of("owen", 10)).singleElement()
@@ -151,7 +155,7 @@ class NotificationServiceTest {
         notifications.markRead("elia", null);
         notifications.markRead("fede", null);
 
-        events.publishEvent(new EscalationResolved("p-5", space, "elia", "fede", now));
+        events.publishEvent(new EscalationResolved("p-5", space, 0, "elia", "fede", now));
 
         assertThat(notifications.unread("elia")).as("the new notification is unread").isEqualTo(1);
         assertThat(notifications.of("elia", 10)).hasSize(2)
@@ -165,9 +169,9 @@ class NotificationServiceTest {
         assertThat(notifications.digest()).as("only elia asked, only elia is emailed").isEqualTo(1);
         JsonNode elia = messageTo("elia@example.org");
         assertThat(elia.path("Subject").asString()).isEqualTo("Rootology: la tua domanda ha una risposta");
-        assertThat(elia.path("Text").asString()).as("the link opens the space of the question")
-                .contains("/history?space=" + space);
-        assertThat(elia.path("HTML").asString()).contains("/history?space=" + space);
+        assertThat(elia.path("Text").asString()).as("the link opens the space and garden of the question (#56)")
+                .contains("/spaces/" + space + "/history");
+        assertThat(elia.path("HTML").asString()).contains("/spaces/" + space + "/history");
     }
 
     @Test
@@ -180,7 +184,7 @@ class NotificationServiceTest {
         notifications.markRead("otto", null);
         spaces.removeMember(space, "otto", "otto"); // he leaves while his question waits
 
-        events.publishEvent(new EscalationResolved("p-9", space, "otto", "nina", now));
+        events.publishEvent(new EscalationResolved("p-9", space, 0, "otto", "nina", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.of("otto", 10)).as("only the waiting one, now resolved").singleElement()
@@ -196,7 +200,7 @@ class NotificationServiceTest {
         waiting("p-6", space, "ivo", "Domanda?");
         notifications.markRead("ivo", null);
 
-        events.publishEvent(new EscalationResolved("p-6", space, "ivo", "ivo", now));
+        events.publishEvent(new EscalationResolved("p-6", space, 0, "ivo", "ivo", now));
 
         assertThat(notifications.of("ivo", 10)).singleElement().extracting(NotificationView::answered).isEqualTo(false);
         assertThat(notifications.unread("ivo")).isZero();
@@ -236,7 +240,7 @@ class NotificationServiceTest {
         notifications.rememberEmail("ugo", "other@example.org");
 
         waiting("p-4", space, "ugo", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-4", space, "ugo", "teo", now));
+        events.publishEvent(new EscalationResolved("p-4", space, 0, "ugo", "teo", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("ugo asked, teo only answered").isEqualTo(1);
@@ -253,7 +257,7 @@ class NotificationServiceTest {
         notifications.save("ada", new NotificationPreferences("ada@example.org", false, true, null, null));
 
         waiting("p-7", space, "ada", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-7", space, "ada", "bea", now));
+        events.publishEvent(new EscalationResolved("p-7", space, 0, "ada", "bea", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("ada turned answer emails off").isZero();
@@ -264,7 +268,7 @@ class NotificationServiceTest {
                 LocalTime.of(12, 0)));
 
         waiting("p-8", quiet, "eva", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-8", quiet, "eva", "fio", now));
+        events.publishEvent(new EscalationResolved("p-8", quiet, 0, "eva", "fio", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("eva is in her quiet hours").isZero();
@@ -272,6 +276,46 @@ class NotificationServiceTest {
         now = now.plus(Duration.ofHours(2)); // 13:03 in Italy: the email waits for the end of the quiet hours
         assertThat(notifications.digest()).isEqualTo(1);
         messagesTo("eva@example.org");
+    }
+
+    @Test
+    void eachWeatherAlertOfOneEmailLinksToItsOwnGarden() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("lino", "mara", "nia");
+        notifications.save("lino", new NotificationPreferences("lino@example.org", true, true, null, null));
+        long balcony = gardens.saveGarden(space, "lino", null, "Balcony", null, null, null).id();
+        long allotment = gardens.saveGarden(space, "lino", null, "Allotment", null, null, null).id();
+
+        notifications.weatherAlert(space, balcony, "frost:" + balcony, "Rischio gelo", "Minima prevista -2 °C");
+        notifications.weatherAlert(space, allotment, "blight:" + allotment, "Rischio peronospora", "Periodo caldo e umido");
+        now = now.plus(Duration.ofMinutes(3));
+
+        assertThat(notifications.digest()).isEqualTo(1);
+        JsonNode mail = messageTo("lino@example.org");
+        for (String part : new String[]{"Text", "HTML"}) {
+            String body = mail.path(part).asString();
+            assertThat(body).as(part + ": each alert names and links its own garden")
+                    .contains("/spaces/" + space + "/gardens/" + balcony, "/spaces/" + space + "/gardens/" + allotment)
+                    .contains("Balcony", "Allotment");
+        }
+    }
+
+    @Test
+    void aWeatherAlertWithoutAGardenLinksToTheGardensOverview() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("olga", "pino", "qara");
+        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, null, null));
+
+        // Stored before #56 in a space with several gardens, or of a deleted garden: no garden (#56).
+        notifications.weatherAlert(space, 0, "frost:none", "Rischio gelo", "Minima prevista -2 °C");
+        now = now.plus(Duration.ofMinutes(3));
+
+        assertThat(notifications.digest()).isEqualTo(1);
+        JsonNode mail = messageTo("olga@example.org");
+        for (String part : new String[]{"Text", "HTML"}) {
+            assertThat(mail.path(part).asString()).as(part + ": the overview, where the gardens are")
+                    .contains("/spaces/" + space + "/gardens");
+        }
     }
 
     @Test

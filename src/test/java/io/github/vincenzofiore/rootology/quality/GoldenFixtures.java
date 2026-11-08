@@ -69,7 +69,7 @@ final class GoldenFixtures {
             contributions.apply(proposalIds.incrementAndGet(), space,
                     new Contribution.Alias(alias.targetId(), alias.name(), alias.language()));
         }
-        return new RunContext(space, login);
+        return new RunContext(space, 0, login);
     }
 
     static Optional<Forecast> forecast(String fixture, Clock clock) {

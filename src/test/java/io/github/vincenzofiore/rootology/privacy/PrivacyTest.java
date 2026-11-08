@@ -158,7 +158,9 @@ class PrivacyTest {
         assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
                         "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
-                        "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3")
+                        "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3",
+                        // #56: the garden a question belongs to is part of the export, like its space.
+                        "\"garden_id\"")
                 .doesNotContain("gus asks about leeks");
     }
 

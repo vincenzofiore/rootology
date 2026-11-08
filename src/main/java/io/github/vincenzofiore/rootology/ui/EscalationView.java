@@ -12,37 +12,43 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.PermitAll;
+import com.vaadin.flow.router.RouteAlias;
+import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline.PendingReview;
 import io.github.vincenzofiore.rootology.pipeline.HumanAnswer;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
-import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
+import jakarta.annotation.security.PermitAll;
 
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Escalated questions of the current space whose agent is paused. A member answers one and the agent finishes.
- * A link from a notification (#51) names its space with {@code ?space=<id>}, since the current one may be another.
+ * Escalated questions of the page's context whose agent is paused: one garden's, or the space's questions
+ * without a garden (#56). A member answers one and the agent finishes.
  */
-@Route(value = "escalations", layout = MainLayout.class)
+@Route(value = "spaces/:spaceId/gardens/:gardenId/escalations", layout = MainLayout.class)
+@RouteAlias(value = "spaces/:spaceId/escalations", layout = MainLayout.class)
 @PermitAll
 public class EscalationView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
-    /** The space a notification's link opens, when it is not the session's current one (#51). */
-    static final String SPACE = "space";
-
     private final GardenPipeline pipeline;
+    private final GardenService gardens;
     private final CurrentUser currentUser;
     private final Grid<PendingReview> grid = new Grid<>();
     private final TextField values = new TextField();
     private final TextField note = new TextField();
     private final Button submit = new Button();
+    private final Paragraph intro = new Paragraph();
+    private final HorizontalLayout form = new HorizontalLayout();
+    /** The page's own context (#56), read from its route; 0 garden at the space level. */
+    private long spaceId;
+    private long gardenId;
 
-    public EscalationView(GardenPipeline pipeline, CurrentUser currentUser) {
+    public EscalationView(GardenPipeline pipeline, GardenService gardens, CurrentUser currentUser) {
         this.pipeline = pipeline;
+        this.gardens = gardens;
         this.currentUser = currentUser;
         values.setLabel(getTranslation("escalations.values"));
         note.setLabel(getTranslation("escalations.note"));
@@ -68,14 +74,12 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         submit.addClickListener(e -> answerSelected());
         Button refresh = new Button(getTranslation("escalations.refresh"), e -> refresh());
 
-        HorizontalLayout form = new HorizontalLayout(values, note, submit, refresh);
+        form.add(values, note, submit, refresh);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
-        // A guest sees the open questions but does not answer them (#33).
-        form.setVisible(currentUser.canContribute());
-        add(new H3(getTranslation("escalations.title")), new Paragraph(getTranslation(currentUser.canContribute()
-                ? "escalations.intro" : "escalations.intro.guest")), grid, form);
-        refresh();
+        // A guest sees the open questions but does not answer them (#33); the role is known in beforeEnter.
+        form.setVisible(false);
+        add(new H3(getTranslation("escalations.title")), intro, grid, form);
     }
 
     private void answerSelected() {
@@ -86,7 +90,7 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         List<String> answer = Arrays.stream(values.getValue().split(","))
                 .map(String::trim).filter(v -> !v.isEmpty()).toList();
         try {
-            PipelineAnswer result = pipeline.respond(review.processId(), currentUser.space().id(),
+            PipelineAnswer result = pipeline.respond(review.processId(), spaceId, gardenId,
                     new HumanAnswer(answer, note.getValue(), currentUser.login()));
             Notification.show(result.text(), 8000, Notification.Position.BOTTOM_START);
         } catch (ServiceUnavailableException ex) {
@@ -98,35 +102,23 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         refresh();
     }
 
-    /**
-     * Opens the space named in the link. A malformed id or a space the person does not belong to is ignored:
-     * the current space is shown, never an error page and never another space's questions.
-     */
+    /** The page works in its route's garden, or at the space level: a space or garden the person cannot see is not found. */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        long id = event.getLocation().getQueryParameters().getSingleParameter(SPACE)
-                .map(EscalationView::id).orElse(-1L);
-        if (id <= 0 || id == currentUser.space().id()) {
+        java.util.Optional<Routed.Where> where = Routed.garden(event, currentUser, gardens);
+        if (where.isEmpty()) {
             return;
         }
-        try {
-            currentUser.switchTo(id);
-        } catch (SpaceAccessException ignored) {
-            return;
-        }
+        spaceId = where.get().spaceId();
+        gardenId = where.get().gardenId();
+        boolean contributor = currentUser.canContribute(spaceId);
+        form.setVisible(contributor);
+        intro.setText(getTranslation(contributor ? "escalations.intro" : "escalations.intro.guest"));
         refresh();
     }
 
-    private static long id(String value) {
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
     private void refresh() {
-        grid.setItems(pipeline.pending(currentUser.space().id(), currentUser.login()));
+        grid.setItems(spaceId == 0 ? List.of() : pipeline.pending(spaceId, gardenId, currentUser.login()));
     }
 
     @Override

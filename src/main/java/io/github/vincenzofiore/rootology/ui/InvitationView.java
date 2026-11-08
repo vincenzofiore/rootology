@@ -60,8 +60,10 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
                         + (preview.forEmail() == null ? "" : " " + getTranslation("invite.foremail", preview.forEmail()))));
         if (login.isPresent()) {
             Button join = new Button(getTranslation("invite.join", preview.spaceName()), e -> {
-                invitations.accept(token, login.get(), emails);
-                getUI().ifPresent(ui -> ui.navigate(SpaceView.class));
+                long spaceId = invitations.accept(token, login.get(), emails);
+                getUI().ifPresent(ui -> ui.navigate(GardensView.class,
+                        new com.vaadin.flow.router.RouteParameters(java.util.Map.of(Routed.SPACE,
+                                String.valueOf(spaceId)))));
             });
             join.addThemeName("primary");
             add(join, new Paragraph(getTranslation("invite.then")));

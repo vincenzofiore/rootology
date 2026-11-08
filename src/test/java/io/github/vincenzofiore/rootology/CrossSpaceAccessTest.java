@@ -103,13 +103,26 @@ class CrossSpaceAccessTest {
     }
 
     @Test
+    void aGardenOfAnotherSpaceIsUnknown() {
+        // #56: the garden id from another space is never found, whichever space the person uses it with.
+        long otherGarden = gardens.saveGarden(intruderSpace, intruder, null, "Intruder garden", null, null, null).id();
+
+        assertThat(gardens.garden(victimSpace, victim, otherGarden)).isEmpty();
+        assertThat(gardens.garden(intruderSpace, intruder, garden)).isEmpty();
+        assertThatThrownBy(() -> gardens.garden(victimSpace, intruder, garden)).isInstanceOf(RuntimeException.class);
+        // The questions of the victim's garden never show under a garden id of the intruder's space.
+        assertThat(pipeline.pending(intruderSpace, garden, intruder)).isEmpty();
+        assertThat(history.recent(intruderSpace, garden, intruder)).isEmpty();
+    }
+
+    @Test
     void anotherSpaceIsRefusedOutright() {
         assertThatThrownBy(() -> gardens.gardens(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> gardens.plots(victimSpace, intruder, garden)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> enrichment.ofSpace(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> invitations.pending(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
-        assertThatThrownBy(() -> history.recent(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
-        assertThatThrownBy(() -> pipeline.pending(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> history.recent(victimSpace, garden, intruder)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> pipeline.pending(victimSpace, garden, intruder)).isInstanceOf(RuntimeException.class);
         assertThat(enrichment.source(victimSpace, intruder, "proposal-1")).isEmpty();
     }
 }

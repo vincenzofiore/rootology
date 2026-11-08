@@ -70,7 +70,7 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
     private RunContext signedIn(String login, String email) {
         spaces.signedIn(login);
         notifications.save(login, new NotificationPreferences(email, true, true, null, null));
-        return new RunContext(spaces.spacesOf(login).getFirst().id(), login);
+        return new RunContext(spaces.spacesOf(login).getFirst().id(), 0, login);
     }
 
     private double questions(String outcome) {
@@ -122,7 +122,7 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
         spaces.addMember(asker.spaceId(), asker.startedBy(), "vera", io.github.vincenzofiore.rootology.spaces.Role.MEMBER);
         GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text), asker);
 
-        pipeline.respond(run.pending().processId(), asker.spaceId(),
+        pipeline.respond(run.pending().processId(), asker.spaceId(), asker.gardenId(),
                 new HumanAnswer(List.of("Rosmarino"), "", "vera"));
         notifications.digest();
 

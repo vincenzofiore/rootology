@@ -21,7 +21,7 @@ public class EscalationPersonalData {
 
     public List<Map<String, Object>> export(String login) {
         return jdbc.sql("""
-                        select space_id, question_text, created_at, started_by, resolved_at, resolved_by
+                        select space_id, garden_id, question_text, created_at, started_by, resolved_at, resolved_by
                         from pending_escalation where started_by = :login or resolved_by = :login order by created_at""")
                 .param("login", login).query().listOfRows();
     }
