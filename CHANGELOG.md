@@ -31,6 +31,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- Waiting questions and their notifications can no longer be mixed up by a repeated internal id: each
+  question gets a random identifier that never repeats (#61).
 - A pest question no longer mentions the Italian sowing and harvest calendars for a garden abroad, and its
   context no longer shows a zone that played no part in the answer (#58).
 - The welcome page no longer shows a back link to itself for visitors (#50).
