@@ -82,9 +82,10 @@ class PendingEscalations {
         Decision decision = JSON.readValue(rs.getString("decision_json"), Decision.class);
         String json = rs.getString("context_json");
         ContextSnapshot snapshot = json == null ? null : JSON.readValue(json, ContextSnapshot.class);
+        GraphFacts facts = JSON.readValue(rs.getString("facts_json"), GraphFacts.class);
+        // The notes are the facts' own (#60): the row stores them once, not in a column of their own.
         return new Stored(new GardenPipeline.PendingReview(rs.getString("process_id"), context, question, decision,
-                snapshot),
-                JSON.readValue(rs.getString("facts_json"), GraphFacts.class),
+                snapshot, facts == null ? List.of() : facts.notes()), facts,
                 JSON.readValue(rs.getString("noise_json"), NoiseProfile.class),
                 snapshot);
     }

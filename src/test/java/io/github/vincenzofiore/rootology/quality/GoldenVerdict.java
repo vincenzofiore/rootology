@@ -2,10 +2,12 @@ package io.github.vincenzofiore.rootology.quality;
 
 import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.decision.Intent;
+import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.PipelineAnswer;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -13,7 +15,7 @@ import java.util.Objects;
 enum GoldenVerdict {
     /** Answered with exactly the expected values and notes. */
     CORRECT,
-    /** Escalated where it had to, for the expected reason. */
+    /** Escalated where it had to, for the expected reason, with the expected notes. */
     CORRECT_ESCALATION,
     /** Answered, but with other values, or answered where it had to escalate. */
     SILENT_WRONG,
@@ -21,7 +23,7 @@ enum GoldenVerdict {
     UNNECESSARY_ESCALATION,
     /** Escalated as expected, but for another reason (checked offline only: Jev words its reasons its own way). */
     WRONG_ESCALATION_REASON,
-    /** The right values, without an expected note. */
+    /** The right values (or the right escalation), without an expected note. */
     MISSING_NOTE;
 
     static GoldenVerdict of(GoldenQuestions.Case c, GardenPipeline.Run run) {
@@ -35,8 +37,11 @@ enum GoldenVerdict {
             if (answer != null) {
                 return SILENT_WRONG;
             }
-            return !checkReason || run.pending().decision().reason().contains(c.escalate())
-                    ? CORRECT_ESCALATION : WRONG_ESCALATION_REASON;
+            if (checkReason && !run.pending().decision().reason().contains(c.escalate())) {
+                return WRONG_ESCALATION_REASON;
+            }
+            // An escalation's notes are checked too (#60): whoever answers sees them.
+            return hasNotes(c, notesOf(run.pending().notes())) ? CORRECT_ESCALATION : MISSING_NOTE;
         }
         if (answer == null) {
             return UNNECESSARY_ESCALATION;
@@ -45,8 +50,16 @@ enum GoldenVerdict {
                 || !new HashSet<>(answer.answer()).equals(new HashSet<>(c.answer()))) {
             return SILENT_WRONG;
         }
-        boolean notes = c.notes().stream().allMatch(note -> answer.notes().stream().anyMatch(n -> n.english().contains(note)));
-        return notes ? CORRECT : MISSING_NOTE;
+        return hasNotes(c, notesOf(answer.notes())) ? CORRECT : MISSING_NOTE;
+    }
+
+    /** Every expected note, as English text, is part of one of the notes the run produced. */
+    private static boolean hasNotes(GoldenQuestions.Case c, List<String> produced) {
+        return c.notes().stream().allMatch(expected -> produced.stream().anyMatch(note -> note.contains(expected)));
+    }
+
+    private static List<String> notesOf(List<Note> notes) {
+        return notes.stream().map(Note::english).toList();
     }
 
     /** Whether Claude understood the question as expected: kind, subject (any case) and what the case sets. */

@@ -194,6 +194,29 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void anEscalationKeepsTheNotesOfItsQuestionAfterARestart() {
+        long space = spaceOf("ctx-notes");
+        long garden = garden(space, "ctx-notes", "Orto", "45.46", "9.19");
+        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+
+        var asked = ask("ctx-notes", space, garden, "Cosa posso seminare nell'aiuola Z?",
+                new Intent(QueryKind.SOW_IN_PLOT, "aiuola Z", null, "it"));
+        assertThat(asked.pending().notes()).as("whoever answers sees why it was not answered")
+                .extracting(Note::kind).containsExactly(Note.Kind.PLOT_NOT_FOUND);
+
+        assertThat(pipeline.pending(space, garden, "ctx-notes")).singleElement()
+                .satisfies(review -> assertThat(review.notes()).as("also when read back from the database")
+                        .extracting(Note::kind).containsExactly(Note.Kind.PLOT_NOT_FOUND));
+
+        agentPlatform.killAgentProcess(asked.pending().processId()); // as after a restart
+        var answer = pipeline.respond(asked.pending().processId(), space, garden,
+                new HumanAnswer(java.util.List.of(), "Non lo so", "ctx-notes"));
+
+        assertThat(answer.notes()).as("the resumed run keeps them").extracting(Note::kind)
+                .contains(Note.Kind.PLOT_NOT_FOUND);
+    }
+
+    @Test
     void theContextOfTheQuestionIsStoredInTheHistory() {
         long space = spaceOf("ctx-history");
         long garden = garden(space, "ctx-history", "Orto sul tetto", "45.46", "9.19");

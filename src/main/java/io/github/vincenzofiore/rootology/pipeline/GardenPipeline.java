@@ -14,6 +14,7 @@ import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
+import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
@@ -39,9 +40,16 @@ import java.util.UUID;
 public class GardenPipeline {
 
     /** An escalated question whose agent is paused, waiting for a member of its space. */
-    /** snapshot: the context the question was asked in (#55), shown to whoever answers; null for older rows. */
+    /**
+     * snapshot: the context the question was asked in (#55), shown to whoever answers; null for older rows.
+     * notes: what the person should know about the facts behind the decision (#60), never sent to Jev.
+     */
     public record PendingReview(String processId, RunContext context, Question question, Decision decision,
-                                ContextSnapshot snapshot) {
+                                ContextSnapshot snapshot, List<Note> notes) {
+
+        public PendingReview {
+            notes = notes == null ? List.of() : List.copyOf(notes);
+        }
     }
 
     /** Outcome of a run in HUMAN review mode: an answer, or a review waiting for a person. */
@@ -230,14 +238,16 @@ public class GardenPipeline {
             QuestionContext questionContext = process.last(QuestionContext.class);
             // A garden that no longer exists is not stored (#55): the row and its notification are the space's.
             long gardenId = questionContext == null ? context.gardenId() : questionContext.gardenId();
+            // Every escalation was decided on facts, so its notes come from them (#60).
+            GraphFacts facts = process.last(GraphFacts.class);
             PendingReview review = new PendingReview(process.getId(),
                     new RunContext(context.spaceId(), gardenId, context.startedBy()), question,
-                    process.last(Decision.class), questionContext == null ? null : questionContext.snapshot());
+                    process.last(Decision.class), questionContext == null ? null : questionContext.snapshot(),
+                    facts == null ? List.of() : facts.notes());
             // Stored and announced together (#36): the notifications (#26) are written in the same transaction.
             transaction.executeWithoutResult(status -> {
-                pending.save(process.getId(), context, gardenId, question, review.decision(),
-                        process.last(GraphFacts.class), process.last(NoiseProfile.class), questionContext,
-                        Instant.now());
+                pending.save(process.getId(), context, gardenId, question, review.decision(), facts,
+                        process.last(NoiseProfile.class), questionContext, Instant.now());
                 if (context.hasSpace()) {
                     events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), gardenId,
                             context.startedBy(), question.text(), review.decision().reason(), Instant.now()));

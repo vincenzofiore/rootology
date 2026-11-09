@@ -78,7 +78,8 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
         if (verdict != GoldenVerdict.CORRECT && verdict != GoldenVerdict.CORRECT_ESCALATION) {
             fail(verdict + " for " + c.id() + ": " + (result.answer() != null
                     ? "answered " + result.answer().answer() + " with notes " + result.answer().notes()
-                    : "escalated: " + result.pending().decision().reason())
+                    : "escalated: " + result.pending().decision().reason()
+                            + " with notes " + result.pending().notes())
                     + "; expected " + (c.answer() != null ? c.answer() + " with notes " + c.notes()
                     : "an escalation about \"" + c.escalate() + "\""));
         }

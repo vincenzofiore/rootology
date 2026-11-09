@@ -1,6 +1,7 @@
 package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
@@ -74,8 +75,13 @@ class AnswerCard extends Div {
     }
 
     AnswerCard notes(List<Note> notes) {
-        notes.forEach(note -> add(callout(NoteText.icon(note), NoteText.tone(note), NoteText.text(note, this))));
+        addNotes(notes, this, this);
         return this;
+    }
+
+    /** A question's notes as coloured callouts, wherever they are shown (#60): a card or a waiting question. */
+    static void addNotes(List<Note> notes, Component in, HasComponents into) {
+        notes.forEach(note -> into.add(callout(NoteText.icon(note), NoteText.tone(note), NoteText.text(note, in))));
     }
 
     AnswerCard sources(List<SourceLine> lines) {

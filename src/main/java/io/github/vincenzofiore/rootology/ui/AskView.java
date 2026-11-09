@@ -119,7 +119,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 if (run.pending().snapshot() != null) {
                     card.context(ContextText.line(run.pending().snapshot(), this));
                 }
+                // Whoever answers sees what shaped the decision: the notes below the reason (#60).
                 result.add(card.waiting(ReasonText.text(run.pending().decision().reason(), this))
+                        .notes(run.pending().notes())
                         .extra(propose(text.trim())));
                 return;
             }

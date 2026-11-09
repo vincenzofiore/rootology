@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
@@ -13,6 +14,9 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.theme.lumo.LumoUtility.Display;
+import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
+import com.vaadin.flow.theme.lumo.LumoUtility.MaxWidth;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline.PendingReview;
@@ -42,6 +46,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     private final Button submit = new Button();
     private final Paragraph intro = new Paragraph();
     private final HorizontalLayout form = new HorizontalLayout();
+    /** The notes of the selected question, next to the answer form: they can be long, so never a grid column (#60). */
+    private final Div notes = new Div();
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
@@ -68,7 +74,12 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
             boolean selected = e.getValue() != null;
             submit.setEnabled(selected);
             values.setValue(selected ? String.join(", ", e.getValue().decision().answer()) : "");
+            notes.removeAll();
+            if (selected) {
+                AnswerCard.addNotes(e.getValue().notes(), this, notes);
+            }
         });
+        notes.addClassNames(Display.FLEX, "flex-col", Gap.SMALL, MaxWidth.SCREEN_MEDIUM);
 
         values.setWidth("24rem");
         note.setWidth("24rem");
@@ -82,7 +93,7 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         form.setWrap(true);
         // A guest sees the open questions but does not answer them (#33); the role is known in beforeEnter.
         form.setVisible(false);
-        add(new H3(getTranslation("escalations.title")), intro, grid, form);
+        add(new H3(getTranslation("escalations.title")), intro, grid, form, notes);
     }
 
     private void answerSelected() {

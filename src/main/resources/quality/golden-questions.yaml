@@ -18,7 +18,8 @@
 # weather: missing (the service gives nothing) | frost (minimum -2.0 degrees all week)
 # spaceFacts: contributed by a member of the asking space (#24), visible only to that space
 # expect: answer (the exact set of values) or escalate (a part of the reason); notes: parts of the notes
-#   (English text), checked on answers only: an escalation's notes are not compared yet
+#   (English text), checked on answers and on escalations (#60): whoever answers a waiting question must
+#   see why it was not answered
 
 today: 2026-11-04
 
@@ -161,7 +162,9 @@ cases:
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?
     intent: {kind: GROWING_NOW, language: it}
-    expect: {escalate: needs a garden}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
 
   # Question context (#55): only the garden the question is asked in, and never a guess.
   # NORD and SUD windows by zone-shift-v1 from the CENTRO ones: autumn work (windows from August) one month
@@ -206,7 +209,9 @@ cases:
     intent: {kind: PEST_RISK, language: it}
     garden: two-gardens-space
     weather: missing
-    expect: {escalate: needs a garden}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
 
   - id: question-zone-wins-over-the-garden
     question: Cosa posso seminare adesso al nord?
@@ -222,14 +227,18 @@ cases:
     intent: {kind: SOW_IN_PLOT, subject: Aiuola C, language: it}
     garden: rome
     weather: missing
-    expect: {escalate: the plot is not in this garden}
+    expect:
+      escalate: the plot is not in this garden
+      notes: [no plot named "Aiuola C"]
 
   - id: plot-name-matching-two-plots
     question: Cosa posso seminare nell'aiuola?
     intent: {kind: SOW_IN_PLOT, subject: Aiuola, language: it}
     garden: rome
     weather: missing
-    expect: {escalate: the plot is not in this garden}
+    expect:
+      escalate: the plot is not in this garden
+      notes: [More than one plot]
 
   # The plot's declared exposure (#54) added by the app, not named in the question. Part shade: crops that
   # ECOCROP gives "very bright" are left out; lamb's lettuce has no light need in the curated files.
