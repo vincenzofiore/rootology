@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Header;
@@ -20,6 +21,7 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
 
     private final Anchor back;
     private final boolean signedIn;
+    private final ServiceLinks footer = new ServiceLinks();
 
     public PublicLayout() {
         signedIn = VaadinRequest.getCurrent() != null && VaadinRequest.getCurrent().getUserPrincipal() != null;
@@ -32,7 +34,13 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
         title.addClassName("rootology-public-title");
         Header bar = new Header(back, title);
         bar.addClassName("rootology-public-bar");
-        add(bar);
+        add(bar, footer);
+    }
+
+    @Override
+    public void showRouterLayoutContent(HasElement content) {
+        // The page goes between the bar and the line of service links.
+        getElement().insertChild(1, content.getElement());
     }
 
     @Override

@@ -1,12 +1,10 @@
 package io.github.vincenzofiore.rootology.ui;
 
-import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
@@ -56,13 +54,7 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
                 SecurityConfiguration.googleConfigured(googleClientId)));
         add(new Paragraph(getTranslation("welcome.access")));
 
-        Anchor privacy = new Anchor("/" + PrivacyView.ROUTE, getTranslation("nav.privacy"));
-        privacy.setRouterIgnore(true);
-        Anchor sources = new Anchor("/" + SourcesView.ROUTE, getTranslation("nav.sources"));
-        sources.setRouterIgnore(true);
-        HorizontalLayout links = new HorizontalLayout(privacy, sources);
-        links.addClassName("rootology-welcome-links");
-        add(links);
+        // Sources and Privacy are in the line at the bottom of PublicLayout.
     }
 
     @Override

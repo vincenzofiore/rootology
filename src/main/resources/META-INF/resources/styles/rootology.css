@@ -153,4 +153,20 @@ vaadin-grid {
     color: var(--lumo-error-text-color);
     border: 1px solid var(--lumo-error-color-50pct);
 }
-.rootology-welcome-links { flex-wrap: wrap; gap: var(--lumo-space-m); }
+
+/* Sources and Privacy (ServiceLinks): a small line at the bottom of the side menu and of the public pages. */
+.rootology-drawer { display: flex; flex-direction: column; min-height: 100%; }
+.rootology-drawer > vaadin-side-nav { flex: 1; }
+.rootology-service-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-service-links a { color: inherit; }
+@media (pointer: coarse) {
+    .rootology-service-links a { display: inline-flex; align-items: center; min-height: 44px; }
+}

@@ -29,6 +29,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 - When someone answers a waiting question, the person who asked gets a notification in the app and an email
   with who answered and a link to the answer; the other members only see their notification resolved (#51).
 
+### Changed
+
+- Sources and Privacy moved from the side menu to a small line at the bottom of the menu and of the
+  public pages (#63).
+
 ### Fixed
 
 - Waiting questions and their notifications can no longer be mixed up by a repeated internal id: each

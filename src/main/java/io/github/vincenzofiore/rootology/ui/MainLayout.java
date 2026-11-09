@@ -108,7 +108,10 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         scheme.addThemeName("tertiary");
         scheme.addClickListener(e -> nextScheme());
         addToNavbar(space, scheme, bell, user);
-        addToDrawer(nav);
+        // The menu fills the drawer and the service pages sit at its bottom.
+        Div drawer = new Div(nav, new ServiceLinks());
+        drawer.addClassName("rootology-drawer");
+        addToDrawer(drawer);
     }
 
     /**
@@ -191,8 +194,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
                     VaadinIcon.BOOK.create()));
         }
-        nav.addItem(new SideNavItem(getTranslation("nav.sources"), SourcesView.class, VaadinIcon.BOOKMARK_O.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.privacy"), PrivacyView.class, VaadinIcon.SHIELD.create()));
         if (gardenId == 0) {
             // The questions the space asked outside a garden (#56): offered only when there are some.
             if (ungardened.any(space.id(), currentUser.login())) {
