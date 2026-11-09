@@ -375,6 +375,34 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(asked.answer()).isNull();
         assertThat(asked.pending()).isNotNull();
+        assertThat(asked.pending().notes()).as("the calendar note says why").extracting(
+                        io.github.vincenzofiore.rootology.decision.Note::kind)
+                .contains(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
+    }
+
+    @Test
+    void aPestQuestionInAGardenAbroadUsesThePestMonthsAndNoItalianCalendar() {
+        RunContext space = signedIn("gina");
+        var lyon = gardens.saveGarden(space.spaceId(), "gina", null, "Jardin", "Lyon",
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+        var plot = gardens.savePlot(space.spaceId(), "gina", lyon.id(), null, "Planche", PlotKind.GROUND,
+                Soil.LOAMY, null);
+        gardens.plant(space.spaceId(), "gina", plot.id(), "lettuce", PlantingMethod.SOWN,
+                java.time.LocalDate.of(2026, 10, 1), null);
+        RunContext run = new RunContext(space.spaceId(), lyon.id(), "gina");
+        whenCreateObject(prompt -> prompt.contains("Question: What threatens my garden now?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.PEST_RISK, null, null, "en", null, "NOVEMBER"));
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(
+                new Question("ask", "What threatens my garden now?"), run);
+
+        // The pest months apply abroad too, so no calendar note and no zone in the context (#58).
+        assertThat(asked.answer()).isNotNull();
+        assertThat(asked.answer().answer()).containsExactlyInAnyOrder("Grey mould", "Grey field slug",
+                "Lettuce downy mildew");
+        assertThat(asked.answer().notes()).extracting(io.github.vincenzofiore.rootology.decision.Note::kind)
+                .doesNotContain(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
+        assertThat(asked.answer().context().zone()).isNull();
     }
 
     @Test

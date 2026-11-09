@@ -9,7 +9,8 @@
 # question and Jev decides; results are measured and recorded, not enforced.
 #
 # garden: none | rome (Aiuola A: tomato since 2026-09-01, lettuce since 2026-10-01; Aiuola B: pea
-#   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR)
+#   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR; one plot
+#   "Planche", ground, with lettuce since 2026-10-01)
 #   | two-gardens-north, two-gardens-south, two-gardens-space (one space with "Orto di Torino", 45.07, 7.69,
 #   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
 #   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
@@ -256,6 +257,15 @@ cases:
     intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
     garden: lyon
     expect: {escalate: pomodoro}
+
+  # No calendar note for a pest question abroad (#58): the pest months and the weather apply there too.
+  - id: pest-risk-abroad
+    question: Cosa minaccia il mio orto questo mese?
+    intent: {kind: PEST_RISK, language: it}
+    garden: lyon
+    weather: missing
+    expect:
+      answer: [Muffa grigia, Limaccia grigia, Peronospora della lattuga]
 
   - id: active-season-of-a-crop
     question: In quale stagione è attivo il pomodoro?

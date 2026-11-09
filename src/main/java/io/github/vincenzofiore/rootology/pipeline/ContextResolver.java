@@ -30,9 +30,13 @@ import java.util.Set;
 @Component
 class ContextResolver {
 
-    /** The kinds that need a zone and a month: without one the knowledge base has no window to read. */
+    /** The kinds that read the Italian calendars: only these get a zone, and the outside-Italy note (#58). */
     static final Set<QueryKind> NEEDS_ZONE = Set.of(QueryKind.SOWING_TIME, QueryKind.HARVEST_TIME, QueryKind.SOW_NOW,
-            QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
+            QueryKind.SOW_IN_PLOT);
+
+    /** The kinds that need a month: the calendars and the pest months, which apply abroad too (#58). */
+    static final Set<QueryKind> NEEDS_MONTH = Set.of(QueryKind.SOWING_TIME, QueryKind.HARVEST_TIME,
+            QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
 
     /** The kinds about the run's garden: they cannot be answered outside one. */
     static final Set<QueryKind> NEEDS_GARDEN = Set.of(QueryKind.GROWING_NOW, QueryKind.PEST_RISK,
@@ -149,15 +153,27 @@ class ContextResolver {
                 : new QuestionContext.Location(garden.latitude(), garden.longitude());
     }
 
-    /** Zone CENTRO unless already set; for the kinds about a month, the current month in Italy. */
+    /**
+     * Zone CENTRO unless already set, only for the kinds that read the Italian calendars; the current month
+     * in Italy for the kinds that need a month, so the pest months work abroad too (#58). The kinds that
+     * need no zone carry none, so nothing shows a zone that played no part in the answer.
+     */
     static Intent defaults(Intent intent, Month currentMonth) {
-        if (!NEEDS_ZONE.contains(intent.kind())) {
+        boolean needsZone = NEEDS_ZONE.contains(intent.kind());
+        boolean needsMonth = NEEDS_MONTH.contains(intent.kind());
+        if (!needsZone && !needsMonth) {
             return intent;
         }
-        String zone = intent.zone() == null ? DEFAULT_ZONE : intent.zone();
-        String month = intent.month() != null || intent.kind() == QueryKind.SOWING_TIME
-                || intent.kind() == QueryKind.HARVEST_TIME ? intent.month()
-                : currentMonth.name();
+        String zone = null;
+        if (needsZone) {
+            zone = intent.zone() == null ? DEFAULT_ZONE : intent.zone();
+        }
+        String month = intent.month();
+        if (needsMonth && month == null && intent.kind() != QueryKind.SOWING_TIME
+                && intent.kind() != QueryKind.HARVEST_TIME) {
+            // Sowing and harvest windows keep no month unless the question names one.
+            month = currentMonth.name();
+        }
         return intent.withZoneAndMonth(zone, month);
     }
 }

@@ -31,6 +31,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- A pest question no longer mentions the Italian sowing and harvest calendars for a garden abroad, and its
+  context no longer shows a zone that played no part in the answer (#58).
 - The welcome page no longer shows a back link to itself for visitors (#50).
 
 ## [0.2.0] - 2026-11-06

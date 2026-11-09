@@ -56,8 +56,19 @@ class ContextResolverTest {
         return garden.id();
     }
 
+    /** A garden outside Italy: no zone of the knowledge base, and weather still from its coordinates. */
+    private long gardenAbroad(String login, String name) {
+        long space = spaceOf(login);
+        return gardens.saveGarden(space, login, null, name, "Lyon", new BigDecimal("45.76"),
+                new BigDecimal("4.84"), "FR").id();
+    }
+
     private static Intent sow(String zone, String month) {
         return new Intent(QueryKind.SOW_NOW, null, null, "it", zone, month);
+    }
+
+    private static Intent pestRisk(String zone) {
+        return new Intent(QueryKind.PEST_RISK, null, null, "it", zone, null);
     }
 
     @Test
@@ -212,5 +223,61 @@ class ContextResolverTest {
         assertThat(context.intent().zone()).isNull();
         assertThat(context.intent().month()).isNull();
         assertThat(context.snapshot()).isNull();
+    }
+
+    @Test
+    void aPestQuestionGetsTheMonthAndNoZone() {
+        long space = spaceOf("ctx-mara");
+        long garden = garden("ctx-mara", "Orto di Torino", "45.07", "7.68");
+
+        var context = resolver().resolve(pestRisk(null), new RunContext(space, garden, "ctx-mara"));
+
+        // The pest months apply in every zone, so no zone plays a part (#58).
+        assertThat(context.intent().zone()).isNull();
+        assertThat(context.intent().month()).isEqualTo("NOVEMBER");
+        assertThat(context.snapshot().zone()).isNull();
+        assertThat(context.snapshot().zoneFrom()).isNull();
+        assertThat(context.snapshot().month()).isEqualTo("NOVEMBER");
+        assertThat(context.snapshot().monthFrom()).isEqualTo(ContextSnapshot.MonthFrom.DEFAULT);
+        assertThat(context.notes()).isEmpty();
+    }
+
+    @Test
+    void aPestQuestionAbroadGetsTheMonthAndNoZone() {
+        long space = spaceOf("ctx-nino");
+        long garden = gardenAbroad("ctx-nino", "Jardin");
+
+        var context = resolver().resolve(pestRisk(null), new RunContext(space, garden, "ctx-nino"));
+
+        assertThat(context.intent().zone()).isNull();
+        assertThat(context.intent().month()).isEqualTo("NOVEMBER");
+        assertThat(context.snapshot().zone()).isNull();
+        assertThat(context.notes()).isEmpty();
+        assertThat(context.weather()).as("the garden's own forecast still applies").isNotNull();
+    }
+
+    @Test
+    void aPestQuestionNamingAZoneKeepsNoZoneAndSaysNothing() {
+        long space = spaceOf("ctx-olga");
+        long garden = garden("ctx-olga", "Orto di Torino", "45.07", "7.68");
+
+        var context = resolver().resolve(pestRisk("SUD"), new RunContext(space, garden, "ctx-olga"));
+
+        assertThat(context.intent().zone()).isNull();
+        assertThat(context.snapshot().zone()).isNull();
+        assertThat(context.notes()).as("no zone, so nothing to tell about it").isEmpty();
+    }
+
+    @Test
+    void aSowingQuestionAbroadStillGetsTheOutsideItalyZone() {
+        long space = spaceOf("ctx-paolo");
+        long garden = gardenAbroad("ctx-paolo", "Jardin");
+
+        var context = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it"),
+                new RunContext(space, garden, "ctx-paolo"));
+
+        assertThat(context.intent().zone()).isEqualTo(GardenService.OUTSIDE_ITALY);
+        assertThat(context.snapshot().zone()).isEqualTo(GardenService.OUTSIDE_ITALY);
+        assertThat(context.snapshot().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.GARDEN);
     }
 }

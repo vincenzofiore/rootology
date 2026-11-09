@@ -67,8 +67,14 @@ final class GoldenFixtures {
                 gardens.endPlanting(space, login, pea.id(), LocalDate.of(2026, 6, 30));
                 yield created.id();
             }
-            case "lyon" -> gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
-                    new BigDecimal("4.84"), "FR").id();
+            case "lyon" -> {
+                var created = gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
+                        new BigDecimal("4.84"), "FR");
+                var plot = gardens.savePlot(space, login, created.id(), null, "Planche", PlotKind.GROUND,
+                        Soil.LOAMY, null);
+                gardens.plant(space, login, plot.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+                yield created.id();
+            }
             // Two gardens in one space (#55): the question is asked in one of them, or outside both.
             case "two-gardens-north", "two-gardens-south", "two-gardens-space" -> {
                 var turin = gardens.saveGarden(space, login, null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
