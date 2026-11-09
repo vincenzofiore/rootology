@@ -10,9 +10,15 @@
 #
 # garden: none | rome (Aiuola A: tomato since 2026-09-01, lettuce since 2026-10-01; Aiuola B: pea
 #   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR)
+#   | two-gardens-north, two-gardens-south, two-gardens-space (one space with "Orto di Torino", 45.07, 7.69,
+#   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
+#   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
+#   | balcony ("Balcone" in Palermo, 38.12, 13.36, SUD; one plot "Davanzale", container, declared part shade)
+#   The question runs inside the fixture's garden (#55); with none, or two-gardens-space, at the space level.
 # weather: missing (the service gives nothing) | frost (minimum -2.0 degrees all week)
 # spaceFacts: contributed by a member of the asking space (#24), visible only to that space
 # expect: answer (the exact set of values) or escalate (a part of the reason); notes: parts of the notes
+#   (English text), checked on answers only: an escalation's notes are not compared yet
 
 today: 2026-11-04
 
@@ -155,9 +161,86 @@ cases:
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?
     intent: {kind: GROWING_NOW, language: it}
+    expect: {escalate: needs a garden}
+
+  # Question context (#55): only the garden the question is asked in, and never a guess.
+  # NORD and SUD windows by zone-shift-v1 from the CENTRO ones: autumn work (windows from August) one month
+  # earlier in the north and later in the south, spring work the other way; broad bean has a curated NORD
+  # window (February) that wins.
+  - id: sow-now-in-the-northern-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-north
+    weather: missing
     expect:
-      escalate: needs a garden
-      notes: [inside one of the space's gardens]
+      answer: [Aglio, Ravanello]
+      notes: [not available]
+
+  - id: sow-now-in-the-southern-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-south
+    weather: missing
+    expect:
+      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia, Spinacio, Valerianella (songino), Cipolla, Fragola]
+      notes: [not available]
+
+  - id: growing-now-in-one-of-two-gardens
+    question: Cosa cresce nel mio orto?
+    intent: {kind: GROWING_NOW, language: it}
+    garden: two-gardens-north
+    weather: missing
+    expect: {answer: [Aglio]}
+
+  - id: sow-now-outside-a-garden-uses-no-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-space
+    weather: missing
+    expect:
+      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]
+      notes: [outside a garden]
+
+  - id: pest-risk-outside-a-garden
+    question: Cosa minaccia il mio orto questo mese?
+    intent: {kind: PEST_RISK, language: it}
+    garden: two-gardens-space
+    weather: missing
+    expect: {escalate: needs a garden}
+
+  - id: question-zone-wins-over-the-garden
+    question: Cosa posso seminare adesso al nord?
+    intent: {kind: SOW_NOW, language: it, zone: NORD}
+    garden: rome
+    weather: missing
+    expect:
+      answer: [Aglio, Ravanello]
+      notes: [names zone NORD, but the garden is in zone CENTRO]
+
+  - id: plot-not-in-the-garden
+    question: Cosa posso seminare nell'aiuola C?
+    intent: {kind: SOW_IN_PLOT, subject: Aiuola C, language: it}
+    garden: rome
+    weather: missing
+    expect: {escalate: the plot is not in this garden}
+
+  - id: plot-name-matching-two-plots
+    question: Cosa posso seminare nell'aiuola?
+    intent: {kind: SOW_IN_PLOT, subject: Aiuola, language: it}
+    garden: rome
+    weather: missing
+    expect: {escalate: the plot is not in this garden}
+
+  # The plot's declared exposure (#54) added by the app, not named in the question. Part shade: crops that
+  # ECOCROP gives "very bright" are left out; lamb's lettuce has no light need in the curated files.
+  - id: sow-on-the-windowsill-in-part-shade
+    question: Cosa posso seminare adesso nel davanzale?
+    intent: {kind: SOW_IN_PLOT, subject: davanzale, language: it}
+    garden: balcony
+    weather: missing
+    expect:
+      answer: [Aglio, Cipolla, Valerianella (songino)]
+      notes: [light-need-v1, Light needs not known]
 
   - id: calendar-abroad
     question: Quando semino il pomodoro?

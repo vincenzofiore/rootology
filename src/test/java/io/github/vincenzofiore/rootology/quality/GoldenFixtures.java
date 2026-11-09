@@ -3,10 +3,13 @@ package io.github.vincenzofiore.rootology.quality;
 import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.facts.Contribution;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
+import io.github.vincenzofiore.rootology.garden.DirectSun;
 import io.github.vincenzofiore.rootology.garden.GardenService;
+import io.github.vincenzofiore.rootology.garden.Orientation;
 import io.github.vincenzofiore.rootology.garden.PlantingMethod;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
+import io.github.vincenzofiore.rootology.garden.Wind;
 import io.github.vincenzofiore.rootology.pipeline.RunContext;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.weather.Forecast;
@@ -66,6 +69,30 @@ final class GoldenFixtures {
             }
             case "lyon" -> gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
                     new BigDecimal("4.84"), "FR").id();
+            // Two gardens in one space (#55): the question is asked in one of them, or outside both.
+            case "two-gardens-north", "two-gardens-south", "two-gardens-space" -> {
+                var turin = gardens.saveGarden(space, login, null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
+                        new BigDecimal("7.69"), "IT");
+                var palermo = gardens.saveGarden(space, login, null, "Orto di Palermo", "Palermo",
+                        new BigDecimal("38.12"), new BigDecimal("13.36"), "IT");
+                var north = gardens.savePlot(space, login, turin.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
+                var south = gardens.savePlot(space, login, palermo.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
+                gardens.plant(space, login, north.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
+                gardens.plant(space, login, south.id(), "broad-bean", PlantingMethod.SOWN, LocalDate.of(2026, 10, 20), null);
+                yield switch (c.garden()) {
+                    case "two-gardens-north" -> turin.id();
+                    case "two-gardens-south" -> palermo.id();
+                    default -> 0L;
+                };
+            }
+            // A balcony in Palermo whose only plot is declared in part shade (#54), nothing planted.
+            case "balcony" -> {
+                var balcony = gardens.saveGarden(space, login, null, "Balcone", "Palermo", new BigDecimal("38.12"),
+                        new BigDecimal("13.36"), "IT");
+                gardens.savePlot(space, login, balcony.id(), null, "Davanzale", PlotKind.CONTAINER, Soil.POTTING_MIX,
+                        null, Orientation.N, DirectSun.PART_SHADE, Wind.EXPOSED, 3);
+                yield balcony.id();
+            }
             case "none" -> 0L;
             default -> throw new IllegalArgumentException("Unknown garden fixture " + c.garden());
         };

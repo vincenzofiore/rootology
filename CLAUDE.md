@@ -91,9 +91,10 @@ Phase 1, a personal assistant for a few invited users:
 23. #41 (done) OWASP review: Top 10 and Top 10 for LLM applications (`docs/security.md`): cross-space access tests, actuator and security headers, dependency scanning in CI, prompt injection and output handling; fix what is cheap, record the rest.
 24. #56 Navigation around spaces and gardens: the space switcher stays, the garden is the working context (overview after sign-in, `/spaces/{id}/gardens/{id}/...` routes, menu levels inside and outside a garden), questions, escalations and history carry the garden, notifications never filtered and switch context with confirmation.
 25. #55 Question context (after #56): one resolver for space, garden, plot, zone, month and weather location from the current garden; the question wins over the context, with a note; ambiguity escalates; the context used shown in the answer and stored in the history.
-26. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
-27. #28 Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
-28. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+26. #60 Notes of a waiting question shown to whoever answers and checked by the golden questions. #59 `zone-shift-v2` (long windows shifted by the season of their start and end). #58 no calendar note on pest questions abroad. #57 a garden or plot named in the question (names only to Claude, same precedence as #55).
+27. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
+28. #28 Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
+29. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
