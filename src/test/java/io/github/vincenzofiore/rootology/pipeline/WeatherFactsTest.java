@@ -44,6 +44,9 @@ class WeatherFactsTest {
     GardenService gardens;
 
     @Autowired
+    io.github.vincenzofiore.rootology.facts.ClimateCells cells;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -74,7 +77,7 @@ class WeatherFactsTest {
     /** The context the pipeline resolves for that run, before the facts are gathered (#55). */
     private QuestionContext context(RunContext run, io.github.vincenzofiore.rootology.decision.QueryKind kind,
                                     String month) {
-        ContextResolver resolver = new ContextResolver(spaces, gardens, CLOCK);
+        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, CLOCK);
         return resolver.resolve(new io.github.vincenzofiore.rootology.decision.Intent(kind, null, null, "it", null, month),
                 run);
     }

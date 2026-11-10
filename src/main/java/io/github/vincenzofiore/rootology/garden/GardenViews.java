@@ -7,9 +7,12 @@ import java.time.LocalDate;
 /** What the garden module hands out: plain records, never entities. */
 public final class GardenViews {
 
-    /** countryCode: ISO 3166-1 alpha-2, or null when not known (gardens saved before #30, all in Italy). */
+    /**
+     * countryCode: ISO 3166-1 alpha-2, or null when not known (gardens saved before #30, all in Italy).
+     * elevationM: metres above sea level from GeoNames GTOPO30 (#62), or null when not known.
+     */
     public record GardenSummary(long id, String name, String town, BigDecimal latitude, BigDecimal longitude,
-                                String countryCode) {
+                                String countryCode, Integer elevationM) {
     }
 
     /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */

@@ -160,15 +160,17 @@ public class JevDecisionLayer implements DecisionLayer {
         boolean anyProposed = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.PROPOSED);
         boolean anyForecast = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.FORECAST);
         boolean anyDeclared = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.DECLARED);
-        Map<String, Object> request = ordered(
-                "model", model,
-                "state", ordered(
-                        // Field by field, so the language (not needed to decide) never changes what Jev sees.
-                        "intent", intent(intent),
-                        "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
-                        "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
-                        "facts", stateFacts),
-                "questions", questions);
+        Map<String, Object> state = ordered(
+                // Field by field, so the language (not needed to decide) never changes what Jev sees.
+                "intent", intent(intent),
+                "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
+                "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
+                "facts", stateFacts);
+        if (facts.climate() != null) {
+            // Only a calendar question with a site profile has one: the suite's requests stay as recorded (#62).
+            state.put("climate", facts.climate());
+        }
+        Map<String, Object> request = ordered("model", model, "state", state, "questions", questions);
 
         JevResponse response = restClient.post()
                 .uri("/v1/systemone")

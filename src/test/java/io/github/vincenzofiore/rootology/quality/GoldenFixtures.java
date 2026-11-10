@@ -58,7 +58,7 @@ final class GoldenFixtures {
         long garden = switch (c.garden()) {
             case "rome" -> {
                 var created = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
-                        new BigDecimal("12.50"), "IT");
+                        new BigDecimal("12.50"), "IT", 25);
                 var a = gardens.savePlot(space, login, created.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
                 var b = gardens.savePlot(space, login, created.id(), null, "Aiuola B", PlotKind.RAISED_BED, Soil.LOAMY, null);
                 gardens.plant(space, login, a.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
@@ -69,7 +69,7 @@ final class GoldenFixtures {
             }
             case "lyon" -> {
                 var created = gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
-                        new BigDecimal("4.84"), "FR");
+                        new BigDecimal("4.84"), "FR", 171);
                 var plot = gardens.savePlot(space, login, created.id(), null, "Planche", PlotKind.GROUND,
                         Soil.LOAMY, null);
                 gardens.plant(space, login, plot.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
@@ -78,9 +78,9 @@ final class GoldenFixtures {
             // Two gardens in one space (#55): the question is asked in one of them, or outside both.
             case "two-gardens-north", "two-gardens-south", "two-gardens-space" -> {
                 var turin = gardens.saveGarden(space, login, null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
-                        new BigDecimal("7.69"), "IT");
+                        new BigDecimal("7.69"), "IT", 205);
                 var palermo = gardens.saveGarden(space, login, null, "Orto di Palermo", "Palermo",
-                        new BigDecimal("38.12"), new BigDecimal("13.36"), "IT");
+                        new BigDecimal("38.12"), new BigDecimal("13.36"), "IT", 13);
                 var north = gardens.savePlot(space, login, turin.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
                 var south = gardens.savePlot(space, login, palermo.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
                 gardens.plant(space, login, north.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
@@ -94,7 +94,7 @@ final class GoldenFixtures {
             // A balcony in Palermo whose only plot is declared in part shade (#54), nothing planted.
             case "balcony" -> {
                 var balcony = gardens.saveGarden(space, login, null, "Balcone", "Palermo", new BigDecimal("38.12"),
-                        new BigDecimal("13.36"), "IT");
+                        new BigDecimal("13.36"), "IT", 13);
                 gardens.savePlot(space, login, balcony.id(), null, "Davanzale", PlotKind.CONTAINER, Soil.POTTING_MIX,
                         null, Orientation.N, DirectSun.PART_SHADE, Wind.EXPOSED, 3);
                 yield balcony.id();

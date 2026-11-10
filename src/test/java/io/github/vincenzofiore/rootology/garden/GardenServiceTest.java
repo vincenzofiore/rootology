@@ -174,6 +174,26 @@ class GardenServiceTest {
     }
 
     @Test
+    void theElevationFollowsThePlaceAndIsKeptWhenThePlaceDoesNotChange() {
+        long space = spaceOf("otto");
+        GardenSummary garden = gardens.saveGarden(space, "otto", null, "Orto", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT", 205);
+        assertThat(garden.elevationM()).isEqualTo(205);
+
+        GardenSummary renamed = gardens.saveGarden(space, "otto", garden.id(), "Orto rinomato", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT");
+        assertThat(renamed.elevationM()).as("the place did not change").isEqualTo(205);
+
+        GardenSummary moved = gardens.saveGarden(space, "otto", garden.id(), "Orto", "Milano",
+                new BigDecimal("45.46"), new BigDecimal("9.19"), "IT");
+        assertThat(moved.elevationM()).as("a new place has no elevation until it is looked up again").isNull();
+
+        GardenSummary cleared = gardens.saveGarden(space, "otto", garden.id(), "Orto", "Milano", null, null,
+                "IT", 108);
+        assertThat(cleared.elevationM()).as("no coordinates, no elevation").isNull();
+    }
+
+    @Test
     void aPlotIsLookedUpInOneGardenOnlyAndAmbiguityIsReported() {
         long space = spaceOf("olga");
         GardenSummary first = gardens.saveGarden(space, "olga", null, "Balcony", null, null, null);

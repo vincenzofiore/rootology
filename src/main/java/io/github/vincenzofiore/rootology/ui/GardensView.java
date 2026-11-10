@@ -71,8 +71,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         // A guest only looks (#33): no garden is added; the role is known in beforeEnter.
         add.setVisible(false);
         add.addThemeName("primary");
-        add.addClickListener(e -> new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode) ->
-                gardens.saveGarden(spaceId, currentUser.login(), null, name, town, latitude, longitude, countryCode))
+        add.addClickListener(e -> new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode, elevationM) ->
+                gardens.saveGarden(spaceId, currentUser.login(), null, name, town, latitude, longitude, countryCode, elevationM))
                 .open(null, saved -> refresh()));
 
         grid.addColumn(GardenSummary::name).setHeader(getTranslation("garden.garden"));
@@ -121,9 +121,9 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     private Button edit(GardenSummary garden) {
         return new Button(getTranslation("garden.edit"), e ->
-                new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode) ->
+                new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode, elevationM) ->
                         gardens.saveGarden(spaceId, currentUser.login(), garden.id(), name, town, latitude, longitude,
-                                countryCode)).open(garden, saved -> refresh()));
+                                countryCode, elevationM)).open(garden, saved -> refresh()));
     }
 
     private void refresh() {

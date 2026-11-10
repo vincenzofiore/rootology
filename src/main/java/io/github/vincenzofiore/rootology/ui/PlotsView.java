@@ -180,9 +180,9 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
 
     /** Creates or edits this garden: the overview adds new ones, this page edits the one it works in. */
     private void gardenDialog() {
-        new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode) ->
+        new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode, elevationM) ->
                 gardens.saveGarden(spaceId, login, garden == null ? null : garden.id(), name, town, latitude,
-                        longitude, countryCode)).open(garden, this::showGarden);
+                        longitude, countryCode, elevationM)).open(garden, this::showGarden);
     }
 
     private void plotDialog(PlotSummary existing) {

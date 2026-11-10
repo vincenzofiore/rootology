@@ -363,7 +363,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
-    void aGardenAbroadGetsNoItalianCalendarAndIsToldWhy() {
+    void aGardenAbroadUsesItsOwnClimateProfileAndIsToldWhy() {
         RunContext space = signedIn("gino");
         var lyon = gardens.saveGarden(space.spaceId(), "gino", null, "Allotment", "Lyon",
                 new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
@@ -373,11 +373,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"), run);
 
-        assertThat(asked.answer()).isNull();
-        assertThat(asked.pending()).isNotNull();
-        assertThat(asked.pending().notes()).as("the calendar note says why").extracting(
+        assertThat(asked.answer()).isNotNull();
+        assertThat(asked.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(asked.answer().notes()).as("the calendar note says where the windows come from").extracting(
                         io.github.vincenzofiore.rootology.decision.Note::kind)
-                .contains(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
+                .contains(io.github.vincenzofiore.rootology.decision.Note.Kind.WINDOWS_FROM_CLIMATE)
+                .doesNotContain(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
     }
 
     @Test
@@ -563,7 +564,9 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 new Question("ask", "When do I sow tomato in the north?"), signedIn("rosa"));
 
         assertThat(centre.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
-        assertThat(north.answer().answer()).containsExactlyInAnyOrder("MARCH", "APRIL", "MAY", "JUNE");
+        // The NORD reference site is Milan: its own frost dates leave the tomato chain where Vasto has it.
+        assertThat(north.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(north.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.QUESTION);
     }
 
     @Test
@@ -582,7 +585,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         Intent now = ContextResolver.defaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
                 java.time.Month.NOVEMBER);
 
-        assertThat(now.zone()).isEqualTo("CENTRO");
+        assertThat(now.zone()).as("no zone: the climate profile chooses the site").isNull();
         assertThat(now.month()).isEqualTo("NOVEMBER");
         assertThat(ContextResolver.defaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
                 .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));

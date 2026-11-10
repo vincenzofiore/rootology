@@ -11,6 +11,7 @@ import io.github.vincenzofiore.rootology.decision.DecisionLayer;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.Reading;
+import io.github.vincenzofiore.rootology.facts.ClimateWindows;
 import io.github.vincenzofiore.rootology.facts.FactSource;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
 import io.github.vincenzofiore.rootology.facts.SourcedFact;
@@ -95,6 +96,7 @@ public class GardenPipelineAgent {
 
     private final FactSource factSource;
     private final KnowledgeGraph knowledge;
+    private final ClimateWindows climate;
     private final GardenFacts garden;
     private final WeatherFacts weather;
     private final LightFacts light;
@@ -104,10 +106,12 @@ public class GardenPipelineAgent {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GardenPipelineAgent.class);
 
-    GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, GardenFacts garden, WeatherFacts weather,
-                        LightFacts light, ContextResolver contexts, DecisionLayer decisionLayer, ClaudeCircuit claude) {
+    GardenPipelineAgent(FactSource factSource, KnowledgeGraph knowledge, ClimateWindows climate, GardenFacts garden,
+                        WeatherFacts weather, LightFacts light, ContextResolver contexts,
+                        DecisionLayer decisionLayer, ClaudeCircuit claude) {
         this.factSource = factSource;
         this.knowledge = knowledge;
+        this.climate = climate;
         this.garden = garden;
         this.weather = weather;
         this.light = light;
@@ -151,7 +155,7 @@ public class GardenPipelineAgent {
     /**
      * SUITE: the quality suite's dataset, degraded by the noise profile. KNOWLEDGE_BASE: the curated
      * facts about the question's subject, each with its sources (no noise: they are real data). The garden,
-     * its zone, its month and the named plot come from the question's context (#55).
+     * its climate profile, its month and the named plot come from the question's context (#55, #62).
      */
     @Action(description = "Load the raw declared facts from the chosen graph")
     public GraphFacts gatherFacts(QuestionContext context, NoiseProfile noise, FactScope scope, RunContext run) {
@@ -166,8 +170,8 @@ public class GardenPipelineAgent {
         // The asking space also sees the facts its members added (#24), tagged PROPOSED.
         Long space = context.hasSpace() ? context.spaceId() : null;
         List<SourcedFact> facts = switch (full.kind()) {
-            case SOWING_TIME, HARVEST_TIME -> knowledge.windowFacts(full.subject(), full.zone(), space);
-            case SOW_NOW -> knowledge.sowingFacts(full.month(), full.zone(), full.languageOrDefault());
+            case SOWING_TIME, HARVEST_TIME -> climate.windowFacts(full.subject(), context.climate(), space);
+            case SOW_NOW -> climate.sowingFacts(full.month(), context.climate(), full.languageOrDefault());
             case GROWING_NOW -> garden.growing(context, run, full.languageOrDefault());
             case PEST_RISK -> garden.threats(context, run, full.languageOrDefault());
             case SOW_IN_PLOT -> garden.sowableIn(context, run, full.languageOrDefault());
@@ -196,12 +200,8 @@ public class GardenPipelineAgent {
         List<io.github.vincenzofiore.rootology.decision.Note> notes = new java.util.ArrayList<>(context.notes());
         notes.addAll(local.notes());
         notes.addAll(exposure.notes());
-        if (io.github.vincenzofiore.rootology.garden.GardenService.OUTSIDE_ITALY.equals(full.zone())) {
-            // No window matches this zone, so the question escalates; say why (#30).
-            notes.add(0, io.github.vincenzofiore.rootology.decision.Note.of(
-                    io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY));
-        }
-        return new GraphFacts(readings, notes);
+        return new GraphFacts(readings, notes,
+                context.climate() == null ? null : context.climate().english());
     }
 
     /**

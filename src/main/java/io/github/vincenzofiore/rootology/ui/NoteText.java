@@ -43,7 +43,8 @@ final class NoteText {
     static Tone tone(Note note) {
         return switch (note.kind()) {
             case FROST_EXCLUDED, SMITH_PERIOD, OUTSIDE_ITALY, LIGHT_IN_PLOT, LIGHT_ANYWHERE -> Tone.RISK;
-            case FORECAST_MINIMUM, NO_SMITH_PERIOD, ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS -> Tone.INFO;
+            case FORECAST_MINIMUM, NO_SMITH_PERIOD, ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS,
+                 WINDOWS_FROM_CLIMATE -> Tone.INFO;
             default -> Tone.MISSING;
         };
     }
@@ -54,6 +55,8 @@ final class NoteText {
             case SMITH_PERIOD -> VaadinIcon.DROP;
             case NO_SMITH_PERIOD, LIGHT_IN_PLOT, LIGHT_ANYWHERE, LIGHT_UNKNOWN -> VaadinIcon.SUN_O;
             case OUTSIDE_ITALY -> VaadinIcon.GLOBE;
+            case WINDOWS_FROM_CLIMATE, NO_CLIMATE_PROFILE, ALTITUDE_MISSING, ALTITUDE_COAST, ALTITUDE_CAPPED ->
+                    VaadinIcon.SUN_O;
             case NO_COORDINATES_FROST, NO_COORDINATES_RISK -> VaadinIcon.MAP_MARKER;
             case ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS -> VaadinIcon.COMPASS;
             case GARDEN_GONE, NO_GARDEN_FOR_QUESTION -> VaadinIcon.WARNING;

@@ -18,13 +18,20 @@ class KnowledgeGraphTest {
     @Autowired
     KnowledgeGraph knowledge;
 
+    @Autowired
+    ClimateWindows climate;
+
+    @Autowired
+    ClimateCells cells;
+
     @Test
     void holdsTheCuratedKnowledge() {
         assertThat(knowledge.count("Crop")).isEqualTo(39);
         assertThat(knowledge.count("Family")).isEqualTo(11);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
-        assertThat(knowledge.count("Zone")).isEqualTo(3);
-        assertThat(knowledge.count("Source")).isEqualTo(11);
+        // Only curated windows are written now (#62): CENTRO and the one NORD row; SUD is derived.
+        assertThat(knowledge.count("Zone")).isEqualTo(2);
+        assertThat(knowledge.count("Source")).isEqualTo(14);
     }
 
     @Test
@@ -48,21 +55,30 @@ class KnowledgeGraphTest {
     }
 
     @Test
-    void windowsCarryTheirProvenance() {
-        assertThat(knowledge.windows("tomato", "NORD")).anySatisfy(w -> {
-            assertThat(w.activity()).isEqualTo("TRANSPLANT");
-            assertThat(w.fromMonth()).isEqualTo(5);
-            assertThat(w.toMonth()).isEqualTo(6);
-            assertThat(w.provenance()).isEqualTo("INFERRED");
-            assertThat(w.derivedBy()).isEqualTo(ZoneShiftRule.ID);
-            assertThat(w.sources()).containsExactly("rootology-editorial");
-        });
-        assertThat(knowledge.windows("broad-bean", "NORD")).filteredOn(w -> w.activity().equals("SOW"))
-                .singleElement().satisfies(w -> {
-                    assertThat(w.provenance()).isEqualTo("CURATED");
-                    assertThat(w.fromMonth()).isEqualTo(2);
+    void theCalendarsAreDerivedFromTheSiteProfile() {
+        // Vasto, the CENTRO reference: its own curated windows, not an inference.
+        assertThat(climate.windowFacts("tomato", ReferenceSite.CENTRO.profile(cells), null)).contains(
+                new SourcedFact(new Fact("tomato", "sowIn", "FEBRUARY"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "harvestIn", "AUGUST"), java.util.List.of("rootology-editorial")));
+        // Milan derives tomato with the rule and the site's sources.
+        assertThat(climate.windowFacts("tomato", ReferenceSite.NORD.profile(cells), null)).contains(
+                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"),
+                        java.util.List.of("rootology-editorial", "agera5", "copernicus-dem-90m"),
+                        FrostShiftRule.ID));
+        // Milan's own cell: the tomato transplant does not move (first safe month April, field starts April).
+        assertThat(climate.windowFacts("tomato", ReferenceSite.NORD.profile(cells), null))
+                .filteredOn(f -> f.fact().predicate().equals("plantIn"))
+                .extracting(SourcedFact::fact).contains(new Fact("tomato", "plantIn", "APRIL"));
+        // A zone named in the question keeps its curated rows: broad bean's NORD February sowing.
+        assertThat(climate.windowFacts("Fava", ReferenceSite.NORD.profile(cells), null))
+                .filteredOn(f -> f.fact().predicate().equals("sowIn"))
+                .singleElement().satisfies(f -> {
+                    // The curated NORD row wins over the derived autumn sowing of the same crop and activity.
+                    assertThat(f.fact().object()).isEqualTo("FEBRUARY");
+                    assertThat(f.derivedBy()).isNull();
                 });
-        assertThat(knowledge.windows("tomato", "CENTRO")).allMatch(w -> w.provenance().equals("CURATED"));
+        assertThat(KnowledgeGraph.months(11, 2)).containsExactly(11, 12, 1, 2);
     }
 
     @Test
@@ -92,27 +108,12 @@ class KnowledgeGraphTest {
     }
 
     @Test
-    void windowFactsGiveMonthsWithTheirProvenance() {
-        assertThat(knowledge.windowFacts("tomato", "CENTRO")).contains(
-                new SourcedFact(new Fact("tomato", "sowIn", "FEBRUARY"), java.util.List.of("rootology-editorial")),
-                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"), java.util.List.of("rootology-editorial")),
-                new SourcedFact(new Fact("tomato", "harvestIn", "AUGUST"), java.util.List.of("rootology-editorial")));
-        assertThat(knowledge.windowFacts("tomato", "NORD")).contains(
-                new SourcedFact(new Fact("tomato", "plantIn", "JUNE"), java.util.List.of("rootology-editorial"), ZoneShiftRule.ID));
-        assertThat(knowledge.windowFacts("Fava", "NORD")).filteredOn(f -> f.fact().predicate().equals("sowIn"))
-                .singleElement().satisfies(f -> {
-                    assertThat(f.fact().object()).isEqualTo("FEBRUARY");
-                    assertThat(f.derivedBy()).isNull();
-                });
-        assertThat(KnowledgeGraph.months(11, 2)).containsExactly(11, 12, 1, 2);
-    }
-
-    @Test
     void sowingFactsListWhatCanBeSownInAMonth() {
-        assertThat(knowledge.sowingFacts("MARCH", "CENTRO", "it")).extracting(SourcedFact::fact).contains(
-                new Fact("Pomodoro", "sowIn", "MARCH"), new Fact("Patata", "plantIn", "MARCH"))
+        assertThat(climate.sowingFacts("MARCH", ReferenceSite.CENTRO.profile(cells), "it"))
+                .extracting(SourcedFact::fact).contains(
+                        new Fact("Pomodoro", "sowIn", "MARCH"), new Fact("Patata", "plantIn", "MARCH"))
                 .doesNotContain(new Fact("Zucchina", "sowIn", "MARCH"));
-        assertThat(knowledge.sowingFacts("NOT-A-MONTH", "CENTRO", "en")).isEmpty();
+        assertThat(climate.sowingFacts("NOT-A-MONTH", ReferenceSite.CENTRO.profile(cells), "en")).isEmpty();
     }
 
     @Test

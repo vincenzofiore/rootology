@@ -48,7 +48,17 @@ public record Note(Kind kind, List<String> args) {
         /** args: plot as asked, garden. */
         PLOT_NOT_FOUND,
         /** args: plot as asked, garden, the plots matching (comma-separated). */
-        PLOT_AMBIGUOUS
+        PLOT_AMBIGUOUS,
+        /** The windows were derived from the garden's climate profile (#62). */
+        WINDOWS_FROM_CLIMATE,
+        /** The garden has coordinates but no climate cell within reach (#62). */
+        NO_CLIMATE_PROFILE,
+        /** The garden's altitude is not known: the cell's frost dates were not corrected (#62). */
+        ALTITUDE_MISSING,
+        /** The garden is on the coast below its cell: the cell's frost dates were not corrected (#62). */
+        ALTITUDE_COAST,
+        /** The altitude difference was capped at 500 m (#62). */
+        ALTITUDE_CAPPED
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -97,6 +107,15 @@ public record Note(Kind kind, List<String> args) {
             case PLOT_NOT_FOUND -> "There is no plot named \"" + arg(0) + "\" in " + arg(1)
                     + ": what grows there and its rotation were not checked.";
             case PLOT_AMBIGUOUS -> "More than one plot in " + arg(1) + " matches \"" + arg(0) + "\": " + arg(2) + ".";
+            case WINDOWS_FROM_CLIMATE -> "The sowing and harvest windows are those of central Italy, derived "
+                    + "for the garden's climate profile (AgERA5 1996-2025).";
+            case NO_CLIMATE_PROFILE -> "There is no climate profile for this garden's position: its sowing and "
+                    + "harvest windows are not known.";
+            case ALTITUDE_MISSING -> "The garden's altitude is not known: the frost dates were not corrected for it.";
+            case ALTITUDE_COAST -> "The garden is on the coast, below its climate cell: the frost dates were not "
+                    + "corrected for altitude.";
+            case ALTITUDE_CAPPED -> "The garden's altitude is more than 500 m from its climate cell's: the frost "
+                    + "dates were corrected by a capped 500 m.";
         };
     }
 

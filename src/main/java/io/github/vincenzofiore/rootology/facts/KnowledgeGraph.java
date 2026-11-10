@@ -21,11 +21,6 @@ public class KnowledgeGraph {
                             int toMonth, List<String> sources, boolean verified, boolean proposed) {
     }
 
-    /** A sowing, planting or harvest window of a crop in a zone, curated or derived by a rule. */
-    public record Window(String cropId, String zone, String activity, int fromMonth, int toMonth, String note,
-                         String provenance, String derivedBy, List<String> sources, boolean verified) {
-    }
-
     /** A pest or a disease, by its EPPO code. */
     public record Organism(String id, String italianName, String englishName, String kind) {
     }
@@ -116,19 +111,6 @@ public class KnowledgeGraph {
                         r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),
                         r.get("verified").asBoolean(), r.get("proposed").asBoolean()));
-    }
-
-    /** The windows of a crop in a zone, curated ones first. */
-    public List<Window> windows(String cropId, String zone) {
-        return list("MATCH (c:Kb:Crop {id: $id})-[w:WINDOW]->(z:Kb:Zone {id: $zone}) "
-                        + "RETURN w ORDER BY w.provenance, w.activity, w.fromMonth", Map.of("id", cropId, "zone", zone),
-                r -> {
-                    var w = r.get("w").asRelationship();
-                    return new Window(cropId, zone, w.get("activity").asString(), w.get("fromMonth").asInt(),
-                            w.get("toMonth").asInt(), w.get("note").asString(""), w.get("provenance").asString(),
-                            w.get("derivedBy").isNull() ? null : w.get("derivedBy").asString(),
-                            w.get("sources").asList(v -> v.asString()), w.get("verified").asBoolean());
-                });
     }
 
     /**
@@ -233,45 +215,6 @@ public class KnowledgeGraph {
         };
     }
 
-    /**
-     * The sowing, planting and harvest months of a crop in a zone, as facts (crop, sowIn|plantIn|harvestIn,
-     * MONTH). Windows derived by a rule keep its name in derivedBy. Empty when the crop is unknown.
-     */
-    public List<SourcedFact> windowFacts(String name, String zone) {
-        return windowFacts(name, zone, null);
-    }
-
-    /** As {@link #windowFacts(String, String)}, also finding the crop by a name this space added. */
-    public List<SourcedFact> windowFacts(String name, String zone, Long spaceId) {
-        return resolve(name, spaceId).map(crop -> dedup(windows(crop.id(), zone).stream()
-                .flatMap(w -> months(w.fromMonth(), w.toMonth()).stream().map(m -> new SourcedFact(
-                        new Fact(name.trim(), predicate(w.activity()), MONTHS.get(m - 1)), w.sources(), w.derivedBy())))
-                .toList())).orElse(List.of());
-    }
-
-    /**
-     * The crops that can be sown or planted in a month (JANUARY to DECEMBER) in a zone, as facts
-     * (crop, sowIn|plantIn, MONTH), named in the given language ("it" for Italian, otherwise English).
-     */
-    public List<SourcedFact> sowingFacts(String month, String zone, String language) {
-        int m = MONTHS.indexOf(month) + 1;
-        if (m == 0) {
-            return List.of();
-        }
-        boolean italian = "it".equalsIgnoreCase(language);
-        return dedup(list("MATCH (c:Kb:Crop)-[w:WINDOW]->(:Kb:Zone {id: $zone}) "
-                        + "WHERE w.activity IN ['SOW', 'SOW_SEEDBED', 'PLANT', 'TRANSPLANT'] "
-                        + "AND ((w.fromMonth <= w.toMonth AND $m >= w.fromMonth AND $m <= w.toMonth) "
-                        + "  OR (w.fromMonth > w.toMonth AND ($m >= w.fromMonth OR $m <= w.toMonth))) "
-                        + "RETURN c.italianName AS it, c.englishName AS en, w.activity AS activity, w.sources AS sources, "
-                        + "w.derivedBy AS derivedBy ORDER BY c.id",
-                Map.of("zone", zone, "m", m), r -> new SourcedFact(
-                        new Fact(italian ? r.get("it").asString() : r.get("en").asString(),
-                                predicate(r.get("activity").asString()), month),
-                        r.get("sources").asList(v -> v.asString()),
-                        r.get("derivedBy").isNull() ? null : r.get("derivedBy").asString())));
-    }
-
     /** The months of a window (1-12, wrapping over the year), in order. */
     static List<Integer> months(int from, int to) {
         List<Integer> months = new java.util.ArrayList<>();
@@ -301,7 +244,7 @@ public class KnowledgeGraph {
      * anywhere stays curated; otherwise inferred if a rule derived it, and proposed only if every
      * occurrence was proposed.
      */
-    private static List<SourcedFact> dedup(List<SourcedFact> facts) {
+    static List<SourcedFact> dedup(List<SourcedFact> facts) {
         Map<Fact, java.util.LinkedHashSet<String>> sources = new java.util.LinkedHashMap<>();
         Map<Fact, String> derivedBy = new java.util.HashMap<>();
         java.util.Set<Fact> curated = new java.util.HashSet<>();

@@ -28,7 +28,13 @@ final class ContextText {
         if (context.plotName() != null) {
             parts.add(context.plotName());
         }
-        if (context.zone() != null) {
+        if (context.hasClimate()) {
+            // The calendar's own context (#62): the last frost the windows were derived from.
+            parts.add(context.lastFrostDay() == null ? in.get("context.climate.none")
+                    : in.get("context.climate." + context.climateFrom().name().toLowerCase(Locale.ROOT),
+                    ClimateText.frost(context.lastFrostDay(), in, locale)));
+        } else if (context.zone() != null) {
+            // Rows stored before #62 still show the zone they used.
             parts.add(in.get(switch (context.zoneFrom()) {
                 case QUESTION -> "context.zone.question";
                 case GARDEN -> "context.zone.garden";

@@ -2,7 +2,7 @@
 
 The crop selection was approved by the owner on 2026-11-03. It was written from general Italian horticultural practice: the **choice of crops is final**, while the **months and families are still to be verified** crop by crop against the sources (for example the temperature ranges in FAO ECOCROP, families in Wikidata) when they are loaded into the knowledge base. New crops arrive through knowledge enrichment (#24).
 
-Months are indicative for central Italy, open field. In the north, sowing and planting usually come 2 to 4 weeks later; in the south and on the coast, earlier. "Seedbed" means sown in a protected seedbed and transplanted later. The botanical family drives rotation rules in the ontology layer.
+Months are Vasto's (central Italy, open field) and are the base of the derivation: the app moves them to each garden's own frost dates with `frost-shift-v1` (#62, `docs/climate-profile.md`), not by a fixed north/south rule. "Seedbed" means sown in a protected seedbed and transplanted later. The botanical family drives rotation rules in the ontology layer.
 
 ## Spring-summer crops (sown or planted in spring, harvested in summer)
 
@@ -68,8 +68,27 @@ Months are indicative for central Italy, open field. In the north, sowing and pl
 | Rosmarino | Rosemary | *Salvia rosmarinus* | Lamiaceae | Plant in spring or autumn | All year |
 | Salvia | Sage | *Salvia officinalis* | Lamiaceae | Plant in spring or autumn | All year |
 
+## Frost groups (#62)
+
+Every crop has a `frost_group` in `crops-v1.csv`, which the window rule `frost-shift-v1` uses to move the
+central-Italy windows to a garden's own frost dates. The groups were approved by the owner on 2026-11-10:
+
+| Group | Crops | What the rule does |
+|---|---|---|
+| TENDER | Tomato, sweet pepper, chili pepper, eggplant, zucchini, cucumber, melon, watermelon, winter squash, bean, basil | The first open-field sowing or transplant does not start before the first safe month; the whole chain moves together, by at most two months. |
+| HARDY | Potato, celery, cabbage, leek | As TENDER, but may start one month before the first safe month. |
+| AUTUMN | Cauliflower, broccoli, Tuscan kale, savoy cabbage, turnip tops, fennel, radicchio, endive | The chain moves one month earlier when the last safe month is October, two when it is September or earlier; never later. |
+| OVERWINTER | Spinach, lamb's lettuce, broad bean, pea, garlic, onion, artichoke, strawberry, rosemary, sage | Autumn sowings move one month earlier at most; spring sowings behave as HARDY; spring harvests start later only where the first safe month is after April. |
+| LONG | Lettuce, rocket, radish, carrot, chard, parsley | The sowing starts at the first safe month minus one and ends a month before the last safe month; the harvest starts with the sowing and ends by that month. |
+
+The CENTRO rows of `sowing-windows.csv` are **Vasto's** own windows (42.1/14.7, no altitude correction:
+last frost 16 February, no autumn frost). They are the base of the derivation, not "the garden's zone":
+the app derives every garden's windows from its own climate profile, and only a zone named in the question
+uses that zone's reference site (NORD = Milan, CENTRO = Vasto, SUD = Palermo). The curated NORD row
+(broad bean, February) applies only when the question names NORD.
+
 ## Notes
 
 - 39 crops in 9 families.
 - Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
-- The seasons in this file are a starting point for the ontology's sowing windows; in the app they become ranges by climate zone, refined with the weather (#18) and, later, sensor readings (#21).
+- The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).

@@ -27,6 +27,9 @@ import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
 import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
 import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
+import io.github.vincenzofiore.rootology.facts.ClimateCells;
+import io.github.vincenzofiore.rootology.facts.FrostSeasonRule;
+import io.github.vincenzofiore.rootology.facts.SiteProfile;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.garden.GardenViews.GardenSummary;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlantingSummary;
@@ -58,6 +61,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 
     private final GardenService gardens;
+    private final ClimateCells climateCells;
     private final WeatherService weather;
     private final NotificationService notifications;
     private final GardenPipeline pipeline;
@@ -71,9 +75,10 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long spaceId;
     private long gardenId;
 
-    public GardenHomeView(GardenService gardens, WeatherService weather, NotificationService notifications,
-                          GardenPipeline pipeline, CurrentUser currentUser) {
+    public GardenHomeView(GardenService gardens, ClimateCells climateCells, WeatherService weather,
+                          NotificationService notifications, GardenPipeline pipeline, CurrentUser currentUser) {
         this.gardens = gardens;
+        this.climateCells = climateCells;
         this.weather = weather;
         this.notifications = notifications;
         this.pipeline = pipeline;
@@ -115,11 +120,40 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
         title.setText(garden.name());
         body.removeAll();
+        showClimate(garden);
         showWeather(garden);
         showAlerts();
         showWaiting();
         showGrowing();
         body.add(go(VaadinIcon.ARROW_RIGHT, getTranslation("home.garden.open"), PlotsView.class));
+    }
+
+    /** The garden's climate profile (#62): altitude, both 1-in-5-year frost dates and the cell. */
+    private void showClimate(GardenSummary garden) {
+        if (garden.latitude() == null || garden.longitude() == null) {
+            return;
+        }
+        body.add(section(VaadinIcon.SUN_O, getTranslation("home.climate")));
+        java.util.Locale locale = NoteText.locale(this);
+        climateCells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
+                .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null))
+                .ifPresentOrElse(profile -> body.add(climate(profile, locale)),
+                        () -> body.add(new Paragraph(getTranslation("home.climate.noprofile"))));
+    }
+
+    private Div climate(SiteProfile profile, java.util.Locale locale) {
+        Div lines = new Div();
+        lines.add(new Paragraph(profile.altitudeM() == null
+                ? getTranslation("home.climate.altitude.none")
+                : getTranslation("home.climate.altitude", profile.altitudeM())));
+        lines.add(new Paragraph(getTranslation("home.climate.last", profile.lastFrostDay() == null
+                ? getTranslation("home.climate.none.spring")
+                : ClimateText.frost(profile.lastFrostDay(), this::getTranslation, locale))));
+        lines.add(new Paragraph(getTranslation("home.climate.first", profile.firstFrostDay() == null
+                ? getTranslation("home.climate.none.autumn")
+                : ClimateText.frost(profile.firstFrostDay(), this::getTranslation, locale))));
+        lines.add(new Paragraph(getTranslation("home.climate.cell", profile.cell())));
+        return lines;
     }
 
     /** The coming week at this garden (#31): a hint for coordinates, or nothing when there is no forecast. */

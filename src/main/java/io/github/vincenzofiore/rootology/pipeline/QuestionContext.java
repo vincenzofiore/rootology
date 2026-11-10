@@ -2,6 +2,7 @@ package io.github.vincenzofiore.rootology.pipeline;
 
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.Note;
+import io.github.vincenzofiore.rootology.facts.SiteProfile;
 import io.github.vincenzofiore.rootology.garden.GardenViews.PlotSummary;
 
 import java.math.BigDecimal;
@@ -10,8 +11,9 @@ import java.util.List;
 /**
  * Everything one question is answered with, resolved once per run (#55): the run's space and garden, the
  * effective intent (zone and month already chosen: the question's, then the garden's, then the defaults),
- * the plot a question names, the place of the forecast, the notes that describe the context, and the
- * refusal when the context cannot answer at all. Internal to the pipeline in the sense that nothing
+ * the plot a question names, the place of the forecast, the climate profile of the site the calendars read,
+ * the notes that describe the context, and the refusal when the context cannot answer at all. Internal to
+ * the pipeline in the sense that nothing
  * outside it reads the record: what is shown and stored is {@link #snapshot()}.
  *
  * <p>refusal is the reason of a deterministic escalation decided before the decision layer (a garden
@@ -25,6 +27,7 @@ public record QuestionContext(
         Intent intent,
         Plot plot,
         Location weather,
+        SiteProfile climate,
         ContextSnapshot snapshot,
         String refusal,
         List<Note> notes) {
@@ -52,12 +55,12 @@ public record QuestionContext(
 
     /** For a run that belongs to no space: no garden, no notes, no context shown (the suite's runs). */
     static QuestionContext none(Intent intent) {
-        return new QuestionContext(0, 0, intent, null, null, null, null, List.of());
+        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of());
     }
 
     /** The context of a question whose agent was lost: only what was stored, never recomputed. */
     static QuestionContext stored(ContextSnapshot snapshot) {
-        return new QuestionContext(0, 0, null, null, null, snapshot, null, List.of());
+        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of());
     }
 
     boolean hasSpace() {

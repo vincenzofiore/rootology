@@ -24,7 +24,8 @@ final class GardenDialog {
 
     /** Stores the garden and returns it as saved: the caller knows the space and the person. */
     interface Save {
-        GardenSummary save(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode);
+        GardenSummary save(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
+                           Integer elevationM);
     }
 
     private final GeoNames geoNames;
@@ -113,7 +114,7 @@ final class GardenDialog {
                     }
                 }
                 GardenSummary garden = save.save(name.getValue(), town.getValue(), latitude.getValue(),
-                        longitude.getValue(), countryCode);
+                        longitude.getValue(), countryCode, elevation(existing, latitude.getValue(), longitude.getValue()));
                 dialog.close();
                 saved.accept(garden);
             } catch (RuntimeException ex) {
@@ -121,6 +122,22 @@ final class GardenDialog {
             }
         }));
         dialog.open();
+    }
+
+    /**
+     * The elevation for the profile (#62): the old one when the place did not change, otherwise GTOPO30's
+     * for the new place. A failed lookup leaves it null and never blocks saving.
+     */
+    private Integer elevation(GardenSummary existing, BigDecimal latitude, BigDecimal longitude) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        boolean same = existing != null && existing.latitude() != null && existing.longitude() != null
+                && latitude.compareTo(existing.latitude()) == 0 && longitude.compareTo(existing.longitude()) == 0;
+        if (same && existing.elevationM() != null) {
+            return existing.elevationM();
+        }
+        return geoNames.elevation(latitude.doubleValue(), longitude.doubleValue()).orElse(null);
     }
 
     static BigDecimal coarse(double degrees) {

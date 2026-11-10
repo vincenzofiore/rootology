@@ -34,6 +34,9 @@ class LightFactsTest {
     GardenService gardens;
 
     @Autowired
+    io.github.vincenzofiore.rootology.facts.ClimateCells cells;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -54,7 +57,7 @@ class LightFactsTest {
 
     /** The context the pipeline resolves for a plot question, in the run's garden (#55). */
     private QuestionContext context(RunContext run, QueryKind kind, String plotName) {
-        return new ContextResolver(spaces, gardens, java.time.Clock.systemDefaultZone())
+        return new ContextResolver(spaces, gardens, cells, java.time.Clock.systemDefaultZone())
                 .resolve(new Intent(kind, plotName, null, "it", null, null), run);
     }
 

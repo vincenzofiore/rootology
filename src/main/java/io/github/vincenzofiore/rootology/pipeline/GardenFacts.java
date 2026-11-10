@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.pipeline;
 
+import io.github.vincenzofiore.rootology.facts.ClimateWindows;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.facts.Fact;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
@@ -17,7 +18,7 @@ import java.util.List;
 /**
  * Facts about the run's garden, for the questions about "my garden" (#55): only that garden's plots and
  * plantings are read, and only when the run has one; garden facts have the source id `garden`. The garden,
- * the zone, the month and the named plot come from the {@link QuestionContext}.
+ * its climate profile, the month and the named plot come from the {@link QuestionContext}.
  */
 @Component
 class GardenFacts {
@@ -26,13 +27,16 @@ class GardenFacts {
 
     private final GardenService gardens;
     private final KnowledgeGraph knowledge;
+    private final ClimateWindows climate;
     private final CropCatalog crops;
     private final java.time.Clock clock;
 
-    GardenFacts(GardenService gardens, KnowledgeGraph knowledge, CropCatalog crops, java.time.Clock clock) {
+    GardenFacts(GardenService gardens, KnowledgeGraph knowledge, ClimateWindows climate, CropCatalog crops,
+                java.time.Clock clock) {
         this.clock = clock;
         this.gardens = gardens;
         this.knowledge = knowledge;
+        this.climate = climate;
         this.crops = crops;
     }
 
@@ -68,7 +72,7 @@ class GardenFacts {
         facts.add(new SourcedFact(new Fact(plotName, "hasSoil", context.plot().found().soil().name()),
                 List.of(SOURCE)));
         LocalDate on = nextFirstDay(Month.valueOf(context.intent().month()), LocalDate.now(clock));
-        for (SourcedFact sowable : knowledge.sowingFacts(context.intent().month(), context.intent().zone(), language)) {
+        for (SourcedFact sowable : climate.sowingFacts(context.intent().month(), context.climate(), language)) {
             facts.add(sowable);
             knowledge.resolve(sowable.fact().subject(), context.spaceId()).ifPresent(crop -> gardens
                     .rotationWarning(context.spaceId(), run.startedBy(), context.plot().found().id(), crop.id(), on)

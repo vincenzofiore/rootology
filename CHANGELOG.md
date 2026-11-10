@@ -44,6 +44,14 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Sowing and harvest windows are now each garden's own, derived from its climate profile instead of an
+  Italian zone: AgERA5's 1-in-5-years frost dates, corrected for the garden's altitude, move the central-Italy
+  calendar only where the garden's frosts make a window impossible. The window rule `frost-shift-v1` replaces
+  `zone-shift-v1`; the curated central-Italy windows are Vasto's, a zone named in the question uses that
+  zone's reference site, and a garden abroad gets its own calendar with a note. The garden's home shows
+  "Clima dell'orto" with the altitude, both frost dates, the cell and "AgERA5 1996–2025"; the answer's context
+  line shows the last frost the calendar used (#62).
+
 - The Privacy page names exactly what stays in the browser: the `JSESSIONID` session cookie and its
   attributes, when it ends, the local storage key of the light or dark choice, and the fact that GitHub and
   Google set their own cookies while signing in. Still no consent banner (#64).

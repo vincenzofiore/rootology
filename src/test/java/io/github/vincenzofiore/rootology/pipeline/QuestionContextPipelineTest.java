@@ -104,12 +104,12 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         assertThat(grownNorth.answer().answer()).containsExactly("Tomato");
         assertThat(grownSouth.answer().answer()).containsExactly("Lettuce");
         assertThat(grownNorth.answer().context().gardenName()).isEqualTo("Orto di Milano");
-        // The zone of the garden the question was asked in, and so its calendar.
-        assertThat(sownNorth.answer().context().zone()).isEqualTo("NORD");
-        assertThat(sownNorth.answer().context().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.GARDEN);
-        assertThat(sownNorth.answer().answer()).containsExactlyInAnyOrder("MARCH", "APRIL", "MAY", "JUNE");
-        assertThat(sownSouth.answer().context().zone()).isEqualTo("SUD");
-        assertThat(sownSouth.answer().answer()).containsExactlyInAnyOrder("JANUARY", "FEBRUARY", "MARCH", "APRIL");
+        // Each garden's own climate profile, and so its calendar; both are in the same cell as Vasto's days.
+        assertThat(sownNorth.answer().context().zone()).isNull();
+        assertThat(sownNorth.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
+        assertThat(sownNorth.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(sownSouth.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
+        assertThat(sownSouth.answer().answer()).isEqualTo(sownNorth.answer().answer());
     }
 
     @Test
@@ -125,9 +125,11 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
 
         // The forecast is the run's garden's; a question naming another zone keeps it and says so.
         verify(weather, org.mockito.Mockito.times(2)).around(new BigDecimal("45.46"), new BigDecimal("9.19"));
-        assertThat(centre.answer().context().zone()).isEqualTo("NORD");
+        assertThat(centre.answer().context().zone()).isNull();
+        assertThat(centre.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         assertThat(south.answer().context().zone()).isEqualTo("SUD");
         assertThat(south.answer().context().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.QUESTION);
+        assertThat(south.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.QUESTION);
         assertThat(south.answer().notes()).extracting(Note::kind).contains(Note.Kind.ZONE_OF_QUESTION);
     }
 
@@ -141,8 +143,8 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(run.answer()).isNotNull();
         assertThat(run.answer().context().gardenName()).isNull();
-        assertThat(run.answer().context().zone()).isEqualTo("CENTRO");
-        assertThat(run.answer().context().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.DEFAULT);
+        assertThat(run.answer().context().zone()).isNull();
+        assertThat(run.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.DEFAULT);
         assertThat(run.answer().notes()).extracting(Note::kind).contains(Note.Kind.NO_GARDEN_DEFAULTS);
         org.mockito.Mockito.verifyNoInteractions(weather);
     }
@@ -202,11 +204,11 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         var asked = ask("ctx-notes", space, garden, "Cosa posso seminare nell'aiuola Z?",
                 new Intent(QueryKind.SOW_IN_PLOT, "aiuola Z", null, "it"));
         assertThat(asked.pending().notes()).as("whoever answers sees why it was not answered")
-                .extracting(Note::kind).containsExactly(Note.Kind.PLOT_NOT_FOUND);
+                .extracting(Note::kind).contains(Note.Kind.PLOT_NOT_FOUND);
 
         assertThat(pipeline.pending(space, garden, "ctx-notes")).singleElement()
                 .satisfies(review -> assertThat(review.notes()).as("also when read back from the database")
-                        .extracting(Note::kind).containsExactly(Note.Kind.PLOT_NOT_FOUND));
+                        .extracting(Note::kind).contains(Note.Kind.PLOT_NOT_FOUND));
 
         agentPlatform.killAgentProcess(asked.pending().processId()); // as after a restart
         var answer = pipeline.respond(asked.pending().processId(), space, garden,
@@ -228,8 +230,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         var stored = history.recent(space, garden, "ctx-history").getFirst();
         assertThat(history.contextOf(stored)).hasValueSatisfying(context -> {
             assertThat(context.gardenName()).isEqualTo("Orto sul tetto");
-            assertThat(context.zone()).isEqualTo("NORD");
-            assertThat(context.zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.GARDEN);
+            assertThat(context.climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         });
         assertThat(run.answer().context()).isEqualTo(history.contextOf(stored).orElseThrow());
     }
@@ -245,15 +246,15 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         assertThat(asked.pending().decision().reason()).contains("lavanda");
         assertThat(asked.pending().snapshot().gardenName()).as("whoever answers sees the context").isEqualTo("Orto");
         assertThat(pipeline.pending(space, garden, "ctx-restart")).singleElement()
-                .satisfies(review -> assertThat(review.snapshot().zone()).as("also when read back from the database")
-                        .isEqualTo("NORD"));
+                .satisfies(review -> assertThat(review.snapshot().climateFrom())
+                        .as("also when read back from the database").isEqualTo(ContextSnapshot.ClimateFrom.GARDEN));
 
         agentPlatform.killAgentProcess(asked.pending().processId()); // as after a restart
         var answer = pipeline.respond(asked.pending().processId(), space, garden,
                 new HumanAnswer(java.util.List.of(), "Non lo so", "ctx-restart"));
 
         assertThat(answer.context().gardenName()).isEqualTo("Orto");
-        assertThat(answer.context().zone()).isEqualTo("NORD");
+        assertThat(answer.context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         assertThat(history.recent(space, garden, "ctx-restart").getFirst().getContextJson())
                 .as("the resumed answer stores the context of the question")
                 .isNotNull();

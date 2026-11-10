@@ -4,6 +4,7 @@ import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import io.github.vincenzofiore.rootology.facts.ClimateCells;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
@@ -36,8 +37,11 @@ class ContextResolverTest {
     @Autowired
     GardenService gardens;
 
+    @Autowired
+    ClimateCells cells;
+
     private ContextResolver resolver() {
-        return new ContextResolver(spaces, gardens, CLOCK);
+        return new ContextResolver(spaces, gardens, cells, CLOCK);
     }
 
     private long spaceOf(String login) {
@@ -86,14 +90,18 @@ class ContextResolverTest {
     }
 
     @Test
-    void withoutAZoneInTheQuestionTheGardensZoneIsUsed() {
+    void withoutAZoneInTheQuestionTheGardensOwnClimateProfileIsUsed() {
         long space = spaceOf("ctx-bea");
-        long garden = garden("ctx-bea", "Orto di Torino", "45.07", "7.68");
+        long garden = gardens.saveGarden(space, "ctx-bea", null, "Orto di Torino", null,
+                new BigDecimal("45.07"), new BigDecimal("7.68"), "IT", 205).id();
 
         var context = resolver().resolve(sow(null, null), new RunContext(space, garden, "ctx-bea"));
 
-        assertThat(context.intent().zone()).isEqualTo("NORD");
-        assertThat(context.snapshot().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.GARDEN);
+        assertThat(context.intent().zone()).as("no zone plays a part: the profile does").isNull();
+        assertThat(context.climate()).isNotNull();
+        assertThat(context.climate().fromGarden()).isTrue();
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
+        assertThat(context.snapshot().lastFrostDay()).isEqualTo(96);
         assertThat(context.notes()).isEmpty();
         assertThat(context.snapshot().gardenName()).isEqualTo("Orto di Torino");
         assertThat(context.snapshot().spaceName()).isNotBlank();
@@ -125,9 +133,9 @@ class ContextResolverTest {
         assertThat(withPlace.weather().latitude()).isEqualByComparingTo("45.46");
         assertThat(withPlace.weather().longitude()).isEqualByComparingTo("9.19");
         assertThat(withoutPlace.weather()).as("no coordinates, no weather").isNull();
-        assertThat(withoutPlace.snapshot().zone()).as("no latitude, the default zone")
+        assertThat(withoutPlace.climate().zone()).as("no latitude, the default site")
                 .isEqualTo("CENTRO");
-        assertThat(withoutPlace.snapshot().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.DEFAULT);
+        assertThat(withoutPlace.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.DEFAULT);
     }
 
     @Test
@@ -185,9 +193,10 @@ class ContextResolverTest {
         var context = resolver().resolve(sow(null, null), new RunContext(space, 0, "ctx-ida"));
 
         assertThat(context.refusal()).isNull();
-        assertThat(context.intent().zone()).isEqualTo("CENTRO");
+        assertThat(context.intent().zone()).isNull();
+        assertThat(context.climate().zone()).isEqualTo("CENTRO");
         assertThat(context.snapshot().gardenName()).isNull();
-        assertThat(context.snapshot().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.DEFAULT);
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.DEFAULT);
         assertThat(context.weather()).as("no garden, no forecast").isNull();
         assertThat(context.notes()).extracting(Note::kind).containsExactly(Note.Kind.NO_GARDEN_DEFAULTS);
     }
@@ -205,13 +214,39 @@ class ContextResolverTest {
     }
 
     @Test
+    void aPositionWithNoCellHasNoProfileAndTheQuestionSaysSo() {
+        long space = spaceOf("ctx-nadia");
+        long garden = garden("ctx-nadia", "In mezzo al mare", "42.00", "10.00");
+
+        var context = resolver().resolve(sow(null, null), new RunContext(space, garden, "ctx-nadia"));
+
+        assertThat(context.climate()).isNull();
+        assertThat(context.snapshot().hasClimate()).isFalse();
+        assertThat(context.notes()).extracting(Note::kind).contains(Note.Kind.NO_CLIMATE_PROFILE);
+    }
+
+    @Test
+    void aGardenAbroadWithoutAProfileKeepsTheOutsideItalyNote() {
+        long space = spaceOf("ctx-omar");
+        long garden = gardens.saveGarden(space, "ctx-omar", null, "Jardin", "Lyon", null, null, "FR").id();
+
+        var context = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it"),
+                new RunContext(space, garden, "ctx-omar"));
+
+        assertThat(context.climate()).isNull();
+        assertThat(context.snapshot().hasClimate()).isFalse();
+        assertThat(context.notes()).extracting(Note::kind).contains(Note.Kind.OUTSIDE_ITALY)
+                .doesNotContain(Note.Kind.NO_CLIMATE_PROFILE);
+    }
+
+    @Test
     void aRunWithoutASpaceGetsNoNoteAndNoSnapshot() {
         var context = resolver().resolve(sow(null, null), RunContext.NONE);
 
         assertThat(context.snapshot()).isNull();
         assertThat(context.notes()).isEmpty();
         assertThat(context.refusal()).isNull();
-        assertThat(context.intent().zone()).as("the defaults still reach the facts").isEqualTo("CENTRO");
+        assertThat(context.intent().zone()).as("no zone: the default climate profile does").isNull();
         assertThat(context.intent().month()).isEqualTo("NOVEMBER");
     }
 
@@ -269,15 +304,18 @@ class ContextResolverTest {
     }
 
     @Test
-    void aSowingQuestionAbroadStillGetsTheOutsideItalyZone() {
+    void aSowingQuestionAbroadUsesTheGardensOwnClimateProfile() {
         long space = spaceOf("ctx-paolo");
         long garden = gardenAbroad("ctx-paolo", "Jardin");
 
         var context = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it"),
                 new RunContext(space, garden, "ctx-paolo"));
 
-        assertThat(context.intent().zone()).isEqualTo(GardenService.OUTSIDE_ITALY);
-        assertThat(context.snapshot().zone()).isEqualTo(GardenService.OUTSIDE_ITALY);
-        assertThat(context.snapshot().zoneFrom()).isEqualTo(ContextSnapshot.ZoneFrom.GARDEN);
+        assertThat(context.intent().zone()).isNull();
+        assertThat(context.climate()).isNotNull();
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
+        assertThat(context.notes()).extracting(Note::kind)
+                .contains(Note.Kind.WINDOWS_FROM_CLIMATE)
+                .doesNotContain(Note.Kind.OUTSIDE_ITALY);
     }
 }

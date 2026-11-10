@@ -91,6 +91,26 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void theSiteProfileIsSentOnlyWhenPresent() {
+        var climate = "Climate profile of the site: last frost (1 year in 5) on 6 April.";
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.climate").value(climate))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.climate").doesNotExist())
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.SOWING_TIME, "Tomato"),
+                new GraphFacts(List.of(Reading.curated(new Fact("Tomato", "sowIn", "APRIL"))), List.of(), climate));
+        layer.decide(Intent.of(QueryKind.SOWING_TIME, "Tomato"),
+                new GraphFacts(List.of(Reading.curated(new Fact("Tomato", "sowIn", "APRIL")))));
+
+        server.verify();
+    }
+
+    @Test
     void aProposedReadingAddsTheProposedSourceDescription() {
         var facts = new GraphFacts(List.of(
                 Reading.curated(new Fact("Tomato", "companionOf", "Basil")),

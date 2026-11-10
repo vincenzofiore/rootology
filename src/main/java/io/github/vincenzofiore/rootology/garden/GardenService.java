@@ -58,6 +58,18 @@ public class GardenService {
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
                                     BigDecimal latitude, BigDecimal longitude, String countryCode) {
+        return saveGarden(spaceId, login, gardenId, name, town, latitude, longitude, countryCode, null);
+    }
+
+    /**
+     * As above, with the elevation from GeoNames GTOPO30 (#62). Changing or clearing the coordinates
+     * clears an elevation not given: it belonged to the old place. Without new coordinates, a saved
+     * elevation is kept, so saving never depends on GeoNames.
+     */
+    @Transactional
+    public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
+                                    BigDecimal latitude, BigDecimal longitude, String countryCode,
+                                    Integer elevationM) {
         requireContributor(spaceId, login);
         String country = blankToNull(countryCode);
         if (country != null && !country.matches("[A-Z]{2}")) {
@@ -66,11 +78,26 @@ public class GardenService {
         String cleanName = required(name, "A garden needs a name");
         BigDecimal lat = coarse(latitude, 90, "Latitude");
         BigDecimal lon = coarse(longitude, 180, "Longitude");
-        Garden garden = gardenId == null
-                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, Instant.now())
-                : garden(spaceId, gardenId);
-        garden.update(cleanName, blankToNull(town), lat, lon, country);
+        Garden existing = gardenId == null ? null : garden(spaceId, gardenId);
+        Integer elevation = elevation(lat, lon, elevationM, existing);
+        Garden garden = existing == null
+                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, Instant.now())
+                : existing;
+        garden.update(cleanName, blankToNull(town), lat, lon, country, elevation);
         return summary(gardens.save(garden));
+    }
+
+    /** The elevation to store: none without coordinates; the old one kept only when the place did not change. */
+    private static Integer elevation(BigDecimal latitude, BigDecimal longitude, Integer given, Garden existing) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        if (given != null) {
+            return given;
+        }
+        boolean samePlace = existing != null && latitude.equals(existing.getLatitude())
+                && longitude.equals(existing.getLongitude());
+        return samePlace ? existing.getElevationM() : null;
     }
 
     @Transactional
@@ -300,7 +327,7 @@ public class GardenService {
 
     private static GardenSummary summary(Garden g) {
         return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude(),
-                g.getCountryCode());
+                g.getCountryCode(), g.getElevationM());
     }
 
     private static PlotSummary summary(Plot p) {
