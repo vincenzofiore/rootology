@@ -19,7 +19,7 @@ year; a date that falls in a year without frost is left empty.
 The CDS key is read by cdsapi from ~/.cdsapirc. Every step can be interrupted and resumed.
 
 With --dem (the CSV of dem_cells.py) combine keeps only cells with at least --min-land of land (AgERA5
-has values over the sea too) and adds each cell's mean land elevation, for the altitude correction.
+has values over the sea too) and adds each cell's mean land elevation and land fraction, for the altitude correction.
 
 Usage:
   .venv/bin/python -I agera5_frost.py years 1991 2020 [--area N W S E] [--work DIR]
@@ -176,7 +176,7 @@ def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
             f.write(f" Land cells (at least {min_land:.0%} land) and mean land elevation from the Copernicus DEM "
                     "GLO-90: produced using Copernicus WorldDEM-90 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and "
                     "Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA.")
-        f.write("\nlat,lon," + ("elevation_m," if dem else "")
+        f.write("\nlat,lon," + ("elevation_m,land_fraction," if dem else "")
                 + "fd,gsl,last_frost_p50,last_frost_p80,first_frost_p50,first_frost_p20,frost_years\n")
         lats, lons = ds["lat"].values, ds["lon"].values
         for i, lat in enumerate(lats):
@@ -189,7 +189,7 @@ def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
                     elevation, land = dem.get(key, (None, 0.0))
                     if land < min_land or elevation is None:
                         continue
-                    elevation += ","
+                    elevation += f",{land:.2f},"
                 f.write(f"{key[0]},{key[1]},{elevation}{table['fd'][i, j]:.0f},{table['gsl'][i, j]:.0f},"
                         f"{month_day(table['last_frost_p50'][i, j])},{month_day(table['last_frost_p80'][i, j])},"
                         f"{month_day(table['first_frost_p50'][i, j])},{month_day(table['first_frost_p20'][i, j])},"
