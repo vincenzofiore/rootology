@@ -25,7 +25,7 @@ Sensors fit this design directly: missing and noisy readings are what the decisi
 
 ## Current state (already built)
 
-- Stack: Spring Boot 4.1.2, Java 25, Maven (`./mvnw`), Spring Modulith 2.1.2 (boundaries verified by `ModularityTest`, which must keep passing), Apache Jena 6.2.0, Embabel 1.5.4 (`embabel-agent-starter-anthropic`, default LLM `claude-sonnet-5-5`), Vaadin Flow 25.3, Spring Security OAuth2 client, Postgres 17 with Flyway, Neo4j 2026.10 (Java driver, Cypher). Some Initializr leftovers remain (actuator, cache, restdocs; see #10).
+- Stack: Spring Boot 4.1.2, Java 25, Maven (`./mvnw`), Spring Modulith 2.1.2 (boundaries verified by `ModularityTest`, which must keep passing), Apache Jena 6.2.0, Embabel 1.5.4 (`embabel-agent-starter-anthropic`, default LLM `claude-sonnet-5-5`), Vaadin Flow 25.3, Spring Security OAuth2 client, Postgres 17 with Flyway, Neo4j 2026.10 (Java driver, Cypher). The unused Initializr starters (cache, validation, REST Docs with Asciidoctor, the Modulith actuator endpoint) went in #10; Spring Cache was dropped because nothing needs it (GeoNames, weather, Telegram and the curated files keep their own copies).
 - Modules (base package `io.github.vincenzofiore.rootology`):
   - `ontology`: `OntologyDefinition`, the original closed dataset (3 plants, 3 pests). Now the quality suite's fixture.
   - `inference`: Jena graph and SPARQL queries. Serves only the arbiter of the quality suite.
