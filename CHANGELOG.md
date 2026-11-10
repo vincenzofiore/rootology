@@ -37,6 +37,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- The Privacy page names exactly what stays in the browser: the `JSESSIONID` session cookie and its
+  attributes, when it ends, the local storage key of the light or dark choice, and the fact that GitHub and
+  Google set their own cookies while signing in. Still no consent banner (#64).
 - Sources and Privacy moved from the side menu to a small line at the bottom of the menu and of the
   public pages (#63).
 

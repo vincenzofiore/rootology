@@ -230,11 +230,11 @@ class ViewsTest {
     void thePrivacyPageNamesTheControllerOnlyWhenConfigured() {
         // Without a Vaadin session the texts stay keys; the wording is checked through Translations below.
         String configured = new PrivacyView(
-                new io.github.vincenzofiore.rootology.privacy.PrivacyContact("Ada Lovelace", "ada@example.org"), retention)
-                .getElement().getTextRecursively();
+                new io.github.vincenzofiore.rootology.privacy.PrivacyContact("Ada Lovelace", "ada@example.org"), retention,
+                java.time.Duration.ofMinutes(30)).getElement().getTextRecursively();
         assertThat(configured).contains("privacy.who.text").doesNotContain("privacy.who.missing");
-        String unset = new PrivacyView(new io.github.vincenzofiore.rootology.privacy.PrivacyContact("", ""), retention)
-                .getElement().getTextRecursively();
+        String unset = new PrivacyView(new io.github.vincenzofiore.rootology.privacy.PrivacyContact("", ""), retention,
+                java.time.Duration.ofMinutes(30)).getElement().getTextRecursively();
         assertThat(unset).contains("privacy.who.missing");
         assertThat(PrivacyView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
         // Public pages need a public layout too: Vaadin denies a route whose layout a visitor may not see.

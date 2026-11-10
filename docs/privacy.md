@@ -29,8 +29,25 @@ The controller is the owner of the deployment, named on the privacy page through
 
 The person may link a second account (GitHub or Google) to their own profile from My account, and nothing is merged by email: linking only happens when they ask for it while signed in. Unlinking one deletes its `user_identity` row; the last one cannot be unlinked, so nobody is left without a way in.
 
-Nothing is used for advertising, profiling or sold. The only cookie is the session cookie;
-the colour scheme choice stays in the browser's localStorage. Both are strictly necessary or chosen by the person, so no consent banner is needed.
+Nothing is used for advertising, profiling or sold.
+
+### What stays in the browser (#64)
+
+Two things only, and both are strictly necessary or chosen by the person, so no consent banner is needed:
+
+| What | Name | Attributes, lifetime | Purpose |
+|---|---|---|---|
+| Session cookie | `JSESSIONID` | `Path=/`, `HttpOnly` (Tomcat's default), `SameSite=Lax` (`server.servlet.session.cookie` in `application.yaml`), `Secure` in production (`application-prod.yaml`), no `Max-Age`: a browser-session cookie, gone when the browser is closed. Server side the session ends after 30 minutes without requests (an open page keeps it alive through Vaadin's heartbeat) — Tomcat's default, since neither `application.yaml` nor `application-prod.yaml` sets `server.servlet.session.timeout` — or at sign-out | sign-in and the Vaadin UI. The same session holds what signing in needs: the token of an open invitation (`PendingInvitation`), the marker of a second account being linked (`PendingLink`), the OAuth state and PKCE verifier of the sign-in in progress and the CSRF token (all in memory, never in a cookie) |
+| Colour scheme | localStorage key `rootology.colorScheme` | until the person clears the browser's data; never sent to the server | the light / dark / automatic choice (`MainLayout.SCHEME_KEY`; values `LIGHT_DARK`, `LIGHT`, `DARK`) |
+
+During sign-in, GitHub and Google set their own cookies on their own domains under their own policies
+([GitHub subprocessors and cookies](https://docs.github.com/en/site-policy/privacy-policies/github-subprocessors-and-cookies),
+[GitHub privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement),
+[Google cookies](https://policies.google.com/technologies/cookies), [Google privacy policy](https://policies.google.com/privacy));
+Rootology neither sees nor controls them. Nothing else is stored for Rootology by the app itself: the few
+keys the Vaadin client adds (`vaadin.live-reload.*`, `vaadin.statistics.*`, `vaadin-hotswap-scroll`) belong to
+its development tools and exist only while the app runs in development mode, not in the production build.
+Session data lives in the server's memory: a restart or a timeout loses it, and the person signs in again.
 
 ## Who receives it
 
@@ -46,7 +63,8 @@ the colour scheme choice stays in the browser's localStorage. Both are strictly 
 | Hetzner Online (hosting) | everything stored: the server runs the app and its databases | processor; DPA (art. 28) accepted in the customer account on 2026-11-05 | Germany | backups are ours (`deploy/backup.sh`), Hetzner's own backups are off |
 | OVHcloud (domain `rootology.app`) | only the owner's registrant data; DNS answers for the domain | the owner's own provider, not a processor of users' data | France | |
 
-The person's browser talks only to Rootology, plus GitHub for sign-in. The browser's position
+The person's browser talks only to Rootology, plus GitHub and Google for sign-in (which set their own cookies
+there, see above). The browser's position
 (`navigator.geolocation`) is read only when the person presses the button, and rounded to 0.01° before the server sends it to any service.
 
 ## How it is applied
