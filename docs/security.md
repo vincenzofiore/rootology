@@ -80,8 +80,17 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 ### LLM10 Unbounded consumption
 - In place: a daily question limit per person (#19), question length limit (above), timeouts and circuit breakers (#29), invitation limits per owner (#25), Embabel retries cut to one attempt per action.
 
+## Telegram notifications (#38)
+
+- In place: the bot token only lives in `ROOTOLOGY_TELEGRAM_BOT_TOKEN`, read by one class (`notifications.TelegramClient`), which is also the only place that builds a request: the token sits in every Bot API path, so no exception leaves the client (a failure is logged with the service and at most the HTTP status and Telegram's error code) and the clients are built with the static `RestClient.builder()`, without an observation registry, so no metric tag can carry the path. `TelegramClientTest` checks that neither the logs nor the meters hold the token or a full chat id.
+- Linking is a one-time code (32 random bytes, base64url), stored only as SHA-256 like invitations, valid ten minutes, single use, and accepted only from a private chat: a group is never written, and the code is untrusted input parsed with one strict pattern (`TelegramUpdates.codeOf`). The bot reads `/start <code>` and the block/unblock update and nothing else: no command changes data.
+- Nothing is readable from Telegram: a chat sees titles, space and garden names and links, never a question, an answer or a weather alert's body. The person's Telegram username, phone number and profile photo are not stored — only the chat id.
+- No webhook and so no new public route: the bot is polled (getUpdates), behind the two circuit breakers `Telegram` and `Telegram updates`.
+- Accepted for now: Telegram's Bot Platform terms (§4.2) require user data to be encrypted at rest, and the server has no disk encryption yet; to decide with the deployment (#12). A code seen by someone else within its ten minutes would link *their* chat to that person's account; the window is short, single use, and the state is shown in the app at once.
+
 ## Still open
 
-- With the deploy (#12): HTTPS, HSTS, `Secure` cookie, Vaadin production mode, health endpoint access, backups.
+- With the deploy (#12): HTTPS, HSTS, `Secure` cookie, Vaadin production mode, health endpoint access, backups,
+  and encryption at rest as Telegram's bot terms require (#38).
 - With observability (#27): security events and alerts, without personal data.
 - A ZAP baseline scan against the deployed app (terms checked first).

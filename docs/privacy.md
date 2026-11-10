@@ -14,7 +14,9 @@ The controller is the owner of the deployment, named on the privacy page through
 | Login (the internal user name), first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
 | GitHub or Google account: the numeric id GitHub gives, or Google's `sub`, and the verified email address the provider gives as primary | `user_identity` | recognise the person at sign-in, even when their name or address there changes | contract | until the account is deleted |
 | Verified email addresses | session only (`verified_emails`), not stored, except the primary one, kept in `user_identity` | accept an invitation bound to an address; suggest a notification address | contract | the session |
-| Notification address, email on/off, quiet hours | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |
+| Notification address, email on/off, quiet hours, and the Telegram and weather switches | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |
+| Telegram chat id, when linked, whether it still works | `telegram_link` | sending the notifications the person chose to their phone | contract | until the person unlinks it or deletes the account; a link Telegram no longer delivers to is deleted after 30 days |
+| Telegram one-time link codes | `telegram_link_code` (only the SHA-256) | linking a chat from the app | contract | ten minutes; deleted 30 days after use or expiry |
 | Spaces and memberships, roles in a space | `space`, `space_member` | sharing a garden | contract | until the person leaves or the account is deleted |
 | Invitations (invited login or email address, who invited) | `invitation` | joining a space | contract | the address is cleared when the invitation is accepted, revoked or expires; the row is deleted 30 days after |
 | Gardens (name, town, country, coordinates rounded to 0.01°, about 1 km), plots (with their optional declared exposure: orientation, direct sun, wind, floor), plantings with optional notes | `garden`, `plot`, `planting` | garden questions, weather, alerts | contract | until deleted by the space, or with the space |
@@ -60,6 +62,7 @@ Session data lives in the server's memory: a restart or a timeout loses it, and 
 | Apple iCloud Mail | notification and invitation emails (address, text) | consumer terms, no DPA; "designed and intended for personal use" | Ireland / USA | Apple's own policy. Accepted for the prototype; replaced by a transactional email service before opening beyond invited friends (#12) |
 | GeoNames (Unxos GmbH) | place names typed in the garden dialog; rounded coordinates for the nearest town | no published request logging policy | Switzerland (EU adequacy decision) | unknown |
 | MET Norway | rounded coordinates | logs the caller's IP (the server's, not the person's) and coordinates | Norway (EEA) | MET Norway's own policy |
+| Telegram | the chat id as addressee, and the message: the space and garden names, a title and a link — never a question, an answer or a weather alert's text; the person's Telegram username, phone number and photo never leave their app | recipient and independent controller of the person's Telegram account; bot chats are stored in Telegram's cloud (for EEA users, data centres in the Netherlands), group-company transfers under EU SCCs | Netherlands (EEA); Telegram Group Inc (BVI) and Telegram FZ-LLC (Dubai) for the service | Telegram's own policy; our messages stay in the chat and in Telegram's cloud until the person deletes them |
 | Hetzner Online (hosting) | everything stored: the server runs the app and its databases | processor; DPA (art. 28) accepted in the customer account on 2026-11-05 | Germany | backups are ours (`deploy/backup.sh`), Hetzner's own backups are off |
 | OVHcloud (domain `rootology.app`) | only the owner's registrant data; DNS answers for the domain | the owner's own provider, not a processor of users' data | France | |
 
@@ -73,7 +76,8 @@ there, see above). The browser's position
   answered escalations, read or resolved notifications and old weather alerts, usage records and closed invitations.
 - `privacy.AccountDeletion` deletes an account in one transaction, through a small class in each module
   (`SpacePersonalData`, `GardenPersonalData`, `RunPersonalData`, `EscalationPersonalData`,
-  `NotificationPersonalData`, `UsagePersonalData`, `ProposalPersonalData`, `RolePersonalData`); space facts leave
+  `NotificationPersonalData`, `TelegramPersonalData`, `UsagePersonalData`, `ProposalPersonalData`,
+  `RolePersonalData`); space facts leave
   the Neo4j graph after the commit. An approved global fact proposed in a deleted space keeps no space (Flyway `V18`).
 - `privacy.DataExport` builds the JSON file from the same classes. The My account page (`/account`) offers both.
 
@@ -93,6 +97,10 @@ there, see above). The browser's position
 
 - iCloud Mail for sending, without a processor agreement (see above).
 - Questions are free text sent to Claude: the privacy page asks people not to write personal data in them.
+- Telegram (only for people who link it): the space and garden names and the titles of the notifications sit in
+  Telegram's cloud and on the phone's lock screen, and Telegram keeps bot messages like any chat. Telegram's
+  Bot Platform terms also require developers to encrypt user data at rest; the server has no disk encryption
+  yet (to decide with #12).
 - Transfers to the USA rely on the processors' SCCs and the Data Privacy Framework.
 
 ## Open questions for a professional

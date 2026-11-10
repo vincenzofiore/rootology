@@ -8,6 +8,13 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Notifications also reach the phone: a person links their Telegram account once, with a one-time code from the
+  Notifications page, and from then on waiting questions, answers and weather alerts arrive there too, promptly
+  and without opening the app. A Telegram message says the space, the garden and the title, with a link back to
+  the app; the question, the answer and the alert text stay here. Each channel has its own switches per kind, the
+  quiet hours cover both, a blocked bot is reported in the app, and the link can be removed at any time. Without
+  a bot token the feature does not appear at all (#38).
+
 - A question that is clearly not about gardens is no longer sent to a reviewer: Jev first judges whether the
   question is about the garden, and only a clear no gets a fixed, polite answer ("Rootology answers only about
   gardens and growing") with no answer attempt and no waiting question. A button under the answer asks the same

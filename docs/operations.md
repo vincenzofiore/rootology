@@ -54,6 +54,34 @@ account needs an SMS verification. Set the variables in the environment (for exa
 the repository. `ROOTOLOGY_BASE_URL` is the address links in emails point to (default
 http://localhost:8080). With a domain (#12), move to a transactional service and set SPF, DKIM and DMARC.
 
+## Telegram notifications (#38)
+
+The bot belongs to the owner and is created once, by hand, outside the repository:
+
+1. In Telegram, open **@BotFather**, send `/newbot`, choose a name and a username ending in `bot` (for example
+   `rootology_bot`). BotFather answers with the **token**, shaped like `123456789:AAH...`. It is a secret of the
+   environment and never goes into a file, an issue or a message; the username is not secret, and the app reads
+   it from Telegram (`getMe`) to build the link the Notifications page shows.
+2. Optional, still in BotFather: `/setdescription` and `/setuserpic` so people see it is Rootology, and
+   `/setcommands` with nothing — the bot takes no commands.
+3. Set the token where the app reads its settings, never in the repository:
+
+```sh
+export ROOTOLOGY_TELEGRAM_BOT_TOKEN=<the token BotFather gave>
+```
+
+   Restart the app. The Notifications page shows the Telegram section; without the variable the page shows
+   nothing about Telegram and no call is ever made (like place search without a GeoNames account).
+
+What the bot reads: `/start <code>` in a private chat, which links the chat that showed the code in the app, and
+the update Telegram sends when someone blocks or unblocks it. Nothing else: there is no command that changes
+data, and no webhook is set — the app long-polls `getUpdates`, so nothing new is published on the server.
+
+**Rotating or revoking the token.** In BotFather: `/revoke` gives a new token for the same bot (the bot and every
+chat stay; the links keep working because they store chat ids). Replace the variable and restart. `/deletebot`
+destroys the bot: every send then fails with 401, the app marks that circuit open and the admins get the
+operational email; people must relink once a new bot exists.
+
 ## Production server (#12)
 
 One small server (Hetzner Cloud CX23: 2 vCPU, 4 GB, Ubuntu 26.04 LTS, Germany), created with

@@ -113,6 +113,8 @@ class OperationalAlerts {
             case "Jev" -> "le domande passano a una persona dello spazio.";
             case "MET Norway" -> "si usa la previsione salvata, fino a 24 ore, poi niente meteo.";
             case "GeoNames" -> "la ricerca dei luoghi nell’orto non è disponibile.";
+            case "Telegram" -> "le notifiche arrivano solo via email e nell’app.";
+            case "Telegram updates" -> "collegare Telegram non funziona; i collegamenti già fatti continuano a ricevere.";
             default -> "controllare i log.";
         };
     }

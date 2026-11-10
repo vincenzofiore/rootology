@@ -4,6 +4,7 @@ import io.github.vincenzofiore.rootology.enrichment.ProposalPersonalData;
 import io.github.vincenzofiore.rootology.garden.GardenPersonalData;
 import io.github.vincenzofiore.rootology.history.RunPersonalData;
 import io.github.vincenzofiore.rootology.notifications.NotificationPersonalData;
+import io.github.vincenzofiore.rootology.notifications.TelegramPersonalData;
 import io.github.vincenzofiore.rootology.pipeline.EscalationPersonalData;
 import io.github.vincenzofiore.rootology.roles.RolePersonalData;
 import io.github.vincenzofiore.rootology.spaces.SpacePersonalData;
@@ -44,19 +45,22 @@ public class AccountDeletion {
     private final RunPersonalData runs;
     private final EscalationPersonalData escalations;
     private final NotificationPersonalData notifications;
+    private final TelegramPersonalData telegram;
     private final UsagePersonalData usage;
     private final ProposalPersonalData proposals;
     private final RolePersonalData roles;
     private final Clock clock;
 
     AccountDeletion(SpacePersonalData spaces, GardenPersonalData gardens, RunPersonalData runs,
-                    EscalationPersonalData escalations, NotificationPersonalData notifications, UsagePersonalData usage,
+                    EscalationPersonalData escalations, NotificationPersonalData notifications,
+                    TelegramPersonalData telegram, UsagePersonalData usage,
                     ProposalPersonalData proposals, RolePersonalData roles, Clock clock) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.runs = runs;
         this.escalations = escalations;
         this.notifications = notifications;
+        this.telegram = telegram;
         this.usage = usage;
         this.proposals = proposals;
         this.roles = roles;
@@ -89,6 +93,7 @@ public class AccountDeletion {
         // Everything that refers to a space first, the spaces and the account last.
         proposals.forget(login, gone, DELETED_USER);
         notifications.forget(login, gone, DELETED_USER);
+        telegram.forget(login);
         escalations.forget(login, gone, DELETED_USER);
         runs.forget(login, gone, DELETED_USER);
         gardens.deleteSpaces(gone);

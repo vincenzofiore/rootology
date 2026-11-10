@@ -19,5 +19,7 @@ public record Retention(
         /** Notifications once read or resolved. */
         Duration notifications,
         /** Invitations once accepted, revoked or expired. */
-        Duration invitations) {
+        Duration invitations,
+        /** Telegram one-time codes, and links Telegram stopped delivering to (#38). */
+        Duration telegram) {
 }

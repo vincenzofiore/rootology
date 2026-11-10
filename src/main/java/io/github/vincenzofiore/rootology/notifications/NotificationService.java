@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,7 +37,8 @@ import java.util.stream.Collectors;
  * Notifications (#26), and weather alerts (#37). A waiting question notifies the space's owners and members, the asker included
  * (in a personal space nobody else can answer); guests are not notified, since they cannot answer. Emails
  * go out as a digest: notifications at least `group-window` old are grouped per person, outside their quiet
- * hours, and dropped once the question is answered.
+ * hours, and dropped once the question is answered. The same rows are the outbox of Telegram (#38): prompt, one
+ * message per person per tick, with its own delivery mark and its own preferences, and the shared quiet hours.
  */
 @Service
 public class NotificationService {
@@ -45,20 +47,29 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
+    /** The delivery mark of each channel, on the same rows: a notification can go out by both (#38). */
+    private static final String EMAIL_MARK = "emailed_at";
+    private static final String TELEGRAM_MARK = "telegramed_at";
+
     private final JdbcClient jdbc;
     private final SpaceService spaces;
     private final MailService mail;
+    private final TelegramClient telegram;
+    private final TelegramLinks telegramLinks;
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final Duration groupWindow;
     private final String baseUrl;
 
-    NotificationService(JdbcClient jdbc, SpaceService spaces, MailService mail, ApplicationEventPublisher events,
-                        Clock clock, @Value("${rootology.notifications.group-window}") Duration groupWindow,
+    NotificationService(JdbcClient jdbc, SpaceService spaces, MailService mail, TelegramClient telegram,
+                        TelegramLinks telegramLinks, ApplicationEventPublisher events, Clock clock,
+                        @Value("${rootology.notifications.group-window}") Duration groupWindow,
                         @Value("${rootology.base-url}") String baseUrl) {
         this.jdbc = jdbc;
         this.spaces = spaces;
         this.mail = mail;
+        this.telegram = telegram;
+        this.telegramLinks = telegramLinks;
         this.events = events;
         this.clock = clock;
         this.groupWindow = groupWindow;
@@ -171,10 +182,11 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationPreferences preferences(String login) {
-        return jdbc.sql("SELECT email, email_escalations, email_weather, quiet_from, quiet_to FROM notification_preference "
-                        + "WHERE github_login = ?").params(normalize(login))
+        return jdbc.sql("SELECT email, email_escalations, email_weather, telegram_escalations, telegram_weather, "
+                        + "quiet_from, quiet_to FROM notification_preference WHERE github_login = ?")
+                .params(normalize(login))
                 .query((rs, i) -> new NotificationPreferences(rs.getString(1), rs.getBoolean(2), rs.getBoolean(3),
-                        time(rs.getTime(4)), time(rs.getTime(5))))
+                        rs.getBoolean(4), rs.getBoolean(5), time(rs.getTime(6)), time(rs.getTime(7))))
                 .optional().orElse(NotificationPreferences.DEFAULT);
     }
 
@@ -186,10 +198,15 @@ public class NotificationService {
             throw new IllegalArgumentException(preferences.email() + " is not an email address");
         }
         jdbc.sql("INSERT INTO notification_preference (github_login, email, email_escalations, email_weather, "
-                        + "quiet_from, quiet_to) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (github_login) DO UPDATE SET "
+                        + "telegram_escalations, telegram_weather, quiet_from, quiet_to) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (github_login) DO UPDATE SET "
                         + "email = EXCLUDED.email, email_escalations = EXCLUDED.email_escalations, "
-                        + "email_weather = EXCLUDED.email_weather, quiet_from = EXCLUDED.quiet_from, quiet_to = EXCLUDED.quiet_to")
+                        + "email_weather = EXCLUDED.email_weather, "
+                        + "telegram_escalations = EXCLUDED.telegram_escalations, "
+                        + "telegram_weather = EXCLUDED.telegram_weather, quiet_from = EXCLUDED.quiet_from, "
+                        + "quiet_to = EXCLUDED.quiet_to")
                 .params(normalize(login), email, preferences.emailEscalations(), preferences.emailWeather(),
+                        preferences.telegramEscalations(), preferences.telegramWeather(),
                         sqlTime(preferences.quietFrom()), sqlTime(preferences.quietTo()))
                 .update();
     }
@@ -217,17 +234,7 @@ public class NotificationService {
     @Transactional
     public int digest() {
         Instant now = clock.instant();
-        Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
-        jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, n.garden_id, "
-                        + "s.name, g.name FROM notification n JOIN space s ON s.id = n.space_id "
-                        + "LEFT JOIN garden g ON g.id = n.garden_id "
-                        + "WHERE n.emailed_at IS NULL AND n.resolved_at IS NULL AND n.created_at <= ? "
-                        + "ORDER BY n.created_at")
-                .params(Timestamp.from(now.minus(groupWindow)))
-                .query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
-                        rs.getString(10))).list()
-                .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
+        Map<String, List<Pending>> byRecipient = pending(EMAIL_MARK, now.minus(groupWindow));
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : byRecipient.entrySet()) {
             NotificationPreferences prefs = preferences(e.getKey());
@@ -249,6 +256,90 @@ public class NotificationService {
             log.info("Sent {} notification emails", sent);
         }
         return sent;
+    }
+
+    /**
+     * The same outbox on the phone (#38): one plain-text message per person with everything not yet sent there,
+     * promptly (no grouping window), skipped during the shared quiet hours. It says where and links, never the
+     * question, the answer or a weather alert's body. A person with no working link is marked and gets nothing.
+     * Returns the messages sent.
+     */
+    @Scheduled(fixedDelayString = "${rootology.telegram.send-every}", initialDelayString = "PT30S")
+    @Transactional
+    public int telegramDigest() {
+        Instant now = clock.instant();
+        int sent = 0;
+        for (Map.Entry<String, List<Pending>> e : pending(TELEGRAM_MARK, null).entrySet()) {
+            NotificationPreferences prefs = preferences(e.getKey());
+            if (prefs.quietAt(LocalTime.now(clock))) {
+                continue;
+            }
+            List<Pending> all = e.getValue();
+            List<Pending> wanted = all.stream()
+                    .filter(p -> p.weather() ? prefs.telegramWeather() : prefs.telegramEscalations()).toList();
+            Optional<TelegramLinks.Link> link = telegramLinks.of(e.getKey()).filter(TelegramLinks.Link::working);
+            if (link.isEmpty() || wanted.isEmpty()) {
+                markTelegramed(all, now);
+                continue;
+            }
+            String text = TelegramMessages.digest(wanted.stream().map(this::telegramItem).toList());
+            switch (telegram.send(link.get().chatId(), text)) {
+                case SENT -> {
+                    sent++;
+                    markTelegramed(all, now);
+                }
+                // One message lost (our own bad request): the chat is fine, and it is not retried.
+                case DROPPED -> markTelegramed(all, now);
+                // The bot is blocked or the chat is gone: never send there again, and say so in the app.
+                case CHAT_GONE -> {
+                    telegramLinks.fail(link.get().chatId());
+                    markTelegramed(all, now);
+                }
+                // Rate limited, Telegram down or an open circuit: the next tick tries again.
+                case RETRY, UNAVAILABLE -> {
+                }
+            }
+        }
+        if (sent > 0) {
+            log.info("Sent {} Telegram messages", sent);
+        }
+        return sent;
+    }
+
+    private void markTelegramed(List<Pending> rows, Instant now) {
+        jdbc.sql("UPDATE notification SET telegramed_at = :at WHERE id IN (:ids)")
+                .param("at", Timestamp.from(now)).param("ids", rows.stream().map(Pending::id).toList()).update();
+    }
+
+    /** What one notification says on the phone: where it happened and the link, nothing more. */
+    private TelegramMessages.Item telegramItem(Pending p) {
+        String page = p.weather() ? "" : p.answered() ? "history" : "escalations";
+        String link = link(page, p);
+        return p.weather() ? TelegramMessages.weather(p.title(), p.place(), link)
+                : p.answered() ? TelegramMessages.answered(p.place(), link)
+                : TelegramMessages.waiting(p.place(), link);
+    }
+
+    /**
+     * The notifications still to deliver through one channel, by recipient, oldest first. {@code mark} is one of
+     * this class's own two columns; {@code notAfter} is null when the channel does not group (Telegram, #38).
+     */
+    private Map<String, List<Pending>> pending(String mark, Instant notAfter) {
+        Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
+        var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, "
+                        + "n.garden_id, s.name, g.name FROM notification n JOIN space s ON s.id = n.space_id "
+                        + "LEFT JOIN garden g ON g.id = n.garden_id "
+                        + "WHERE n." + mark + " IS NULL AND n.resolved_at IS NULL"
+                        + (notAfter == null ? "" : " AND n.created_at <= :notAfter")
+                        + " ORDER BY n.created_at");
+        if (notAfter != null) {
+            query = query.param("notAfter", Timestamp.from(notAfter));
+        }
+        query.query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
+                        rs.getString(10))).list()
+                .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
+        return byRecipient;
     }
 
     private OutgoingMail digestMail(String to, List<Pending> pending) {

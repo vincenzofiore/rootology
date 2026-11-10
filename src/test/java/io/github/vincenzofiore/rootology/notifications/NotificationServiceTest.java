@@ -12,7 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.convention.TestBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.mockito.ArgumentCaptor;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -25,10 +28,18 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** Notifications of waiting questions (#26): who gets them, their state, and the grouped emails (Mailpit). */
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = "rootology.notifications.digest-every=PT1H")
+@SpringBootTest(properties = {"rootology.notifications.digest-every=PT1H",
+        "rootology.telegram.send-every=PT1H", "rootology.telegram.poll-every=PT1H"})
 class NotificationServiceTest {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
@@ -67,6 +78,16 @@ class NotificationServiceTest {
 
     @Autowired
     ApplicationEventPublisher events;
+
+    @Autowired
+    JdbcClient jdbc;
+
+    @Autowired
+    TelegramLinks telegramLinks;
+
+    /** Never the real Telegram (#38): the tests say what each send answers. */
+    @MockitoBean
+    TelegramClient telegram;
 
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
@@ -146,7 +167,7 @@ class NotificationServiceTest {
     void theAskerGetsTheAnswerInTheAppAndByEmailButTheOthersOnlySeeTheResolution() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("elia", "fede", "gaia");
-        notifications.save("elia", new NotificationPreferences("elia@example.org", true, true, null, null));
+        notifications.save("elia", new NotificationPreferences("elia@example.org", true, true, true, true, null, null));
 
         waiting("p-5", space, "elia", "Quali sono le compagne della salvia?");
 
@@ -178,7 +199,7 @@ class NotificationServiceTest {
     void anAskerWhoLeftTheSpaceIsNotNotified() {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("nina", "otto", "pia");
-        notifications.save("otto", new NotificationPreferences("otto@example.org", true, true, null, null));
+        notifications.save("otto", new NotificationPreferences("otto@example.org", true, true, true, true, null, null));
 
         waiting("p-9", space, "otto", "Domanda?");
         notifications.markRead("otto", null);
@@ -210,8 +231,8 @@ class NotificationServiceTest {
     void waitingQuestionsAreEmailedTogetherAfterTheGroupingWindowOutsideQuietHours() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("pia", "remo", "sara");
-        notifications.save("pia", new NotificationPreferences("pia@example.org", true, true, null, null));
-        notifications.save("remo", new NotificationPreferences("remo@example.org", true, true, LocalTime.of(9, 0),
+        notifications.save("pia", new NotificationPreferences("pia@example.org", true, true, true, true, null, null));
+        notifications.save("remo", new NotificationPreferences("remo@example.org", true, true, true, true, LocalTime.of(9, 0),
                 LocalTime.of(12, 0)));
 
         waiting("p-2", space, "remo", "Prima domanda?");
@@ -235,7 +256,7 @@ class NotificationServiceTest {
     void theAnswererIsNeverEmailed() {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("teo", "ugo", "vera");
-        notifications.save("teo", new NotificationPreferences("teo@example.org", true, true, null, null));
+        notifications.save("teo", new NotificationPreferences("teo@example.org", true, true, true, true, null, null));
         notifications.rememberEmail("ugo", "Ugo@Example.org");
         notifications.rememberEmail("ugo", "other@example.org");
 
@@ -246,7 +267,7 @@ class NotificationServiceTest {
         assertThat(notifications.digest()).as("ugo asked, teo only answered").isEqualTo(1);
         assertThat(notifications.preferences("ugo").email()).as("the first remembered address stays")
                 .isEqualTo("ugo@example.org");
-        assertThatThrownBy(() -> notifications.save("teo", new NotificationPreferences("nope", true, true, null, null)))
+        assertThatThrownBy(() -> notifications.save("teo", new NotificationPreferences("nope", true, true, true, true, null, null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -254,7 +275,7 @@ class NotificationServiceTest {
     void theAskersEmailPreferencesAndQuietHoursAreRespected() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("ada", "bea", "carla");
-        notifications.save("ada", new NotificationPreferences("ada@example.org", false, true, null, null));
+        notifications.save("ada", new NotificationPreferences("ada@example.org", false, true, true, true, null, null));
 
         waiting("p-7", space, "ada", "Domanda?");
         events.publishEvent(new EscalationResolved("p-7", space, 0, "ada", "bea", now));
@@ -264,7 +285,7 @@ class NotificationServiceTest {
 
         now = Instant.parse("2026-11-04T10:00:00Z");
         long quiet = space("eva", "fio", "gina");
-        notifications.save("eva", new NotificationPreferences("eva@example.org", true, true, LocalTime.of(10, 0),
+        notifications.save("eva", new NotificationPreferences("eva@example.org", true, true, true, true, LocalTime.of(10, 0),
                 LocalTime.of(12, 0)));
 
         waiting("p-8", quiet, "eva", "Domanda?");
@@ -282,7 +303,7 @@ class NotificationServiceTest {
     void eachWeatherAlertOfOneEmailLinksToItsOwnGarden() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("lino", "mara", "nia");
-        notifications.save("lino", new NotificationPreferences("lino@example.org", true, true, null, null));
+        notifications.save("lino", new NotificationPreferences("lino@example.org", true, true, true, true, null, null));
         long balcony = gardens.saveGarden(space, "lino", null, "Balcony", null, null, null).id();
         long allotment = gardens.saveGarden(space, "lino", null, "Allotment", null, null, null).id();
 
@@ -304,7 +325,7 @@ class NotificationServiceTest {
     void aWeatherAlertWithoutAGardenLinksToTheGardensOverview() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("olga", "pino", "qara");
-        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, null, null));
+        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, true, true, null, null));
 
         // Stored before #56 in a space with several gardens, or of a deleted garden: no garden (#56).
         notifications.weatherAlert(space, 0, "frost:none", "Rischio gelo", "Minima prevista -2 °C");
@@ -318,9 +339,121 @@ class NotificationServiceTest {
         }
     }
 
+    /** A linked chat, as the /start of a good code leaves it. */
+    private void linked(String login, long chatId) {
+        jdbc.sql("insert into telegram_link (login, chat_id, linked_at) values (?, ?, now()) "
+                + "on conflict (login) do update set chat_id = excluded.chat_id, failed_at = null")
+                .params(login, chatId).update();
+    }
+
+    @Test
+    void aLinkedPersonGetsOneMessageWithThePlaceAndTheLinkAndNeverTheTexts() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("tgo", "tgm", "tgg");
+        notifications.save("tgo", new NotificationPreferences(null, true, true, true, true, null, null));
+        long garden = gardens.saveGarden(space, "tgo", null, "Balcony", null, null, null).id();
+        linked("tgo", 700_000_001L);
+        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+
+        waiting("tg-1", space, "tgm", "Quali sono le compagne della lavanda?");
+        notifications.weatherAlert(space, garden, "frost:" + garden, "Rischio gelo", "Minima prevista -2 °C");
+
+        assertThat(notifications.telegramDigest()).isEqualTo(1);
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(telegram).send(eq(700_000_001L), text.capture());
+        assertThat(text.getValue())
+                .as("a title, the place and the link")
+                .contains("una domanda aspetta una risposta", "Rischio gelo", "Balcony",
+                        "/spaces/" + space + "/escalations", "/spaces/" + space + "/gardens/" + garden)
+                .as("never the question, the alert body or the plot")
+                .doesNotContain("lavanda", "-2 °C");
+        assertThat(notifications.telegramDigest()).as("never twice").isZero();
+    }
+
+    @Test
+    void telegramRespectsTheQuietHoursAndTheKindsThePersonChose() {
+        now = Instant.parse("2026-11-04T10:00:00Z"); // 11:00 in Italy
+        long space = space("tga", "tgb", "tgc");
+        notifications.save("tga", new NotificationPreferences(null, true, true, true, false,
+                LocalTime.of(10, 0), LocalTime.of(12, 0)));
+        long garden = gardens.saveGarden(space, "tga", null, "Balcony", null, null, null).id();
+        linked("tga", 700_000_002L);
+        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+
+        waiting("tg-2", space, "tgb", "Domanda?");
+        notifications.weatherAlert(space, garden, "blight:" + garden, "Rischio peronospora", "Periodo caldo");
+
+        assertThat(notifications.telegramDigest()).as("quiet hours, for Telegram too").isZero();
+        verify(telegram, never()).send(anyLong(), anyString());
+
+        now = Instant.parse("2026-11-04T11:30:00Z"); // 12:30 in Italy
+        assertThat(notifications.telegramDigest()).as("only the question: weather is off for the phone").isEqualTo(1);
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(telegram).send(eq(700_000_002L), text.capture());
+        assertThat(text.getValue()).contains("una domanda aspetta una risposta").doesNotContain("peronospora");
+    }
+
+    @Test
+    void withoutALinkNothingIsSentAndAnOldQuestionNeverArrives() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("tgd", "tge", "tgf");
+
+        waiting("tg-3", space, "tge", "Domanda?");
+        assertThat(notifications.telegramDigest()).isZero();
+        verify(telegram, never()).send(anyLong(), anyString());
+
+        linked("tgd", 700_000_003L);
+        assertThat(notifications.telegramDigest()).as("what was not delivered then is not delivered now").isZero();
+    }
+
+    @Test
+    void aBlockedChatIsMarkedAndNeverUsedAgain() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("tgk", "tgl", "tgm2");
+        linked("tgk", 700_000_004L);
+        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.CHAT_GONE);
+
+        waiting("tg-4", space, "tgl", "Domanda?");
+        assertThat(notifications.telegramDigest()).as("not delivered").isZero();
+        assertThat(telegramLinks.of("tgk")).get()
+                .satisfies(link -> assertThat(link.working()).as("the person is warned in the app").isFalse());
+
+        notifications.telegramDigest();
+        verify(telegram, times(1)).send(anyLong(), anyString());
+    }
+
+    @Test
+    void aMessageRefusedForOneChatIsDroppedWithoutUnlinking() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("tgn", "tgp", "tgq");
+        linked("tgn", 700_000_005L);
+        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.DROPPED);
+
+        waiting("tg-5", space, "tgp", "Domanda?");
+        assertThat(notifications.telegramDigest()).isZero();
+
+        assertThat(telegramLinks.of("tgn")).get().satisfies(link -> assertThat(link.working()).isTrue());
+        assertThat(notifications.telegramDigest()).as("one lost message is not retried").isZero();
+    }
+
+    @Test
+    void anOutageKeepsTheNotificationsForTheNextTick() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("tgr", "tgs", "tgt");
+        linked("tgr", 700_000_006L);
+        when(telegram.send(anyLong(), anyString()))
+                .thenReturn(TelegramClient.Delivery.UNAVAILABLE)
+                .thenReturn(TelegramClient.Delivery.SENT);
+
+        waiting("tg-6", space, "tgs", "Domanda?");
+        assertThat(notifications.telegramDigest()).as("Telegram is down").isZero();
+        assertThat(notifications.telegramDigest()).as("the next tick, the same notification").isEqualTo(1);
+    }
+
     @Test
     void quietHoursMayCrossMidnight() {
-        NotificationPreferences night = new NotificationPreferences(null, true, true, LocalTime.of(22, 0), LocalTime.of(7, 0));
+        NotificationPreferences night = new NotificationPreferences(null, true, true, true, true, LocalTime.of(22, 0), LocalTime.of(7, 0));
 
         assertThat(night.quietAt(LocalTime.of(23, 30))).isTrue();
         assertThat(night.quietAt(LocalTime.of(6, 59))).isTrue();

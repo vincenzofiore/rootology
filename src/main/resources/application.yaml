@@ -1,6 +1,12 @@
 spring:
   application:
     name: rootology
+  task:
+    scheduling:
+      pool:
+        # The Telegram long poll (#38) holds a thread for up to 25 s; with Spring's default of one thread
+        # it would delay the digests, the alerts and the retention job every time.
+        size: 4
   jpa:
     open-in-view: false
     hibernate:
@@ -107,6 +113,8 @@ rootology:
     escalations: P90D
     notifications: P90D
     invitations: P30D
+    # Telegram one-time codes, and links Telegram stopped delivering to (#38).
+    telegram: P30D
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:
@@ -124,6 +132,18 @@ rootology:
   invitations:
     # Invitations each owner may create per day (#25).
     daily-limit: 20
+  telegram:
+    # Notifications on the phone (#38), through a bot of the owner's. Empty token: the feature is hidden,
+    # as place search is without a GeoNames account. The token is in every request path: it is never logged.
+    base-url: https://api.telegram.org
+    bot-token: ${ROOTOLOGY_TELEGRAM_BOT_TOKEN:}
+    # A link code lives this long and works once; the deep link carries it.
+    code-validity: PT10M
+    # Long polling: how long one getUpdates may wait, and the pause between two of them.
+    poll-timeout: PT25S
+    poll-every: PT1S
+    # One message per person at least this often, so a burst of alerts arrives as one notification.
+    send-every: PT10S
   jev:
     # Same convention as above. Without a key the deterministic StubDecisionLayer is used.
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}
