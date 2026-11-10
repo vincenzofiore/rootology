@@ -3,6 +3,7 @@ package io.github.vincenzofiore.rootology.quality;
 import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
+import io.github.vincenzofiore.rootology.decision.DomainFilter;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
 import io.github.vincenzofiore.rootology.garden.GardenService;
@@ -47,6 +48,10 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
     @MockitoBean
     WeatherService weather;
 
+    /** Offline, the domain filter answers from the case, the way Claude's intent does (#53). */
+    @MockitoBean
+    DomainFilter domainFilter;
+
     @Autowired
     GardenPipeline pipeline;
 
@@ -70,17 +75,20 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
         RunContext run = fixtures.space("golden", c);
         whenCreateObject(prompt -> prompt.contains("Question: " + c.question() + "\n"), Intent.class)
                 .thenReturn(c.intent());
+        when(domainFilter.judge(c.question())).thenReturn(c.offDomain()
+                ? DomainFilter.Verdict.refusing(0.02) : DomainFilter.Verdict.allowing(0.98));
         when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
 
         GardenPipeline.Run result = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
 
         GoldenVerdict verdict = GoldenVerdict.of(c, result);
-        if (verdict != GoldenVerdict.CORRECT && verdict != GoldenVerdict.CORRECT_ESCALATION) {
-            fail(verdict + " for " + c.id() + ": " + (result.answer() != null
-                    ? "answered " + result.answer().answer() + " with notes " + result.answer().notes()
-                    : "escalated: " + result.pending().decision().reason()
-                            + " with notes " + result.pending().notes())
-                    + "; expected " + (c.answer() != null ? c.answer() + " with notes " + c.notes()
+        if (verdict != GoldenVerdict.CORRECT && verdict != GoldenVerdict.CORRECT_ESCALATION
+                && verdict != GoldenVerdict.CORRECT_REFUSAL) {
+            fail(verdict + " for " + c.id() + ": " + (result.offDomain() ? "refused as off-domain"
+                    : result.answer() != null ? "answered " + result.answer().answer() + " with notes " + result.answer().notes()
+                    : "escalated: " + result.pending().decision().reason() + " with notes " + result.pending().notes())
+                    + "; expected " + (c.offDomain() ? "a refusal as off-domain"
+                    : c.answer() != null ? c.answer() + " with notes " + c.notes()
                     : "an escalation about \"" + c.escalate() + "\""));
         }
     }

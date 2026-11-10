@@ -74,6 +74,13 @@ class AnswerCard extends Div {
         return this;
     }
 
+    /** A question clearly outside gardens (#53): a fixed sentence, no values and no confidence. */
+    AnswerCard refused(String text) {
+        add(header(VaadinIcon.INFO_CIRCLE_O, TextColor.SECONDARY, getTranslation("card.offdomain")));
+        add(new Paragraph(text));
+        return this;
+    }
+
     AnswerCard notes(List<Note> notes) {
         addNotes(notes, this, this);
         return this;

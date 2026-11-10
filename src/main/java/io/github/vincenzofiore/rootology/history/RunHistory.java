@@ -50,7 +50,7 @@ public class RunHistory {
                 decision.answer(), decision.confidence(), decision.escalate(), decision.reason(),
                 answer.answer(), answer.answeredByHuman(), answer.reviewer(), answer.text(),
                 answer.context() == null ? null : JSON.writeValueAsString(answer.context()),
-                jena, matches, run.finishedAt()));
+                run.offDomain(), jena, matches, run.finishedAt()));
     }
 
     /**

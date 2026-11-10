@@ -153,7 +153,8 @@ Metrics (#27), for a signed-in admin at `/actuator/metrics/<name>`:
 
 - `rootology.questions`: questions people asked, timed from start to answer or escalation, by `scope`
   (`knowledge-base` for real questions, `suite`) and `outcome` (`answered`, `escalated`: waiting for a
-  person, `failed`). The escalation rate is escalated over answered plus escalated:
+  person, `off_domain`: refused by the domain filter (#53), `failed`). The escalation rate is escalated over
+  answered plus escalated:
   `/actuator/metrics/rootology.questions?tag=scope:knowledge-base&tag=outcome:escalated`.
 - `rootology.questions.confidence`: the decision layer's confidence.
 - `rootology.external.calls`: calls to Claude, Jev, MET Norway and GeoNames, timed, by `service` and

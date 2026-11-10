@@ -108,12 +108,26 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     }
 
     private void ask(String text) {
+        ask(text, false);
+    }
+
+    /** askAnyway skips the domain filter once, for the "Ask anyway" button of a refusal (#53). */
+    private void ask(String text, boolean askAnyway) {
         result.removeAll();
         if (text == null || text.isBlank()) {
             return;
         }
         try {
-            GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text.trim()), context());
+            GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text.trim()), context(), askAnyway);
+            if (run.offDomain()) {
+                // A fixed text in the UI's language: no Claude call detected the question's language (#53).
+                AnswerCard card = new AnswerCard().refused(getTranslation("ask.offdomain"));
+                if (currentUser.canContribute(spaceId)) {
+                    card.extra(new Button(getTranslation("ask.offdomain.anyway"), e -> ask(text, true)));
+                }
+                result.add(card);
+                return;
+            }
             if (run.answer() == null) {
                 AnswerCard card = new AnswerCard();
                 if (run.pending().snapshot() != null) {

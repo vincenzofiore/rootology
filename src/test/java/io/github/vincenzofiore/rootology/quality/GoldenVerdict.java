@@ -24,7 +24,9 @@ enum GoldenVerdict {
     /** Escalated as expected, but for another reason (checked offline only: Jev words its reasons its own way). */
     WRONG_ESCALATION_REASON,
     /** The right values (or the right escalation), without an expected note. */
-    MISSING_NOTE;
+    MISSING_NOTE,
+    /** Refused as off-domain where it had to be (#53). */
+    CORRECT_REFUSAL;
 
     static GoldenVerdict of(GoldenQuestions.Case c, GardenPipeline.Run run) {
         return of(c, run, true);
@@ -33,6 +35,14 @@ enum GoldenVerdict {
     /** checkReason: compare the escalation reason too (offline, where the stub's reasons are known). */
     static GoldenVerdict of(GoldenQuestions.Case c, GardenPipeline.Run run, boolean checkReason) {
         PipelineAnswer answer = run.answer();
+        // The domain filter (#53): refusing an in-domain question is a silent error, and so is answering or
+        // escalating an off-domain one (a reviewer's time is what the filter exists to save).
+        if (c.offDomain()) {
+            return run.offDomain() ? CORRECT_REFUSAL : SILENT_WRONG;
+        }
+        if (run.offDomain()) {
+            return SILENT_WRONG;
+        }
         if (c.answer() == null) {
             if (answer != null) {
                 return SILENT_WRONG;

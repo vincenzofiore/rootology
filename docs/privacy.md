@@ -37,7 +37,7 @@ the colour scheme choice stays in the browser's localStorage. Both are strictly 
 | Service | Receives | Role and terms | Where | Retention, training |
 |---|---|---|---|---|
 | Anthropic (Claude) | the question text, the facts and notes for the answer | processor; DPA incorporated into the Commercial Terms, with EU SCCs | USA | API inputs and outputs deleted within 30 days (up to 2 years if flagged for a usage policy violation); no training on customer content |
-| TypeSafe (Jev) | the understood intent (kind, subject, zone, month) and the facts; never the question text or the login. The subject may be a plot name | processor; DPA (24 April 2026) part of the agreement, with EU SCCs (module 2) | USA | "as long as reasonably necessary"; no training on inputs; zero data retention available at no cost (to enable on the owner's account) |
+| TypeSafe (Jev) | the question text for the domain check (#53), then the understood intent (kind, subject, zone, month) and the facts for the decision; never the login. The subject may be a plot name. Purpose: keeping clearly off-topic questions away from reviewers | processor; DPA (24 April 2026) part of the agreement, with EU SCCs (module 2). The MCA (23 September 2026, 4.1) grants no training on Customer Data without consent, but a perpetual licence to derive "Telemetry" (logs, hashes, statistics, classifications, learnings) from it to improve the services | USA | "as long as necessary"; no training on customer content; zero data retention for enterprise customers on request (through the support form), to ask |
 | GitHub | sign-in (OAuth, scopes `read:user`, `user:email`) | independent controller of the person's GitHub account | USA, EU-US Data Privacy Framework | GitHub's own policy |
 | Google | sign-in (OpenID Connect, scopes `openid`, `email`, `profile`) | independent controller of the person's Google account | USA, EU-US Data Privacy Framework | Google's own policy |
 | Apple iCloud Mail | notification and invitation emails (address, text) | consumer terms, no DPA; "designed and intended for personal use" | Ireland / USA | Apple's own policy. Accepted for the prototype; replaced by a transactional email service before opening beyond invited friends (#12) |
@@ -85,3 +85,5 @@ The person's browser talks only to Rootology, plus GitHub for sign-in. The brows
 4. Is a transfer impact assessment needed for Anthropic and TypeSafe (USA)?
 5. The retention periods above: are they proportionate?
 6. Logins in shared records replaced by "deleted user" after deletion: is that enough, or must those rows go too?
+7. Free text that may contain personal data (the question, for the domain check) now goes to TypeSafe as well: does the DPA cover that as it stands, or is something more needed?
+8. The MCA's perpetual licence to derive "Telemetry" (logs, hashes, statistics, classifications, learnings) and use it to improve the services: is it acceptable, and does it need a documented decision?

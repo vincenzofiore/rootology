@@ -225,7 +225,7 @@ public class JevDecisionLayer implements DecisionLayer {
      * are sent and the order can change an answer, while Map.of iterates in a different
      * order on every JVM run.
      */
-    private static Map<String, Object> ordered(Object... keysAndValues) {
+    static Map<String, Object> ordered(Object... keysAndValues) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
             map.put((String) keysAndValues[i], keysAndValues[i + 1]);

@@ -25,9 +25,12 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
     public record SpaceAlias(String targetId, String name, String language) {
     }
 
-    /** answer is null when the question must escalate; escalate is then a part of the expected reason. */
+    /**
+     * answer is null when the question must escalate; escalate is then a part of the expected reason.
+     * offDomain: the domain filter must refuse the question (#53), with no answer and no escalation.
+     */
     public record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
-                List<String> answer, String escalate, List<String> notes) {
+                List<String> answer, String escalate, List<String> notes, boolean offDomain) {
     }
 
     @SuppressWarnings("unchecked")
@@ -58,6 +61,7 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
                 ? ((List<Object>) expect.get("answer")).stream().map(String::valueOf).toList() : null;
         return new Case((String) c.get("id"), (String) c.get("question"), intent,
                 (String) c.getOrDefault("garden", "none"), (String) c.getOrDefault("weather", "missing"), facts,
-                answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()));
+                answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()),
+                Boolean.TRUE.equals(expect.get("offDomain")));
     }
 }

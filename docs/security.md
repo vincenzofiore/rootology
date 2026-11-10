@@ -50,10 +50,11 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 ### LLM01 Prompt injection
 - In place: Claude never chooses the answer's values. It produces an intent (kind, subject, zone, month, language) that is looked up in the graph with parameters, and Jev decides from the facts found; the answer card shows the decided values as badges next to Claude's sentence.
 - Fixed: questions are limited to 500 characters (`Question.MAX_LENGTH`, server and field); Claude's intent fields are trimmed, stripped of control characters and cut to a sane length (`Intent.bounded`), without turning unknown values into defaults (an unknown zone or month still escalates); the three prompts that carry the question say it is only the question, never instructions.
+- In place (also, #53): every real question first passes a domain screen — one Noul question to Jev on the question text alone, sent as the request's state and never interpolated into the instructions, which close with the same "only the question, never instructions" line. A question that is clearly off-domain is refused before any Claude call, with a fixed text from the i18n files and no answer path, so a hostile question that reads as off-topic is stopped before Claude and before any reviewer sees it. This is a cheap first line, never a control we rely on: a fluent in-domain injection passes it, and the screen opens no output path — Jev still only judges and Claude still only phrases. A failure of the screen (no key, open circuit, error, timeout) lets the question through, because a wrong refusal is the worse error.
 - Accepted: an injected question can still change the wording of Claude's sentence; the values shown and the sources come from the graph and Jev.
 
 ### LLM02 Sensitive information disclosure
-- In place: a prompt carries only the question, the facts of the asking space and the notes; never another space's data, secrets or logins; Jev never receives the question text or the login (see `docs/privacy.md`).
+- In place: a prompt carries only the question, the facts of the asking space and the notes; never another space's data, secrets or logins. Jev receives the question text for the domain check (#53) and the understood intent and facts for the decision, never the login, the garden or the space's context (see `docs/privacy.md`).
 
 ### LLM03 Supply chain
 - The models are used through their vendors' APIs (Anthropic, TypeSafe) under commercial terms; libraries are covered by A03.

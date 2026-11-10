@@ -52,13 +52,15 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         grid.addColumn(PipelineRunRecord::getQuestion).setHeader(getTranslation("history.question")).setFlexGrow(2);
         grid.addColumn(r -> r.isNoisy() ? getTranslation("history.noisy", r.getNoiseSeed()) : getTranslation("history.clean"))
                 .setHeader(getTranslation("history.input")).setAutoWidth(true).setVisible(qa);
-        grid.addColumn(r -> values(r.getAnswer())).setHeader(getTranslation("history.answer")).setFlexGrow(1);
+        // A refusal (#53) has no values and no confidence: the person sees why in the answer column.
+        grid.addColumn(r -> r.isOffDomain() ? getTranslation("history.offdomain") : values(r.getAnswer()))
+                .setHeader(getTranslation("history.answer")).setFlexGrow(1);
         grid.addColumn(r -> r.getJenaAnswer() == null ? "-" : values(r.getJenaAnswer())).setHeader("Jena").setFlexGrow(1)
                 .setVisible(qa);
         grid.addColumn(r -> r.getMatchesJena() == null ? "-" : getTranslation(r.getMatchesJena() ? "common.yes" : "common.no"))
                 .setHeader(getTranslation("history.matches")).setAutoWidth(true).setVisible(qa);
-        grid.addColumn(r -> "%.2f".formatted(r.getDecisionConfidence())).setHeader(getTranslation("history.confidence"))
-                .setAutoWidth(true);
+        grid.addColumn(r -> r.isOffDomain() ? "-" : "%.2f".formatted(r.getDecisionConfidence()))
+                .setHeader(getTranslation("history.confidence")).setAutoWidth(true);
         grid.addColumn(r -> history.contextOf(r).map(context -> ContextText.line(context, this)).orElse(""))
                 .setHeader(getTranslation("history.context")).setAutoWidth(true);
         grid.addColumn(r -> r.isAnsweredByHuman() ? getTranslation("history.byhuman", r.getReviewer())

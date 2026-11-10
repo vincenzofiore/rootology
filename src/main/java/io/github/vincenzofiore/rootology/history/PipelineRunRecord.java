@@ -50,6 +50,9 @@ public class PipelineRunRecord {
     /** The context the question was answered in, as JSON of the pipeline's snapshot (#55); null before. */
     private String contextJson;
 
+    /** The domain filter refused the question (#53): it has no values and no reviewer. */
+    private boolean offDomain;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> jenaAnswer;
     private Boolean matchesJena;
@@ -66,7 +69,7 @@ public class PipelineRunRecord {
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
                       boolean answeredByHuman, String reviewer, String answerText, String contextJson,
-                      List<String> jenaAnswer, Boolean matchesJena, Instant finishedAt) {
+                      boolean offDomain, List<String> jenaAnswer, Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
         this.spaceId = spaceId;
         this.gardenId = gardenId;
@@ -87,6 +90,7 @@ public class PipelineRunRecord {
         this.reviewer = reviewer;
         this.answerText = answerText;
         this.contextJson = contextJson;
+        this.offDomain = offDomain;
         this.jenaAnswer = jenaAnswer;
         this.matchesJena = matchesJena;
         this.finishedAt = finishedAt;
@@ -113,6 +117,7 @@ public class PipelineRunRecord {
     public String getReviewer() { return reviewer; }
     public String getAnswerText() { return answerText; }
     public String getContextJson() { return contextJson; }
+    public boolean isOffDomain() { return offDomain; }
     public List<String> getJenaAnswer() { return jenaAnswer; }
     public Boolean getMatchesJena() { return matchesJena; }
     public Instant getFinishedAt() { return finishedAt; }

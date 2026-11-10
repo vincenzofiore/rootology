@@ -8,6 +8,12 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- A question that is clearly not about gardens is no longer sent to a reviewer: Jev first judges whether the
+  question is about the garden, and only a clear no gets a fixed, polite answer ("Rootology answers only about
+  gardens and growing") with no answer attempt and no waiting question. A button under the answer asks the same
+  question anyway; a question Jev is unsure about, or when Jev is unavailable, takes the normal path, and a
+  refused question is kept in the history and counted like the others (#53).
+
 - One question, one context: the answer, the history and the waiting question use only the garden the
   question was asked in (zone, month, forecast, what grows, plots), the question's own words win over the
   garden with a note when they disagree, and a plot that does not exist or matches several, a garden question
