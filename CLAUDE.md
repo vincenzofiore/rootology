@@ -95,7 +95,8 @@ Phase 1, a personal assistant for a few invited users:
 26. #61 (done) Unique agent process ids (UUID) instead of Embabel's random names. #60 (done) Notes of a waiting question shown to whoever answers and checked by the golden questions. #58 (done) no calendar note on pest questions abroad. #63 (done) Sources and Privacy at the bottom of the menu. #64 (done) the cookie notice names the cookies and the browser storage. #62 (done) Climate profile of a garden's site instead of NORD/CENTRO/SUD (AgERA5 frost dates per 0.1° cell of Europe, garden altitude, `frost-shift-v1`, a constraint rule by crop frost group, replacing `zone-shift-v1`; live run 2026-11-10T1422: no silent error, the north answered; it supersedes #59, closed). #57 a garden or plot named in the question (names only to Claude, same precedence as #55). #53 (done) a domain filter: Jev decides whether a question is about the garden, and one clearly outside gets a fixed answer instead of an escalation.
 27. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
 28. #28 (done) Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
-29. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+29. #65 Request an invitation from the welcome page (after the deploy): sign in with GitHub or Google first, a pending state with no space and no paid call, a motivation approved or rejected by an admin, one open request per identity and a daily cap, no CAPTCHA for now.
+30. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
