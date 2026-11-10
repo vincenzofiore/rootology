@@ -8,12 +8,8 @@ import java.util.stream.Stream;
 /**
  * Readings handed to the decision layer, with plain lookups and no inference.
  * The lookups ignore the source: whether to trust a reading is the decision layer's call.
- *
- * <p>climate is the English description of the site's climate profile when a calendar question used one
- * (#62), otherwise null. It is sent to the decision layer only when present, so the suite's requests stay
- * exactly as they were.
  */
-public record GraphFacts(List<Reading> readings, List<Note> notes, String climate) {
+public record GraphFacts(List<Reading> readings, List<Note> notes) {
 
     /** notes: what the person should know about these facts (for example a missing forecast); never sent to Jev. */
     public GraphFacts {
@@ -21,12 +17,8 @@ public record GraphFacts(List<Reading> readings, List<Note> notes, String climat
         notes = List.copyOf(notes);
     }
 
-    public GraphFacts(List<Reading> readings, List<Note> notes) {
-        this(readings, notes, null);
-    }
-
     public GraphFacts(List<Reading> readings) {
-        this(readings, List.of(), null);
+        this(readings, List.of());
     }
 
     public static GraphFacts curated(List<Fact> facts) {

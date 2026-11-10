@@ -166,10 +166,6 @@ public class JevDecisionLayer implements DecisionLayer {
                 "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
                 "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
                 "facts", stateFacts);
-        if (facts.climate() != null) {
-            // Only a calendar question with a site profile has one: the suite's requests stay as recorded (#62).
-            state.put("climate", facts.climate());
-        }
         Map<String, Object> request = ordered("model", model, "state", state, "questions", questions);
 
         JevResponse response = restClient.post()
@@ -322,14 +318,23 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "no repels facts, so no pest is excluded for being repelled.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
                     + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
-                    + "such as frost or too little light. The facts are already those of `intent.zone`.";
+                    + "such as frost or too little light. " + SITE;
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
                     + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
-                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. The facts "
-                    + "are already those of `intent.zone`.";
+                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE;
+            case SOWING_TIME -> "The answer is every month M such that (subject, sowIn, M) or (subject, plantIn, M) "
+                    + "is a fact. " + SITE;
+            case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
             default -> rule(kind);
         };
     }
+
+    /**
+     * Where the knowledge base's calendar facts apply (#62): the site of the question, a garden's climate
+     * profile or a zone's reference site, and they are complete for it, so a missing crop or month is a no.
+     */
+    static final String SITE = "The calendar facts are already those of the question's site, with its frost "
+            + "dates taken into account.";
 
     /** The domain rule for each question shape, stated in plain words for Jev. */
     static String rule(QueryKind kind) {

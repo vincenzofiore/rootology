@@ -48,7 +48,8 @@ public class GardenPipelineAgent {
             - SOW_NOW: what can be sown or planted now, or in a given month (no subject)
             - GROWING_NOW: what is growing in my garden now (no subject)
             - PEST_RISK: which pests or diseases threaten what I grow, now or in a given month (no subject)
-            - SOW_IN_PLOT: what can I sow or plant in one of my plots (subject: the plot's name, as written)
+            - SOW_IN_PLOT: what can I sow or plant in one particular place of mine: a plot, a bed, pots, a
+              balcony, a windowsill (subject: that place's name, as written)
             - OTHER: anything else
 
             subject: the plant or pest the question is about, exactly as named in the question and in
@@ -200,8 +201,9 @@ public class GardenPipelineAgent {
         List<io.github.vincenzofiore.rootology.decision.Note> notes = new java.util.ArrayList<>(context.notes());
         notes.addAll(local.notes());
         notes.addAll(exposure.notes());
-        return new GraphFacts(readings, notes,
-                context.climate() == null ? null : context.climate().english());
+        // The site's profile is not sent to Jev (#62): the windows already account for its frost dates, and the
+        // dates near the asked month made Jev doubt them (jev-judgments-2026-11-10T1400).
+        return new GraphFacts(readings, notes);
     }
 
     /**

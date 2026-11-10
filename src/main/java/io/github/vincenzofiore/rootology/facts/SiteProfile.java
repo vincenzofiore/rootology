@@ -1,7 +1,5 @@
 package io.github.vincenzofiore.rootology.facts;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
@@ -55,18 +53,4 @@ public record SiteProfile(
         return String.format(Locale.ROOT, "%.1f/%.1f", latitude, longitude);
     }
 
-    /** The profile in English, for the decision layer's prompt and for logs; never shown to a person. */
-    public String english() {
-        return "Climate profile of the site: last frost (1 year in 5) "
-                + (lastFrostDay == null ? "none in spring" : "on " + day(lastFrostDay))
-                + ", first frost (1 year in 5) "
-                + (firstFrostDay == null ? "none in autumn" : "on " + day(firstFrostDay))
-                + "; altitude " + (altitudeM == null ? "not known" : altitudeM + " m")
-                + "; cell " + cell() + "; AgERA5 1996-2025.";
-    }
-
-    private static String day(int dayOfYear) {
-        return DateTimeFormatter.ofPattern("d MMMM", Locale.ENGLISH)
-                .format(LocalDate.of(2025, 1, 1).plusDays(dayOfYear - 1L));
-    }
 }
