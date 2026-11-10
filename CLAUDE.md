@@ -96,7 +96,8 @@ Phase 1, a personal assistant for a few invited users:
 27. #12 Deploy (likely a small cloud server; the DS225+ NAS would need 6 GB RAM): invite-only (allow-list and invitations, #23), HTTPS behind the platform, Postgres backups.
 28. #28 (done) Sign in with Google and provider-independent identities (verified email), once the deployment has a domain name.
 29. #65 Request an invitation from the welcome page (after the deploy): sign in with GitHub or Google first, a pending state with no space and no paid call, a motivation approved or rejected by an admin, one open request per identity and a daily cap, no CAPTCHA for now.
-30. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
+30. #66 Gardens on a map in the overview, linked to the table (marker and row select each other, a popup with the garden's essentials, add a garden from the map, map, table or both remembered in the browser); MapLibre GL JS with the OpenFreeMap public instance, no commercial component or tile service.
+31. #10 Trim unused Initializr dependencies. #4 Jev client library (deferred, see Open questions).
 
 Phase 2, precision agriculture (umbrella #22):
 
