@@ -18,9 +18,12 @@ year; a date that falls in a year without frost is left empty.
 
 The CDS key is read by cdsapi from ~/.cdsapirc. Every step can be interrupted and resumed.
 
+With --dem (the CSV of dem_cells.py) combine keeps only cells with at least --min-land of land (AgERA5
+has values over the sea too) and adds each cell's mean land elevation, for the altitude correction.
+
 Usage:
   .venv/bin/python -I agera5_frost.py years 1991 2020 [--area N W S E] [--work DIR]
-  .venv/bin/python -I agera5_frost.py combine 1991 2020 --out cells.csv [--work DIR]
+  .venv/bin/python -I agera5_frost.py combine 1991 2020 --out cells.csv [--dem dem-cells.csv] [--work DIR]
 """
 
 import argparse
@@ -136,7 +139,19 @@ def month_day(day_of_year):
     return (datetime.date(2001, 1, 1) + datetime.timedelta(days=int(round(day_of_year)) - 1)).strftime("%m-%d")
 
 
-def combine(first_year, last_year, work, out):
+def read_dem(path):
+    """(lat, lon) as in the CSV -> (elevation in m or None, land fraction)."""
+    cells = {}
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#") or line.startswith("lat,"):
+                continue
+            lat, lon, elevation, land = line.rstrip("\n").split(",")
+            cells[(lat, lon)] = (elevation or None, float(land))
+    return cells
+
+
+def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
     files = [work / "years" / f"{y}.nc" for y in range(first_year, last_year + 1)]
     missing = [f.name for f in files if not f.exists()]
     if missing:
@@ -156,14 +171,26 @@ def combine(first_year, last_year, work, out):
     }
     with open(out, "w") as f:
         f.write(f"# AgERA5 v2.0 {first_year}-{last_year}, {years} years. "
-                "Contains modified Copernicus Climate Change Service information.\n")
-        f.write("lat,lon,fd,gsl,last_frost_p50,last_frost_p80,first_frost_p50,first_frost_p20,frost_years\n")
+                "Contains modified Copernicus Climate Change Service information.")
+        if dem:
+            f.write(f" Land cells (at least {min_land:.0%} land) and mean land elevation from the Copernicus DEM "
+                    "GLO-90: produced using Copernicus WorldDEM-90 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and "
+                    "Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA.")
+        f.write("\nlat,lon," + ("elevation_m," if dem else "")
+                + "fd,gsl,last_frost_p50,last_frost_p80,first_frost_p50,first_frost_p20,frost_years\n")
         lats, lons = ds["lat"].values, ds["lon"].values
         for i, lat in enumerate(lats):
             for j, lon in enumerate(lons):
                 if np.isnan(table["fd"][i, j]):
                     continue
-                f.write(f"{lat:.1f},{lon:.1f},{table['fd'][i, j]:.0f},{table['gsl'][i, j]:.0f},"
+                key = (f"{lat:.1f}", f"{lon:.1f}")
+                elevation = ""
+                if dem:
+                    elevation, land = dem.get(key, (None, 0.0))
+                    if land < min_land or elevation is None:
+                        continue
+                    elevation += ","
+                f.write(f"{key[0]},{key[1]},{elevation}{table['fd'][i, j]:.0f},{table['gsl'][i, j]:.0f},"
                         f"{month_day(table['last_frost_p50'][i, j])},{month_day(table['last_frost_p80'][i, j])},"
                         f"{month_day(table['first_frost_p50'][i, j])},{month_day(table['first_frost_p20'][i, j])},"
                         f"{int(table['frost_years'][i, j])}\n")
@@ -177,6 +204,8 @@ def main():
     parser.add_argument("--area", type=float, nargs=4, default=EUROPE, metavar=("N", "W", "S", "E"))
     parser.add_argument("--work", type=Path, default=Path(__file__).parent / "work")
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--dem", type=Path, help="CSV of dem_cells.py: keep land cells and add their elevation")
+    parser.add_argument("--min-land", type=float, default=0.25, help="least land fraction of a kept cell")
     args = parser.parse_args()
     if args.command == "years":
         for year in range(args.first_year, args.last_year + 1):
@@ -185,7 +214,8 @@ def main():
     else:
         if not args.out:
             sys.exit("--out is required")
-        combine(args.first_year, args.last_year, args.work, args.out)
+        combine(args.first_year, args.last_year, args.work, args.out,
+                read_dem(args.dem) if args.dem else None, args.min_land)
 
 
 if __name__ == "__main__":
