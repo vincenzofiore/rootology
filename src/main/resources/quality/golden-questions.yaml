@@ -155,10 +155,62 @@ cases:
     intent: {kind: COMPANIONS, subject: lavanda, language: it}
     expect: {escalate: not in the dataset}
 
+  # A plain weather forecast is not about the garden (#53): refused, where it used to wait for a person.
   - id: out-of-scope
     question: Che tempo farà domani a Roma?
     intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  # The domain filter (#53): only a question clearly outside gardens is refused, with no answer and no
+  # escalation. The intent is what Claude would understand if the question reached it; a refused question
+  # never does. Questions that only look odd must not be refused: they take the normal path.
+  - id: off-domain-sewing
+    question: Come si fa il punto zig-zag con la macchina da cucire?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: off-domain-car
+    question: Ogni quanto devo cambiare le gomme della macchina?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: off-domain-taxes-en
+    question: How do I file my tax return?
+    intent: {kind: OTHER, language: en}
+    expect: {offDomain: true}
+
+  - id: off-domain-ants-in-the-kitchen
+    question: Come elimino le formiche in cucina?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: in-domain-compost
+    question: Posso mettere le bucce d'arancia nel compost?
+    intent: {kind: OTHER, language: it}
     expect: {escalate: does not fit}
+
+  - id: in-domain-chickens
+    question: Le galline nell'orto rovinano le piantine?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  - id: in-domain-lawn-fertiliser
+    question: Che concime uso per il prato?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  - id: in-domain-frost-worry
+    question: Stanotte gela, devo coprire la lattuga?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  # Not refused; read as a question about a plot (as the live run of 2026-11-10 did), which needs a garden.
+  - id: in-domain-terrace-pots
+    question: Cosa posso seminare adesso nei vasi sul terrazzo?
+    intent: {kind: SOW_IN_PLOT, subject: vasi sul terrazzo, language: it}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
 
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?

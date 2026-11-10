@@ -109,8 +109,13 @@ class GoldenLiveRecordingTest {
             try {
                 GardenPipeline.Run r = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
                 var decision = r.answer() != null ? null : r.pending().decision();
-                results.add(new Result(c.id(), c.question(), c.intent().toString(), String.valueOf(r.intent()),
-                        GoldenVerdict.intentMatches(c.intent(), r.intent()), GoldenVerdict.of(c, r, false), c.answer(),
+                GoldenVerdict verdict = GoldenVerdict.of(c, r, false);
+                // A refused question never reaches Claude (#53): a correct refusal needs no understanding, so it
+                // does not lower the count of intents understood; a wrong one counts as not understood.
+                boolean intentMatches = r.offDomain() ? verdict == GoldenVerdict.CORRECT_REFUSAL
+                        : GoldenVerdict.intentMatches(c.intent(), r.intent());
+                results.add(new Result(c.id(), c.question(), c.intent().toString(),
+                        r.offDomain() ? "refused as off-domain" : String.valueOf(r.intent()), intentMatches, verdict, c.answer(),
                         c.escalate(), r.answer() != null ? r.answer().answer() : decision.answer(),
                         decision == null ? null : decision.reason(),
                         r.answer() != null ? r.answer().confidence() : decision.confidence(),
