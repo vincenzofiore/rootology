@@ -34,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class ViewsTest {
 
+    /** The map's style URL in tests: never fetched, the map is only inspected as data (#66). */
+    private static final String STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
     @Autowired
     ExperimentRunner runner;
 
@@ -127,8 +130,9 @@ class ViewsTest {
         assertThat(new HistoryView(history, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new PlotsView(gardens, crops, geoNames, weatherService, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardensView(gardens, geoNames, ungardened, viewer()).getChildren()).isNotEmpty();
+        assertThat(new PlotsView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
+        assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, STYLE)
+                .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, viewer()).getChildren())

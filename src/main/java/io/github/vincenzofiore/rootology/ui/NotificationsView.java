@@ -77,7 +77,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                         : getTranslation("notifications.status.answered", n.resolvedBy()))
                 .setHeader(getTranslation("notifications.status")).setAutoWidth(true);
         grid.addComponentColumn(n -> {
-            Button open = new Button(getTranslation("notifications.open"), e -> open(n));
+            Button open = RowActions.open(getTranslation("notifications.open"), e -> open(n));
             open.setVisible(n.resolvedAt() == null);
             return open;
         }).setAutoWidth(true);

@@ -170,3 +170,213 @@ vaadin-grid {
 @media (pointer: coarse) {
     .rootology-service-links a { display: inline-flex; align-items: center; min-height: 44px; }
 }
+
+/* The gardens map (#66): MapLibre GL JS on the OpenFreeMap tiles, beside the table in the overview. */
+rootology-garden-map { display: block; width: 100%; }
+/* Map and table side by side, the map wider; on a narrow screen they wrap, the table below the map. */
+.rootology-gardens-split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--lumo-space-m);
+    width: 100%;
+}
+.rootology-gardens-split > rootology-garden-map { flex: 3 1 28rem; min-width: 0; }
+.rootology-gardens-split > vaadin-grid { flex: 2 1 18rem; min-width: 0; }
+/* Taller than wide screens make it look: a frame where a popup fits above or below its marker. */
+.rootology-map {
+    position: relative;
+    width: 100%;
+    height: clamp(360px, 55vh, 560px);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-m);
+}
+/* MapLibre gives its own container (this one) `position: relative`; the map fills the frame instead. */
+.rootology-map .rootology-map-canvas { position: absolute; inset: 0; border-radius: inherit; }
+.rootology-map .maplibregl-canvas { border-radius: inherit; }
+/* MapLibre clips its container, so a popup never sits under the rest of the page: the map pans to show it. */
+.rootology-map-unavailable {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: var(--lumo-space-m);
+    text-align: center;
+    color: var(--lumo-secondary-text-color);
+    background: var(--lumo-contrast-5pct);
+}
+/* A marker: a 44 px target with a small dot, so it can be tapped even on a phone. */
+.rootology-map-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+.rootology-map-pin::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 3px solid var(--lumo-base-color);
+    border-radius: 50%;
+    background: var(--lumo-primary-color);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+}
+.rootology-map-pin:hover::before { background: var(--lumo-primary-color-50pct); }
+.rootology-map-pin:focus-visible { outline: 2px solid var(--lumo-primary-color); outline-offset: 2px; border-radius: 50%; }
+/* Gardens that share one rounded point: one marker with their count. */
+.rootology-map-pin-count {
+    border: 3px solid var(--lumo-base-color);
+    border-radius: 50%;
+    background: var(--lumo-primary-color);
+    color: var(--lumo-primary-contrast-color);
+    font-weight: 600;
+    font-size: var(--lumo-font-size-s);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+}
+.rootology-map-pin-count::before { display: none; }
+.rootology-map-add {
+    min-height: 44px;
+    padding: var(--lumo-space-xs) var(--lumo-space-m);
+    border: 1px solid var(--lumo-primary-color);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-base-color);
+    color: var(--lumo-primary-text-color);
+    font: inherit;
+    cursor: pointer;
+}
+.rootology-map-water { margin: 0; max-width: 14rem; color: var(--lumo-body-text-color); }
+.rootology-map-add:hover { background: var(--lumo-primary-color-10pct); }
+/* MapLibre's own popup and attribution boxes take the app's colours, so they are readable in dark mode. */
+.rootology-map .maplibregl-popup .maplibregl-popup-content {
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-base-color);
+    color: var(--lumo-body-text-color);
+    font-family: var(--lumo-font-family);
+    font-size: var(--lumo-font-size-s);
+    box-shadow: var(--lumo-box-shadow-s);
+}
+.rootology-map .maplibregl-popup .maplibregl-popup-close-button {
+    padding: 0 var(--lumo-space-xs);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-l);
+}
+.rootology-map .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.rootology-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.rootology-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--lumo-base-color); }
+.rootology-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.rootology-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.rootology-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--lumo-base-color); }
+.rootology-map .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--lumo-base-color); }
+.rootology-map .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--lumo-base-color); }
+.rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib {
+    background: var(--lumo-base-color);
+    color: var(--lumo-secondary-text-color);
+    font-family: var(--lumo-font-family);
+}
+.rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib a { color: var(--lumo-primary-text-color); }
+.rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button { background-color: var(--lumo-base-color); }
+/* A popup with several gardens never grows past the frame: it scrolls instead. */
+.rootology-map-popup { max-height: 14rem; overflow-y: auto; }
+/* Zoom buttons as large as the other touch targets on a phone. */
+@media (pointer: coarse) {
+    .rootology-map .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+}
+/* A hint in a dialog that asks the person to check before saving (#66: a garden in open sea). */
+.rootology-warning { color: var(--lumo-warning-text-color); }
+/* The search that moves the map to a place, as wide as the map's frame allows. */
+.rootology-map-search { width: 100%; max-width: 24rem; }
+.rootology-map-popup-title { margin: 0 0 var(--lumo-space-xs); font-weight: 600; }
+.rootology-map-popup-garden + .rootology-map-popup-garden {
+    margin-top: var(--lumo-space-s);
+    padding-top: var(--lumo-space-s);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+}
+.rootology-map-popup-name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--lumo-primary-text-color);
+    font: inherit;
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.rootology-map-popup-details p {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+/* A value shown with an icon instead of its word; the word is the tooltip and is read out (#66). */
+.rootology-map-popup-details .rootology-map-popup-fact {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    cursor: default;
+}
+.rootology-map-popup-icon { display: inline-flex; flex: none; color: var(--lumo-secondary-text-color); }
+.rootology-map-popup-icon vaadin-icon { width: 16px; height: 16px; }
+/* Altitude, crops growing and questions waiting on one line, wrapping on a narrow popup. */
+.rootology-map-popup-facts { display: flex; flex-wrap: wrap; column-gap: var(--lumo-space-m); }
+/* Questions waiting for a person stand out, the icon included. */
+.rootology-map-popup-attention,
+.rootology-map-popup-attention .rootology-map-popup-icon { color: var(--lumo-warning-text-color); font-weight: 600; }
+/* Read by screen readers, not shown. */
+.rootology-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+.rootology-map-popup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+    margin-top: var(--lumo-space-xs);
+}
+.rootology-map-popup-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--lumo-border-radius-m);
+    background: transparent;
+    color: var(--lumo-primary-text-color);
+    font: inherit;
+    cursor: pointer;
+}
+.rootology-map-popup-action:focus-visible { outline: 2px solid var(--lumo-primary-color); outline-offset: 1px; }
+.rootology-map-popup-action vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+/* A row's menu line: the same icon as the buttons, then the word. */
+.rootology-menu-entry { gap: var(--lumo-space-s); }
+.rootology-menu-entry vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+.rootology-map-popup-action:hover { background: var(--lumo-primary-color-10pct); }
+.rootology-map-popup-delete { color: var(--lumo-error-text-color); }
+.rootology-map-popup-delete:hover { background: var(--lumo-error-color-10pct); }
+.rootology-map-popup-note {
+    margin: var(--lumo-space-s) 0 0;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-style: italic;
+}
+@media (max-width: 640px) {
+    .rootology-map { height: clamp(300px, 50vh, 420px); }
+}

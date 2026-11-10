@@ -37,7 +37,9 @@ public class SourcesView extends VerticalLayout implements HasDynamicTitle {
                 new Paragraph(getTranslation("sources.ecocrop")), new Paragraph(getTranslation("sources.eppo")),
                 new Paragraph(getTranslation("sources.wikidata")), new Paragraph(getTranslation("sources.weather")),
                 new Paragraph(getTranslation("sources.icons")), new Paragraph(getTranslation("sources.agera5")),
-                new Paragraph(getTranslation("sources.dem")), new Paragraph(getTranslation("sources.gtopo30")));
+                new Paragraph(getTranslation("sources.dem")), new Paragraph(getTranslation("sources.gtopo30")),
+                new Paragraph(getTranslation("sources.openfreemap")),
+                new Paragraph(getTranslation("sources.openmaptiles")), new Paragraph(getTranslation("sources.osm")));
     }
 
     @Override

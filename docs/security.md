@@ -45,6 +45,21 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 ### A10 Mishandling of exceptional conditions
 - In place: every external call has short timeouts and a circuit breaker (#29); Claude down fails the question clearly; Jev down escalates to a person; no weather means no weather, with a note; saving a garden never depends on GeoNames.
 
+## Gardens map (#66)
+- The one place where the browser is allowed to reach another origin: `https://tiles.openfreemap.org`, in
+  `connect-src` (style, TileJSON, vector tiles, glyphs) and `img-src` (raster tiles, sprites). MapLibre GL JS
+  itself is a normal npm dependency (`@NpmPackage`, pinned to 6.16.0, BSD-3-Clause), bundled by Vaadin's Vite
+  and served from this origin: no CDN and no inline script.
+- The map's web worker is emitted among our own assets and created with `new Worker(url)`, which `worker-src`
+  allows through its fallback to `script-src 'self'`: no `blob:` and no extra directive are needed. Checked
+  with the policy enforced, in development and in production mode, with an empty console.
+- The style URL is configuration (`rootology.map.style-url`), so a service that stops can be replaced without
+  a release; when the style or the tiles fail the component says so and the table keeps working.
+- Only this page's space is ever sent to the map: the markers are built from `GardenService.gardens` and the
+  ids the map reports back are checked against them (`GardenMap.select`, `GardenMap.point`), so a garden of
+  another space can neither be shown nor opened. A guest gets no "add here" click at all, and the server
+  ignores one if it arrives.
+
 ## LLM application (OWASP Top 10 for LLM Applications, 2025)
 
 ### LLM01 Prompt injection

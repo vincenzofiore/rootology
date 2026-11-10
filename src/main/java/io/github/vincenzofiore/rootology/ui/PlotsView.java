@@ -10,6 +10,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -20,6 +21,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import io.github.vincenzofiore.rootology.facts.ClimateCells;
 import io.github.vincenzofiore.rootology.facts.Crop;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
@@ -48,6 +50,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private final GardenService gardens;
     private final CropCatalog crops;
     private final GeoNames geoNames;
+    private final ClimateCells climateCells;
     private final WeatherService weather;
     private final Div weatherCard = new Div();
     private final CurrentUser currentUser;
@@ -60,7 +63,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private final Grid<PlotSummary> plotGrid = new Grid<>();
     private final Grid<PlantingSummary> plantingGrid = new Grid<>();
     private final H4 plantingTitle = new H4();
-    private final Button editGarden = new Button(getTranslation("garden.edit"));
+    private final Button editGarden = new Button(getTranslation("garden.edit"), VaadinIcon.EDIT.create());
     private final HorizontalLayout top = new HorizontalLayout();
     private final Button addPlot = new Button(getTranslation("garden.addplot"));
     private final Button addPlanting = new Button(getTranslation("garden.sow"));
@@ -69,11 +72,13 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private Grid.Column<PlantingSummary> plantingActions;
 
     public PlotsView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
+                     ClimateCells climateCells,
                      CurrentUser currentUser) {
         this.weather = weather;
         this.gardens = gardens;
         this.crops = crops;
         this.geoNames = geoNames;
+        this.climateCells = climateCells;
         this.currentUser = currentUser;
         this.login = currentUser.login();
 
@@ -89,8 +94,11 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         plotGrid.addColumn(this::exposure).setHeader(getTranslation("garden.exposure")).setAutoWidth(true);
         plotGrid.addColumn(p -> p.areaM2() == null ? "" : p.areaM2() + " m²").setHeader(getTranslation("garden.area"));
         plotActions = plotGrid.addComponentColumn(p -> new HorizontalLayout(
-                new Button(getTranslation("common.edit"), e -> plotDialog(p)),
-                new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlot(spaceId, login, p.id())))))
+                RowActions.edit(getTranslation("common.edit"), e -> plotDialog(p)),
+                RowActions.delete(getTranslation("common.delete"), e -> RowActions.confirmDelete(
+                        getTranslation("garden.plot.delete.title"), getTranslation("garden.plot.delete.text", p.name()),
+                        null, getTranslation("garden.plot.delete.button"), getTranslation("common.cancel"),
+                        () -> act(() -> gardens.deletePlot(spaceId, login, p.id()))))))
                 .setAutoWidth(true);
         plotGrid.setAllRowsVisible(true);
         plotGrid.asSingleSelect().addValueChangeListener(e -> showPlantings(e.getValue()));
@@ -104,7 +112,12 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         plantingActions = plantingGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("garden.harvested"), e -> act(() ->
                         gardens.endPlanting(spaceId, login, p.id(), LocalDate.now()))),
-                new Button(getTranslation("common.delete"), e -> act(() -> gardens.deletePlanting(spaceId, login, p.id())))))
+                RowActions.delete(getTranslation("common.delete"), e -> RowActions.confirmDelete(
+                        getTranslation("garden.planting.delete.title"),
+                        getTranslation("garden.planting.delete.text", cropName(p.cropId(), p.cropName()),
+                                p.plantedOn().toString()),
+                        null, getTranslation("garden.planting.delete.button"), getTranslation("common.cancel"),
+                        () -> act(() -> gardens.deletePlanting(spaceId, login, p.id()))))))
                 .setAutoWidth(true);
         plantingGrid.setAllRowsVisible(true);
 
@@ -180,7 +193,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
 
     /** Creates or edits this garden: the overview adds new ones, this page edits the one it works in. */
     private void gardenDialog() {
-        new GardenDialog(geoNames, (name, town, latitude, longitude, countryCode, elevationM) ->
+        new GardenDialog(geoNames, climateCells, (name, town, latitude, longitude, countryCode, elevationM) ->
                 gardens.saveGarden(spaceId, login, garden == null ? null : garden.id(), name, town, latitude,
                         longitude, countryCode, elevationM)).open(garden, this::showGarden);
     }

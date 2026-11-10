@@ -37,6 +37,8 @@ build/
 
 ### Vaadin ###
 src/main/frontend/generated/
+# The frontend development bundle (#66): rebuilt by Vaadin when the frontend changes, kept out of the repository.
+src/main/bundles/
 
 ### Deployment secrets ###
 deploy/.env

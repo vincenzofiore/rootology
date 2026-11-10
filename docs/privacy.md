@@ -41,6 +41,7 @@ Two things only, and both are strictly necessary or chosen by the person, so no 
 |---|---|---|---|
 | Session cookie | `JSESSIONID` | `Path=/`, `HttpOnly` (Tomcat's default), `SameSite=Lax` (`server.servlet.session.cookie` in `application.yaml`), `Secure` in production (`application-prod.yaml`), no `Max-Age`: a browser-session cookie, gone when the browser is closed. Server side the session ends after 30 minutes without requests (an open page keeps it alive through Vaadin's heartbeat) — Tomcat's default, since neither `application.yaml` nor `application-prod.yaml` sets `server.servlet.session.timeout` — or at sign-out | sign-in and the Vaadin UI. The same session holds what signing in needs: the token of an open invitation (`PendingInvitation`), the marker of a second account being linked (`PendingLink`), the OAuth state and PKCE verifier of the sign-in in progress and the CSRF token (all in memory, never in a cookie) |
 | Colour scheme | localStorage key `rootology.colorScheme` | until the person clears the browser's data; never sent to the server | the light / dark / automatic choice (`MainLayout.SCHEME_KEY`; values `LIGHT_DARK`, `LIGHT`, `DARK`) |
+| Gardens: map, table or both | localStorage key `rootology.gardenView` | until the person clears the browser's data; never sent to the server | the choice of what the gardens overview shows (`GardensView.VIEW_KEY`; values `BOTH`, `MAP`, `TABLE`), #66 |
 
 During sign-in, GitHub and Google set their own cookies on their own domains under their own policies
 ([GitHub subprocessors and cookies](https://docs.github.com/en/site-policy/privacy-policies/github-subprocessors-and-cookies),
@@ -62,12 +63,14 @@ Session data lives in the server's memory: a restart or a timeout loses it, and 
 | Apple iCloud Mail | notification and invitation emails (address, text) | consumer terms, no DPA; "designed and intended for personal use" | Ireland / USA | Apple's own policy. Accepted for the prototype; replaced by a transactional email service before opening beyond invited friends (#12) |
 | GeoNames (Unxos GmbH) | place names typed in the garden dialog; rounded coordinates for the nearest town and for the garden’s altitude (GTOPO30) | no published request logging policy | Switzerland (EU adequacy decision) | unknown |
 | MET Norway | rounded coordinates | logs the caller's IP (the server's, not the person's) and coordinates | Norway (EEA) | MET Norway's own policy |
+| OpenFreeMap (style and tiles, possibly behind Cloudflare) | the area of the map being viewed and the person's IP; never garden names, coordinates stored by us or the space | no account, no API key, no cookies; free public instance, as-is, no SLA | served from Cloudflare's network | anonymised access logs; error logs may keep the IP for 7 days |
 | Telegram | the chat id as addressee, and the message: the space and garden names, a title and a link — never a question, an answer or a weather alert's text; the person's Telegram username, phone number and photo never leave their app | recipient and independent controller of the person's Telegram account; bot chats are stored in Telegram's cloud (for EEA users, data centres in the Netherlands), group-company transfers under EU SCCs | Netherlands (EEA); Telegram Group Inc (BVI) and Telegram FZ-LLC (Dubai) for the service | Telegram's own policy; our messages stay in the chat and in Telegram's cloud until the person deletes them |
 | Hetzner Online (hosting) | everything stored: the server runs the app and its databases | processor; DPA (art. 28) accepted in the customer account on 2026-11-05 | Germany | backups are ours (`deploy/backup.sh`), Hetzner's own backups are off |
 | OVHcloud (domain `rootology.app`) | only the owner's registrant data; DNS answers for the domain | the owner's own provider, not a processor of users' data | France | |
 
 The person's browser talks only to Rootology, plus GitHub and Google for sign-in (which set their own cookies
-there, see above). The browser's position
+there, see above) and `tiles.openfreemap.org` for the gardens map (#66), which receives the area being viewed
+and the person's IP and nothing about the gardens. The browser's position
 (`navigator.geolocation`) is read only when the person presses the button, and rounded to 0.01° before the server sends it to any service.
 
 ## How it is applied

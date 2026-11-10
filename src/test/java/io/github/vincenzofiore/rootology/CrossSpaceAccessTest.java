@@ -1,6 +1,7 @@
 package io.github.vincenzofiore.rootology;
 
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
+import io.github.vincenzofiore.rootology.facts.ClimateCells;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.facts.Contribution;
 import io.github.vincenzofiore.rootology.garden.GardenService;
@@ -12,11 +13,19 @@ import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.spaces.InvitationService;
 import io.github.vincenzofiore.rootology.spaces.Role;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
+import io.github.vincenzofiore.rootology.ui.CurrentUser;
+import io.github.vincenzofiore.rootology.ui.GardenMap;
+import io.github.vincenzofiore.rootology.ui.GardensView;
+import io.github.vincenzofiore.rootology.ui.Ungardened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.RouteParameters;
 
 import java.time.LocalDate;
 
@@ -49,6 +58,15 @@ class CrossSpaceAccessTest {
 
     @Autowired
     GardenPipeline pipeline;
+
+    @Autowired
+    ClimateCells cells;
+
+    @Autowired
+    Ungardened ungardened;
+
+    @Autowired
+    io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
 
     String victim;
     String intruder;
@@ -116,6 +134,25 @@ class CrossSpaceAccessTest {
     }
 
     @Test
+    void anotherSpacesGardenNeverReachesTheMap() {
+        // #66: the map of an overview only ever carries that page's own space, so the intruder's map never
+        // shows the victim's garden, and the map refuses to select it.
+        long located = gardens.saveGarden(victimSpace, victim, null, "Victim map garden", "Milan",
+                new java.math.BigDecimal("45.07"), new java.math.BigDecimal("9.19"), "IT").id();
+        GardensView intrudersOverview = new GardensView(gardens, geoNames, ungardened, session(intruder, intruderSpace),
+                cells, pipeline, "https://tiles.openfreemap.org/styles/liberty");
+        intrudersOverview.beforeEnter(entering(intruderSpace));
+        assertThat(mapIds(intrudersOverview)).doesNotContain(located);
+        assertThat(intrudersOverview.map().select(Long.toString(located)))
+                .as("and the map refuses to select it").isEmpty();
+
+        GardensView victimsOverview = new GardensView(gardens, geoNames, ungardened, session(victim, victimSpace),
+                cells, pipeline, "https://tiles.openfreemap.org/styles/liberty");
+        victimsOverview.beforeEnter(entering(victimSpace));
+        assertThat(victimsOverview.map().select(Long.toString(located))).hasValue(located);
+    }
+
+    @Test
     void anotherSpaceIsRefusedOutright() {
         assertThatThrownBy(() -> gardens.gardens(victimSpace, intruder)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> gardens.plots(victimSpace, intruder, garden)).isInstanceOf(RuntimeException.class);
@@ -124,5 +161,32 @@ class CrossSpaceAccessTest {
         assertThatThrownBy(() -> history.recent(victimSpace, garden, intruder)).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> pipeline.pending(victimSpace, garden, intruder)).isInstanceOf(RuntimeException.class);
         assertThat(enrichment.source(victimSpace, intruder, "proposal-1")).isEmpty();
+    }
+
+    /** A signed-in person of one space: the UI's own session object, without a Vaadin session (#66). */
+    private CurrentUser session(String login, long spaceId) {
+        CurrentUser user = org.mockito.Mockito.mock(CurrentUser.class);
+        org.mockito.Mockito.when(user.login()).thenReturn(login);
+        org.mockito.Mockito.when(user.memberOf(spaceId)).thenReturn(true);
+        org.mockito.Mockito.when(user.canContribute(spaceId)).thenReturn(true);
+        org.mockito.Mockito.when(user.spaces()).thenReturn(spaces.spacesOf(login));
+        return user;
+    }
+
+    /** The garden ids behind the map's markers, as the browser would receive them (#66). */
+    private static java.util.List<Long> mapIds(GardensView view) {
+        java.util.List<GardenMap.Group> groups = view.map().getElement().getPropertyBean("groups",
+                new tools.jackson.core.type.TypeReference<java.util.List<GardenMap.Group>>() {
+                });
+        return groups.stream().flatMap(group -> group.gardens().stream()).map(pin -> Long.parseLong(pin.id()))
+                .toList();
+    }
+
+    private static BeforeEnterEvent entering(long spaceId) {
+        BeforeEnterEvent event = org.mockito.Mockito.mock(BeforeEnterEvent.class);
+        org.mockito.Mockito.when(event.getRouteParameters())
+                .thenReturn(new RouteParameters(java.util.Map.of("spaceId", String.valueOf(spaceId))));
+        org.mockito.Mockito.when(event.getLocation()).thenReturn(new Location("spaces/" + spaceId + "/gardens"));
+        return event;
     }
 }

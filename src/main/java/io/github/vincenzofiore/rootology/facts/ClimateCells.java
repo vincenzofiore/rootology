@@ -38,6 +38,11 @@ public class ClimateCells {
     private final short[] firstFrostP20;
     private final byte[] frostYears;
     private final Map<Integer, Integer> index;
+    /** The extent of the grid in tenths of a degree: outside it nothing is known, not even land or sea. */
+    private int minLat = Integer.MAX_VALUE;
+    private int maxLat = Integer.MIN_VALUE;
+    private int minLon = Integer.MAX_VALUE;
+    private int maxLon = Integer.MIN_VALUE;
 
     /** The file, read once at startup; the app does not start when it is malformed (#62). */
     public ClimateCells() {
@@ -52,6 +57,7 @@ public class ClimateCells {
         this.firstFrostP20 = read.firstFrostP20;
         this.frostYears = read.frostYears;
         this.index = read.index;
+        extent();
     }
 
     ClimateCells(int[] latTenths, int[] lonTenths, short[] elevation, byte[] landPercent, short[] lastFrostP50,
@@ -69,6 +75,38 @@ public class ClimateCells {
         for (int i = 0; i < latTenths.length; i++) {
             index.put(key(latTenths[i], lonTenths[i]), i);
         }
+        extent();
+    }
+
+    private void extent() {
+        for (int i = 0; i < latTenths.length; i++) {
+            minLat = Math.min(minLat, latTenths[i]);
+            maxLat = Math.max(maxLat, latTenths[i]);
+            minLon = Math.min(minLon, lonTenths[i]);
+            maxLon = Math.max(maxLon, lonTenths[i]);
+        }
+    }
+
+    /**
+     * Whether a position looks like open sea (#66): inside the grid, yet with no land cell within 0.3 degrees
+     * (about 30 km). Wider than the profile's 0.15, because cells keep only at least 25 % land and an island
+     * like Capri has none of its own. Only a hint: a small island far from any coast may still look like sea,
+     * and outside the grid (beyond Europe and the Mediterranean) nothing is said.
+     */
+    public boolean looksLikeSea(double latitude, double longitude) {
+        int lat = (int) Math.round(latitude * 10);
+        int lon = (int) Math.round(longitude * 10);
+        if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) {
+            return false;
+        }
+        for (int i = lat - 3; i <= lat + 3; i++) {
+            for (int j = lon - 3; j <= lon + 3; j++) {
+                if (index.containsKey(key(i, j)) && Math.hypot(i / 10.0 - latitude, j / 10.0 - longitude) <= 0.3) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public int size() {

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * offer them only then, so nobody hunts through empty pages.
  */
 @Component
-class Ungardened {
+public class Ungardened {
 
     private final RunHistory history;
     private final GardenPipeline pipeline;
@@ -20,7 +20,7 @@ class Ungardened {
         this.pipeline = pipeline;
     }
 
-    boolean any(long spaceId, String login) {
+    public boolean any(long spaceId, String login) {
         return pipeline.hasUngardened(spaceId, login) || history.hasUngardened(spaceId, login);
     }
 }

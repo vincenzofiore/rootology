@@ -6,6 +6,7 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteParameters;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
+import io.github.vincenzofiore.rootology.facts.ClimateCells;
 import io.github.vincenzofiore.rootology.facts.SourceCatalog;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
@@ -53,6 +54,9 @@ class GardenContextTest {
 
     @Autowired
     Ungardened ungardened;
+
+    @Autowired
+    ClimateCells cells;
 
     @Test
     void twoPagesOfOneSessionOnTwoGardensAskInTheirOwnGarden() {
@@ -130,10 +134,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, ungardened, session);
+        GardensView guestOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, STYLE);
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, ungardened, session);
+        GardensView ownOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, STYLE);
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();
@@ -157,6 +161,9 @@ class GardenContextTest {
     private AskView askView(CurrentUser session) {
         return new AskView(pipeline, sources, session, enrichment, usage, gardens);
     }
+
+    /** The map's style: nothing is fetched here, the map is inspected as data (#66). */
+    private static final String STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
     private long personalSpace(String login) {
         return spaces.spacesOf(login).stream().filter(SpaceSummary::personal).findFirst().orElseThrow().id();

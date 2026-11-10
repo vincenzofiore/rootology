@@ -48,7 +48,7 @@ public class PrivacyView extends Div implements HasDynamicTitle {
         add(new H3(getTranslation("privacy.who-receives.title")), list(
                 "privacy.receives.hosting", "privacy.receives.anthropic", "privacy.receives.typesafe", "privacy.receives.github",
                 "privacy.receives.google", "privacy.receives.mail", "privacy.receives.places", "privacy.receives.weather",
-                "privacy.receives.telegram"));
+                "privacy.receives.map", "privacy.receives.telegram"));
         add(new Paragraph(getTranslation("privacy.receives.transfers")));
         add(new Paragraph(getTranslation("privacy.receives.questions")));
 
@@ -71,6 +71,7 @@ public class PrivacyView extends Div implements HasDynamicTitle {
         add(new UnorderedList(
                 new ListItem(getTranslation("privacy.cookies.session", sessionTimeout.toMinutes())),
                 new ListItem(getTranslation("privacy.cookies.theme")),
+                new ListItem(getTranslation("privacy.cookies.gardenview")),
                 new ListItem(getTranslation("privacy.cookies.providers"))));
     }
 

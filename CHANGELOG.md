@@ -8,6 +8,24 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- The gardens of a space are on a map, beside the table (below it on a narrow screen); the map alone is
+  shown first, and the person chooses map, table or both, which the browser remembers. A marker opens a
+  garden's essentials (town, altitude, approximate coordinates, what grows today, the questions waiting) with
+  the same actions as its row: open, edit and delete. A click on a marker selects its row, a selected row
+  centres the map on it, and gardens on the same rounded point share one marker with their count. Each row of
+  the table has a gear menu with those actions. Zoom buttons, and a search that moves the map to a place by
+  name. A click on land offers to add a garden there, for whoever may change the garden, and opens a shorter
+  dialog with the place already filled in; a click on water says so instead, and coordinates typed by hand that
+  look like open sea are questioned before saving. The map is MapLibre GL JS on the free OpenFreeMap tiles and
+  never blocks the page: when it cannot load, the table keeps working (#66).
+- A garden can be deleted, from its row's menu or its popup, after a confirmation that names it and its plots:
+  its plots and plantings go with it, its questions and notifications stay in the space among the questions
+  without a garden (#66).
+- Open, edit and delete in the app's rows and in the map's popups are icons, with their word on hover and for
+  screen readers; in a popup the altitude, the crops growing and the questions waiting are icons with a value
+  or a count, the questions waiting highlighted when there are some. Deleting a plot or a crop now asks first, like a
+  garden (#66).
+
 - Notifications also reach the phone: a person links their Telegram account once, with a one-time code from the
   Notifications page, and from then on waiting questions, answers and weather alerts arrive there too, promptly
   and without opening the app. A Telegram message says the space, the garden and the title, with a link back to
