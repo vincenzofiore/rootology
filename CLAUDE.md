@@ -22,6 +22,7 @@ Sensors fit this design directly: missing and noisy readings are what the decisi
 - This domain is deliberately unrelated to the owner's day job. Do not import concepts or code from any professional project.
 - Design matters as much as function: the app must be easy to use, easy to understand at a glance and look like a modern application. Prefer a clear icon with a value or a count over a sentence (the word stays as tooltip and aria label, so nothing is lost for screen readers), show only what helps the decision at hand, keep the same icon and pattern for the same action everywhere (`ui.RowActions`), confirm before anything destructive, and check every screen on a phone, in dark mode and with a keyboard. Styles live only in `styles/rootology.css`. When a screen feels crowded or wordy, propose a simpler one.
 - Before adding a dependency or an external data source, check its current version, compatibility and license, and report to the owner.
+- Architecture decisions are recorded in `docs/adr/` (numbered, with context, decision, consequences and when to revisit). ADR 0001: the front end stays on Vaadin Flow; a screen that needs a browser library gets a small client-side element, as the map does.
 
 ## Current state (already built)
 
