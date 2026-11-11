@@ -6,8 +6,16 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Changed
+
+- Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
+  amber) instead of Lumo's slate blue; light mode is unchanged (#75).
+
 ### Fixed
 
+- The gardens map's popups show the weather now for a garden just added or moved, and for gardens where
+  nothing grows: a new place's forecast is fetched in the background when the garden is saved, and every
+  garden's forecast is refreshed every 6 hours (#74).
 - A notification of a waiting question that someone answered no longer stays in the bell's count with no way
   to open it: it counts as read once the question has its answer, and those left unread before are cleared
   (#73).

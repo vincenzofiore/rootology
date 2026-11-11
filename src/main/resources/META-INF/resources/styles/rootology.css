@@ -1,5 +1,51 @@
 /* Rootology's own styles (#31): only what Lumo does not do by itself for small screens and touch. */
 
+/*
+ * Dark mode in GitHub's palette instead of Lumo's slate blue: canvas #0d1117, text #e6edf3, shadows #010409,
+ * accent #2f81f7 / #58a6ff, and GitHub's red, green and amber. Lumo defines its colours with light-dark() on
+ * :where(:root), so this rule wins; the first value of each pair is Lumo's own light colour, unchanged.
+ */
+:root {
+    --lumo-base-color: light-dark(#fff, #0d1117);
+    --lumo-tint: light-dark(#fff, #e6edf3);
+    --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(230, 237, 243, .06));
+    --lumo-tint-10pct: light-dark(hsla(0, 0%, 100%, .37), rgba(230, 237, 243, .12));
+    --lumo-tint-20pct: light-dark(hsla(0, 0%, 100%, .44), rgba(230, 237, 243, .2));
+    --lumo-tint-30pct: light-dark(hsla(0, 0%, 100%, .5), rgba(230, 237, 243, .3));
+    --lumo-tint-40pct: light-dark(hsla(0, 0%, 100%, .57), rgba(230, 237, 243, .4));
+    --lumo-tint-50pct: light-dark(hsla(0, 0%, 100%, .64), rgba(230, 237, 243, .5));
+    --lumo-tint-60pct: light-dark(hsla(0, 0%, 100%, .7), rgba(230, 237, 243, .6));
+    --lumo-tint-70pct: light-dark(hsla(0, 0%, 100%, .77), rgba(230, 237, 243, .7));
+    --lumo-tint-80pct: light-dark(hsla(0, 0%, 100%, .84), rgba(230, 237, 243, .8));
+    --lumo-tint-90pct: light-dark(hsla(0, 0%, 100%, .9), rgba(230, 237, 243, .9));
+    --lumo-shade: light-dark(#192434, #010409);
+    --lumo-shade-5pct: light-dark(rgba(25, 59, 103, .05), rgba(1, 4, 9, .1));
+    --lumo-shade-10pct: light-dark(rgba(26, 57, 96, .1), rgba(1, 4, 9, .2));
+    --lumo-shade-20pct: light-dark(rgba(28, 55, 90, .16), rgba(1, 4, 9, .3));
+    --lumo-shade-30pct: light-dark(rgba(28, 52, 84, .26), rgba(1, 4, 9, .4));
+    --lumo-shade-40pct: light-dark(rgba(28, 50, 79, .38), rgba(1, 4, 9, .5));
+    --lumo-shade-50pct: light-dark(rgba(28, 48, 74, .52), rgba(1, 4, 9, .6));
+    --lumo-shade-60pct: light-dark(rgba(28, 46, 69, .6), rgba(1, 4, 9, .7));
+    --lumo-shade-70pct: light-dark(rgba(27, 43, 65, .69), rgba(1, 4, 9, .75));
+    --lumo-shade-80pct: light-dark(rgba(26, 41, 61, .83), rgba(1, 4, 9, .85));
+    --lumo-shade-90pct: light-dark(rgba(24, 39, 57, .94), rgba(1, 4, 9, .92));
+    --lumo-primary-color: light-dark(#006af5, #1f6feb);
+    --lumo-primary-color-50pct: light-dark(rgba(0, 108, 250, .76), rgba(47, 129, 247, .7));
+    --lumo-primary-color-10pct: light-dark(rgba(51, 139, 255, .13), rgba(56, 139, 253, .15));
+    --lumo-primary-text-color: light-dark(#005fdb, #58a6ff);
+    --lumo-error-color: light-dark(#e21d12, #da3633);
+    --lumo-error-color-50pct: light-dark(rgba(231, 29, 19, .5), rgba(248, 81, 73, .5));
+    --lumo-error-color-10pct: light-dark(rgba(231, 29, 19, .1), rgba(248, 81, 73, .1));
+    --lumo-error-text-color: light-dark(#ca150c, #f85149);
+    --lumo-success-color: light-dark(#158443, #238636);
+    --lumo-success-color-50pct: light-dark(rgba(22, 136, 70, .5), rgba(46, 160, 67, .5));
+    --lumo-success-color-10pct: light-dark(rgba(22, 136, 70, .1), rgba(46, 160, 67, .15));
+    --lumo-success-text-color: light-dark(#0a7637, #3fb950);
+    --lumo-warning-color: light-dark(#fc0, #d29922);
+    --lumo-warning-color-10pct: light-dark(rgba(255, 204, 0, .25), rgba(187, 128, 9, .15));
+    --lumo-warning-text-color: light-dark(#995200, #d29922);
+}
+
 /* Fields with a fixed width never overflow a narrow screen. */
 vaadin-text-field, vaadin-combo-box, vaadin-big-decimal-field, vaadin-integer-field,
 vaadin-date-picker, vaadin-time-picker, vaadin-select {
