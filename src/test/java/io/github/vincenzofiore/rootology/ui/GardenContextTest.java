@@ -58,6 +58,9 @@ class GardenContextTest {
     @Autowired
     ClimateCells cells;
 
+    @Autowired
+    io.github.vincenzofiore.rootology.weather.WeatherService weather;
+
     @Test
     void twoPagesOfOneSessionOnTwoGardensAskInTheirOwnGarden() {
         String login = "two-tabs-" + Long.toString(System.nanoTime(), 36);
@@ -134,10 +137,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, STYLE);
+        GardensView guestOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE);
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, STYLE);
+        GardensView ownOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE);
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();

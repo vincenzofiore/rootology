@@ -31,6 +31,8 @@ import io.github.vincenzofiore.rootology.geocoding.GeoNames;
 import io.github.vincenzofiore.rootology.geocoding.Place;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
 import io.github.vincenzofiore.rootology.pipeline.Question;
+import io.github.vincenzofiore.rootology.weather.ForecastHour;
+import io.github.vincenzofiore.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The gardens of a space (#56): the overview a person lands on, and where a garden is chosen to work in.
@@ -64,6 +67,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final CurrentUser currentUser;
     private final ClimateCells climateCells;
     private final GardenPipeline pipeline;
+    private final WeatherService weather;
     private final H3 title = new H3(getTranslation("gardens.title"));
     private final Grid<GardenSummary> grid = new Grid<>();
     private final Paragraph none = new Paragraph(getTranslation("gardens.none"));
@@ -85,7 +89,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private List<GardenSummary> shown = List.of();
 
     public GardensView(GardenService gardens, GeoNames geoNames, Ungardened ungardened, CurrentUser currentUser,
-                       ClimateCells climateCells, GardenPipeline pipeline,
+                       ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
                        @Value("${rootology.map.style-url}") String styleUrl) {
         this.gardens = gardens;
         this.geoNames = geoNames;
@@ -93,6 +97,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         this.currentUser = currentUser;
         this.climateCells = climateCells;
         this.pipeline = pipeline;
+        this.weather = weather;
         ask.setVisible(false);
         ask.setDefaultVerticalComponentAlignment(Alignment.END);
         ask.setWrap(true);
@@ -112,7 +117,9 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         map = new GardenMap(styleUrl);
         map.setLabels(new GardenMap.Labels(getTranslation("gardens.open"), getTranslation("common.edit"),
                 getTranslation("common.delete"), getTranslation("gardens.map.altitude.label"),
-                getTranslation("gardens.map.crops.label"), getTranslation("gardens.map.waiting.label"),
+                getTranslation("gardens.map.weather.label"), getTranslation("weather.credit"),
+                getTranslation("gardens.map.crops.label"),
+                getTranslation("gardens.map.waiting.label"),
                 getTranslation("gardens.map.addhere"),
                 getTranslation("gardens.map.unavailable"), getTranslation("gardens.map.water")));
         map.setContributor(false);
@@ -352,7 +359,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     /**
      * The markers: gardens on the same rounded point (about 1 km) share one, which counts them (#66).
      * Everything a popup shows is computed here, in this space and for this person only: the coordinates,
-     * what grows today and the questions waiting.
+     * what grows today, the questions waiting and the weather now from the stored forecast (#67).
      */
     private List<GardenMap.Group> groups(List<GardenSummary> all) {
         Map<String, List<GardenSummary>> byPoint = new LinkedHashMap<>();
@@ -365,7 +372,9 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         List<GardenMap.Group> groups = new ArrayList<>();
         byPoint.forEach((key, same) -> {
             GardenSummary first = same.getFirst();
-            List<GardenMap.Pin> pins = same.stream().map(this::pin).toList();
+            // Gardens on one rounded point share one stored position, so they share one reading (#67).
+            Optional<ForecastHour> hour = weather.storedNow(first.latitude(), first.longitude());
+            List<GardenMap.Pin> pins = same.stream().map(garden -> pin(garden, hour)).toList();
             groups.add(new GardenMap.Group(first.latitude().doubleValue(), first.longitude().doubleValue(),
                     same.size() > 1 ? getTranslation("gardens.map.point", same.size()) : first.name(),
                     getTranslation("gardens.map.position", first.latitude().toPlainString(),
@@ -374,7 +383,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         return groups;
     }
 
-    private GardenMap.Pin pin(GardenSummary garden) {
+    private GardenMap.Pin pin(GardenSummary garden, Optional<ForecastHour> hour) {
         String login = currentUser.login();
         LocalDate today = LocalDate.now(GardenHomeView.ITALY);
         int growing = gardens.growingOn(spaceId, login, garden.id(), today).size();
@@ -383,7 +392,21 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                 garden.town() == null ? getTranslation("garden.notown") : garden.town(),
                 garden.elevationM() == null ? getTranslation("gardens.map.altitude.none")
                         : getTranslation("gardens.map.altitude", garden.elevationM()),
+                hour.map(ForecastHour::symbol).orElse(null),
+                hour.map(this::weatherText).orElse(null),
                 growing, waiting);
+    }
+
+    /**
+     * The weather now in a popup, from the stored forecast hour (#67): whole degrees, and the precipitation
+     * only when the hour covers one hour, so a six-hour total is never read as the rain of now.
+     */
+    private String weatherText(ForecastHour hour) {
+        long temperature = Math.round(hour.airTemperature());
+        if (hour.stepHours() == 1 && hour.precipitation() != null) {
+            return getTranslation("gardens.map.weather", temperature, hour.precipitation());
+        }
+        return getTranslation("gardens.map.weather.temperature", temperature);
     }
 
     /**

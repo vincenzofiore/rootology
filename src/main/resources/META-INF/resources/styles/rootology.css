@@ -326,8 +326,10 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-map-popup-icon { display: inline-flex; flex: none; color: var(--lumo-secondary-text-color); }
 .rootology-map-popup-icon vaadin-icon { width: 16px; height: 16px; }
-/* Altitude, crops growing and questions waiting on one line, wrapping on a narrow popup. */
-.rootology-map-popup-facts { display: flex; flex-wrap: wrap; column-gap: var(--lumo-space-m); }
+/* The weather now (#67): MET Norway's own coloured icons, which work on light and dark alike. */
+.rootology-map-popup-icon img { display: block; width: 1.5rem; height: 1.5rem; }
+/* Values sharing one line (the town and its altitude; crops growing and questions waiting), wrapping on a narrow popup. */
+.rootology-map-popup-facts { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--lumo-space-m); }
 /* Questions waiting for a person stand out, the icon included. */
 .rootology-map-popup-attention,
 .rootology-map-popup-attention .rootology-map-popup-icon { color: var(--lumo-warning-text-color); font-weight: 600; }
@@ -371,8 +373,9 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-map-popup-action:hover { background: var(--lumo-primary-color-10pct); }
 .rootology-map-popup-delete { color: var(--lumo-error-text-color); }
 .rootology-map-popup-delete:hover { background: var(--lumo-error-color-10pct); }
-.rootology-map-popup-note {
-    margin: var(--lumo-space-s) 0 0;
+/* The rounded position, under the town (one garden) or under the title (several on one point). */
+.rootology-map-popup .rootology-map-popup-position {
+    margin: 0 0 var(--lumo-space-xs);
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
     font-style: italic;

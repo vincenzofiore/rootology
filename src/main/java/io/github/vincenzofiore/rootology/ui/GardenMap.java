@@ -34,9 +34,12 @@ public final class GardenMap extends Component {
     /**
      * One garden in a popup, every line already worded in the page's language. {@code altitude} is the value
      * alone ("120 m"), {@code crops} and {@code waiting} the counts of crops growing today and questions waiting:
-     * the popup shows each beside an icon, and the word is the icon's tooltip.
+     * the popup shows each beside an icon, and the word is the icon's tooltip. {@code weatherSymbol} is MET
+     * Norway's symbol code of the stored hour nearest to now and {@code weatherText} its temperature and
+     * precipitation already worded; both null when there is no such stored hour (#67).
      */
-    public record Pin(String id, String name, String town, String altitude, int crops, int waiting) {
+    public record Pin(String id, String name, String town, String altitude, String weatherSymbol, String weatherText,
+                      int crops, int waiting) {
     }
 
     /**
@@ -51,8 +54,8 @@ public final class GardenMap extends Component {
     }
 
     /** The texts of the map that are not about one garden. */
-    record Labels(String open, String edit, String delete, String altitude, String crops, String waiting,
-                  String addHere, String unavailable, String water) {
+    record Labels(String open, String edit, String delete, String altitude, String weather, String weatherCredit,
+                  String crops, String waiting, String addHere, String unavailable, String water) {
     }
 
     /** What the map should centre on; nonce makes choosing the same garden twice a change again. */

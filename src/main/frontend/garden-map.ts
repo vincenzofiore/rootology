@@ -31,6 +31,10 @@ interface GardenPin {
   name: string;
   town: string;
   altitude: string;
+  /** MET Norway's symbol code of the stored hour nearest to now, or null: its icon (#67). */
+  weatherSymbol: string | null;
+  /** The temperature and precipitation already worded, or null when there is no such hour. */
+  weatherText: string | null;
   crops: number;
   waiting: number;
 }
@@ -49,8 +53,11 @@ interface Labels {
   open: string;
   edit: string;
   delete: string;
-  /** The words for the icons' tooltips: altitude, crops growing, questions waiting. */
+  /** The words for the icons' tooltips: altitude, weather now, crops growing, questions waiting. */
   altitude: string;
+  weather: string;
+  /** MET Norway's credit, in the map's attribution while a popup shows its weather (#67). */
+  weatherCredit: string;
   crops: string;
   waiting: string;
   addHere: string;
@@ -93,7 +100,8 @@ const POPUP_MARGIN = 12;
 export class GardenMap extends LitElement {
   @property({ type: Array }) groups: GardenGroup[] = [];
   @property({ type: Object }) labels: Labels = {
-    open: '', edit: '', delete: '', altitude: '', crops: '', waiting: '', addHere: '', unavailable: '', water: ''
+    open: '', edit: '', delete: '', altitude: '', weather: '', weatherCredit: '', crops: '', waiting: '', addHere: '',
+    unavailable: '', water: ''
   };
   @property({ type: String }) styleUrl = '';
   /** Whether the person may add, edit and delete gardens; the server checks every such event again. */
@@ -109,6 +117,9 @@ export class GardenMap extends LitElement {
   private markers: Marker[] = [];
   private popup?: Popup;
   private addPopup?: Popup;
+  private attribution?: AttributionControl;
+  /** Whether the attribution now carries MET Norway's credit. */
+  private credited = false;
 
   // Every style lives in rootology.css, so there is no shadow root.
   protected override createRenderRoot(): HTMLElement {
@@ -153,8 +164,8 @@ export class GardenMap extends LitElement {
     }
     // The Liberty style JSON declares no attribution, but the TileJSON of its tiles does, and MapLibre
     // shows it: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap", with the three links. Checked rendering;
-    // nothing is added on top, so it is not said twice.
-    this.map.addControl(new AttributionControl({ compact: true }), 'bottom-right');
+    // nothing is added on top, so it is not said twice, except MET Norway's credit when its weather is shown.
+    this.credit();
     // Zoom buttons for whoever prefers them to the wheel or two fingers; no compass, the map never rotates.
     this.map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     this.map.dragRotate.disable();
@@ -178,6 +189,9 @@ export class GardenMap extends LitElement {
     if (changed.has('styleUrl')) {
       this.start();
     }
+    if (changed.has('groups') || changed.has('labels')) {
+      this.credit();
+    }
     if (changed.has('groups') || changed.has('contributor')) {
       this.draw();
       if (changed.has('groups') && this.loaded) {
@@ -194,6 +208,8 @@ export class GardenMap extends LitElement {
     super.disconnectedCallback();
     this.map?.remove();
     this.map = undefined;
+    this.attribution = undefined;
+    this.credited = false;
     this.loaded = false;
   }
 
@@ -201,6 +217,32 @@ export class GardenMap extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     this.start();
+  }
+
+  /**
+   * The attribution in the corner, with "Data from MET Norway" added while any popup shows the weather now:
+   * its terms ask for the credit wherever the data appears, visibly, not only in a tooltip (#67).
+   */
+  private credit() {
+    if (!this.map) {
+      return;
+    }
+    const weather = this.groups.some((group) => group.gardens.some((garden) => garden.weatherText))
+      && this.labels.weatherCredit !== '';
+    if (this.attribution && weather === this.credited) {
+      return;
+    }
+    if (this.attribution) {
+      this.map.removeControl(this.attribution);
+    }
+    const link = document.createElement('a');
+    link.href = 'https://api.met.no/';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = this.labels.weatherCredit;
+    this.attribution = new AttributionControl({ compact: true, customAttribution: weather ? link.outerHTML : undefined });
+    this.map.addControl(this.attribution, 'bottom-right');
+    this.credited = weather;
   }
 
   private draw() {
@@ -316,19 +358,17 @@ export class GardenMap extends LitElement {
     }
     const content = document.createElement('div');
     content.className = 'rootology-map-popup';
-    if (group.gardens.length > 1) {
+    // Gardens on one point share its position: said once under the group's title, otherwise in the garden.
+    const shared = group.gardens.length > 1;
+    if (shared) {
       const title = document.createElement('p');
       title.className = 'rootology-map-popup-title';
       title.textContent = group.title;
-      content.append(title);
+      content.append(title, this.position(group.position));
     }
     for (const garden of group.gardens) {
-      content.append(this.entry(garden));
+      content.append(this.entry(garden, shared ? null : group.position));
     }
-    const note = document.createElement('p');
-    note.className = 'rootology-map-popup-note';
-    note.textContent = group.position;
-    content.append(note);
 
     this.popup?.remove();
     this.popup = new Popup({ closeButton: true, closeOnClick: false, maxWidth: '18rem', offset: 12 })
@@ -341,8 +381,12 @@ export class GardenMap extends LitElement {
     this.keepInside(this.popup);
   }
 
-  /** One garden in a popup: its name selects its row; Open, Edit and Delete are the table row's actions. */
-  private entry(garden: GardenPin): HTMLElement {
+  /**
+   * One garden in a popup, one kind of information per line: the name (it selects the row), the town with
+   * its altitude, the position when the garden has the point to itself, the weather now, what grows and the
+   * questions waiting, and last the table row's actions (Open, Edit, Delete).
+   */
+  private entry(garden: GardenPin, position: string | null): HTMLElement {
     const box = document.createElement('div');
     box.className = 'rootology-map-popup-garden';
 
@@ -357,13 +401,23 @@ export class GardenMap extends LitElement {
 
     const details = document.createElement('div');
     details.className = 'rootology-map-popup-details';
+    const place = document.createElement('div');
+    place.className = 'rootology-map-popup-facts';
+    place.append(this.line(garden.town), this.fact(MOUNTAIN_ICON, this.labels.altitude, garden.altitude));
+    details.append(place);
+    if (position) {
+      details.append(this.position(position));
+    }
+    const weather = this.weatherIcon(garden.weatherSymbol);
+    if (weather && garden.weatherText) {
+      details.append(this.fact(weather, this.labels.weather, garden.weatherText));
+    }
     const facts = document.createElement('div');
     facts.className = 'rootology-map-popup-facts';
-    facts.append(this.fact(MOUNTAIN_ICON, this.labels.altitude, garden.altitude),
-      this.fact(SPROUT_ICON, this.labels.crops, String(garden.crops)),
+    facts.append(this.fact(SPROUT_ICON, this.labels.crops, String(garden.crops)),
       this.fact(WAITING_ICON, this.labels.waiting, String(garden.waiting),
         garden.waiting > 0 ? 'rootology-map-popup-attention' : undefined));
-    details.append(this.line(garden.town), facts);
+    details.append(facts);
 
     const actions = document.createElement('div');
     actions.className = 'rootology-map-popup-actions';
@@ -375,6 +429,24 @@ export class GardenMap extends LitElement {
 
     box.append(name, details, actions);
     return box;
+  }
+
+  /**
+   * The weather icon, the same self-served MIT icons as the weather card (#67), or nothing when the code is
+   * missing or is not one of their names: the code is data from outside, so it never goes into markup as is.
+   */
+  private weatherIcon(symbol: string | null): string | null {
+    if (!symbol || !/^[a-z_]+$/.test(symbol)) {
+      return null;
+    }
+    return `<img src="weather-icons/${symbol}.svg" width="16" height="16" alt="" aria-hidden="true" focusable="false">`;
+  }
+
+  /** The rounded position, about 1 km, as a small secondary line. */
+  private position(text: string): HTMLParagraphElement {
+    const p = this.line(text);
+    p.className = 'rootology-map-popup-position';
+    return p;
   }
 
   private line(text: string): HTMLParagraphElement {

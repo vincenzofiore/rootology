@@ -61,6 +61,9 @@ class GardensMapTest {
     Ungardened ungardened;
 
     @Autowired
+    io.github.vincenzofiore.rootology.weather.WeatherService weather;
+
+    @Autowired
     JdbcClient jdbc;
 
     @Test
@@ -109,6 +112,41 @@ class GardensMapTest {
         assertThat(pin.town()).isEqualTo("Milan");
         assertThat(pin.crops()).isZero();
         assertThat(pin.waiting()).isZero();
+    }
+
+    @Test
+    void aPopupShowsTheWeatherNowOnlyFromAStoredForecast() {
+        String login = login("map-weather");
+        long space = personalSpace(login);
+        garden(space, login, "Balcony", "46.31", "11.11");
+        garden(space, login, "Shed", "46.41", "11.21");
+
+        // A copy the 7:00 alerts job (or a question) left behind, with the hour of now (#67).
+        java.time.Instant now = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+        jdbc.sql("insert into weather_location (latitude, longitude, fetched_at, expires_at, last_modified) "
+                        + "values (?, ?, ?, ?, null) on conflict (latitude, longitude) do update set "
+                        + "fetched_at = excluded.fetched_at, expires_at = excluded.expires_at")
+                .params(new BigDecimal("46.31"), new BigDecimal("11.11"), java.sql.Timestamp.from(now),
+                        java.sql.Timestamp.from(now.plusSeconds(1800))).update();
+        jdbc.sql("insert into weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
+                        + "precipitation_mm, step_hours, symbol_code) values (?, ?, ?, ?, ?, ?, ?, ?) "
+                        + "on conflict (latitude, longitude, valid_at) do update set "
+                        + "air_temperature = excluded.air_temperature, symbol_code = excluded.symbol_code")
+                .params(new BigDecimal("46.31"), new BigDecimal("11.11"), java.sql.Timestamp.from(now),
+                        12.4, 70.0, 0.4, 1, "rain").update();
+
+        GardensView view = view(login);
+        view.beforeEnter(entering(space));
+
+        List<GardenMap.Pin> pins = groups(view).stream().flatMap(group -> group.gardens().stream()).toList();
+        GardenMap.Pin withWeather = pins.stream().filter(pin -> pin.name().equals("Balcony")).findFirst().orElseThrow();
+        assertThat(withWeather.weatherSymbol()).isEqualTo("rain");
+        assertThat(withWeather.weatherText())
+                .as("the wording is a message pattern here: these tests have no UI").isNotNull();
+
+        GardenMap.Pin without = pins.stream().filter(pin -> pin.name().equals("Shed")).findFirst().orElseThrow();
+        assertThat(without.weatherSymbol()).as("no stored copy, no weather line").isNull();
+        assertThat(without.weatherText()).isNull();
     }
 
     @Test
@@ -271,7 +309,8 @@ class GardensMapTest {
     }
 
     private GardensView view(String login) {
-        return new GardensView(gardens, geoNames, ungardened, new CurrentUser(spaces, login), cells, pipeline, STYLE);
+        return new GardensView(gardens, geoNames, ungardened, new CurrentUser(spaces, login), cells, pipeline,
+                weather, STYLE);
     }
 
     private long garden(long spaceId, String login, String name, String latitude, String longitude) {

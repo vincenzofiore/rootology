@@ -18,6 +18,8 @@ What each version of Rootology brings, for the people who use it and run it. The
   dialog with the place already filled in; a click on water says so instead, and coordinates typed by hand that
   look like open sea are questioned before saving. The map is MapLibre GL JS on the free OpenFreeMap tiles and
   never blocks the page: when it cannot load, the table keeps working (#66).
+- The gardens map's popups show the weather now, from the stored forecast: MET Norway's symbol with the
+  temperature and, when the hour covers one hour, the precipitation (#67).
 - A garden can be deleted, from its row's menu or its popup, after a confirmation that names it and its plots:
   its plots and plantings go with it, its questions and notifications stay in the space among the questions
   without a garden (#66).
