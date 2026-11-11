@@ -68,11 +68,12 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
         grid.addColumn(n -> WHEN.format(n.createdAt())).setHeader(getTranslation("notifications.when")).setAutoWidth(true);
         grid.addColumn(n -> (n.unread() ? "● " : "") + (n.weather() ? n.title()
+                : n.accessRequest() ? getTranslation("notifications.accessrequest")
                 : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting")))
                 .setHeader(getTranslation("notifications.what")).setAutoWidth(true);
         grid.addColumn(this::where).setHeader(getTranslation("notifications.where")).setAutoWidth(true);
         grid.addColumn(NotificationView::body).setHeader(getTranslation("notifications.details")).setFlexGrow(3);
-        grid.addColumn(n -> n.weather() || n.answered() ? ""
+        grid.addColumn(n -> n.weather() || n.answered() || n.accessRequest() ? ""
                         : n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
                         : getTranslation("notifications.status.answered", n.resolvedBy()))
                 .setHeader(getTranslation("notifications.status")).setAutoWidth(true);
@@ -124,6 +125,12 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
      */
     private void open(NotificationView n) {
         notifications.markRead(currentUser.login(), n.id());
+        if (n.accessRequest()) {
+            // #65: it is about the app, not about a space, and only an admin can decide.
+            getUI().ifPresent(ui -> ui.navigate(AdminView.class));
+            refresh();
+            return;
+        }
         if (!currentUser.memberOf(n.spaceId())) {
             Notification.show(getTranslation("notifications.gone"));
             refresh();
@@ -148,7 +155,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
      * context at all. Same space and garden: it opens directly.
      */
     boolean asksBeforeOpening(NotificationView n) {
-        return contextSpace != n.spaceId() || contextGarden != n.gardenId();
+        return !n.accessRequest() && (contextSpace != n.spaceId() || contextGarden != n.gardenId());
     }
 
     /**
@@ -166,6 +173,9 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             parameters.put(Routed.GARDEN, String.valueOf(n.gardenId()));
         }
         com.vaadin.flow.router.RouteParameters route = new com.vaadin.flow.router.RouteParameters(parameters);
+        if (n.accessRequest()) {
+            return new Target(AdminView.class, new com.vaadin.flow.router.RouteParameters(Map.of()));
+        }
         if (n.weather()) {
             return new Target(n.gardenId() > 0 ? GardenHomeView.class : GardensView.class, route);
         }
@@ -179,6 +189,9 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** Its space, and its garden when it has one: a garden alone is ambiguous across spaces (#56). */
     private String where(NotificationView n) {
+        if (n.accessRequest()) {
+            return getTranslation("notifications.where.admin");
+        }
         String space = currentUser.spaces().stream().filter(s -> s.id() == n.spaceId()).map(s -> s.name())
                 .findFirst().orElse("");
         if (n.gardenId() <= 0) {

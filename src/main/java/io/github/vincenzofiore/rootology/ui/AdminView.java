@@ -1,7 +1,9 @@
 package io.github.vincenzofiore.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
@@ -12,6 +14,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
+import io.github.vincenzofiore.rootology.access.AccessRequestStatus;
 import io.github.vincenzofiore.rootology.alerts.WeatherAlerts;
 import io.github.vincenzofiore.rootology.roles.AppRole;
 import io.github.vincenzofiore.rootology.roles.RoleGrantView;
@@ -27,7 +31,8 @@ import java.util.Set;
 /**
  * App roles (#32), for admins only (Vaadin checks {@code @RolesAllowed}, the service {@code @PreAuthorize}):
  * everyone the app knows with their roles, grant and revoke, and the history of every change. A change
- * applies from the person's next sign-in.
+ * applies from the person's next sign-in. It also holds the invitation requests (#65), approved or rejected
+ * here, with the motivation shown as plain text.
  */
 @Route(value = "admin", layout = MainLayout.class)
 @RolesAllowed("ADMIN")
@@ -42,13 +47,18 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
     private final Grid<RoleGrantView> history = new Grid<>();
     private final UsageService usage;
     private final WeatherAlerts weatherAlerts;
+    private final AccessRequestService accessRequests;
     private final Grid<UsageService.PersonUsage> consumption = new Grid<>();
+    private final Grid<io.github.vincenzofiore.rootology.access.AccessRequestView> waitingRequests = new Grid<>();
+    private final Grid<io.github.vincenzofiore.rootology.access.AccessRequestView> decidedRequests = new Grid<>();
 
-    public AdminView(RoleService roles, UsageService usage, WeatherAlerts weatherAlerts, CurrentUser currentUser) {
+    public AdminView(RoleService roles, UsageService usage, WeatherAlerts weatherAlerts, CurrentUser currentUser,
+                     AccessRequestService accessRequests) {
         this.roles = roles;
         this.usage = usage;
         this.weatherAlerts = weatherAlerts;
         this.currentUser = currentUser;
+        this.accessRequests = accessRequests;
         people.addColumn(Map.Entry::getKey).setHeader(getTranslation("space.login")).setAutoWidth(true);
         for (AppRole role : AppRole.values()) {
             people.addComponentColumn(p -> {
@@ -79,6 +89,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         add(new H3(getTranslation("admin.roles")), new Paragraph(getTranslation("admin.roles.intro")),
                 people, new H4(getTranslation("admin.history")), history);
         add(usageSection());
+        add(requestsSection());
         Button checkWeather = new Button(getTranslation("admin.weather.check"), e -> Notification.show(
                 getTranslation("admin.weather.result", weatherAlerts.checkNow())));
         add(new H3(getTranslation("admin.weather")), new Paragraph(getTranslation("admin.weather.intro")), checkWeather);
@@ -113,6 +124,72 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
                 new Paragraph(getTranslation("admin.usage.intro", usage.defaultLimit())), consumption);
     }
 
+    /**
+     * The invitation requests (#65): those waiting, with the motivation as plain text, and the last 30
+     * decided ones. Approving or rejecting asks first; both record who decided and when.
+     */
+    private VerticalLayout requestsSection() {
+        waitingRequests.addColumn(r -> WHEN.format(r.createdAt()))
+                .setHeader(getTranslation("admin.requests.when")).setAutoWidth(true);
+        waitingRequests.addColumn(r -> getTranslation("provider." + r.provider().id()))
+                .setHeader(getTranslation("admin.requests.provider")).setAutoWidth(true);
+        waitingRequests.addColumn(io.github.vincenzofiore.rootology.access.AccessRequestView::login)
+                .setHeader(getTranslation("space.login")).setAutoWidth(true);
+        waitingRequests.addColumn(r -> r.email() == null ? "" : r.email())
+                .setHeader(getTranslation("admin.requests.email")).setAutoWidth(true);
+        // A text column: the motivation is the person's own words, never markup.
+        waitingRequests.addColumn(io.github.vincenzofiore.rootology.access.AccessRequestView::motivation)
+                .setHeader(getTranslation("admin.requests.motivation")).setFlexGrow(3);
+        waitingRequests.addComponentColumn(r -> new HorizontalLayout(
+                        RowActions.approve(getTranslation("admin.requests.approve"), e -> confirm(r, true)),
+                        RowActions.reject(getTranslation("admin.requests.reject"), e -> confirm(r, false))))
+                .setAutoWidth(true);
+        waitingRequests.setAllRowsVisible(true);
+        waitingRequests.setEmptyStateText(getTranslation("admin.requests.none"));
+
+        decidedRequests.addColumn(r -> WHEN.format(r.decidedAt()))
+                .setHeader(getTranslation("admin.requests.decided")).setAutoWidth(true);
+        decidedRequests.addColumn(io.github.vincenzofiore.rootology.access.AccessRequestView::login)
+                .setHeader(getTranslation("space.login")).setAutoWidth(true);
+        decidedRequests.addColumn(r -> getTranslation("provider." + r.provider().id()))
+                .setHeader(getTranslation("admin.requests.provider")).setAutoWidth(true);
+        decidedRequests.addColumn(r -> getTranslation(r.status() == AccessRequestStatus.APPROVED
+                ? "admin.requests.approved" : "admin.requests.rejected"))
+                .setHeader(getTranslation("admin.requests.status")).setAutoWidth(true);
+        decidedRequests.addColumn(io.github.vincenzofiore.rootology.access.AccessRequestView::decidedBy)
+                .setHeader(getTranslation("admin.requests.by")).setAutoWidth(true);
+        decidedRequests.setAllRowsVisible(true);
+        return new VerticalLayout(new H3(getTranslation("admin.requests")),
+                new Paragraph(getTranslation("admin.requests.intro")), waitingRequests,
+                new H4(getTranslation("admin.requests.history")), decidedRequests);
+    }
+
+    /** One decision, after a confirmation that says what it does. */
+    private void confirm(io.github.vincenzofiore.rootology.access.AccessRequestView request, boolean approve) {
+        Dialog dialog = new Dialog(getTranslation(approve ? "admin.requests.approve.title"
+                : "admin.requests.reject.title"));
+        dialog.add(new Paragraph(getTranslation(approve ? "admin.requests.approve.text"
+                : "admin.requests.reject.text", request.login())));
+        Button confirm = new Button(getTranslation(approve ? "admin.requests.approve"
+                : "admin.requests.reject"), e -> {
+            dialog.close();
+            act(() -> {
+                if (approve) {
+                    accessRequests.approve(currentUser.login(), request.id());
+                } else {
+                    accessRequests.reject(currentUser.login(), request.id());
+                }
+            });
+        });
+        if (approve) {
+            confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        } else {
+            confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        }
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()), confirm);
+        dialog.open();
+    }
+
     private void act(Runnable action) {
         try {
             action.run();
@@ -126,6 +203,8 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         people.setItems(roles.people(currentUser.login()).entrySet().stream().toList());
         consumption.setItems(usage.report(7));
         history.setItems(roles.history(currentUser.login()));
+        waitingRequests.setItems(accessRequests.pending(currentUser.login()));
+        decidedRequests.setItems(accessRequests.decided(currentUser.login()));
     }
 
     @Override

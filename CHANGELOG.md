@@ -8,6 +8,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- A person can request an invitation from the welcome page after signing in with GitHub or Google; admins
+  approve or reject it in Administration and are notified by email and Telegram (#65).
 - The gardens of a space are on a map, beside the table (below it on a narrow screen); the map alone is
   shown first, and the person chooses map, table or both, which the browser remembers. A marker opens a
   garden's essentials (town, altitude, approximate coordinates, what grows today, the questions waiting) with

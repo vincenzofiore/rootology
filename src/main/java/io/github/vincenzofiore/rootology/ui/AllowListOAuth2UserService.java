@@ -14,8 +14,8 @@ import java.util.stream.Collectors;
 
 /**
  * Loads the GitHub user, finds the person they are, and lets in only: the bootstrap allow-list (environment
- * variable), anyone who already belongs to a space, or someone holding a valid invitation in their session.
- * Without it, any GitHub account could sign in.
+ * variable), anyone who already belongs to a space, someone holding a valid invitation in their session, or
+ * an identity an admin approved (#65). Anyone else signs in as pending and may only ask for an invitation.
  *
  * <p>The person is found by GitHub's numeric id, which never changes (#28), and by the GitHub login only as a
  * fallback, for a person with no identity at all. A GitHub login whose person already has an identity of any
@@ -71,9 +71,18 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
         String subject = subject(user);
         String login = resolveLogin(subject, githubLogin(user));
         Set<String> emails = verified.all();
-        requireAllowed(login, token, emails);
+        if (!requireAllowed(login, token, emails, subject)) {
+            // #65: not admitted, but allowed in as a pending person, who can ask for an invitation.
+            return pending(subject, login, emails);
+        }
         steps.complete(login, token, emails, IdentityProvider.GITHUB, subject, verified.primary());
         return withRoles(user, login, emails);
+    }
+
+    /** The principal of someone not admitted (#65): no app role, nothing written. */
+    OAuth2User pending(String subject, String login, Set<String> emails) {
+        return new DefaultOAuth2User(SignInSteps.pendingAuthorities(),
+                steps.pendingAttributes(IdentityProvider.GITHUB, subject, login, emails), SignedIn.LOGIN_ATTRIBUTE);
     }
 
     /**
@@ -123,14 +132,15 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
                 SignedIn.LOGIN_ATTRIBUTE);
     }
 
-    /** Refuses the person unless they are on the bootstrap allow-list, belong to a space, or hold an invitation. */
-    void requireAllowed(String login, String token, Set<String> verifiedEmails) {
-        boolean allowed = allowedLogins.contains(login)
+    /**
+     * True when the person is on the bootstrap allow-list, belongs to a space, holds an invitation, or an
+     * admin approved their request (#65). False means they sign in as pending.
+     */
+    boolean requireAllowed(String login, String token, Set<String> verifiedEmails, String subject) {
+        return allowedLogins.contains(login)
                 || spaces.belongsToAnySpace(login)
-                || steps.invitationAdmits(token, login, verifiedEmails);
-        if (!allowed) {
-            throw denied("GitHub account " + login + " is not allowed");
-        }
+                || steps.invitationAdmits(token, login, verifiedEmails)
+                || steps.approved(IdentityProvider.GITHUB, subject);
     }
 
     private static OAuth2AuthenticationException denied(String reason) {

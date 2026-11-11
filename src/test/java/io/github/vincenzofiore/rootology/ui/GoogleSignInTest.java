@@ -55,6 +55,9 @@ class GoogleSignInTest {
     NotificationService notifications;
 
     @Autowired
+    io.github.vincenzofiore.rootology.access.AccessRequestService accessRequests;
+
+    @Autowired
     JdbcClient jdbc;
 
     private static OidcUser googleUser(String sub, String email, Map<String, Object> extra) {
@@ -76,7 +79,7 @@ class GoogleSignInTest {
 
     private GoogleOidcUserService service(String... allowedEmails) {
         return new GoogleOidcUserService(Set.of(allowedEmails),
-                new SignInSteps(spaces, identities, invitations, roles, notifications), spaces, identities, invitations);
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), spaces, identities, invitations);
     }
 
     private long count(String sql) {
@@ -132,14 +135,15 @@ class GoogleSignInTest {
     }
 
     @Test
-    void anInvitationBoundToAGitHubLoginIsRefused() {
+    void anInvitationBoundToAGitHubLoginIsNotUsedByGoogle() {
         spaces.signedIn("ghowner");
         long shared = spaces.spacesOf("ghowner").getFirst().id();
         String token = invitations.create(shared, "ghowner", Role.MEMBER, "some-github-name");
 
-        assertThatThrownBy(() -> service().signIn(googleUser("google-104", "somegithubname@example.org"), token))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+        // #65: the invitation is not for a Google person, and without an admission they sign in as pending.
+        OidcUser principal = service().signIn(googleUser("google-104", "somegithubname@example.org"), token);
 
+        assertThat(principal.getAuthorities()).extracting(a -> a.getAuthority()).containsExactly("ROLE_PENDING");
         assertThat(count("select count(*) from app_user where login like 'somegithubname%'")).isZero();
         assertThat(count("select count(*) from user_identity where subject = 'google-104'")).isZero();
         assertThat(count("select count(*) from space_member where space_id = " + shared)).isEqualTo(1);
@@ -161,14 +165,31 @@ class GoogleSignInTest {
     }
 
     @Test
-    void someoneWithNeitherListNorInvitationIsRefusedAndLeavesNothingBehind() {
-        assertThatThrownBy(() -> service("someone-else@example.org")
-                .signIn(googleUser("google-107", "gsi-stranger@example.org"), null))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+    void someoneWithNeitherListNorInvitationSignsInAsPendingAndLeavesNothingBehind() {
+        // #65: not admitted, but signed in with the pending authority alone, to ask for an invitation.
+        OidcUser principal = service("someone-else@example.org")
+                .signIn(googleUser("google-107", "gsi-stranger@example.org"), null);
 
+        assertThat(principal.getAuthorities()).extracting(a -> a.getAuthority()).containsExactly("ROLE_PENDING");
+        assertThat(principal.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("gsi-stranger");
         assertThat(count("select count(*) from app_user where login like 'gsi-stranger%'")).isZero();
         assertThat(count("select count(*) from user_identity where subject = 'google-107'")).isZero();
         assertThat(count("select count(*) from notification_preference where github_login like 'gsi-stranger%'")).isZero();
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "admin", roles = "ADMIN")
+    void anApprovedGooglePersonIsAdmittedAndItsRequestIsDeleted() {
+        accessRequests.request(IdentityProvider.GOOGLE, "google-111", "approved", "approved@example.org", "please");
+        long request = jdbc.sql("select id from access_request where subject = 'google-111'").query(Long.class).single();
+        accessRequests.approve("admin", request);
+
+        OidcUser principal = service().signIn(googleUser("google-111", "approved@example.org"), null);
+
+        assertThat(principal.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("approved");
+        assertThat(count("select count(*) from app_user where login = 'approved'")).isEqualTo(1);
+        assertThat(spaces.spacesOf("approved")).isNotEmpty();
+        assertThat(count("select count(*) from access_request where subject = 'google-111'")).isZero();
     }
 
     @Test
@@ -176,9 +197,9 @@ class GoogleSignInTest {
         spaces.signedIn("git-marco");
         identities.link("git-marco", IdentityProvider.GITHUB, "github-108", "gsi-marco@example.org");
 
-        // Not admitted: a Google account is never merged with an existing person by its address.
-        assertThatThrownBy(() -> service().signIn(googleUser("google-109", "gsi-marco@example.org"), null))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+        // Not admitted: a Google account is never merged with an existing person by its address (#65: pending).
+        OidcUser pending = service().signIn(googleUser("google-109", "gsi-marco@example.org"), null);
+        assertThat(pending.getAuthorities()).extracting(a -> a.getAuthority()).containsExactly("ROLE_PENDING");
 
         assertThat(count("select count(*) from user_identity where subject = 'google-109'")).isZero();
         assertThat(identity("git-marco", IdentityProvider.GITHUB)).get()
@@ -203,7 +224,7 @@ class GoogleSignInTest {
         service("gsi-gina@example.org").signIn(googleUser("google-110", "gsi-gina@example.org"), null);
 
         AllowListOAuth2UserService github = new AllowListOAuth2UserService(Set.of("gsi-gina"), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications), null);
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), null);
 
         assertThatThrownBy(() -> github.signIn(githubUser(111, "gsi-gina"), GitHubEmails.Verified.NONE, null))
                 .isInstanceOf(OAuth2AuthenticationException.class);

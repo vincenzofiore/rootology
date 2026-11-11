@@ -60,6 +60,10 @@ public class PrivacyView extends Div implements HasDynamicTitle {
                 new ListItem(getTranslation("privacy.kept.usage", days(retention.usage()))),
                 new ListItem(getTranslation("privacy.kept.invitations", days(retention.invitations()))),
                 new ListItem(getTranslation("privacy.kept.telegram", days(retention.telegram()))),
+                new ListItem(getTranslation("privacy.kept.accessrequests.rejected",
+                        days(retention.rejectedAccessRequests()))),
+                new ListItem(getTranslation("privacy.kept.accessrequests.pending",
+                        days(retention.pendingAccessRequests()))),
                 new ListItem(getTranslation("privacy.kept.weather")),
                 new ListItem(getTranslation("privacy.kept.account")));
         add(kept);

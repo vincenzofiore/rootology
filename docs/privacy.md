@@ -25,6 +25,7 @@ The controller is the owner of the deployment, named on the privacy page through
 | Usage records (who, when, calls, tokens, cost) and personal limits | `usage_record`, `usage_limit` | fair use, cost control | legitimate interest | 12 months |
 | Knowledge proposals (who proposed, who reviewed, source, note) | `knowledge_proposal`, Neo4j | attribution of contributed facts | legitimate interest | as long as the fact is in use; the login is replaced when the account is deleted |
 | App roles with who granted and revoked them | `app_role_grant` | accountability of administration | legitimate interest | kept; the login is replaced when the account is deleted |
+| Invitation requests from people who are not users yet: provider, the provider's stable id, the login we would give them, the verified email address, the motivation (free text), the dates, and who decided | `access_request` | deciding whether to admit a person, and telling the admins that a request waits | legitimate interest | a rejected one 30 days after the decision (the waiting time before asking again), a waiting or approved-but-unused one 90 days; an approved one is deleted at the person's first sign-in |
 | Weather forecasts and recent past hours for a rounded position | `weather_location`, `weather_hour` | weather in answers and alerts | contract | 30 days |
 | Application logs (logins in security events: invitations, joins; masked email addresses; a random id per request; never questions, prompts or coordinates) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
 | Metrics (counts and durations by service, graph and outcome; never a person, a space or a question) | the app's memory, since the last start | operations (#27) | not personal data | until the next restart |
@@ -76,17 +77,20 @@ and the person's IP and nothing about the gardens. The browser's position
 ## How it is applied
 
 - `privacy.RetentionJob` runs every night at 3:30 Italian time (`rootology.retention`) and deletes old runs,
-  answered escalations, read or resolved notifications and old weather alerts, usage records and closed invitations.
+  answered escalations, read or resolved notifications and old weather alerts, usage records, closed invitations,
+  and invitation requests (rejected after the waiting time, waiting or unused after 90 days).
 - `privacy.AccountDeletion` deletes an account in one transaction, through a small class in each module
   (`SpacePersonalData`, `GardenPersonalData`, `RunPersonalData`, `EscalationPersonalData`,
   `NotificationPersonalData`, `TelegramPersonalData`, `UsagePersonalData`, `ProposalPersonalData`,
-  `RolePersonalData`); space facts leave
+  `RolePersonalData`, `AccessPersonalData`); space facts leave
   the Neo4j graph after the commit. An approved global fact proposed in a deleted space keeps no space (Flyway `V18`).
 - `privacy.DataExport` builds the JSON file from the same classes. The My account page (`/account`) offers both.
 
 ## Rights
 
-- **Access and export**: a JSON file with the person's data and the spaces they belong to (#40).
+- **Access and export**: a JSON file with the person's data and the spaces they belong to (#40). A person who
+  is not admitted yet cannot sign in: their request page shows what is kept about them, and withdrawing the
+  request deletes it.
 - **Deletion**: the person deletes their account. Their personal space and everything in it,
   their preferences, usage, notifications, limits and open invitations they created are deleted;
   in what stays in shared spaces (questions, answers, reviewed proposals, role history) the login

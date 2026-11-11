@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.privacy;
 
+import io.github.vincenzofiore.rootology.access.AccessPersonalData;
 import io.github.vincenzofiore.rootology.enrichment.ProposalPersonalData;
 import io.github.vincenzofiore.rootology.garden.GardenPersonalData;
 import io.github.vincenzofiore.rootology.history.RunPersonalData;
@@ -49,12 +50,13 @@ public class AccountDeletion {
     private final UsagePersonalData usage;
     private final ProposalPersonalData proposals;
     private final RolePersonalData roles;
+    private final AccessPersonalData access;
     private final Clock clock;
 
     AccountDeletion(SpacePersonalData spaces, GardenPersonalData gardens, RunPersonalData runs,
                     EscalationPersonalData escalations, NotificationPersonalData notifications,
                     TelegramPersonalData telegram, UsagePersonalData usage,
-                    ProposalPersonalData proposals, RolePersonalData roles, Clock clock) {
+                    ProposalPersonalData proposals, RolePersonalData roles, AccessPersonalData access, Clock clock) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.runs = runs;
@@ -64,6 +66,7 @@ public class AccountDeletion {
         this.usage = usage;
         this.proposals = proposals;
         this.roles = roles;
+        this.access = access;
         this.clock = clock;
     }
 
@@ -91,6 +94,7 @@ public class AccountDeletion {
         }
         Set<Long> gone = plan.spacesToDelete();
         // Everything that refers to a space first, the spaces and the account last.
+        access.forget(login);
         proposals.forget(login, gone, DELETED_USER);
         notifications.forget(login, gone, DELETED_USER);
         telegram.forget(login);

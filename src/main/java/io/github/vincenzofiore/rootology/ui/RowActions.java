@@ -25,6 +25,18 @@ final class RowActions {
         return icon(VaadinIcon.EDIT, label, listener);
     }
 
+    /** Something that goes ahead (an approval, an invitation request): the check mark. */
+    static Button approve(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.CHECK, label, listener);
+    }
+
+    /** Something that is turned down: a cross, in the error colour, like a delete. */
+    static Button reject(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        Button button = icon(VaadinIcon.CLOSE, label, listener);
+        button.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        return button;
+    }
+
     static Button delete(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         Button button = icon(VaadinIcon.TRASH, label, listener);
         button.addThemeVariants(ButtonVariant.LUMO_ERROR);

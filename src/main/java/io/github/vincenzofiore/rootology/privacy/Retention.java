@@ -21,5 +21,9 @@ public record Retention(
         /** Invitations once accepted, revoked or expired. */
         Duration invitations,
         /** Telegram one-time codes, and links Telegram stopped delivering to (#38). */
-        Duration telegram) {
+        Duration telegram,
+        /** Invitation requests a rejected person may not renew before (#65), kept after the decision. */
+        Duration rejectedAccessRequests,
+        /** Invitation requests still waiting, and approvals never used (#65). */
+        Duration pendingAccessRequests) {
 }

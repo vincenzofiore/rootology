@@ -64,6 +64,19 @@ public class IdentityService {
     }
 
     /**
+     * The provider and stable id of each sign-in account of a person, without addresses: personal data (#40)
+     * uses them to find the records keyed by an identity, such as an invitation request (#65).
+     */
+    @Transactional(readOnly = true)
+    public List<ProviderAccount> accountsOf(String login) {
+        return users.findByLogin(SpaceService.normalizeLogin(login))
+                .map(user -> identities.findByUserIdOrderByLinkedAtAsc(user.getId()).stream()
+                        .map(identity -> new ProviderAccount(identity.getProvider(), identity.getSubject()))
+                        .toList())
+                .orElse(List.of());
+    }
+
+    /**
      * A login derived from {@code base} that nobody has yet: the base itself, or the base with 2, 3, ... after
      * it. Used for a person whose login must be invented, as for Google (#28).
      */

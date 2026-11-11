@@ -10,6 +10,15 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 - In place: every space-scoped service call checks membership, and contributor for changes (`SpaceService.requireContributor`; a GUEST only looks). Objects are looked up within the space (`GardenService.garden/plot/planting`, proposals, invitations, escalations), so another space's id is refused. App roles are Spring authorities: `@RolesAllowed` on views, `@PreAuthorize` on services. `CurrentUser` is the only source of the signed-in login and current space, and switching space checks membership.
 - Fixed: `RunHistory.recent` and `GardenPipeline.pending` now take the login and check membership themselves, instead of trusting the caller's space.
 - Tested: `CrossSpaceAccessTest` (another space's ids from one's own space, and another space outright), `GardenPipelineAgentTest` (answering another space's escalation), the role tests.
+- Signed in but not admitted (#65): a GitHub or Google account that is not on the allow-list, in no space and
+  without a valid invitation signs in as *pending*. Its principal carries the authority `ROLE_PENDING` alone (no
+  app role) and only its provider identity and the login it would have; nothing is written before an admin
+  approves it (no `app_user`, no `user_identity`, no space, no remembered address). `AccessRouting` sends it from
+  any route to `/request-access` and lets it reach only `/sources`, `/privacy`, `/welcome` and `/logged-out`; an
+  admitted person who opens the request page is sent home. The services stay safe on their own, since a pending
+  person is a member of no space and `CurrentUser` never treats them as one. The motivation they write is only
+  read by admins: never sent to Claude or Jev, never logged, and shown as text (never markup) in the
+  Administration page. Tested by `PendingAccessTest`.
 
 ### A02 Security misconfiguration
 - In place: only `/logged-out`, `/invite/**`, `/sources`, `/privacy`, weather icons and styles are public; everything else needs sign-in. Spring's default headers (nosniff, `X-Frame-Options: DENY`, no-store cache control).

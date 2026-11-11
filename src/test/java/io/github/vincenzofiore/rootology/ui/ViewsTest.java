@@ -83,6 +83,9 @@ class ViewsTest {
     io.github.vincenzofiore.rootology.notifications.TelegramLinks telegramLinks;
 
     @Autowired
+    io.github.vincenzofiore.rootology.access.AccessRequestService accessRequests;
+
+    @Autowired
     io.github.vincenzofiore.rootology.geocoding.GeoNames geoNames;
 
     @Autowired
@@ -265,7 +268,7 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {
-        assertThat(new AdminView(roles, usage, weatherAlerts, viewer()).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+        assertThat(new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
     }
 
     @Test

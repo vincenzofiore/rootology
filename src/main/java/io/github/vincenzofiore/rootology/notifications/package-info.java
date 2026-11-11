@@ -6,6 +6,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Notifications",
-        allowedDependencies = { "pipeline", "spaces", "mail", "resilience" }
+        allowedDependencies = { "pipeline", "spaces", "roles", "access", "mail", "resilience" }
 )
 package io.github.vincenzofiore.rootology.notifications;

@@ -120,6 +120,10 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
+        if (currentUser.pending()) {
+            // A pending person (#65) is on the request page by now: this layout has nothing to show them.
+            return;
+        }
         RouteParameters parameters = event.getRouteParameters();
         QueryParameters query = event.getLocation().getQueryParameters();
         long spaceId = number(parameters, Routed.SPACE);

@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.privacy;
 
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
 import io.github.vincenzofiore.rootology.history.RunPersonalData;
 import io.github.vincenzofiore.rootology.notifications.NotificationPersonalData;
 import io.github.vincenzofiore.rootology.notifications.TelegramPersonalData;
@@ -31,11 +32,12 @@ public class RetentionJob {
     private final TelegramPersonalData telegram;
     private final UsagePersonalData usage;
     private final SpacePersonalData spaces;
+    private final AccessRequestService accessRequests;
     private final Clock clock;
 
     RetentionJob(Retention retention, RunPersonalData runs, EscalationPersonalData escalations,
                  NotificationPersonalData notifications, TelegramPersonalData telegram, UsagePersonalData usage,
-                 SpacePersonalData spaces, Clock clock) {
+                 SpacePersonalData spaces, AccessRequestService accessRequests, Clock clock) {
         this.retention = retention;
         this.runs = runs;
         this.escalations = escalations;
@@ -43,6 +45,7 @@ public class RetentionJob {
         this.telegram = telegram;
         this.usage = usage;
         this.spaces = spaces;
+        this.accessRequests = accessRequests;
         this.clock = clock;
     }
 
@@ -55,7 +58,9 @@ public class RetentionJob {
                 + notifications.purge(now.minus(retention.notifications()))
                 + usage.purge(now.minus(retention.usage()))
                 + spaces.purgeInvitations(now.minus(retention.invitations()))
-                + telegram.purge(now.minus(retention.telegram()));
+                + telegram.purge(now.minus(retention.telegram()))
+                + accessRequests.purge(now.minus(retention.rejectedAccessRequests()),
+                        now.minus(retention.pendingAccessRequests()), now.minus(retention.pendingAccessRequests()));
         log.info("Retention: {} old record(s) deleted", deleted);
     }
 }

@@ -14,6 +14,11 @@ public record NotificationView(long id, long spaceId, long gardenId, String kind
         return "WEATHER_ALERT".equals(kind);
     }
 
+    /** An invitation request (#65): no space, it leads to the Administration page. */
+    public boolean accessRequest() {
+        return "ACCESS_REQUEST".equals(kind);
+    }
+
     /** The asker's own question was answered (#51): it leads to the answer, not to a waiting question. */
     public boolean answered() {
         return "ESCALATION_ANSWERED".equals(kind);

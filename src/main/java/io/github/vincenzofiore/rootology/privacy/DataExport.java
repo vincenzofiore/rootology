@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.privacy;
 
+import io.github.vincenzofiore.rootology.access.AccessPersonalData;
 import io.github.vincenzofiore.rootology.enrichment.ProposalPersonalData;
 import io.github.vincenzofiore.rootology.garden.GardenPersonalData;
 import io.github.vincenzofiore.rootology.history.RunPersonalData;
@@ -42,13 +43,14 @@ public class DataExport {
     private final UsagePersonalData usage;
     private final ProposalPersonalData proposals;
     private final RolePersonalData roles;
+    private final AccessPersonalData access;
     private final Clock clock;
     private final JsonMapper json = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
     DataExport(SpacePersonalData spaces, GardenPersonalData gardens, RunPersonalData runs,
                EscalationPersonalData escalations, NotificationPersonalData notifications, TelegramPersonalData telegram,
                UsagePersonalData usage,
-               ProposalPersonalData proposals, RolePersonalData roles, Clock clock) {
+               ProposalPersonalData proposals, RolePersonalData roles, AccessPersonalData access, Clock clock) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.runs = runs;
@@ -58,6 +60,7 @@ public class DataExport {
         this.usage = usage;
         this.proposals = proposals;
         this.roles = roles;
+        this.access = access;
         this.clock = clock;
     }
 
@@ -76,6 +79,7 @@ public class DataExport {
         data.putAll(usage.export(login));
         data.put("knowledgeProposals", proposals.export(login));
         data.put("appRoles", roles.export(login));
+        data.put("accessRequests", access.export(login));
         return json.writeValueAsBytes(plain(data));
     }
 

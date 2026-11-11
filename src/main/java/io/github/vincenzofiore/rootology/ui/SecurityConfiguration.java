@@ -3,6 +3,7 @@ package io.github.vincenzofiore.rootology.ui;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
 import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.IdentityProvider;
@@ -69,8 +70,9 @@ class SecurityConfiguration {
 
     @Bean
     SignInSteps signInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations,
-                            RoleService roles, NotificationService notifications) {
-        return new SignInSteps(spaces, identities, invitations, roles, notifications);
+                            RoleService roles, NotificationService notifications,
+                            AccessRequestService accessRequests) {
+        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests);
     }
 
     @Bean

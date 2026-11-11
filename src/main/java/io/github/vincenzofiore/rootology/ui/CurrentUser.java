@@ -24,20 +24,38 @@ public class CurrentUser {
 
     private final SpaceService spaces;
     private final String login;
+    private final boolean pending;
     private long spaceId;
 
     @Autowired
     CurrentUser(SpaceService spaces, AuthenticationContext authentication) {
         this(spaces, authentication.getAuthenticatedUser(OAuth2User.class)
                 .map(user -> user.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE))
-                .orElseThrow(() -> new IllegalStateException("No signed-in user")));
+                .orElseThrow(() -> new IllegalStateException("No signed-in user")),
+                PendingAccess.isPending());
     }
 
     CurrentUser(SpaceService spaces, String login) {
+        this(spaces, login, false);
+    }
+
+    /**
+     * A pending person (#65) signed in but is not admitted: nothing is written for them, and they are a
+     * member of nothing. They only ever reach their request page, which does not use this class.
+     */
+    private CurrentUser(SpaceService spaces, String login, boolean pending) {
         this.spaces = spaces;
         this.login = SpaceService.normalizeLogin(login);
-        spaces.signedIn(this.login);
-        this.spaceId = spaces.spacesOf(login).getFirst().id();
+        this.pending = pending;
+        if (!pending) {
+            spaces.signedIn(this.login);
+            this.spaceId = spaces.spacesOf(login).getFirst().id();
+        }
+    }
+
+    /** True for someone signed in but not admitted (#65): no space, no role, nothing to see. */
+    public boolean pending() {
+        return pending;
     }
 
     public String login() {
@@ -60,11 +78,14 @@ public class CurrentUser {
      * space of the page, read from its route (#56): the session's space may be another, in another tab.
      */
     public boolean canContribute(long spaceId) {
-        return spaces.canContribute(spaceId, login);
+        return !pending && spaces.canContribute(spaceId, login);
     }
 
     public SpaceSummary space() {
         List<SpaceSummary> mine = spaces();
+        if (mine.isEmpty()) {
+            throw new SpaceAccessException(login + " belongs to no space");
+        }
         return mine.stream().filter(s -> s.id() == spaceId).findFirst().orElseGet(() -> {
             SpaceSummary first = mine.getFirst();
             spaceId = first.id();
@@ -73,16 +94,16 @@ public class CurrentUser {
     }
 
     public List<SpaceSummary> spaces() {
-        return spaces.spacesOf(login);
+        return pending ? List.of() : spaces.spacesOf(login);
     }
 
     /** True when the person belongs to the space; a page checks its route's space first (#56). */
     public boolean memberOf(long spaceId) {
-        return spaces.isMember(spaceId, login);
+        return !pending && spaces.isMember(spaceId, login);
     }
 
     public void switchTo(long newSpaceId) {
-        if (!spaces.isMember(newSpaceId, login)) {
+        if (pending || !spaces.isMember(newSpaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + newSpaceId);
         }
         this.spaceId = newSpaceId;

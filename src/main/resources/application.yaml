@@ -120,6 +120,10 @@ rootology:
     invitations: P30D
     # Telegram one-time codes, and links Telegram stopped delivering to (#38).
     telegram: P30D
+    # Invitation requests (#65): a rejected one after the waiting time, a waiting or unused approved one after
+    # 90 days, so a forgotten request does not stay forever.
+    rejected-access-requests: P30D
+    pending-access-requests: P90D
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:
@@ -137,6 +141,11 @@ rootology:
   invitations:
     # Invitations each owner may create per day (#25).
     daily-limit: 20
+  access-requests:
+    # Invitation requests (#65) created per day in Italian time, everyone together; then nobody may ask until
+    # tomorrow. A rejected person may ask again after retry-after.
+    daily-limit: 10
+    retry-after: P30D
   telegram:
     # Notifications on the phone (#38), through a bot of the owner's. Empty token: the feature is hidden,
     # as place search is without a GeoNames account. The token is in every request path: it is never logged.

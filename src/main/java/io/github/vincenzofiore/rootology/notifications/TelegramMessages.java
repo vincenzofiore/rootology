@@ -43,6 +43,11 @@ final class TelegramMessages {
         return new Item(title + " (" + place + ")", link);
     }
 
+    /** An invitation request (#65): that something waits, and where to decide. Never who or why. */
+    static Item accessRequest(String link) {
+        return new Item("una richiesta di invito aspetta una decisione", link);
+    }
+
     /** One message for everything that happened since the last tick, or nothing when there is nothing. */
     static String digest(List<Item> items) {
         if (items.isEmpty()) {

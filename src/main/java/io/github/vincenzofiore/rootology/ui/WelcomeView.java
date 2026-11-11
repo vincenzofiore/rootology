@@ -54,6 +54,11 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
                 SecurityConfiguration.googleConfigured(googleClientId)));
         add(new Paragraph(getTranslation("welcome.access")));
 
+        // #65: access is by invitation, and whoever is not invited yet asks for one after signing in.
+        add(new H3(getTranslation("welcome.request.title")), new Paragraph(getTranslation("welcome.request.text")),
+                new SignInButtons(getTranslation("welcome.request.github"), getTranslation("welcome.request.google"),
+                        SecurityConfiguration.googleConfigured(googleClientId)));
+
         // Sources and Privacy are in the line at the bottom of PublicLayout.
     }
 

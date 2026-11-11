@@ -1,9 +1,12 @@
 package io.github.vincenzofiore.rootology.notifications;
 
+import io.github.vincenzofiore.rootology.access.AccessRequested;
 import io.github.vincenzofiore.rootology.mail.MailService;
 import io.github.vincenzofiore.rootology.mail.OutgoingMail;
 import io.github.vincenzofiore.rootology.pipeline.EscalationResolved;
 import io.github.vincenzofiore.rootology.pipeline.EscalationWaiting;
+import io.github.vincenzofiore.rootology.roles.AppRole;
+import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.Member;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import org.slf4j.Logger;
@@ -53,6 +56,7 @@ public class NotificationService {
 
     private final JdbcClient jdbc;
     private final SpaceService spaces;
+    private final RoleService roles;
     private final MailService mail;
     private final TelegramClient telegram;
     private final TelegramLinks telegramLinks;
@@ -61,12 +65,13 @@ public class NotificationService {
     private final Duration groupWindow;
     private final String baseUrl;
 
-    NotificationService(JdbcClient jdbc, SpaceService spaces, MailService mail, TelegramClient telegram,
-                        TelegramLinks telegramLinks, ApplicationEventPublisher events, Clock clock,
-                        @Value("${rootology.notifications.group-window}") Duration groupWindow,
+    NotificationService(JdbcClient jdbc, SpaceService spaces, RoleService roles, MailService mail,
+                        TelegramClient telegram, TelegramLinks telegramLinks, ApplicationEventPublisher events,
+                        Clock clock, @Value("${rootology.notifications.group-window}") Duration groupWindow,
                         @Value("${rootology.base-url}") String baseUrl) {
         this.jdbc = jdbc;
         this.spaces = spaces;
+        this.roles = roles;
         this.mail = mail;
         this.telegram = telegram;
         this.telegramLinks = telegramLinks;
@@ -116,6 +121,27 @@ public class NotificationService {
             changed.add(asker);
         }
         events.publishEvent(new NotificationsChanged(Set.copyOf(changed)));
+    }
+
+    /**
+     * A new invitation request (#65): one notification per admin, with no space, since it is about the app and
+     * not about a garden. It says that something waits and links the Administration page; the motivation, the
+     * login and the email stay behind the admin role.
+     */
+    @EventListener
+    @Transactional
+    void on(AccessRequested requested) {
+        Set<String> admins = new HashSet<>(roles.holders(AppRole.ADMIN));
+        for (String admin : admins) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, title, body, created_at) "
+                            + "VALUES (?, NULL, NULL, 'ACCESS_REQUEST', ?, ?, ?)")
+                    .params(admin, "A new invitation request", "A new invitation request is waiting",
+                            Timestamp.from(clock.instant()))
+                    .update();
+        }
+        if (!admins.isEmpty()) {
+            events.publishEvent(new NotificationsChanged(admins));
+        }
     }
 
     /** The latest notifications of a person, newest first. */
@@ -313,6 +339,9 @@ public class NotificationService {
 
     /** What one notification says on the phone: where it happened and the link, nothing more. */
     private TelegramMessages.Item telegramItem(Pending p) {
+        if (p.accessRequest()) {
+            return TelegramMessages.accessRequest(adminLink());
+        }
         String page = p.weather() ? "" : p.answered() ? "history" : "escalations";
         String link = link(page, p);
         return p.weather() ? TelegramMessages.weather(p.title(), p.place(), link)
@@ -326,8 +355,9 @@ public class NotificationService {
      */
     private Map<String, List<Pending>> pending(String mark, Instant notAfter) {
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
+        // An access request (#65) belongs to no space: the join must not drop it.
         var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, "
-                        + "n.garden_id, s.name, g.name FROM notification n JOIN space s ON s.id = n.space_id "
+                        + "n.garden_id, s.name, g.name FROM notification n LEFT JOIN space s ON s.id = n.space_id "
                         + "LEFT JOIN garden g ON g.id = n.garden_id "
                         + "WHERE n." + mark + " IS NULL AND n.resolved_at IS NULL"
                         + (notAfter == null ? "" : " AND n.created_at <= :notAfter")
@@ -346,6 +376,7 @@ public class NotificationService {
         List<Pending> questions = pending.stream().filter(Pending::waiting).toList();
         List<Pending> answers = pending.stream().filter(Pending::answered).toList();
         List<Pending> weather = pending.stream().filter(Pending::weather).toList();
+        List<Pending> requests = pending.stream().filter(Pending::accessRequest).toList();
         String subject;
         if (!weather.isEmpty()) {
             subject = questions.isEmpty() && answers.isEmpty()
@@ -354,6 +385,9 @@ public class NotificationService {
                     : answers.isEmpty() ? "Rootology: domande in attesa e avvisi meteo"
                     : questions.isEmpty() ? "Rootology: risposte e avvisi meteo"
                     : "Rootology: risposte, domande in attesa e avvisi meteo";
+        } else if (questions.isEmpty() && answers.isEmpty()) {
+            // Only invitation requests (#65): the rest of the chain below assumes an answer or a question.
+            subject = null;
         } else if (questions.isEmpty()) {
             subject = "Rootology: la tua domanda ha una risposta";
         } else if (answers.isEmpty()) {
@@ -361,6 +395,14 @@ public class NotificationService {
                     : "Rootology: " + questions.size() + " domande aspettano una risposta";
         } else {
             subject = "Rootology: risposte e domande in attesa";
+        }
+        if (!requests.isEmpty()) {
+            String extra = requests.size() == 1 ? "una richiesta di invito"
+                    : requests.size() + " richieste di invito";
+            subject = subject == null
+                    ? "Rootology: " + extra + (requests.size() == 1 ? " aspetta una decisione"
+                            : " aspettano una decisione")
+                    : subject + " e " + extra;
         }
         StringBuilder text = new StringBuilder("Ciao,\n\n");
         StringBuilder html = new StringBuilder("<p>Ciao,</p>");
@@ -401,6 +443,15 @@ public class NotificationService {
                     .append(HtmlUtils.htmlEscape(p.place())).append("</a></li>"));
             html.append("</ul>");
         }
+        if (!requests.isEmpty()) {
+            // Never the motivation, the login or the address: only that something waits, and where (#65).
+            text.append(requests.size() == 1 ? "una richiesta di invito aspetta una decisione:\n"
+                    : "alcune richieste di invito aspettano una decisione:\n");
+            text.append("- Amministrazione: ").append(adminLink()).append('\n');
+            html.append("<p>").append(requests.size() == 1 ? "Una richiesta di invito aspetta una decisione:"
+                    : "Alcune richieste di invito aspettano una decisione:").append("</p><ul><li><a href=\"")
+                    .append(HtmlUtils.htmlEscape(adminLink())).append("\">Amministrazione</a></li></ul>");
+        }
         text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
         html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
         return new OutgoingMail(to, subject, text.toString(), html.toString());
@@ -411,6 +462,11 @@ public class NotificationService {
      * at. Without a garden: the space's questions when there is no garden to open (a deleted garden), and
      * the space's gardens overview for a weather alert, which is about a garden.
      */
+    /** The Administration page, where an invitation request waits (#65). */
+    private String adminLink() {
+        return baseUrl + "/admin";
+    }
+
     private String link(String page, Pending p) {
         String where = "/spaces/" + p.spaceId();
         if (p.gardenId() > 0) {
@@ -426,7 +482,14 @@ public class NotificationService {
 
         /** Where it happened, as the notification page shows it: space · garden, or the space alone. */
         String place() {
+            if (accessRequest()) {
+                return "Amministrazione";
+            }
             return gardenName == null ? spaceName : spaceName + " · " + gardenName;
+        }
+
+        boolean accessRequest() {
+            return "ACCESS_REQUEST".equals(kind);
         }
 
         boolean weather() {
@@ -438,7 +501,7 @@ public class NotificationService {
         }
 
         boolean waiting() {
-            return !weather() && !answered();
+            return !weather() && !answered() && !accessRequest();
         }
     }
 
