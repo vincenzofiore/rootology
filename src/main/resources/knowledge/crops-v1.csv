@@ -2,43 +2,43 @@
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
-id,italian,english,scientific,family,wikidata,ecocrop,ecocrop_match
-tomato,Pomodoro,Tomato,Solanum lycopersicum,Solanaceae,Q23501,1379,Lycopersicon esculentum
-sweet-pepper,Peperone,Sweet pepper,Capsicum annuum,Solanaceae,Q1380,618,
-chili-pepper,Peperoncino,Chili pepper,Capsicum annuum / C. frutescens,Solanaceae,Q1380,621,C. frutescens
-eggplant,Melanzana,Eggplant,Solanum melongena,Solanaceae,Q7540,1965,
-potato,Patata,Potato,Solanum tuberosum,Solanaceae,Q10998,1971,
-zucchini,Zucchina,Zucchini,Cucurbita pepo,Cucurbitaceae,Q7229863,821,
-cucumber,Cetriolo,Cucumber,Cucumis sativus,Cucurbitaceae,Q23425,817,
-melon,Melone,Melon,Cucumis melo,Cucurbitaceae,Q81602,815,
-watermelon,Anguria,Watermelon,Citrullus lanatus,Cucurbitaceae,Q17507129,708,
-winter-squash,Zucca,Winter squash,Cucurbita maxima / C. moschata,Cucurbitaceae,Q161180,819,C. maxima
-bean,Fagiolo,Bean,Phaseolus vulgaris,Fabaceae,Q42339,1668,
-basil,Basilico,Basil,Ocimum basilicum,Lamiaceae,Q38859,1547,
-cauliflower,Cavolfiore,Cauliflower,Brassica oleracea var. botrytis,Brassicaceae,Q7537,553,
-broccoli,Broccolo,Broccoli,Brassica oleracea var. italica,Brassicaceae,Q47722,556,
-tuscan-kale,Cavolo nero,Tuscan kale,Brassica oleracea var. palmifolia,Brassicaceae,Q2048275,3867,kale (var. acephala)
-savoy-cabbage,Cavolo verza,Savoy cabbage,Brassica oleracea var. sabauda,Brassicaceae,Q154013,554,cabbage (var. capitata)
-cabbage,Cavolo cappuccio,Cabbage,Brassica oleracea var. capitata,Brassicaceae,Q35051,554,
-turnip-tops,Cime di rapa,Turnip tops,Brassica rapa,Brassicaceae,Q3384,3881,turnip (var. rapifera)
-fennel,Finocchio,Florence fennel,Foeniculum vulgare var. azoricum,Apiaceae,Q41777547,1107,
-radicchio,Radicchio,Radicchio,Cichorium intybus,Asteraceae,Q2544599,694,
-endive,Indivia e scarola,Endive and escarole,Cichorium endivia,Asteraceae,Q178547,693,
-leek,Porro,Leek,Allium porrum,Amaryllidaceae,Q21870138,363,Allium ampeloprasum
-spinach,Spinacio,Spinach,Spinacia oleracea,Amaranthaceae,Q81464,1997,
-lambs-lettuce,Valerianella (songino),Lamb's lettuce,Valerianella locusta,Caprifoliaceae,Q158954,,
-broad-bean,Fava,Broad bean,Vicia faba,Fabaceae,Q131342,2146,
-pea,Pisello,Pea,Pisum sativum,Fabaceae,Q25237,1721,
-garlic,Aglio,Garlic,Allium sativum,Amaryllidaceae,Q23400,367,
-onion,Cipolla,Onion,Allium cepa,Amaryllidaceae,Q23485,364,
-artichoke,Carciofo,Artichoke,Cynara cardunculus var. scolymus,Asteraceae,Q23043615,847,Cynara scolymus
-strawberry,Fragola,Strawberry,Fragaria x ananassa,Rosaceae,Q13158,1112,
-lettuce,Lattuga,Lettuce,Lactuca sativa,Asteraceae,Q83193,1313,var. capitata
-rocket,Rucola,Rocket,Eruca vesicaria,Brassicaceae,Q5395935,5794,Eruca sativa
-radish,Ravanello,Radish,Raphanus sativus,Brassicaceae,Q7224565,1839,
-carrot,Carota,Carrot,Daucus carota,Apiaceae,Q30056,871,
-chard,Bietola,Chard,Beta vulgaris var. cicla,Amaranthaceae,Q50884896,2474,var. cicla
-celery,Sedano,Celery,Apium graveolens,Apiaceae,Q28298,432,var. dulce
-parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae,Q25284,1661,
-rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae,Q102240169,9326,Rosmarinus officinalis
-sage,Salvia,Sage,Salvia officinalis,Lamiaceae,Q1111359,2412,
+id,italian,english,scientific,family,wikidata,ecocrop,ecocrop_match,frost_group
+tomato,Pomodoro,Tomato,Solanum lycopersicum,Solanaceae,Q23501,1379,Lycopersicon esculentum,TENDER
+sweet-pepper,Peperone,Sweet pepper,Capsicum annuum,Solanaceae,Q1380,618,,TENDER
+chili-pepper,Peperoncino,Chili pepper,Capsicum annuum / C. frutescens,Solanaceae,Q1380,621,C. frutescens,TENDER
+eggplant,Melanzana,Eggplant,Solanum melongena,Solanaceae,Q7540,1965,,TENDER
+potato,Patata,Potato,Solanum tuberosum,Solanaceae,Q10998,1971,,HARDY
+zucchini,Zucchina,Zucchini,Cucurbita pepo,Cucurbitaceae,Q7229863,821,,TENDER
+cucumber,Cetriolo,Cucumber,Cucumis sativus,Cucurbitaceae,Q23425,817,,TENDER
+melon,Melone,Melon,Cucumis melo,Cucurbitaceae,Q81602,815,,TENDER
+watermelon,Anguria,Watermelon,Citrullus lanatus,Cucurbitaceae,Q17507129,708,,TENDER
+winter-squash,Zucca,Winter squash,Cucurbita maxima / C. moschata,Cucurbitaceae,Q161180,819,C. maxima,TENDER
+bean,Fagiolo,Bean,Phaseolus vulgaris,Fabaceae,Q42339,1668,,TENDER
+basil,Basilico,Basil,Ocimum basilicum,Lamiaceae,Q38859,1547,,TENDER
+cauliflower,Cavolfiore,Cauliflower,Brassica oleracea var. botrytis,Brassicaceae,Q7537,553,,AUTUMN
+broccoli,Broccolo,Broccoli,Brassica oleracea var. italica,Brassicaceae,Q47722,556,,AUTUMN
+tuscan-kale,Cavolo nero,Tuscan kale,Brassica oleracea var. palmifolia,Brassicaceae,Q2048275,3867,kale (var. acephala),AUTUMN
+savoy-cabbage,Cavolo verza,Savoy cabbage,Brassica oleracea var. sabauda,Brassicaceae,Q154013,554,cabbage (var. capitata),AUTUMN
+cabbage,Cavolo cappuccio,Cabbage,Brassica oleracea var. capitata,Brassicaceae,Q35051,554,,HARDY
+turnip-tops,Cime di rapa,Turnip tops,Brassica rapa,Brassicaceae,Q3384,3881,turnip (var. rapifera),AUTUMN
+fennel,Finocchio,Florence fennel,Foeniculum vulgare var. azoricum,Apiaceae,Q41777547,1107,,AUTUMN
+radicchio,Radicchio,Radicchio,Cichorium intybus,Asteraceae,Q2544599,694,,AUTUMN
+endive,Indivia e scarola,Endive and escarole,Cichorium endivia,Asteraceae,Q178547,693,,AUTUMN
+leek,Porro,Leek,Allium porrum,Amaryllidaceae,Q21870138,363,Allium ampeloprasum,HARDY
+spinach,Spinacio,Spinach,Spinacia oleracea,Amaranthaceae,Q81464,1997,,OVERWINTER
+lambs-lettuce,Valerianella (songino),Lamb's lettuce,Valerianella locusta,Caprifoliaceae,Q158954,,,OVERWINTER
+broad-bean,Fava,Broad bean,Vicia faba,Fabaceae,Q131342,2146,,OVERWINTER
+pea,Pisello,Pea,Pisum sativum,Fabaceae,Q25237,1721,,OVERWINTER
+garlic,Aglio,Garlic,Allium sativum,Amaryllidaceae,Q23400,367,,OVERWINTER
+onion,Cipolla,Onion,Allium cepa,Amaryllidaceae,Q23485,364,,OVERWINTER
+artichoke,Carciofo,Artichoke,Cynara cardunculus var. scolymus,Asteraceae,Q23043615,847,Cynara scolymus,OVERWINTER
+strawberry,Fragola,Strawberry,Fragaria x ananassa,Rosaceae,Q13158,1112,,OVERWINTER
+lettuce,Lattuga,Lettuce,Lactuca sativa,Asteraceae,Q83193,1313,var. capitata,LONG
+rocket,Rucola,Rocket,Eruca vesicaria,Brassicaceae,Q5395935,5794,Eruca sativa,LONG
+radish,Ravanello,Radish,Raphanus sativus,Brassicaceae,Q7224565,1839,,LONG
+carrot,Carota,Carrot,Daucus carota,Apiaceae,Q30056,871,,LONG
+chard,Bietola,Chard,Beta vulgaris var. cicla,Amaranthaceae,Q50884896,2474,var. cicla,LONG
+celery,Sedano,Celery,Apium graveolens,Apiaceae,Q28298,432,var. dulce,HARDY
+parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae,Q25284,1661,,LONG
+rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae,Q102240169,9326,Rosmarinus officinalis,OVERWINTER
+sage,Salvia,Sage,Salvia officinalis,Lamiaceae,Q1111359,2412,,OVERWINTER

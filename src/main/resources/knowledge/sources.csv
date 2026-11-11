@@ -12,3 +12,6 @@ purdue-bp80,Purdue Extension - Late Blight of Tomato and Potato (BP-80),https://
 eppo-codes,EPPO Codes - European and Mediterranean Plant Protection Organization,https://gd.eppo.int,EPPO Codes Open Data Licence (attribution to EPPO with download date),yes,2026-11-03
 met-norway,Data from MET Norway (Locationforecast 2.0 weather forecast),https://api.met.no/weatherapi/locationforecast/2.0/documentation,CC BY 4.0 / NLOD 2.0 (attribution to MET Norway),yes,2026-11-04
 geonames,GeoNames geographical database (place search),https://www.geonames.org,CC BY 4.0 (attribution to GeoNames),yes,2026-11-04
+agera5,AgERA5 v2.0 - Agrometeorological indicators from 1979 to present (Copernicus Climate Change Service),https://cds.climate.copernicus.eu/datasets/sis-agrometeorological-indicators,Copernicus Climate Change Service (C3S) licence (attribution to Copernicus),yes,2026-11-10
+copernicus-dem-90m,Copernicus DEM GLO-90 (produced using Copernicus WorldDEM-90; the full notice is in the climate cells file header),https://doi.org/10.5270/ESA-c5d3d65,Copernicus DEM licence (free; commercial use allowed; attribution required),yes,2026-11-10
+geonames-gtopo30,GeoNames GTOPO30 elevation (USGS GTOPO30; public domain),https://www.geonames.org/export/web-services.html,CC BY 4.0 (attribution to GeoNames),yes,2026-11-10

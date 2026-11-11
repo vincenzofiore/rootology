@@ -11,6 +11,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import io.github.vincenzofiore.rootology.privacy.PrivacyContact;
 import io.github.vincenzofiore.rootology.privacy.Retention;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Duration;
 
@@ -25,7 +26,8 @@ public class PrivacyView extends Div implements HasDynamicTitle {
 
     static final String ROUTE = "privacy";
 
-    public PrivacyView(PrivacyContact contact, Retention retention) {
+    public PrivacyView(PrivacyContact contact, Retention retention,
+                       @Value("${server.servlet.session.timeout:30m}") Duration sessionTimeout) {
         // A text column (styles/rootology.css): readable line length on wide screens, full width on a phone,
         // and the spacing of a document rather than a layout's even gaps.
         addClassName("rootology-prose");
@@ -45,7 +47,8 @@ public class PrivacyView extends Div implements HasDynamicTitle {
 
         add(new H3(getTranslation("privacy.who-receives.title")), list(
                 "privacy.receives.hosting", "privacy.receives.anthropic", "privacy.receives.typesafe", "privacy.receives.github",
-                "privacy.receives.google", "privacy.receives.mail", "privacy.receives.places", "privacy.receives.weather"));
+                "privacy.receives.google", "privacy.receives.mail", "privacy.receives.places", "privacy.receives.weather",
+                "privacy.receives.map", "privacy.receives.telegram"));
         add(new Paragraph(getTranslation("privacy.receives.transfers")));
         add(new Paragraph(getTranslation("privacy.receives.questions")));
 
@@ -56,6 +59,11 @@ public class PrivacyView extends Div implements HasDynamicTitle {
                 new ListItem(getTranslation("privacy.kept.notifications", days(retention.notifications()))),
                 new ListItem(getTranslation("privacy.kept.usage", days(retention.usage()))),
                 new ListItem(getTranslation("privacy.kept.invitations", days(retention.invitations()))),
+                new ListItem(getTranslation("privacy.kept.telegram", days(retention.telegram()))),
+                new ListItem(getTranslation("privacy.kept.accessrequests.rejected",
+                        days(retention.rejectedAccessRequests()))),
+                new ListItem(getTranslation("privacy.kept.accessrequests.pending",
+                        days(retention.pendingAccessRequests()))),
                 new ListItem(getTranslation("privacy.kept.weather")),
                 new ListItem(getTranslation("privacy.kept.account")));
         add(kept);
@@ -64,6 +72,11 @@ public class PrivacyView extends Div implements HasDynamicTitle {
                 new Paragraph(getTranslation("privacy.rights.complaint")));
 
         add(new H3(getTranslation("privacy.cookies.title")), new Paragraph(getTranslation("privacy.cookies.text")));
+        add(new UnorderedList(
+                new ListItem(getTranslation("privacy.cookies.session", sessionTimeout.toMinutes())),
+                new ListItem(getTranslation("privacy.cookies.theme")),
+                new ListItem(getTranslation("privacy.cookies.gardenview")),
+                new ListItem(getTranslation("privacy.cookies.providers"))));
     }
 
     private UnorderedList list(String... keys) {

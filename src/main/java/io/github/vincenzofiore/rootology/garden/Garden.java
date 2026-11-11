@@ -24,29 +24,29 @@ class Garden {
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String countryCode;
+    /** Metres above sea level from GeoNames GTOPO30 (#62); null when not known. */
+    @jakarta.persistence.Column(name = "elevation_m")
+    private Integer elevationM;
     private Instant createdAt;
 
     protected Garden() {
     }
 
     Garden(long spaceId, String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
-           Instant createdAt) {
+           Integer elevationM, Instant createdAt) {
         this.spaceId = spaceId;
         this.createdAt = createdAt;
-        update(name, town, latitude, longitude, countryCode);
+        update(name, town, latitude, longitude, countryCode, elevationM);
     }
 
-    void update(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode) {
+    void update(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
+                Integer elevationM) {
         this.name = name;
         this.town = town;
         this.latitude = latitude;
         this.longitude = longitude;
         this.countryCode = countryCode;
-    }
-
-    /** Gardens saved before the country was recorded (#30) were all in Italy. */
-    boolean inItaly() {
-        return countryCode == null || countryCode.equals("IT");
+        this.elevationM = elevationM;
     }
 
     Long getId() { return id; }
@@ -56,4 +56,5 @@ class Garden {
     BigDecimal getLatitude() { return latitude; }
     BigDecimal getLongitude() { return longitude; }
     String getCountryCode() { return countryCode; }
+    Integer getElevationM() { return elevationM; }
 }

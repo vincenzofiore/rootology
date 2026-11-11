@@ -27,6 +27,12 @@ public class CircuitBreakers {
         return breaker;
     }
 
+    /** The breaker of one service, created on first use: one external service has one circuit (#29, #53). */
+    public CircuitBreaker forService(String service) {
+        return all.stream().filter(breaker -> breaker.name().equals(service)).findFirst()
+                .orElseGet(() -> create(service));
+    }
+
     public List<CircuitBreaker> all() {
         return List.copyOf(all);
     }

@@ -10,6 +10,15 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 - In place: every space-scoped service call checks membership, and contributor for changes (`SpaceService.requireContributor`; a GUEST only looks). Objects are looked up within the space (`GardenService.garden/plot/planting`, proposals, invitations, escalations), so another space's id is refused. App roles are Spring authorities: `@RolesAllowed` on views, `@PreAuthorize` on services. `CurrentUser` is the only source of the signed-in login and current space, and switching space checks membership.
 - Fixed: `RunHistory.recent` and `GardenPipeline.pending` now take the login and check membership themselves, instead of trusting the caller's space.
 - Tested: `CrossSpaceAccessTest` (another space's ids from one's own space, and another space outright), `GardenPipelineAgentTest` (answering another space's escalation), the role tests.
+- Signed in but not admitted (#65): a GitHub or Google account that is not on the allow-list, in no space and
+  without a valid invitation signs in as *pending*. Its principal carries the authority `ROLE_PENDING` alone (no
+  app role) and only its provider identity and the login it would have; nothing is written before an admin
+  approves it (no `app_user`, no `user_identity`, no space, no remembered address). `AccessRouting` sends it from
+  any route to `/request-access` and lets it reach only `/sources`, `/privacy`, `/welcome` and `/logged-out`; an
+  admitted person who opens the request page is sent home. The services stay safe on their own, since a pending
+  person is a member of no space and `CurrentUser` never treats them as one. The motivation they write is only
+  read by admins: never sent to Claude or Jev, never logged, and shown as text (never markup) in the
+  Administration page. Tested by `PendingAccessTest`.
 
 ### A02 Security misconfiguration
 - In place: only `/logged-out`, `/invite/**`, `/sources`, `/privacy`, weather icons and styles are public; everything else needs sign-in. Spring's default headers (nosniff, `X-Frame-Options: DENY`, no-store cache control).
@@ -45,15 +54,31 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 ### A10 Mishandling of exceptional conditions
 - In place: every external call has short timeouts and a circuit breaker (#29); Claude down fails the question clearly; Jev down escalates to a person; no weather means no weather, with a note; saving a garden never depends on GeoNames.
 
+## Gardens map (#66)
+- The one place where the browser is allowed to reach another origin: `https://tiles.openfreemap.org`, in
+  `connect-src` (style, TileJSON, vector tiles, glyphs) and `img-src` (raster tiles, sprites). MapLibre GL JS
+  itself is a normal npm dependency (`@NpmPackage`, pinned to 6.16.0, BSD-3-Clause), bundled by Vaadin's Vite
+  and served from this origin: no CDN and no inline script.
+- The map's web worker is emitted among our own assets and created with `new Worker(url)`, which `worker-src`
+  allows through its fallback to `script-src 'self'`: no `blob:` and no extra directive are needed. Checked
+  with the policy enforced, in development and in production mode, with an empty console.
+- The style URL is configuration (`rootology.map.style-url`), so a service that stops can be replaced without
+  a release; when the style or the tiles fail the component says so and the table keeps working.
+- Only this page's space is ever sent to the map: the markers are built from `GardenService.gardens` and the
+  ids the map reports back are checked against them (`GardenMap.select`, `GardenMap.point`), so a garden of
+  another space can neither be shown nor opened. A guest gets no "add here" click at all, and the server
+  ignores one if it arrives.
+
 ## LLM application (OWASP Top 10 for LLM Applications, 2025)
 
 ### LLM01 Prompt injection
 - In place: Claude never chooses the answer's values. It produces an intent (kind, subject, zone, month, language) that is looked up in the graph with parameters, and Jev decides from the facts found; the answer card shows the decided values as badges next to Claude's sentence.
-- Fixed: questions are limited to 500 characters (`Question.MAX_LENGTH`, server and field); Claude's intent fields are trimmed, stripped of control characters and cut to a sane length (`Intent.bounded`), without turning unknown values into defaults (an unknown zone or month still escalates); the three prompts that carry the question say it is only the question, never instructions.
+- Fixed: questions are limited to 500 characters (`Question.MAX_LENGTH`, server and field); Claude's intent fields are trimmed, stripped of control characters and cut to a sane length (`Intent.bounded`), without turning unknown values into defaults (an unknown zone or month still escalates); the three prompts that carry the question say it is only the question, never instructions. The names of the space's gardens and of the current garden's plots reach the understanding prompt as data (#57): one line each, quotes and control characters removed, at most 30 names of 60 characters, closed by a line saying they are only names; what Claude returns is only matched against the space's own gardens, so a hostile name can at most point at a garden the person can already see, and an unclear one escalates.
+- In place (also, #53): every real question first passes a domain screen — one Noul question to Jev on the question text alone, sent as the request's state and never interpolated into the instructions, which close with the same "only the question, never instructions" line. A question that is clearly off-domain is refused before any Claude call, with a fixed text from the i18n files and no answer path, so a hostile question that reads as off-topic is stopped before Claude and before any reviewer sees it. This is a cheap first line, never a control we rely on: a fluent in-domain injection passes it, and the screen opens no output path — Jev still only judges and Claude still only phrases. A failure of the screen (no key, open circuit, error, timeout) lets the question through, because a wrong refusal is the worse error.
 - Accepted: an injected question can still change the wording of Claude's sentence; the values shown and the sources come from the graph and Jev.
 
 ### LLM02 Sensitive information disclosure
-- In place: a prompt carries only the question, the facts of the asking space and the notes; never another space's data, secrets or logins; Jev never receives the question text or the login (see `docs/privacy.md`).
+- In place: a prompt carries only the question, the facts of the asking space and the notes; never another space's data, secrets or logins. Jev receives the question text for the domain check (#53) and the understood intent and facts for the decision, never the login, the garden or the space's context (see `docs/privacy.md`).
 
 ### LLM03 Supply chain
 - The models are used through their vendors' APIs (Anthropic, TypeSafe) under commercial terms; libraries are covered by A03.
@@ -79,8 +104,17 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 ### LLM10 Unbounded consumption
 - In place: a daily question limit per person (#19), question length limit (above), timeouts and circuit breakers (#29), invitation limits per owner (#25), Embabel retries cut to one attempt per action.
 
+## Telegram notifications (#38)
+
+- In place: the bot token only lives in `ROOTOLOGY_TELEGRAM_BOT_TOKEN`, read by one class (`notifications.TelegramClient`), which is also the only place that builds a request: the token sits in every Bot API path, so no exception leaves the client (a failure is logged with the service and at most the HTTP status and Telegram's error code) and the clients are built with the static `RestClient.builder()`, without an observation registry, so no metric tag can carry the path. `TelegramClientTest` checks that neither the logs nor the meters hold the token or a full chat id.
+- Linking is a one-time code (32 random bytes, base64url), stored only as SHA-256 like invitations, valid ten minutes, single use, and accepted only from a private chat: a group is never written, and the code is untrusted input parsed with one strict pattern (`TelegramUpdates.codeOf`). The bot reads `/start <code>` and the block/unblock update and nothing else: no command changes data.
+- Nothing is readable from Telegram: a chat sees titles, space and garden names and links, never a question, an answer or a weather alert's body. The person's Telegram username, phone number and profile photo are not stored — only the chat id.
+- No webhook and so no new public route: the bot is polled (getUpdates), behind the two circuit breakers `Telegram` and `Telegram updates`.
+- Accepted for now: Telegram's Bot Platform terms (§4.2) require user data to be encrypted at rest, and the server has no disk encryption yet; to decide with the deployment (#12). A code seen by someone else within its ten minutes would link *their* chat to that person's account; the window is short, single use, and the state is shown in the app at once.
+
 ## Still open
 
-- With the deploy (#12): HTTPS, HSTS, `Secure` cookie, Vaadin production mode, health endpoint access, backups.
+- With the deploy (#12): HTTPS, HSTS, `Secure` cookie, Vaadin production mode, health endpoint access, backups,
+  and encryption at rest as Telegram's bot terms require (#38).
 - With observability (#27): security events and alerts, without personal data.
 - A ZAP baseline scan against the deployed app (terms checked first).

@@ -27,14 +27,14 @@ class WelcomeViewTest {
     }
 
     @Test
-    void signedInPeopleAreSentHome() {
+    void signedInPeopleAreSentToTheirGardens() {
         AuthenticationContext authentication = mock(AuthenticationContext.class);
         when(authentication.isAuthenticated()).thenReturn(true);
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
 
         view(authentication, "not-set").beforeEnter(event);
 
-        verify(event).rerouteTo(HomeView.class);
+        verify(event).rerouteTo(StartView.class);
     }
 
     @Test

@@ -75,6 +75,22 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void aDeclaredReadingAddsTheDeclaredSourceDescription() {
+        var facts = new GraphFacts(List.of(new Reading(new Fact("Davanzale", "hasDirectSun", "SHADE"),
+                Reading.Source.DECLARED, List.of("garden"), null)));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.DECLARED").exists())
+                .andExpect(jsonPath("$.state.sources.PROPOSED").doesNotExist())
+                .andExpect(jsonPath("$.state.facts[0].source").value("DECLARED"))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.SOW_IN_PLOT, "Davanzale"), facts);
+
+        server.verify();
+    }
+
+    @Test
     void aProposedReadingAddsTheProposedSourceDescription() {
         var facts = new GraphFacts(List.of(
                 Reading.curated(new Fact("Tomato", "companionOf", "Basil")),
@@ -83,6 +99,7 @@ class JevDecisionLayerTest {
         server.expect(requestTo("https://jev.test/v1/systemone"))
                 .andExpect(jsonPath("$.state.sources.PROPOSED").exists())
                 .andExpect(jsonPath("$.state.sources.INFERRED").doesNotExist())
+                .andExpect(jsonPath("$.state.sources.DECLARED").doesNotExist())
                 .andExpect(jsonPath("$.state.facts[1].source").value("PROPOSED"))
                 .andRespond(withSuccess("""
                         {"answers":{"answerable":{"type":"noul","noul":0.9},

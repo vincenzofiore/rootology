@@ -64,6 +64,18 @@ class GeoNamesTest {
     }
 
     @Test
+    void theElevationOfAPositionAndTheMissingValue() {
+        server.expect(requestTo("https://geo.test/gtopo30JSON?lat=45.46&lng=9.19&username=rootology-test"))
+                .andRespond(withSuccess("{\"srtm3\":120,\"gtopo30\":122}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://geo.test/gtopo30JSON?lat=0.00&lng=0.00&username=rootology-test"))
+                .andRespond(withSuccess("{\"gtopo30\":-9999}", MediaType.APPLICATION_JSON));
+
+        assertThat(geoNames.elevation(45.4612, 9.1899)).contains(122);
+        assertThat(geoNames.elevation(0.0, 0.0)).as("-9999 is no value").isEmpty();
+        server.verify();
+    }
+
+    @Test
     void theNearestTownToAPositionAndNoneAtSea() {
         server.expect(requestTo("https://geo.test/findNearbyPlaceNameJSON?lat=45.46&lng=9.19&lang=it&style=MEDIUM"
                         + "&username=rootology-test"))

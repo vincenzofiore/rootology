@@ -1,6 +1,12 @@
 spring:
   application:
     name: rootology
+  task:
+    scheduling:
+      pool:
+        # The Telegram long poll (#38) holds a thread for up to 25 s; with Spring's default of one thread
+        # it would delay the digests, the alerts and the retention job every time.
+        size: 4
   jpa:
     open-in-view: false
     hibernate:
@@ -95,6 +101,11 @@ management:
 rootology:
   # The app's public address, for links in emails (#25).
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
+  map:
+    # The map of the gardens overview (#66): OpenFreeMap's Liberty style, free, no key and no cookies, one
+    # style for light and dark. Style, tiles, glyphs and sprites all come from tiles.openfreemap.org, which
+    # has no SLA and may stop: keep the URL here, not in the code, and the table works when the map does not.
+    style-url: https://tiles.openfreemap.org/styles/liberty
   privacy:
     # Named on the public privacy page (#40); set per deployment, not in the repository.
     controller: ${ROOTOLOGY_PRIVACY_CONTROLLER:}
@@ -107,6 +118,12 @@ rootology:
     escalations: P90D
     notifications: P90D
     invitations: P30D
+    # Telegram one-time codes, and links Telegram stopped delivering to (#38).
+    telegram: P30D
+    # Invitation requests (#65): a rejected one after the waiting time, a waiting or unused approved one after
+    # 90 days, so a forgotten request does not stay forever.
+    rejected-access-requests: P30D
+    pending-access-requests: P90D
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:
@@ -124,6 +141,23 @@ rootology:
   invitations:
     # Invitations each owner may create per day (#25).
     daily-limit: 20
+  access-requests:
+    # Invitation requests (#65) created per day in Italian time, everyone together; then nobody may ask until
+    # tomorrow. A rejected person may ask again after retry-after.
+    daily-limit: 10
+    retry-after: P30D
+  telegram:
+    # Notifications on the phone (#38), through a bot of the owner's. Empty token: the feature is hidden,
+    # as place search is without a GeoNames account. The token is in every request path: it is never logged.
+    base-url: https://api.telegram.org
+    bot-token: ${ROOTOLOGY_TELEGRAM_BOT_TOKEN:}
+    # A link code lives this long and works once; the deep link carries it.
+    code-validity: PT10M
+    # Long polling: how long one getUpdates may wait, and the pause between two of them.
+    poll-timeout: PT25S
+    poll-every: PT1S
+    # One message per person at least this often, so a burst of alerts arrives as one notification.
+    send-every: PT10S
   jev:
     # Same convention as above. Without a key the deterministic StubDecisionLayer is used.
     api-key: ${ROOTOLOGY_TYPESAFE_API_KEY:}

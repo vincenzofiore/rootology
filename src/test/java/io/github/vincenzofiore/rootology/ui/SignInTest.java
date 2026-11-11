@@ -51,6 +51,9 @@ class SignInTest {
     NotificationService notifications;
 
     @Autowired
+    io.github.vincenzofiore.rootology.access.AccessRequestService accessRequests;
+
+    @Autowired
     JdbcClient jdbc;
 
     private static final GitHubEmails.Verified VERIFIED =
@@ -63,7 +66,7 @@ class SignInTest {
 
     private AllowListOAuth2UserService service(String... allowed) {
         return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications), mock(GitHubEmails.class));
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), mock(GitHubEmails.class));
     }
 
     private long count(String sql) {
@@ -139,13 +142,34 @@ class SignInTest {
     }
 
     @Test
-    void someoneNotAllowedIsRefusedAndLeavesNothingBehind() {
-        assertThatThrownBy(() -> service("sign-other").signIn(githubUser(106, "sign-stranger"), VERIFIED, null))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+    void someoneNotAllowedSignsInAsPendingAndLeavesNothingBehind() {
+        // #65: not admitted, but signed in with the pending authority alone, to ask for an invitation.
+        OAuth2User principal = service("sign-other").signIn(githubUser(106, "sign-stranger"), VERIFIED, null);
 
+        assertThat(principal.getAuthorities()).extracting(a -> a.getAuthority()).containsExactly("ROLE_PENDING");
+        assertThat(principal.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE)).isEqualTo("sign-stranger");
         assertThat(count("select count(*) from app_user where login = 'sign-stranger'")).isZero();
         assertThat(count("select count(*) from user_identity where subject = '106'")).isZero();
         assertThat(count("select count(*) from notification_preference where github_login = 'sign-stranger'")).isZero();
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "admin", roles = "ADMIN")
+    void anApprovedIdentityIsAdmittedAndItsRequestIsDeleted() {
+        accessRequests.request(IdentityProvider.GITHUB, "108", "sign-approved", "ada@example.org", "please");
+
+        long approved = jdbc.sql("select id from access_request where subject = '108'").query(Long.class).single();
+        accessRequests.approve("admin", approved);
+
+        OAuth2User principal = service().signIn(githubUser(108, "sign-approved"), VERIFIED, null);
+
+        assertThat(principal.getAuthorities()).extracting(a -> a.getAuthority())
+                .contains("OAUTH2_USER").doesNotContain("ROLE_PENDING");
+        assertThat(count("select count(*) from app_user where login = 'sign-approved'")).isEqualTo(1);
+        assertThat(identity("sign-approved", IdentityProvider.GITHUB)).get()
+                .satisfies(row -> assertThat(row.get("subject")).isEqualTo("108"));
+        assertThat(spaces.spacesOf("sign-approved")).isNotEmpty();
+        assertThat(count("select count(*) from access_request where subject = '108'")).isZero();
     }
 
     @Test

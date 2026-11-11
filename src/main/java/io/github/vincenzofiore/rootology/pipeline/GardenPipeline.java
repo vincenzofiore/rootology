@@ -11,10 +11,14 @@ import com.embabel.agent.core.hitl.TypeRequest;
 import com.embabel.agent.core.hitl.TypeResponse;
 import io.github.vincenzofiore.rootology.decision.Decision;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
+import io.github.vincenzofiore.rootology.decision.DomainFilter;
 import io.github.vincenzofiore.rootology.decision.GraphFacts;
 import io.github.vincenzofiore.rootology.decision.Intent;
 import io.github.vincenzofiore.rootology.decision.JevDecisionLayer;
+import io.github.vincenzofiore.rootology.decision.Note;
 import io.github.vincenzofiore.rootology.decision.QueryKind;
+import io.github.vincenzofiore.rootology.garden.GardenService;
+import io.github.vincenzofiore.rootology.garden.GardenViews;
 import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
 import io.github.vincenzofiore.rootology.resilience.ServiceUnavailableException;
 import io.github.vincenzofiore.rootology.spaces.SpaceAccessException;
@@ -39,13 +43,28 @@ import java.util.UUID;
 public class GardenPipeline {
 
     /** An escalated question whose agent is paused, waiting for a member of its space. */
-    public record PendingReview(String processId, RunContext context, Question question, Decision decision) {
+    /**
+     * snapshot: the context the question was asked in (#55), shown to whoever answers; null for older rows.
+     * notes: what the person should know about the facts behind the decision (#60), never sent to Jev.
+     */
+    public record PendingReview(String processId, RunContext context, Question question, Decision decision,
+                                ContextSnapshot snapshot, List<Note> notes) {
+
+        public PendingReview {
+            notes = notes == null ? List.of() : List.copyOf(notes);
+        }
     }
 
     /** Outcome of a run in HUMAN review mode: an answer, or a review waiting for a person. */
-    /** intent: how Claude understood the question (with defaults applied), for the quality suite (#20). */
-    public record Run(PipelineAnswer answer, PendingReview pending, Intent intent) {
+    /**
+     * intent: how Claude understood the question (with defaults applied), for the quality suite (#20).
+     * offDomain: the domain filter refused the question (#53): a fixed answer, no run, no intent.
+     */
+    public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain) {
     }
+
+    /** The reason of a refusal (#53); never shown as is, the UI words the fixed answer in its own language. */
+    static final String OFF_DOMAIN_REASON = "the question is not about gardens and growing";
 
     private final AgentPlatform agentPlatform;
     private final ApplicationEventPublisher events;
@@ -53,21 +72,26 @@ public class GardenPipeline {
     private final TransactionTemplate transaction;
     private final ClaudeCircuit claude;
     private final SpaceService spaces;
+    private final GardenService gardens;
     private final UsageService usage;
     private final DecisionLayer decisionLayer;
+    private final DomainFilter domainFilter;
     private final PipelineMetrics metrics;
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
-                   SpaceService spaces, UsageService usage, DecisionLayer decisionLayer, PendingEscalations pending,
-                   PlatformTransactionManager transactions, PipelineMetrics metrics) {
+                   SpaceService spaces, GardenService gardens, UsageService usage, DecisionLayer decisionLayer,
+                   DomainFilter domainFilter, PendingEscalations pending, PlatformTransactionManager transactions,
+                   PipelineMetrics metrics) {
         this.agentPlatform = agentPlatform;
         this.pending = pending;
         this.transaction = new TransactionTemplate(transactions);
         this.events = events;
         this.claude = claude;
         this.spaces = spaces;
+        this.gardens = gardens;
         this.usage = usage;
         this.decisionLayer = decisionLayer;
+        this.domainFilter = domainFilter;
         this.metrics = metrics;
     }
 
@@ -101,15 +125,23 @@ public class GardenPipeline {
      * Every run that finishes publishes a {@link PipelineRunFinished}.
      */
     public Run start(Question question, NoiseProfile noise, RunContext context) {
-        return start(question, noise, context, FactScope.SUITE);
+        return start(question, noise, context, FactScope.SUITE, false);
     }
 
     /** A real question from a person, answered from the curated knowledge base. */
     public Run askKnowledgeBase(Question question, RunContext context) {
-        return start(question, NoiseProfile.NONE, context, FactScope.KNOWLEDGE_BASE);
+        return askKnowledgeBase(question, context, false);
     }
 
-    private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope) {
+    /**
+     * The same question on the normal path, skipping the domain filter for this run alone (#53): what the
+     * person asks for with "Ask anyway" under a refusal. It is a new question: the limit and the usage apply.
+     */
+    public Run askKnowledgeBase(Question question, RunContext context, boolean askAnyway) {
+        return start(question, NoiseProfile.NONE, context, FactScope.KNOWLEDGE_BASE, askAnyway);
+    }
+
+    private Run start(Question question, NoiseProfile noise, RunContext context, FactScope scope, boolean askAnyway) {
         if (question.text() == null || question.text().isBlank() || question.text().length() > Question.MAX_LENGTH) {
             throw new IllegalArgumentException("A question needs between 1 and " + Question.MAX_LENGTH + " characters");
         }
@@ -121,6 +153,14 @@ public class GardenPipeline {
         }
         requireClaude();
         Timer.Sample timing = metrics.start();
+        // The domain filter (#53) runs before the agent, so a question that is clearly not about gardens
+        // costs no Claude call. Only real questions are screened, and "Ask anyway" skips it once.
+        if (scope == FactScope.KNOWLEDGE_BASE && !askAnyway) {
+            DomainFilter.Verdict verdict = domainFilter.judge(question.text());
+            if (verdict.refused()) {
+                return refuse(question, context, verdict, timing);
+            }
+        }
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
         try {
@@ -137,6 +177,30 @@ public class GardenPipeline {
         }
     }
 
+    /**
+     * A question clearly outside gardens (#53): a fixed answer in the person's language (the UI words it),
+     * no Claude call, no escalation, and no run of the agent. It is still a question that cost a Jev call, so
+     * it counts against the daily limit, and it is stored like any other, with the space and garden it was
+     * asked in even though the question's context was never resolved.
+     */
+    private Run refuse(Question question, RunContext context, DomainFilter.Verdict verdict, Timer.Sample timing) {
+        ContextSnapshot snapshot = context.hasSpace() ? new ContextSnapshot(
+                spaces.spaceName(context.spaceId(), context.startedBy()).orElse(null),
+                context.hasGarden() ? gardens.garden(context.spaceId(), context.startedBy(), context.gardenId())
+                        .map(GardenViews.GardenSummary::name).orElse(null) : null,
+                null, null, null, null, null) : null;
+        Decision decision = new Decision(List.of(), verdict.probability(), false, OFF_DOMAIN_REASON);
+        PipelineAnswer answer = new PipelineAnswer(question.id(), List.of(), verdict.probability(), false, false,
+                null, null, List.of(), List.of(), snapshot);
+        if (context.hasSpace()) {
+            usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, new RunUsage(0, 0, 0, 0.0, 1));
+        }
+        events.publishEvent(new PipelineRunFinished(UUID.randomUUID().toString(), context, question,
+                NoiseProfile.NONE, decision, answer, true, Instant.now()));
+        metrics.refused(timing, FactScope.KNOWLEDGE_BASE);
+        return new Run(answer, null, null, true);
+    }
+
     /** The Claude calls made since invocation number `from`, and the Jev call of the run if it reached Jev. */
     private RunUsage usageOf(AgentProcess process, int from) {
         var invocations = process.getLlmInvocations();
@@ -145,30 +209,46 @@ public class GardenPipeline {
         int completion = since.stream()
                 .mapToInt(i -> i.getUsage().getCompletionTokens() == null ? 0 : i.getUsage().getCompletionTokens()).sum();
         double cost = since.stream().mapToDouble(LlmInvocation::cost).sum();
-        Intent intent = process.last(Intent.class);
-        boolean jev = from == 0 && decisionLayer instanceof JevDecisionLayer && process.last(Decision.class) != null
-                && intent != null && intent.kind() != QueryKind.OTHER;
+        QuestionContext questionContext = process.last(QuestionContext.class);
+        Intent intent = questionContext == null ? null : questionContext.intent();
+        // A question the context refuses escalates before the decision layer: no Jev call to count (#55).
+        boolean refused = questionContext != null && questionContext.refusal() != null;
+        boolean jev = from == 0 && !refused && decisionLayer instanceof JevDecisionLayer
+                && process.last(Decision.class) != null && intent != null && intent.kind() != QueryKind.OTHER;
         return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
     }
 
-    /** Escalated questions of one space waiting for a person, from the database (#36); for its members only (#41). */
-    public List<PendingReview> pending(long spaceId, String login) {
+    /**
+     * Escalated questions of one garden, or of the space level when gardenId is 0 (#56), waiting for a
+     * person: from the database (#36), for the space's members only (#41).
+     */
+    public List<PendingReview> pending(long spaceId, long gardenId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
         }
-        return pending.waitingIn(spaceId);
+        return pending.waitingIn(spaceId, gardenId);
+    }
+
+    /** True when the space has questions without a garden waiting for a person (#56). */
+    public boolean hasUngardened(long spaceId, String login) {
+        if (!spaces.isMember(spaceId, login)) {
+            throw new SpaceAccessException(login + " is not a member of space " + spaceId);
+        }
+        return !pending.waitingIn(spaceId, 0).isEmpty();
     }
 
     /**
-     * Hands a person's answer to a paused agent and lets it finish. The review must belong to
-     * the given space, so nobody can answer another space's escalation by guessing its id.
+     * Hands a person's answer to a paused agent and lets it finish. The review must belong to the given
+     * space and context (#56): the same garden, or no garden when the person is at the space level. So
+     * nobody can answer another space's or another garden's escalation by guessing its id.
      */
-    public PipelineAnswer respond(String processId, long spaceId, HumanAnswer human) {
+    public PipelineAnswer respond(String processId, long spaceId, long gardenId, HumanAnswer human) {
         spaces.requireContributor(spaceId, human.reviewer());
         PendingEscalations.Stored stored = pending.waiting(processId)
                 .filter(s -> s.review().context().spaceId() == spaceId)
+                .filter(s -> s.review().context().gardenId() == gardenId)
                 .orElseThrow(() -> new NoSuchElementException("No review waiting for process " + processId
-                        + " in this space"));
+                        + " in this space and garden"));
         PendingReview review = stored.review();
         AgentProcess paused = agentPlatform.getAgentProcess(processId);
         AgentProcess process;
@@ -186,7 +266,7 @@ public class GardenPipeline {
             requireClaude();
             process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, review.question(),
                     review.decision(), stored.facts(), stored.noise(), Resolution.byHuman(review.decision(), human),
-                    ReviewMode.HUMAN, review.context());
+                    ReviewMode.HUMAN, review.context(), QuestionContext.stored(stored.context()));
             before = 0;
         }
         Run run;
@@ -201,24 +281,33 @@ public class GardenPipeline {
         }
         transaction.executeWithoutResult(status -> {
             pending.resolve(processId, human.reviewer(), Instant.now());
-            events.publishEvent(new EscalationResolved(processId, spaceId, human.reviewer(), Instant.now()));
+            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
+                    review.context().startedBy(), human.reviewer(), Instant.now()));
         });
         return run.answer();
     }
 
     private Run settle(AgentProcess process, Question question, RunContext context) {
         if (process.getStatus() == AgentProcessStatusCode.WAITING) {
-            PendingReview review = new PendingReview(process.getId(), context, question, process.last(Decision.class));
+            QuestionContext questionContext = process.last(QuestionContext.class);
+            // A garden that no longer exists is not stored (#55): the row and its notification are the space's.
+            long gardenId = questionContext == null ? context.gardenId() : questionContext.gardenId();
+            // Every escalation was decided on facts, so its notes come from them (#60).
+            GraphFacts facts = process.last(GraphFacts.class);
+            PendingReview review = new PendingReview(process.getId(),
+                    new RunContext(context.spaceId(), gardenId, context.startedBy()), question,
+                    process.last(Decision.class), questionContext == null ? null : questionContext.snapshot(),
+                    facts == null ? List.of() : facts.notes());
             // Stored and announced together (#36): the notifications (#26) are written in the same transaction.
             transaction.executeWithoutResult(status -> {
-                pending.save(process.getId(), context, question, review.decision(), process.last(GraphFacts.class),
-                        process.last(NoiseProfile.class), Instant.now());
+                pending.save(process.getId(), context, gardenId, question, review.decision(), facts,
+                        process.last(NoiseProfile.class), questionContext, Instant.now());
                 if (context.hasSpace()) {
-                    events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), context.startedBy(),
-                            question.text(), review.decision().reason(), Instant.now()));
+                    events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), gardenId,
+                            context.startedBy(), question.text(), review.decision().reason(), Instant.now()));
                 }
             });
-            return new Run(null, review, process.last(Intent.class));
+            return new Run(null, review, intentOf(process), false);
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
             if (claude.breaker.failing()) {
@@ -227,9 +316,19 @@ public class GardenPipeline {
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
-        events.publishEvent(new PipelineRunFinished(process.getId(), context, question, process.last(NoiseProfile.class),
-                process.last(Decision.class), answer, Instant.now()));
-        return new Run(answer, null, process.last(Intent.class));
+        // The garden the question was answered for, which may be the one it named (#57), owns the history row.
+        QuestionContext answered = process.last(QuestionContext.class);
+        RunContext owner = answered == null || !answered.hasSpace() ? context
+                : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
+        events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
+                process.last(Decision.class), answer, false, Instant.now()));
+        return new Run(answer, null, intentOf(process), false);
+    }
+
+    /** The intent the question was answered with, zone and month included (#55); null when there is none. */
+    private static Intent intentOf(AgentProcess process) {
+        QuestionContext context = process.last(QuestionContext.class);
+        return context == null ? null : context.intent();
     }
 
     private Agent agent() {

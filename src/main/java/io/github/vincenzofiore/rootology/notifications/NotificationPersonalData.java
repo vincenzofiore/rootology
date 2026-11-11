@@ -26,7 +26,7 @@ public class NotificationPersonalData {
                         from notification_preference where github_login = :login""")
                 .param("login", login).query().listOfRows());
         data.put("notifications", jdbc.sql("""
-                        select space_id, kind, title, body, created_at, read_at, emailed_at, resolved_at
+                        select space_id, garden_id, kind, title, body, created_at, read_at, emailed_at, resolved_at
                         from notification where recipient = :login order by id""")
                 .param("login", login).query().listOfRows());
         return data;

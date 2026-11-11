@@ -103,7 +103,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     io.github.vincenzofiore.rootology.weather.WeatherService weatherService;
 
-    /** A space with a garden in Milan (zone NORD): bed B with a tomato since April 2026, an old pea ended. */
+    /** A garden of the person's space, in Milan (zone NORD); the question is asked inside it (#55). */
     private RunContext withGarden(String login) {
         RunContext run = signedIn(login);
         var garden = gardens.saveGarden(run.spaceId(), login, null, "Balcony", "Milano",
@@ -114,17 +114,25 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         var peas = gardens.plant(run.spaceId(), login, bed.id(), "pea", PlantingMethod.SOWN,
                 java.time.LocalDate.of(2026, 2, 1), null);
         gardens.endPlanting(run.spaceId(), login, peas.id(), java.time.LocalDate.of(2026, 4, 1));
-        return run;
+        return new RunContext(run.spaceId(), garden.id(), login);
+    }
+
+    /** A person with a garden of their own, working inside it (#56). */
+    private RunContext inAGarden(String login) {
+        spaces.signedIn(login);
+        long space = spaces.spacesOf(login).getFirst().id();
+        long garden = gardens.saveGarden(space, login, null, "Home garden", null, null, null).id();
+        return new RunContext(space, garden, login);
     }
 
     /** A person with their personal space, as after their first login. */
     private RunContext signedIn(String login) {
         spaces.signedIn(login);
-        return new RunContext(spaces.spacesOf(login).getFirst().id(), login);
+        return new RunContext(spaces.spacesOf(login).getFirst().id(), 0, login);
     }
 
     private PipelineRunRecord stored(RunContext run, String processId) {
-        return history.recent(run.spaceId(), run.startedBy()).stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
+        return history.recent(run.spaceId(), run.gardenId(), run.startedBy()).stream().filter(r -> r.getProcessId().equals(processId)).findFirst().orElseThrow();
     }
 
     @BeforeEach
@@ -211,10 +219,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(run.answer()).isNull();
         assertThat(run.pending().decision().reason()).isEqualTo("Lavender is not in the dataset");
-        assertThat(pipeline.pending(alice.spaceId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId(), alice.gardenId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .contains(run.pending().processId());
 
-        PipelineAnswer answer = pipeline.respond(run.pending().processId(), alice.spaceId(),
+        PipelineAnswer answer = pipeline.respond(run.pending().processId(), alice.spaceId(), alice.gardenId(),
                 new HumanAnswer(List.of(), "Lavender is outside the garden dataset", "alice"));
 
         assertThat(answer.answeredByHuman()).isTrue();
@@ -222,7 +230,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.escalated()).isTrue();
         assertThat(answer.answer()).isEmpty();
         assertThat(answer.text()).isEqualTo("a human answered");
-        assertThat(pipeline.pending(alice.spaceId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(alice.spaceId(), alice.gardenId(), alice.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(run.pending().processId());
         verifyGenerateText(prompt -> prompt.contains("Reviewer's note: Lavender is outside the garden dataset"));
 
@@ -250,7 +258,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.answer().answeredByHuman()).isFalse();
         assertThat(run.answer().reviewer()).isNull();
 
-        PipelineRunRecord record = history.recent(bob.spaceId(), bob.startedBy()).getFirst();
+        PipelineRunRecord record = history.recent(bob.spaceId(), bob.gardenId(), bob.startedBy()).getFirst();
         assertThat(record.getQuestionId()).isEqualTo("easy-1");
         assertThat(record.getAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
         assertThat(record.getJenaAnswer()).containsExactlyInAnyOrder("Basil", "Marigold");
@@ -270,14 +278,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 new Question("hard-3", "Which plants are companions of Lavender?"), NoiseProfile.NONE, carol);
         String processId = run.pending().processId();
 
-        assertThat(pipeline.pending(dave.spaceId(), dave.startedBy())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(dave.spaceId(), dave.gardenId(), dave.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .doesNotContain(processId);
-        assertThatThrownBy(() -> pipeline.respond(processId, dave.spaceId(), new HumanAnswer(List.of(), "", "dave")))
+        assertThatThrownBy(() -> pipeline.respond(processId, dave.spaceId(), dave.gardenId(), new HumanAnswer(List.of(), "", "dave")))
                 .isInstanceOf(NoSuchElementException.class);
 
-        pipeline.respond(processId, carol.spaceId(), new HumanAnswer(List.of(), "", "carol"));
-        assertThat(history.recent(carol.spaceId(), carol.startedBy())).extracting(PipelineRunRecord::getProcessId).contains(processId);
-        assertThat(history.recent(dave.spaceId(), dave.startedBy())).extracting(PipelineRunRecord::getProcessId).doesNotContain(processId);
+        pipeline.respond(processId, carol.spaceId(), carol.gardenId(), new HumanAnswer(List.of(), "", "carol"));
+        assertThat(history.recent(carol.spaceId(), carol.gardenId(), carol.startedBy())).extracting(PipelineRunRecord::getProcessId).contains(processId);
+        assertThat(history.recent(dave.spaceId(), dave.gardenId(), dave.startedBy())).extracting(PipelineRunRecord::getProcessId).doesNotContain(processId);
     }
 
     @Test
@@ -355,17 +363,47 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
-    void aGardenAbroadGetsNoItalianCalendarAndIsToldWhy() {
-        RunContext run = signedIn("gino");
-        gardens.saveGarden(run.spaceId(), "gino", null, "Allotment", "Lyon", new java.math.BigDecimal("45.76"),
-                new java.math.BigDecimal("4.84"), "FR");
+    void aGardenAbroadUsesItsOwnClimateProfileAndIsToldWhy() {
+        RunContext space = signedIn("gino");
+        var lyon = gardens.saveGarden(space.spaceId(), "gino", null, "Allotment", "Lyon",
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+        RunContext run = new RunContext(space.spaceId(), lyon.id(), "gino");
         whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato?"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOWING_TIME, "tomato", null, "en"));
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"), run);
 
-        assertThat(asked.answer()).isNull();
-        assertThat(asked.pending()).isNotNull();
+        assertThat(asked.answer()).isNotNull();
+        assertThat(asked.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(asked.answer().notes()).as("the calendar note says where the windows come from").extracting(
+                        io.github.vincenzofiore.rootology.decision.Note::kind)
+                .contains(io.github.vincenzofiore.rootology.decision.Note.Kind.WINDOWS_FROM_CLIMATE)
+                .doesNotContain(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
+    }
+
+    @Test
+    void aPestQuestionInAGardenAbroadUsesThePestMonthsAndNoItalianCalendar() {
+        RunContext space = signedIn("gina");
+        var lyon = gardens.saveGarden(space.spaceId(), "gina", null, "Jardin", "Lyon",
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+        var plot = gardens.savePlot(space.spaceId(), "gina", lyon.id(), null, "Planche", PlotKind.GROUND,
+                Soil.LOAMY, null);
+        gardens.plant(space.spaceId(), "gina", plot.id(), "lettuce", PlantingMethod.SOWN,
+                java.time.LocalDate.of(2026, 10, 1), null);
+        RunContext run = new RunContext(space.spaceId(), lyon.id(), "gina");
+        whenCreateObject(prompt -> prompt.contains("Question: What threatens my garden now?"), Intent.class)
+                .thenReturn(new Intent(QueryKind.PEST_RISK, null, null, "en", null, "NOVEMBER"));
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(
+                new Question("ask", "What threatens my garden now?"), run);
+
+        // The pest months apply abroad too, so no calendar note and no zone in the context (#58).
+        assertThat(asked.answer()).isNotNull();
+        assertThat(asked.answer().answer()).containsExactlyInAnyOrder("Grey mould", "Grey field slug",
+                "Lettuce downy mildew");
+        assertThat(asked.answer().notes()).extracting(io.github.vincenzofiore.rootology.decision.Note::kind)
+                .doesNotContain(io.github.vincenzofiore.rootology.decision.Note.Kind.OUTSIDE_ITALY);
+        assertThat(asked.answer().context().zone()).isNull();
     }
 
     @Test
@@ -375,7 +413,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         spaces.addMember(owner.spaceId(), "ugne", "vito", io.github.vincenzofiore.rootology.spaces.Role.GUEST);
 
         assertThatThrownBy(() -> pipeline.askKnowledgeBase(new Question("ask", "Anything?"),
-                new RunContext(owner.spaceId(), "vito")))
+                new RunContext(owner.spaceId(), 0, "vito")))
                 .isInstanceOf(io.github.vincenzofiore.rootology.spaces.SpaceAccessException.class);
         verifyNoInteractions();
     }
@@ -407,7 +445,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mint?"), run);
-        pipeline.respond(asked.pending().processId(), run.spaceId(), new HumanAnswer(List.of(), "", "yara"));
+        pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(), new HumanAnswer(List.of(), "", "yara"));
 
         assertThat(applicationEvents.stream(EscalationWaiting.class)).singleElement().satisfies(e -> {
             assertThat(e.spaceId()).isEqualTo(run.spaceId());
@@ -416,6 +454,34 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         });
         assertThat(applicationEvents.stream(EscalationResolved.class)).singleElement()
                 .extracting(EscalationResolved::reviewer).isEqualTo("yara");
+    }
+
+    @Test
+    void aWaitingQuestionBelongsToItsGardenAndKeepsItAfterTheLossOfItsAgent() {
+        RunContext run = inAGarden("garden-owner");
+        long otherGarden = gardens.saveGarden(run.spaceId(), run.startedBy(), null, "Other garden", null, null, null).id();
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of sage?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "sage"));
+        whenGenerateText(prompt -> prompt.contains("companions of sage")).thenReturn("answered");
+
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of sage?"), run);
+        String processId = asked.pending().processId();
+
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).extracting(GardenPipeline.PendingReview::processId)
+                .containsExactly(processId);
+        assertThat(pipeline.pending(run.spaceId(), otherGarden, run.startedBy())).as("another garden's").isEmpty();
+        assertThat(pipeline.pending(run.spaceId(), 0, run.startedBy())).as("the space level's").isEmpty();
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), otherGarden,
+                new HumanAnswer(List.of(), "", "garden-owner")))
+                .as("answering in another garden is refused").isInstanceOf(NoSuchElementException.class);
+
+        agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
+        pipeline.respond(processId, run.spaceId(), run.gardenId(), new HumanAnswer(List.of("Origan"), "", "garden-owner"));
+
+        assertThat(history.recent(run.spaceId(), run.gardenId(), run.startedBy()))
+                .extracting(PipelineRunRecord::getGardenId).containsExactly(run.gardenId());
+        assertThat(history.recent(run.spaceId(), otherGarden, run.startedBy())).isEmpty();
+        assertThat(history.recent(run.spaceId(), 0, run.startedBy())).isEmpty();
     }
 
     @Test
@@ -430,19 +496,19 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         String processId = asked.pending().processId();
         agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
 
-        assertThat(pipeline.pending(run.spaceId(), run.startedBy())).extracting(GardenPipeline.PendingReview::processId)
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).extracting(GardenPipeline.PendingReview::processId)
                 .containsExactly(processId);
-        PipelineAnswer answer = pipeline.respond(processId, run.spaceId(),
+        PipelineAnswer answer = pipeline.respond(processId, run.spaceId(), run.gardenId(),
                 new HumanAnswer(List.of("Rosmarino"), "From experience", "zeno"));
 
         assertThat(answer.answeredByHuman()).isTrue();
         assertThat(answer.answer()).containsExactly("Rosmarino");
         assertThat(answer.text()).isEqualTo("a person answered after the restart");
-        assertThat(pipeline.pending(run.spaceId(), run.startedBy())).isEmpty();
-        assertThat(history.recent(run.spaceId(), run.startedBy())).extracting(PipelineRunRecord::getReviewer).contains("zeno");
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).isEmpty();
+        assertThat(history.recent(run.spaceId(), run.gardenId(), run.startedBy())).extracting(PipelineRunRecord::getReviewer).contains("zeno");
         assertThat(applicationEvents.stream(EscalationResolved.class))
                 .anyMatch(e -> e.processId().equals(processId));
-        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), new HumanAnswer(List.of(), "", "zeno")))
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), run.gardenId(), new HumanAnswer(List.of(), "", "zeno")))
                 .as("answered once").isInstanceOf(NoSuchElementException.class);
     }
 
@@ -456,7 +522,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(
                 new Question("ask", "Which plants are companions of lavender?"), run);
         assertThat(usage.today("xavier").used()).isEqualTo(1);
-        pipeline.respond(asked.pending().processId(), run.spaceId(),
+        pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(),
                 new HumanAnswer(List.of(), "not in the garden", "xavier"));
 
         assertThat(usage.today("xavier").used()).as("an answer to an escalation is not a question").isEqualTo(1);
@@ -498,7 +564,9 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 new Question("ask", "When do I sow tomato in the north?"), signedIn("rosa"));
 
         assertThat(centre.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
-        assertThat(north.answer().answer()).containsExactlyInAnyOrder("MARCH", "APRIL", "MAY", "JUNE");
+        // The NORD reference site is Milan: its own frost dates leave the tomato chain where Vasto has it.
+        assertThat(north.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(north.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.QUESTION);
     }
 
     @Test
@@ -514,12 +582,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void defaultsGiveTheCentreAndTheCurrentMonth() {
-        Intent now = GardenPipelineAgent.withDefaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
+        Intent now = ContextResolver.defaults(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null),
                 java.time.Month.NOVEMBER);
 
-        assertThat(now.zone()).isEqualTo("CENTRO");
+        assertThat(now.zone()).as("no zone: the climate profile chooses the site").isNull();
         assertThat(now.month()).isEqualTo("NOVEMBER");
-        assertThat(GardenPipelineAgent.withDefaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
+        assertThat(ContextResolver.defaults(Intent.of(QueryKind.COMPANIONS, "Tomato"), java.time.Month.NOVEMBER))
                 .isEqualTo(Intent.of(QueryKind.COMPANIONS, "Tomato"));
     }
 
@@ -575,5 +643,20 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         var answer = ask("other", "What is the best fertilizer?", Intent.of(QueryKind.OTHER, null));
 
         assertThat(answer.escalated()).isTrue();
+    }
+
+    /** The suite's runs get exactly the prompt they always had; inside a space the names are added as data (#57). */
+    @Test
+    void theUnderstandPromptAddsTheNamesOnlyInsideASpace() {
+        Question question = new Question("q", "Cosa semino nel davanzale?");
+
+        String suite = GardenPipelineAgent.understandPrompt(question, ContextResolver.Names.NONE);
+        String space = GardenPipelineAgent.understandPrompt(question,
+                new ContextResolver.Names(java.util.List.of("Balcone"), java.util.List.of("Davanzale")));
+
+        assertThat(suite).contains("otherwise null.\nDo not answer the question.")
+                .doesNotContain("garden:").endsWith("Question: Cosa semino nel davanzale?\n");
+        assertThat(space).contains("The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
+                "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
     }
 }

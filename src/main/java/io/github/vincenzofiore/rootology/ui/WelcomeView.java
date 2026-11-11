@@ -1,12 +1,10 @@
 package io.github.vincenzofiore.rootology.ui;
 
-import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
@@ -56,19 +54,18 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
                 SecurityConfiguration.googleConfigured(googleClientId)));
         add(new Paragraph(getTranslation("welcome.access")));
 
-        Anchor privacy = new Anchor("/" + PrivacyView.ROUTE, getTranslation("nav.privacy"));
-        privacy.setRouterIgnore(true);
-        Anchor sources = new Anchor("/" + SourcesView.ROUTE, getTranslation("nav.sources"));
-        sources.setRouterIgnore(true);
-        HorizontalLayout links = new HorizontalLayout(privacy, sources);
-        links.addClassName("rootology-welcome-links");
-        add(links);
+        // #65: access is by invitation, and whoever is not invited yet asks for one after signing in.
+        add(new H3(getTranslation("welcome.request.title")), new Paragraph(getTranslation("welcome.request.text")),
+                new SignInButtons(getTranslation("welcome.request.github"), getTranslation("welcome.request.google"),
+                        SecurityConfiguration.googleConfigured(googleClientId)));
+
+        // Sources and Privacy are in the line at the bottom of PublicLayout.
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (authentication.isAuthenticated()) {
-            event.rerouteTo(HomeView.class);
+            event.rerouteTo(StartView.class);
             return;
         }
         boolean refused = event.getLocation().getQueryParameters().getSingleParameter("error").isPresent();

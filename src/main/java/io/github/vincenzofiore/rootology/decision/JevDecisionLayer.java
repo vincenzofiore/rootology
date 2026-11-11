@@ -44,6 +44,10 @@ public class JevDecisionLayer implements DecisionLayer {
     static final Map<String, Object> FORECAST = ordered(
             "FORECAST", "From the weather forecast for the garden's location. Likely, but less certain further ahead.");
 
+    /** Added only when some reading is declared by the gardener (#54), such as a plot's sun and wind. */
+    static final Map<String, Object> DECLARED = ordered(
+            "DECLARED", "Declared by the person who grows, not measured. Plausible, but less reliable than a measurement.");
+
     private final RestClient restClient;
     private final String model;
     private final CircuitBreaker breaker;
@@ -58,9 +62,10 @@ public class JevDecisionLayer implements DecisionLayer {
         this.breaker = breaker;
     }
 
-    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast) {
+    static Map<String, Object> sources(boolean anyInferred, boolean anyProposed, boolean anyForecast,
+                                       boolean anyDeclared) {
         Map<String, Object> sources = anyInferred ? SOURCES_WITH_INFERRED : SOURCES;
-        if (!anyProposed && !anyForecast) {
+        if (!anyProposed && !anyForecast && !anyDeclared) {
             return sources;
         }
         Map<String, Object> extended = new LinkedHashMap<>(sources);
@@ -69,6 +74,9 @@ public class JevDecisionLayer implements DecisionLayer {
         }
         if (anyForecast) {
             extended.putAll(FORECAST);
+        }
+        if (anyDeclared) {
+            extended.putAll(DECLARED);
         }
         return extended;
     }
@@ -151,15 +159,14 @@ public class JevDecisionLayer implements DecisionLayer {
         boolean anyInferred = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.INFERRED);
         boolean anyProposed = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.PROPOSED);
         boolean anyForecast = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.FORECAST);
-        Map<String, Object> request = ordered(
-                "model", model,
-                "state", ordered(
-                        // Field by field, so the language (not needed to decide) never changes what Jev sees.
-                        "intent", intent(intent),
-                        "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
-                        "sources", sources(anyInferred, anyProposed, anyForecast),
-                        "facts", stateFacts),
-                "questions", questions);
+        boolean anyDeclared = facts.readings().stream().anyMatch(r -> r.source() == Reading.Source.DECLARED);
+        Map<String, Object> state = ordered(
+                // Field by field, so the language (not needed to decide) never changes what Jev sees.
+                "intent", intent(intent),
+                "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
+                "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
+                "facts", stateFacts);
+        Map<String, Object> request = ordered("model", model, "state", state, "questions", questions);
 
         JevResponse response = restClient.post()
                 .uri("/v1/systemone")
@@ -216,7 +223,7 @@ public class JevDecisionLayer implements DecisionLayer {
      * are sent and the order can change an answer, while Map.of iterates in a different
      * order on every JVM run.
      */
-    private static Map<String, Object> ordered(Object... keysAndValues) {
+    static Map<String, Object> ordered(Object... keysAndValues) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
             map.put((String) keysAndValues[i], keysAndValues[i + 1]);
@@ -310,14 +317,24 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "`intent.season`) and (X, affects, `intent.subject`) are facts. The knowledge base declares "
                     + "no repels facts, so no pest is excluded for being repelled.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, frost) is a fact. The facts are "
-                    + "already those of `intent.zone`.";
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
+                    + "such as frost or too little light. " + SITE;
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
-                    + "(X, avoidNow, frost) is a fact. The facts are already those of `intent.zone`.";
+                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
+                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE;
+            case SOWING_TIME -> "The answer is every month M such that (subject, sowIn, M) or (subject, plantIn, M) "
+                    + "is a fact. " + SITE;
+            case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
             default -> rule(kind);
         };
     }
+
+    /**
+     * Where the knowledge base's calendar facts apply (#62): the site of the question, a garden's climate
+     * profile or a zone's reference site, and they are complete for it, so a missing crop or month is a no.
+     */
+    static final String SITE = "The calendar facts are already those of the question's site, with its frost "
+            + "dates taken into account.";
 
     /** The domain rule for each question shape, stated in plain words for Jev. */
     static String rule(QueryKind kind) {

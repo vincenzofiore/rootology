@@ -46,7 +46,11 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
     public void beforeEnter(BeforeEnterEvent event) {
         removeAll();
         String token = event.getRouteParameters().get("token").orElse("");
-        Optional<OAuth2User> user = authentication.getAuthenticatedUser(OAuth2User.class);
+        // A pending person (#65) is not admitted yet: like someone signed out, they keep the token in the
+        // session and sign in again, and the invitation admits them. Accepting it now would add to a space a
+        // login that has no person and no identity.
+        Optional<OAuth2User> user = PendingAccess.isPending() ? Optional.empty()
+                : authentication.getAuthenticatedUser(OAuth2User.class);
         Optional<String> login = user.map(u -> u.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE));
         java.util.Set<String> emails = user.map(u -> u.<java.util.List<String>>getAttribute(SignedIn.VERIFIED_EMAILS_ATTRIBUTE))
                 .map(java.util.Set::copyOf).orElse(java.util.Set.of());
@@ -60,8 +64,10 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
                         + (preview.forEmail() == null ? "" : " " + getTranslation("invite.foremail", preview.forEmail()))));
         if (login.isPresent()) {
             Button join = new Button(getTranslation("invite.join", preview.spaceName()), e -> {
-                invitations.accept(token, login.get(), emails);
-                getUI().ifPresent(ui -> ui.navigate(SpaceView.class));
+                long spaceId = invitations.accept(token, login.get(), emails);
+                getUI().ifPresent(ui -> ui.navigate(GardensView.class,
+                        new com.vaadin.flow.router.RouteParameters(java.util.Map.of(Routed.SPACE,
+                                String.valueOf(spaceId)))));
             });
             join.addThemeName("primary");
             add(join, new Paragraph(getTranslation("invite.then")));

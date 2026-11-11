@@ -69,6 +69,11 @@ class TranslationsTest {
                 Stream.of(io.github.vincenzofiore.rootology.garden.PlotKind.values()).map(v -> "plotkind." + v.name()),
                 Stream.of(io.github.vincenzofiore.rootology.garden.Soil.values()).map(v -> "soil." + v.name()),
                 Stream.of(io.github.vincenzofiore.rootology.garden.PlantingMethod.values()).map(v -> "method." + v.name()),
+                Stream.of(io.github.vincenzofiore.rootology.garden.Orientation.values())
+                        .map(v -> "orientation." + v.name()),
+                Stream.of(io.github.vincenzofiore.rootology.garden.DirectSun.values())
+                        .map(v -> "directsun." + v.name()),
+                Stream.of(io.github.vincenzofiore.rootology.garden.Wind.values()).map(v -> "wind." + v.name()),
                 Stream.of(io.github.vincenzofiore.rootology.enrichment.ProposalStatus.values())
                         .map(v -> "proposal." + v.name()),
                 Stream.of(io.github.vincenzofiore.rootology.spaces.IdentityProvider.values())

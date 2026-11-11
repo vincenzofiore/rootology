@@ -52,14 +52,44 @@ class GardenServiceTest {
     @Test
     void zonesAndCalendarsApplyToGardensInItalyOnly() {
         long abroad = spaceOf("lea");
-        gardens.saveGarden(abroad, "lea", null, "Allotment", "Lyon", new BigDecimal("45.76"), new BigDecimal("4.84"), "FR");
+        GardenSummary abroadGarden = gardens.saveGarden(abroad, "lea", null, "Allotment", "Lyon",
+                new BigDecimal("45.76"), new BigDecimal("4.84"), "FR");
         long legacy = spaceOf("max");
-        gardens.saveGarden(legacy, "max", null, "Balcony", "Milano", new BigDecimal("45.46"), new BigDecimal("9.19"));
+        GardenSummary legacyGarden = gardens.saveGarden(legacy, "max", null, "Balcony", "Milano",
+                new BigDecimal("45.46"), new BigDecimal("9.19"));
 
-        assertThat(gardens.zone(abroad, "lea")).contains(GardenService.OUTSIDE_ITALY);
-        assertThat(gardens.zone(legacy, "max")).as("no country: saved before #30, in Italy").contains("NORD");
+        assertThat(GardenService.zone(abroadGarden)).contains(GardenService.OUTSIDE_ITALY);
+        assertThat(GardenService.zone(legacyGarden)).as("no country: saved before #30, in Italy").contains("NORD");
         assertThat(gardens.gardens(abroad, "lea").getFirst().countryCode()).isEqualTo("FR");
         assertThatThrownBy(() -> gardens.saveGarden(abroad, "lea", null, "Bad", null, null, null, "France"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void aPlotKeepsTheExposureTheGardenerDeclaresAndCanClearIt() {
+        long space = spaceOf("nino");
+        GardenSummary balcony = gardens.saveGarden(space, "nino", null, "Balcony", "Torino", null, null);
+
+        PlotSummary pot = gardens.savePlot(space, "nino", balcony.id(), null, "Pot", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null, Orientation.NW, DirectSun.PART_SHADE, Wind.SHELTERED, 3);
+
+        assertThat(pot.orientation()).isEqualTo(Orientation.NW);
+        assertThat(pot.directSun()).isEqualTo(DirectSun.PART_SHADE);
+        assertThat(pot.wind()).isEqualTo(Wind.SHELTERED);
+        assertThat(pot.floor()).isEqualTo(3);
+        assertThat(gardens.plots(space, "nino", balcony.id())).singleElement().satisfies(p -> {
+            assertThat(p.orientation()).isEqualTo(Orientation.NW);
+            assertThat(p.floor()).isEqualTo(3);
+        });
+
+        PlotSummary cleared = gardens.savePlot(space, "nino", balcony.id(), pot.id(), "Pot", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null);
+        assertThat(cleared.orientation()).isNull();
+        assertThat(cleared.directSun()).isNull();
+        assertThat(cleared.wind()).isNull();
+        assertThat(cleared.floor()).isNull();
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino", balcony.id(), null, "Bad", PlotKind.CONTAINER,
+                Soil.POTTING_MIX, null, null, null, null, -1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -72,10 +102,10 @@ class GardenServiceTest {
         gardens.plant(space, "hugo", bed.id(), "zucchini", PlantingMethod.SOWN, LocalDate.of(2026, 5, 1), null);
         gardens.endPlanting(space, "hugo", peas.id(), LocalDate.of(2026, 5, 20));
 
-        assertThat(gardens.growingOn(space, "hugo", LocalDate.of(2026, 4, 1))).extracting(PlantingSummary::cropId)
-                .containsExactly("pea");
-        assertThat(gardens.growingOn(space, "hugo", LocalDate.of(2026, 6, 1))).extracting(PlantingSummary::cropId)
-                .containsExactly("zucchini");
+        assertThat(gardens.growingOn(space, "hugo", garden.id(), LocalDate.of(2026, 4, 1)))
+                .extracting(PlantingSummary::cropId).containsExactly("pea");
+        assertThat(gardens.growingOn(space, "hugo", garden.id(), LocalDate.of(2026, 6, 1)))
+                .extracting(PlantingSummary::cropId).containsExactly("zucchini");
     }
 
     @Test
@@ -136,9 +166,52 @@ class GardenServiceTest {
         assertThat(GardenService.zoneOf(41.90)).isEqualTo("CENTRO");
         assertThat(GardenService.zoneOf(38.12)).isEqualTo("SUD");
         long space = spaceOf("mia");
-        assertThat(gardens.zone(space, "mia")).isEmpty();
-        gardens.saveGarden(space, "mia", null, "Garden", "Palermo", new BigDecimal("38.12"), new BigDecimal("13.36"));
-        assertThat(gardens.zone(space, "mia")).contains("SUD");
+        GardenSummary noCoordinates = gardens.saveGarden(space, "mia", null, "Garden", "Somewhere", null, null);
+        assertThat(GardenService.zone(noCoordinates)).as("without a latitude there is no zone").isEmpty();
+        GardenSummary palermo = gardens.saveGarden(space, "mia", null, "Garden", "Palermo",
+                new BigDecimal("38.12"), new BigDecimal("13.36"));
+        assertThat(GardenService.zone(palermo)).contains("SUD");
+    }
+
+    @Test
+    void theElevationFollowsThePlaceAndIsKeptWhenThePlaceDoesNotChange() {
+        long space = spaceOf("otto");
+        GardenSummary garden = gardens.saveGarden(space, "otto", null, "Orto", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT", 205);
+        assertThat(garden.elevationM()).isEqualTo(205);
+
+        GardenSummary renamed = gardens.saveGarden(space, "otto", garden.id(), "Orto rinomato", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT");
+        assertThat(renamed.elevationM()).as("the place did not change").isEqualTo(205);
+
+        GardenSummary moved = gardens.saveGarden(space, "otto", garden.id(), "Orto", "Milano",
+                new BigDecimal("45.46"), new BigDecimal("9.19"), "IT");
+        assertThat(moved.elevationM()).as("a new place has no elevation until it is looked up again").isNull();
+
+        GardenSummary cleared = gardens.saveGarden(space, "otto", garden.id(), "Orto", "Milano", null, null,
+                "IT", 108);
+        assertThat(cleared.elevationM()).as("no coordinates, no elevation").isNull();
+    }
+
+    @Test
+    void aPlotIsLookedUpInOneGardenOnlyAndAmbiguityIsReported() {
+        long space = spaceOf("olga");
+        GardenSummary first = gardens.saveGarden(space, "olga", null, "Balcony", null, null, null);
+        GardenSummary second = gardens.saveGarden(space, "olga", null, "Allotment", null, null, null);
+        PlotSummary bedA = gardens.savePlot(space, "olga", first.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.savePlot(space, "olga", first.id(), null, "Aiuola B", PlotKind.GROUND, Soil.LOAMY, null);
+
+        assertThat(gardens.plotNamed(space, "olga", first.id(), "aiuola a").plot()).isEqualTo(bedA);
+        assertThat(gardens.plotNamed(space, "olga", first.id(), "A").plot())
+                .as("a unique partial match still works").isEqualTo(bedA);
+        assertThat(gardens.plotNamed(space, "olga", first.id(), "Aiuola")).as("two plots match: never the first")
+                .satisfies(lookup -> {
+                    assertThat(lookup.found()).isFalse();
+                    assertThat(lookup.matches()).containsExactly("Aiuola A", "Aiuola B");
+                });
+        assertThat(gardens.plotNamed(space, "olga", second.id(), "Aiuola A").found())
+                .as("another garden's plot is not a match").isFalse();
+        assertThat(gardens.plotNamed(space, "olga", first.id(), "Nowhere").found()).isFalse();
     }
 
     @Test

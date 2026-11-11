@@ -46,6 +46,7 @@ public final class KnowledgeValidator {
             if (c.wikidataId() == null || !c.wikidataId().matches("Q\\d+")) {
                 problems.add("crop " + c.id() + " has no valid Wikidata id");
             }
+            oneOf(c.frostGroup(), FrostShiftRule.GROUPS, "crop " + c.id() + ": frost_group", problems);
         }
         for (NeedRow n : k.needs()) {
             String where = "needs of " + n.cropId();
@@ -114,6 +115,49 @@ public final class KnowledgeValidator {
         organisms.keySet().stream().filter(id -> !withHosts.contains(id))
                 .forEach(id -> problems.add("organism " + id + " affects no crop"));
         return problems;
+    }
+
+    /**
+     * Checks the climate cells file (#62): it must not be empty, and every cell must be a plausible land
+     * cell with dates and an elevation the rules can use. Returns every problem found; empty means valid.
+     */
+    public static List<String> validateCells(ClimateCells cells) {
+        List<String> problems = new ArrayList<>();
+        if (cells.size() == 0) {
+            return List.of("the climate cells file is empty");
+        }
+        Set<Long> seen = new HashSet<>();
+        for (int i = 0; i < cells.size(); i++) {
+            ClimateCells.Cell cell = cells.cell(i);
+            String where = "cell " + cell.label();
+            if (cell.latitude() < -90 || cell.latitude() > 90 || cell.longitude() < -180 || cell.longitude() > 180) {
+                problems.add(where + ": coordinates are not on Earth");
+            }
+            if (cell.elevationM() < -9999) {
+                problems.add(where + ": elevation " + cell.elevationM() + " is not a DEM value");
+            }
+            if (cell.landFraction() < 0 || cell.landFraction() > 1) {
+                problems.add(where + ": land fraction " + cell.landFraction() + " is not between 0 and 1");
+            }
+            day(where + ": last frost p50", cell.lastFrostP50(), problems);
+            day(where + ": last frost p80", cell.lastFrostP80(), problems);
+            day(where + ": first frost p50", cell.firstFrostP50(), problems);
+            day(where + ": first frost p20", cell.firstFrostP20(), problems);
+            if (cell.frostYears() < 0 || cell.frostYears() > 30) {
+                problems.add(where + ": frost years " + cell.frostYears() + " is not between 0 and 30");
+            }
+            long key = Math.round(cell.latitude() * 10) * 10_000L + Math.round(cell.longitude() * 10);
+            if (!seen.add(key)) {
+                problems.add(where + ": duplicate cell");
+            }
+        }
+        return problems;
+    }
+
+    private static void day(String where, Integer value, List<String> problems) {
+        if (value != null && (value < 1 || value > 366)) {
+            problems.add(where + " day " + value + " is not between 1 and 366");
+        }
     }
 
     /** The same key whichever crop of the pair comes first. */

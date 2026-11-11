@@ -3,6 +3,7 @@ package io.github.vincenzofiore.rootology.quality;
 import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
 import io.github.vincenzofiore.rootology.decision.DecisionLayer;
+import io.github.vincenzofiore.rootology.decision.DomainFilter;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
 import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.pipeline.GardenPipeline;
@@ -77,13 +78,20 @@ class GoldenLiveRecordingTest {
     @Autowired
     DecisionLayer decisionLayer;
 
+    @Autowired
+    DomainFilter domainFilter;
+
     @Value("${embabel.models.default-llm}")
     String model;
 
-    /** One question's outcome, as recorded. */
+    /**
+     * One question's outcome, as recorded. domainProbability is Jev's probability that the question is about
+     * gardens (#53), null when it could not be judged; older run files have no such field.
+     */
     record Result(String id, String question, String expectedIntent, String understoodIntent, boolean intentMatches,
                   GoldenVerdict verdict, List<String> expected, String expectedEscalation, List<String> answer,
-                  String escalationReason, double confidence, List<String> notes, long millis, String error) {
+                  String escalationReason, double confidence, List<String> notes, long millis, String error,
+                  Double domainProbability) {
     }
 
     @Test
@@ -95,22 +103,31 @@ class GoldenLiveRecordingTest {
         for (GoldenQuestions.Case c : GOLDEN.cases()) {
             RunContext run = fixtures.space(prefix, c);
             when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+            // The filter's own judgment, recorded so a live run shows what it saw (#53).
+            Double domain = domainProbability(c.question());
             long start = System.nanoTime();
             try {
                 GardenPipeline.Run r = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
                 var decision = r.answer() != null ? null : r.pending().decision();
-                results.add(new Result(c.id(), c.question(), c.intent().toString(), String.valueOf(r.intent()),
-                        GoldenVerdict.intentMatches(c.intent(), r.intent()), GoldenVerdict.of(c, r, false), c.answer(),
+                GoldenVerdict verdict = GoldenVerdict.of(c, r, false);
+                // A refused question never reaches Claude (#53): a correct refusal needs no understanding, so it
+                // does not lower the count of intents understood; a wrong one counts as not understood.
+                boolean intentMatches = r.offDomain() ? verdict == GoldenVerdict.CORRECT_REFUSAL
+                        : GoldenVerdict.intentMatches(c.intent(), r.intent());
+                results.add(new Result(c.id(), c.question(), c.intent().toString(),
+                        r.offDomain() ? "refused as off-domain" : String.valueOf(r.intent()), intentMatches, verdict, c.answer(),
                         c.escalate(), r.answer() != null ? r.answer().answer() : decision.answer(),
                         decision == null ? null : decision.reason(),
                         r.answer() != null ? r.answer().confidence() : decision.confidence(),
-                        r.answer() != null ? r.answer().notes().stream().map(io.github.vincenzofiore.rootology.decision.Note::english).toList() : List.of(), (System.nanoTime() - start) / 1_000_000,
-                        null));
+                        (r.answer() != null ? r.answer().notes() : r.pending().notes()).stream()
+                                .map(io.github.vincenzofiore.rootology.decision.Note::english).toList(),
+                        (System.nanoTime() - start) / 1_000_000,
+                        null, domain));
             } catch (RuntimeException e) {
                 // A failing call is recorded, not hidden: the other questions still run.
                 results.add(new Result(c.id(), c.question(), c.intent().toString(), null, false, null, c.answer(),
                         c.escalate(), List.of(), null, 0, List.of(), (System.nanoTime() - start) / 1_000_000,
-                        e.getClass().getSimpleName() + ": " + e.getMessage()));
+                        e.getClass().getSimpleName() + ": " + e.getMessage(), domain));
             }
         }
 
@@ -134,5 +151,14 @@ class GoldenLiveRecordingTest {
                 .withZone(ZoneOffset.UTC).format(startedAt) + ".json");
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValue(file.toFile(), report);
         System.out.println("Live golden run: " + summary + " -> " + file);
+    }
+
+    /** Jev's probability that the question is about gardens, or null when the filter could not judge it. */
+    private Double domainProbability(String question) {
+        try {
+            return domainFilter.judge(question).probability();
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 }

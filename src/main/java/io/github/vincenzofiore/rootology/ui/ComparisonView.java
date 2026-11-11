@@ -127,7 +127,7 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
         arms.add(recorded(getTranslation("qa.arm.noskill"), RecordedLlmAnswers.withoutSkill(experimentCase), jena));
         try {
             GardenPipeline.Run run = pipeline.start(new Question(experimentCase.id(), experimentCase.question()), noise,
-                    currentUser.runContext());
+                    currentUser.runContext(currentUser.space().id(), 0));
             arms.add(run.answer() != null ? pipelineCard(run.answer(), jena)
                     : card(getTranslation("qa.arm.pipeline"), getTranslation("qa.waiting"),
                     getTranslation("qa.waiting.why", run.pending().decision().reason())));

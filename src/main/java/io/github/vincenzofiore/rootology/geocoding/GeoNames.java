@@ -113,6 +113,25 @@ public class GeoNames {
                 .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(), latitude, longitude));
     }
 
+    /**
+     * The elevation in metres of a position from GTOPO30 (USGS, public domain; about 1 km, imprecise on
+     * coasts), for the garden's climate profile (#62). Empty when GeoNames cannot be reached or the
+     * position has no value (-9999); saving a garden never depends on it.
+     */
+    public Optional<Integer> elevation(double latitude, double longitude) {
+        if (!enabled()) {
+            return Optional.empty();
+        }
+        return call(() -> restClient.get()
+                        .uri(u -> u.path("/gtopo30JSON")
+                                .queryParam("lat", String.format(Locale.ROOT, "%.2f", latitude))
+                                .queryParam("lng", String.format(Locale.ROOT, "%.2f", longitude))
+                                .queryParam("username", username).build())
+                        .retrieve().body(ElevationResult.class))
+                .map(ElevationResult::gtopo30)
+                .filter(meters -> meters != null && meters != -9999);
+    }
+
     /** One call through the breaker; GeoNames reports errors in the body with a "status". */
     private <T extends Reply> Optional<T> call(java.util.function.Supplier<T> request) {
         if (!breaker.allowsCall()) {
@@ -157,6 +176,9 @@ public class GeoNames {
     }
 
     record SearchResult(List<Entry> geonames, Status status) implements Reply {
+    }
+
+    record ElevationResult(Integer gtopo30, Status status) implements Reply {
     }
 
     record Entry(String name, String adminName1, String countryCode, String countryName, String lat, String lng) {

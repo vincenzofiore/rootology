@@ -1,5 +1,6 @@
 package io.github.vincenzofiore.rootology.ui;
 
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.IdentityProvider;
@@ -32,14 +33,16 @@ class SignInSteps {
     private final InvitationService invitations;
     private final RoleService roles;
     private final NotificationService notifications;
+    private final AccessRequestService accessRequests;
 
     SignInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations, RoleService roles,
-                NotificationService notifications) {
+                NotificationService notifications, AccessRequestService accessRequests) {
         this.spaces = spaces;
         this.identities = identities;
         this.invitations = invitations;
         this.roles = roles;
         this.notifications = notifications;
+        this.accessRequests = accessRequests;
     }
 
     /** True if this session holds a pending invitation that this person may accept. */
@@ -54,22 +57,48 @@ class SignInSteps {
      */
     void complete(String login, String token, Set<String> verifiedEmails, IdentityProvider provider, String subject,
                   String email) {
-        if (invitationAdmits(token, login, verifiedEmails)) {
+        // #65: the account is created and the approval it uses up is deleted in one transaction.
+        accessRequests.admitted(provider, subject, () -> {
+            if (invitationAdmits(token, login, verifiedEmails)) {
+                try {
+                    invitations.accept(token, login, verifiedEmails);
+                } catch (SpaceAccessException e) {
+                    throw denied(e.getMessage());
+                }
+                PendingInvitation.clear();
+            }
+            spaces.signedIn(login);
             try {
-                invitations.accept(token, login, verifiedEmails);
+                identities.link(login, provider, subject, email);
             } catch (SpaceAccessException e) {
+                // Only a concurrent sign-in of the same person can get here; the identity is recorded either way.
                 throw denied(e.getMessage());
             }
-            PendingInvitation.clear();
-        }
-        spaces.signedIn(login);
-        try {
-            identities.link(login, provider, subject, email);
-        } catch (SpaceAccessException e) {
-            // Only a concurrent sign-in of the same person can get here; the identity is recorded either way.
-            throw denied(e.getMessage());
-        }
-        notifications.rememberEmail(login, email);
+            notifications.rememberEmail(login, email);
+        });
+    }
+
+    /**
+     * True when an admin approved this identity (#65): its next sign-in is admitted as if it were on the
+     * allow list, and the request is used up by {@link #complete}.
+     */
+    boolean approved(IdentityProvider provider, String subject) {
+        return accessRequests.isApproved(provider, subject);
+    }
+
+    /**
+     * The principal of someone who signed in but is not admitted (#65): the pending authority alone, no app
+     * role, and the identity and the login the app would give them, so their request can be made. Nothing is
+     * written and no address is remembered.
+     */
+    Map<String, Object> pendingAttributes(IdentityProvider provider, String subject, String login,
+                                          Set<String> verifiedEmails) {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put(SignedIn.LOGIN_ATTRIBUTE, login);
+        attributes.put(SignedIn.VERIFIED_EMAILS_ATTRIBUTE, List.copyOf(verifiedEmails));
+        attributes.put(PendingAccess.PROVIDER_ATTRIBUTE, provider.name());
+        attributes.put(PendingAccess.SUBJECT_ATTRIBUTE, subject);
+        return attributes;
     }
 
     /**
@@ -129,6 +158,11 @@ class SignInSteps {
         attributes.put(SignedIn.VERIFIED_EMAILS_ATTRIBUTE, List.copyOf(verifiedEmails));
         attributes.put(SignedIn.LOGIN_ATTRIBUTE, login);
         return attributes;
+    }
+
+    /** The pending authority alone (#65): a signed-in person who is not a member of anything yet. */
+    static java.util.List<GrantedAuthority> pendingAuthorities() {
+        return List.of(new SimpleGrantedAuthority(PendingAccess.AUTHORITY));
     }
 
     static OAuth2AuthenticationException denied(String reason) {

@@ -17,6 +17,8 @@ class DecisionLayerConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(DecisionLayerConfiguration.class);
 
+    private static final String JEV = "Jev";
+
     @Bean
     DecisionLayer decisionLayer(@Value("${rootology.jev.api-key:}") String apiKey,
                                 @Value("${rootology.jev.base-url}") String baseUrl,
@@ -30,11 +32,31 @@ class DecisionLayerConfiguration {
         SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
         timeouts.setConnectTimeout(Duration.ofSeconds(3));
         timeouts.setReadTimeout(Duration.ofSeconds(20));
-        RestClient restClient = RestClient.builder()
+        return new JevDecisionLayer(client(apiKey, baseUrl, timeouts), model, circuits.forService(JEV));
+    }
+
+    /**
+     * The domain filter (#53): the same Jev and the same circuit, with short timeouts because its call comes
+     * before everything else in a question. Without a key nothing is judged: a question is never refused.
+     */
+    @Bean
+    DomainFilter domainFilter(@Value("${rootology.jev.api-key:}") String apiKey,
+                              @Value("${rootology.jev.base-url}") String baseUrl,
+                              @Value("${rootology.jev.model}") String model, CircuitBreakers circuits) {
+        if (apiKey.isBlank()) {
+            return new PassThroughDomainFilter();
+        }
+        SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
+        timeouts.setConnectTimeout(Duration.ofSeconds(3));
+        timeouts.setReadTimeout(Duration.ofSeconds(5));
+        return new JevDomainFilter(client(apiKey, baseUrl, timeouts), model, circuits.forService(JEV));
+    }
+
+    private static RestClient client(String apiKey, String baseUrl, SimpleClientHttpRequestFactory timeouts) {
+        return RestClient.builder()
                 .requestFactory(timeouts)
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
-        return new JevDecisionLayer(restClient, model, circuits.create("Jev"));
     }
 }

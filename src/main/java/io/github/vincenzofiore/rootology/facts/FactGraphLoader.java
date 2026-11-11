@@ -26,12 +26,15 @@ class FactGraphLoader implements ApplicationRunner {
     private final Driver driver;
     private final OntologyDefinition ontology;
     private final CropCatalog crops;
+    private final ClimateCells cells;
     private final ApplicationEventPublisher events;
 
-    FactGraphLoader(Driver driver, OntologyDefinition ontology, CropCatalog crops, ApplicationEventPublisher events) {
+    FactGraphLoader(Driver driver, OntologyDefinition ontology, CropCatalog crops, ClimateCells cells,
+                    ApplicationEventPublisher events) {
         this.driver = driver;
         this.ontology = ontology;
         this.crops = crops;
+        this.cells = cells;
         this.events = events;
     }
 
@@ -43,6 +46,8 @@ class FactGraphLoader implements ApplicationRunner {
     void load() {
         CuratedKnowledge knowledge = CuratedKnowledgeReader.read(crops);
         List<String> problems = KnowledgeValidator.validate(knowledge);
+        problems = new java.util.ArrayList<>(problems);
+        problems.addAll(KnowledgeValidator.validateCells(cells));
         if (!problems.isEmpty()) {
             throw new IllegalStateException("The curated knowledge base is invalid:\n  - "
                     + String.join("\n  - ", problems));

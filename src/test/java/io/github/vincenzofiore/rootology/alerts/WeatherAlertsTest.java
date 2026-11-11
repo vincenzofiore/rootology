@@ -142,8 +142,8 @@ class WeatherAlertsTest {
     void weatherEmailsFollowTheirOwnPreference() {
         when(weather.around(any(), any())).thenReturn(Optional.empty());
         garden("olga", "pino", "43.77", "11.25", "lettuce");
-        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, null, null));
-        notifications.save("pino", new NotificationPreferences("pino@example.org", true, false, null, null));
+        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, true, true, null, null));
+        notifications.save("pino", new NotificationPreferences("pino@example.org", true, false, true, true, null, null));
         when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")))).thenReturn(steady(-3.0, 80.0));
 
         alerts.check();

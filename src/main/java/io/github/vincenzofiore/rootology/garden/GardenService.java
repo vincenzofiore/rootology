@@ -58,6 +58,18 @@ public class GardenService {
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
                                     BigDecimal latitude, BigDecimal longitude, String countryCode) {
+        return saveGarden(spaceId, login, gardenId, name, town, latitude, longitude, countryCode, null);
+    }
+
+    /**
+     * As above, with the elevation from GeoNames GTOPO30 (#62). Changing or clearing the coordinates
+     * clears an elevation not given: it belonged to the old place. Without new coordinates, a saved
+     * elevation is kept, so saving never depends on GeoNames.
+     */
+    @Transactional
+    public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
+                                    BigDecimal latitude, BigDecimal longitude, String countryCode,
+                                    Integer elevationM) {
         requireContributor(spaceId, login);
         String country = blankToNull(countryCode);
         if (country != null && !country.matches("[A-Z]{2}")) {
@@ -66,11 +78,26 @@ public class GardenService {
         String cleanName = required(name, "A garden needs a name");
         BigDecimal lat = coarse(latitude, 90, "Latitude");
         BigDecimal lon = coarse(longitude, 180, "Longitude");
-        Garden garden = gardenId == null
-                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, Instant.now())
-                : garden(spaceId, gardenId);
-        garden.update(cleanName, blankToNull(town), lat, lon, country);
+        Garden existing = gardenId == null ? null : garden(spaceId, gardenId);
+        Integer elevation = elevation(lat, lon, elevationM, existing);
+        Garden garden = existing == null
+                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, Instant.now())
+                : existing;
+        garden.update(cleanName, blankToNull(town), lat, lon, country, elevation);
         return summary(gardens.save(garden));
+    }
+
+    /** The elevation to store: none without coordinates; the old one kept only when the place did not change. */
+    private static Integer elevation(BigDecimal latitude, BigDecimal longitude, Integer given, Garden existing) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        if (given != null) {
+            return given;
+        }
+        boolean samePlace = existing != null && latitude.equals(existing.getLatitude())
+                && longitude.equals(existing.getLongitude());
+        return samePlace ? existing.getElevationM() : null;
     }
 
     @Transactional
@@ -86,9 +113,18 @@ public class GardenService {
                 .map(GardenService::summary).toList();
     }
 
+    /** Without the declared exposure (#54): use the other overload to set it. */
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
                                 PlotKind kind, Soil soil, BigDecimal areaM2) {
+        return savePlot(spaceId, login, gardenId, plotId, name, kind, soil, areaM2, null, null, null, null);
+    }
+
+    /** orientation, directSun, wind and floor are declared by the gardener; all optional (#54). */
+    @Transactional
+    public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
+                                PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
+                                DirectSun directSun, Wind wind, Integer floor) {
         requireContributor(spaceId, login);
         String cleanName = required(name, "A plot needs a name");
         if (kind == null || soil == null) {
@@ -97,9 +133,12 @@ public class GardenService {
         if (areaM2 != null && areaM2.signum() <= 0) {
             throw new IllegalArgumentException("The area must be positive");
         }
+        if (floor != null && (floor < 0 || floor > 200)) {
+            throw new IllegalArgumentException("The floor must be between 0 and 200");
+        }
         Garden garden = garden(spaceId, gardenId);
         Plot plot = plotId == null ? new Plot(garden, cleanName, kind, soil, areaM2) : plot(spaceId, plotId);
-        plot.update(cleanName, kind, soil, areaM2);
+        plot.update(cleanName, kind, soil, areaM2, orientation, directSun, wind, floor);
         return summary(plots.save(plot));
     }
 
@@ -154,11 +193,19 @@ public class GardenService {
         plantings.delete(planting(spaceId, plantingId));
     }
 
-    /** What grows in the space's gardens on a given day: the context for questions about my garden. */
+    /** One of the space's gardens by id (#56), or nothing when it is not this space's: another space's garden is unknown. */
     @Transactional(readOnly = true)
-    public List<PlantingSummary> growingOn(long spaceId, String login, LocalDate day) {
+    public Optional<GardenSummary> garden(long spaceId, String login, long gardenId) {
+        requireMember(spaceId, login);
+        return gardens.findById(gardenId).filter(g -> g.getSpaceId() == spaceId).map(GardenService::summary);
+    }
+
+    /** What grows in one garden of the space on a given day, for the garden's home page (#56). */
+    @Transactional(readOnly = true)
+    public List<PlantingSummary> growingOn(long spaceId, String login, long gardenId, LocalDate day) {
         requireMember(spaceId, login);
         return plantings.findByPlotGardenSpaceIdOrderByPlantedOnDesc(spaceId).stream()
+                .filter(p -> p.getPlot().getGarden().getId() == gardenId)
                 .filter(p -> p.isGrowingOn(day))
                 .map(this::summary)
                 .toList();
@@ -182,17 +229,18 @@ public class GardenService {
     }
 
     /**
-     * The zone of Italy the space's first located garden lies in (NORD, CENTRO or SUD), for the
-     * knowledge base's sowing windows. Coarse on purpose: north of about 44° N is NORD (Emilia-Romagna
-     * and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands), CENTRO in between.
+     * The zone of Italy a garden lies in (NORD, CENTRO or SUD), for the knowledge base's sowing windows;
+     * empty when the garden has no latitude. Coarse on purpose: north of about 44° N is NORD
+     * (Emilia-Romagna and up), south of about 41.5° N is SUD (Campania, Apulia and down, the islands),
+     * CENTRO in between. A garden abroad has no zone of the knowledge base.
      */
-    @Transactional(readOnly = true)
-    public Optional<String> zone(long spaceId, String login) {
-        requireMember(spaceId, login);
-        return gardens.findBySpaceIdOrderById(spaceId).stream()
-                .filter(g -> g.getLatitude() != null)
-                .findFirst()
-                .map(g -> g.inItaly() ? zoneOf(g.getLatitude().doubleValue()) : OUTSIDE_ITALY);
+    public static Optional<String> zone(GardenSummary garden) {
+        if (garden.latitude() == null) {
+            return Optional.empty();
+        }
+        // A garden with no country was saved before the country was recorded (#30), so it is in Italy.
+        boolean inItaly = garden.countryCode() == null || garden.countryCode().equals("IT");
+        return Optional.of(inItaly ? zoneOf(garden.latitude().doubleValue()) : OUTSIDE_ITALY);
     }
 
     /** The zone of a garden abroad: the knowledge base's calendars cover Italy only. */
@@ -202,25 +250,48 @@ public class GardenService {
         return latitude >= 44.0 ? "NORD" : latitude >= 41.5 ? "CENTRO" : "SUD";
     }
 
-    /** A plot of the space by name, ignoring case; a unique partial match ("B" for "Bed B") also works. */
+    /**
+     * The plots of one garden that answer to a name (#55), ignoring case; a unique partial match ("B" for
+     * "Bed B") also works. Only that garden is looked at: the same name in another garden is not a match.
+     * Several plots matching is reported, never guessed.
+     */
     @Transactional(readOnly = true)
-    public Optional<PlotSummary> plotByName(long spaceId, String login, String name) {
+    public GardenViews.PlotLookup plotNamed(long spaceId, String login, long gardenId, String name) {
         requireMember(spaceId, login);
         if (name == null || name.isBlank()) {
-            return Optional.empty();
+            return GardenViews.PlotLookup.none();
         }
-        String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
-        List<PlotSummary> all = gardens.findBySpaceIdOrderById(spaceId).stream()
-                .flatMap(g -> plots.findByGardenIdOrderByName(g.getId()).stream())
+        List<PlotSummary> all = plots.findByGardenIdOrderByName(garden(spaceId, gardenId).getId()).stream()
                 .map(GardenService::summary).toList();
-        Optional<PlotSummary> exact = all.stream()
-                .filter(p -> p.name().toLowerCase(java.util.Locale.ROOT).equals(wanted)).findFirst();
-        if (exact.isPresent()) {
+        List<PlotSummary> matches = named(all, PlotSummary::name, name);
+        return matches.size() == 1 ? GardenViews.PlotLookup.one(matches.getFirst())
+                : matches.isEmpty() ? GardenViews.PlotLookup.none() : GardenViews.PlotLookup.ambiguous(matches);
+    }
+
+    /**
+     * The garden of a space that a question names (#57), with the plots' rule: the same name ignoring case
+     * wins; otherwise a whole word of one garden's name. Several are never guessed; a town is not a name.
+     */
+    public GardenViews.GardenLookup gardenNamed(long spaceId, String login, String name) {
+        List<GardenSummary> all = gardens(spaceId, login);
+        if (name == null || name.isBlank()) {
+            return new GardenViews.GardenLookup(null, List.of());
+        }
+        List<GardenSummary> matches = named(all, GardenSummary::name, name);
+        return matches.size() == 1 ? new GardenViews.GardenLookup(matches.getFirst(), List.of())
+                : new GardenViews.GardenLookup(null, matches.stream().map(GardenSummary::name).toList());
+    }
+
+    /** What answers to a name: those with that very name ignoring case, otherwise those with it as a whole word. */
+    private static <T> List<T> named(List<T> all, java.util.function.Function<T, String> nameOf, String name) {
+        String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
+        List<T> exact = all.stream().filter(t -> nameOf.apply(t).toLowerCase(java.util.Locale.ROOT).equals(wanted))
+                .toList();
+        if (!exact.isEmpty()) {
             return exact;
         }
-        List<PlotSummary> partial = all.stream().filter(p -> java.util.Arrays.asList(
-                p.name().toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
-        return partial.size() == 1 ? Optional.of(partial.getFirst()) : Optional.empty();
+        return all.stream().filter(t -> java.util.Arrays.asList(
+                nameOf.apply(t).toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
     }
 
     /** Changes need an OWNER or MEMBER: a GUEST only looks (#33). */
@@ -272,11 +343,12 @@ public class GardenService {
 
     private static GardenSummary summary(Garden g) {
         return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude(),
-                g.getCountryCode());
+                g.getCountryCode(), g.getElevationM());
     }
 
     private static PlotSummary summary(Plot p) {
-        return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2());
+        return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2(),
+                p.getOrientation(), p.getDirectSun(), p.getWind(), p.getFloor());
     }
 
     private PlantingSummary summary(Planting p) {

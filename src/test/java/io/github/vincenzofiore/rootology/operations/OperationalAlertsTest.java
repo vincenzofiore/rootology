@@ -35,8 +35,8 @@ class OperationalAlertsTest {
     void twoAdminsOneWithAnAddress() {
         when(roles.holders(AppRole.ADMIN)).thenReturn(List.of("ada", "bo"));
         when(notifications.preferences("ada"))
-                .thenReturn(new NotificationPreferences("ada@example.test", true, true, null, null));
-        when(notifications.preferences("bo")).thenReturn(new NotificationPreferences(null, true, true, null, null));
+                .thenReturn(new NotificationPreferences("ada@example.test", true, true, true, true, null, null));
+        when(notifications.preferences("bo")).thenReturn(new NotificationPreferences(null, true, true, true, true, null, null));
     }
 
     private OperationalAlerts alerts(double diskThreshold) {
@@ -83,6 +83,23 @@ class OperationalAlertsTest {
         alerts(1.1).checkCircuits();
 
         verify(mail, never()).sendLater(any());
+    }
+
+    @Test
+    void aTelegramOutageSaysThatEmailAndTheAppStillWork() {
+        OperationalAlerts alerts = alerts(1.1);
+        open(circuits.forService("Telegram"));
+        open(circuits.forService("Telegram updates"));
+
+        alerts.checkCircuits();
+
+        ArgumentCaptor<OutgoingMail> sent = ArgumentCaptor.forClass(OutgoingMail.class);
+        verify(mail, times(2)).sendLater(sent.capture());
+        assertThat(sent.getAllValues()).extracting(OutgoingMail::subject)
+                .containsExactlyInAnyOrder("Rootology: Telegram non risponde", "Rootology: Telegram updates non risponde");
+        assertThat(sent.getAllValues()).extracting(OutgoingMail::text)
+                .anySatisfy(text -> assertThat(text).contains("email e nell’app"))
+                .anySatisfy(text -> assertThat(text).contains("collegare Telegram non funziona"));
     }
 
     @Test

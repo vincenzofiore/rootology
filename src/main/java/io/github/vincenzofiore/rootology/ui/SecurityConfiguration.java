@@ -3,6 +3,7 @@ package io.github.vincenzofiore.rootology.ui;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
 import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
 import io.github.vincenzofiore.rootology.notifications.NotificationService;
 import io.github.vincenzofiore.rootology.roles.RoleService;
 import io.github.vincenzofiore.rootology.spaces.IdentityProvider;
@@ -54,15 +55,24 @@ class SecurityConfiguration {
     /**
      * Vaadin needs inline scripts and styles and eval for its client engine; everything else comes from this
      * origin only (weather icons and styles included), and no page may be framed (#41).
+     *
+     * <p>The gardens map (#66) is the one exception: MapLibre GL JS, bundled from npm and served from this
+     * origin, fetches the OpenFreeMap style, its vector tiles, its glyphs and its TileJSON over `connect-src`
+     * and loads its raster tiles and sprites through `img-src`. Its web worker is emitted among our own assets
+     * and loaded with `new Worker(url)`, which `worker-src` allows by falling back to `script-src 'self'`:
+     * no `blob:` and no extra directive are needed (checked with the policy enforced, in development and in
+     * production mode). Nothing else of the map lives outside this origin.
      */
     static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; "
+            + "style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tiles.openfreemap.org; "
+            + "font-src 'self' data:; connect-src 'self' ws: wss: https://tiles.openfreemap.org; "
             + "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'";
 
     @Bean
     SignInSteps signInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations,
-                            RoleService roles, NotificationService notifications) {
-        return new SignInSteps(spaces, identities, invitations, roles, notifications);
+                            RoleService roles, NotificationService notifications,
+                            AccessRequestService accessRequests) {
+        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests);
     }
 
     @Bean

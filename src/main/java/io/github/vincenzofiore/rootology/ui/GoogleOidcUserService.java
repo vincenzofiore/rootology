@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
  * changes. Someone who is not known yet is a new person: the app never looks for them by email or by login, so
  * nothing is merged by address. They are admitted by the bootstrap list of emails or by a valid invitation,
  * never by belonging to a space (they belong to none), and their login is derived from the address Google
- * verified. Nothing is written before they are admitted.
+ * verified. Nothing is written before they are admitted; someone not admitted signs in as pending (#65) and
+ * may only ask for an invitation.
  */
 class GoogleOidcUserService extends OidcUserService {
 
@@ -85,32 +86,49 @@ class GoogleOidcUserService extends OidcUserService {
         String login;
         if (known.isPresent()) {
             login = known.get();
-            requireKnownAllowed(login, email, invitation, emails);
+            if (!requireKnownAllowed(login, email, invitation, emails, subject)) {
+                return pending(user, subject, login, emails);
+            }
         } else {
             // A new person: without a verified address no login can be derived and no invitation by email checked.
             if (email == null) {
                 throw denied("Google returned no verified email");
             }
             login = identities.freeLogin(deriveLogin(email));
-            requireNewAllowed(login, email, invitation, emails);
+            if (!requireNewAllowed(login, email, invitation, emails, subject)) {
+                // #65: not admitted, but allowed in as a pending person, who can ask for an invitation.
+                return pending(user, subject, login, emails);
+            }
         }
         steps.complete(login, invitation, emails, IdentityProvider.GOOGLE, subject, email);
         return principal(user, login, emails);
     }
 
-    /** Someone already known is admitted as on GitHub: the bootstrap list, a space they belong to, an invitation. */
-    void requireKnownAllowed(String login, String email, String invitation, Set<String> verifiedEmails) {
-        boolean listed = email != null && allowedEmails.contains(email);
-        if (!(listed || spaces.belongsToAnySpace(login) || steps.invitationAdmits(invitation, login, verifiedEmails))) {
-            throw denied("Google account " + login + " is not allowed");
-        }
+    /** The principal of someone not admitted (#65): no app role, nothing written. */
+    OidcUser pending(OidcUser user, String subject, String login, Set<String> emails) {
+        OidcUserInfo info = new OidcUserInfo(steps.pendingAttributes(IdentityProvider.GOOGLE, subject, login, emails));
+        return new DefaultOidcUser(SignInSteps.pendingAuthorities(), user.getIdToken(), info, SignedIn.LOGIN_ATTRIBUTE);
     }
 
-    /** A new person only by the bootstrap list of emails or by an invitation anyone with the link may take. */
-    void requireNewAllowed(String login, String email, String invitation, Set<String> verifiedEmails) {
-        if (!(allowedEmails.contains(email) || steps.invitationAdmits(invitation, login, verifiedEmails))) {
-            throw denied("Google account " + email + " is not allowed");
-        }
+    /**
+     * Someone already known is admitted as on GitHub: the bootstrap list, a space they belong to, an
+     * invitation, or a request an admin approved (#65).
+     */
+    boolean requireKnownAllowed(String login, String email, String invitation, Set<String> verifiedEmails,
+                                String subject) {
+        boolean listed = email != null && allowedEmails.contains(email);
+        return listed || spaces.belongsToAnySpace(login) || steps.invitationAdmits(invitation, login, verifiedEmails)
+                || steps.approved(IdentityProvider.GOOGLE, subject);
+    }
+
+    /**
+     * A new person only by the bootstrap list of emails, an invitation anyone with the link may take, or an
+     * approved request (#65).
+     */
+    boolean requireNewAllowed(String login, String email, String invitation, Set<String> verifiedEmails,
+                              String subject) {
+        return allowedEmails.contains(email) || steps.invitationAdmits(invitation, login, verifiedEmails)
+                || steps.approved(IdentityProvider.GOOGLE, subject);
     }
 
     /** Google's stable id of the account: the {@code sub} claim, the same after an address change. */

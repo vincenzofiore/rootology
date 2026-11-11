@@ -64,6 +64,9 @@ class AccountLinkingTest {
     NotificationService notifications;
 
     @Autowired
+    io.github.vincenzofiore.rootology.access.AccessRequestService accessRequests;
+
+    @Autowired
     JdbcClient jdbc;
 
     private MockHttpServletRequest request;
@@ -88,7 +91,7 @@ class AccountLinkingTest {
     }
 
     private SignInSteps steps() {
-        return new SignInSteps(spaces, identities, invitations, roles, notifications);
+        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests);
     }
 
     private static OAuth2User githubUser(long id, String login) {

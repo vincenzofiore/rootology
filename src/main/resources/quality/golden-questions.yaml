@@ -9,10 +9,21 @@
 # question and Jev decides; results are measured and recorded, not enforced.
 #
 # garden: none | rome (Aiuola A: tomato since 2026-09-01, lettuce since 2026-10-01; Aiuola B: pea
-#   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR)
+#   2026-03-01 to 2026-06-30; coordinates 41.90, 12.50, IT) | lyon (coordinates 45.76, 4.84, FR; one plot
+#   "Planche", ground, with lettuce since 2026-10-01)
+#   | two-gardens-north, two-gardens-south, two-gardens-space (one space with "Orto di Torino", 45.07, 7.69,
+#   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
+#   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
+#   | balcony ("Balcone" in Palermo, 38.12, 13.36, SUD; one plot "Davanzale", container, declared part shade)
+#   | two-terraces-small, two-terraces-space (one space in Vasto with "Terrazzo grande", plot Vasca with
+#   lettuce since 2026-10-01, and "Terrazzo piccolo", plot Vaso with garlic since 2026-10-15; asked on the
+#   small terrace or at the space level)
+#   The question runs inside the fixture's garden (#55); with none, or two-gardens-space, at the space level.
 # weather: missing (the service gives nothing) | frost (minimum -2.0 degrees all week)
 # spaceFacts: contributed by a member of the asking space (#24), visible only to that space
 # expect: answer (the exact set of values) or escalate (a part of the reason); notes: parts of the notes
+#   (English text), checked on answers and on escalations (#60): whoever answers a waiting question must
+#   see why it was not answered
 
 today: 2026-11-04
 
@@ -147,21 +158,208 @@ cases:
     intent: {kind: COMPANIONS, subject: lavanda, language: it}
     expect: {escalate: not in the dataset}
 
+  # A plain weather forecast is not about the garden (#53): refused, where it used to wait for a person.
   - id: out-of-scope
     question: Che tempo farà domani a Roma?
     intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  # The domain filter (#53): only a question clearly outside gardens is refused, with no answer and no
+  # escalation. The intent is what Claude would understand if the question reached it; a refused question
+  # never does. Questions that only look odd must not be refused: they take the normal path.
+  - id: off-domain-sewing
+    question: Come si fa il punto zig-zag con la macchina da cucire?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: off-domain-car
+    question: Ogni quanto devo cambiare le gomme della macchina?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: off-domain-taxes-en
+    question: How do I file my tax return?
+    intent: {kind: OTHER, language: en}
+    expect: {offDomain: true}
+
+  - id: off-domain-ants-in-the-kitchen
+    question: Come elimino le formiche in cucina?
+    intent: {kind: OTHER, language: it}
+    expect: {offDomain: true}
+
+  - id: in-domain-compost
+    question: Posso mettere le bucce d'arancia nel compost?
+    intent: {kind: OTHER, language: it}
     expect: {escalate: does not fit}
+
+  - id: in-domain-chickens
+    question: Le galline nell'orto rovinano le piantine?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  - id: in-domain-lawn-fertiliser
+    question: Che concime uso per il prato?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  - id: in-domain-frost-worry
+    question: Stanotte gela, devo coprire la lattuga?
+    intent: {kind: OTHER, language: it}
+    expect: {escalate: does not fit}
+
+  # Not refused; read as a question about a plot (as the live run of 2026-11-10 did), which needs a garden.
+  - id: in-domain-terrace-pots
+    question: Cosa posso seminare adesso nei vasi sul terrazzo?
+    intent: {kind: SOW_IN_PLOT, subject: vasi sul terrazzo, language: it}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
 
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?
     intent: {kind: GROWING_NOW, language: it}
-    expect: {escalate: nothing is recorded as growing}
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
+
+  # Question context (#55): only the garden the question is asked in, and never a guess.
+  # Calendars by the garden's climate profile (#62, frost-shift-v1 on Vasto's CENTRO windows; values from
+  # docs/climate-profile.md): Torino (205 m) has October as its last safe month, so the autumn sowings move one
+  # month earlier and only garlic is still planted in November; Palermo has no frost, so it keeps Vasto's windows
+  # (never earlier). A zone named in the question uses its reference site (NORD = Milano, Vasto's November
+  # crops) and its curated rows win: broad bean's NORD window is February.
+  - id: sow-now-in-the-northern-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-north
+    weather: missing
+    expect:
+      answer: [Aglio]
+      notes: [not available]
+
+  - id: sow-now-in-the-southern-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-south
+    weather: missing
+    expect:
+      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia]
+      notes: [not available, on the coast]
+
+  - id: growing-now-in-one-of-two-gardens
+    question: Cosa cresce nel mio orto?
+    intent: {kind: GROWING_NOW, language: it}
+    garden: two-gardens-north
+    weather: missing
+    expect: {answer: [Aglio]}
+
+  - id: sow-now-outside-a-garden-uses-no-garden
+    question: Cosa posso seminare adesso?
+    intent: {kind: SOW_NOW, language: it}
+    garden: two-gardens-space
+    weather: missing
+    expect:
+      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]
+      notes: [outside a garden]
+
+  - id: pest-risk-outside-a-garden
+    question: Cosa minaccia il mio orto questo mese?
+    intent: {kind: PEST_RISK, language: it}
+    garden: two-gardens-space
+    weather: missing
+    expect:
+      escalate: needs a garden
+      notes: [inside one of the space's gardens]
+
+  # A garden named in the question (#57): it wins over the page's, with a note; a name that matches no
+  # garden or several waits for a person.
+  - id: growing-now-in-the-garden-named
+    question: Cosa cresce nel terrazzo grande?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo grande}
+    garden: two-terraces-small
+    weather: missing
+    expect:
+      answer: [Lattuga]
+      notes: [names the garden Terrazzo grande]
+
+  - id: growing-now-in-a-garden-named-outside-a-garden
+    question: Cosa cresce nel terrazzo piccolo?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo piccolo}
+    garden: two-terraces-space
+    weather: missing
+    expect: {answer: [Aglio]}
+
+  - id: garden-named-matches-several
+    question: Cosa cresce sul terrazzo?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo}
+    garden: two-terraces-space
+    expect:
+      escalate: the garden named is not clear
+      notes: [Terrazzo grande, Terrazzo piccolo]
+
+  - id: garden-named-not-in-the-space
+    question: Cosa cresce nell'orto della nonna?
+    intent: {kind: GROWING_NOW, language: it, garden: orto della nonna}
+    garden: two-terraces-small
+    expect:
+      escalate: the garden named is not clear
+      notes: [no garden named]
+
+  - id: question-zone-wins-over-the-garden
+    question: Cosa posso seminare adesso al nord?
+    intent: {kind: SOW_NOW, language: it, zone: NORD}
+    garden: rome
+    weather: missing
+    expect:
+      answer: [Pisello, Aglio, Rosmarino, Salvia]
+      notes: [names zone NORD, but the garden is in zone CENTRO]
+
+  - id: plot-not-in-the-garden
+    question: Cosa posso seminare nell'aiuola C?
+    intent: {kind: SOW_IN_PLOT, subject: Aiuola C, language: it}
+    garden: rome
+    weather: missing
+    expect:
+      escalate: the plot is not in this garden
+      notes: [no plot named "Aiuola C"]
+
+  - id: plot-name-matching-two-plots
+    question: Cosa posso seminare nell'aiuola?
+    intent: {kind: SOW_IN_PLOT, subject: Aiuola, language: it}
+    garden: rome
+    weather: missing
+    expect:
+      escalate: the plot is not in this garden
+      notes: [More than one plot]
+
+  # The plot's declared exposure (#54) added by the app, not named in the question. Part shade: crops that
+  # ECOCROP gives "very bright" are left out (broad bean, pea, rosemary, sage). Palermo keeps Vasto's windows
+  # (#62), so in November only garlic ("clear skies") is left.
+  - id: sow-on-the-windowsill-in-part-shade
+    question: Cosa posso seminare adesso nel davanzale?
+    intent: {kind: SOW_IN_PLOT, subject: davanzale, language: it}
+    garden: balcony
+    weather: missing
+    expect:
+      answer: [Aglio]
+      notes: [light-need-v1, on the coast]
 
   - id: calendar-abroad
     question: Quando semino il pomodoro?
     intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
     garden: lyon
-    expect: {escalate: pomodoro}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      notes: [those of central Italy]
+
+  # No calendar note for a pest question abroad (#58): the pest months and the weather apply there too.
+  - id: pest-risk-abroad
+    question: Cosa minaccia il mio orto questo mese?
+    intent: {kind: PEST_RISK, language: it}
+    garden: lyon
+    weather: missing
+    expect:
+      answer: [Muffa grigia, Limaccia grigia, Peronospora della lattuga]
 
   - id: active-season-of-a-crop
     question: In quale stagione è attivo il pomodoro?

@@ -11,7 +11,8 @@ import java.util.Locale;
 /**
  * Domain metrics of the questions people ask (#27), with low-cardinality tags only: never a person, a space
  * or the question. {@code rootology.questions} times each question from start to answer or escalation,
- * tagged with the graph (scope) and the outcome (answered, escalated: waiting for a person, or failed), so
+ * tagged with the graph (scope) and the outcome (answered, escalated: waiting for a person, off_domain: refused
+ * by the domain filter, or failed), so
  * the escalation rate is escalated over answered plus escalated. {@code rootology.questions.confidence} is
  * the decision layer's confidence. Answers given later by a person are not questions and are not counted.
  */
@@ -39,6 +40,11 @@ class PipelineMetrics {
 
     void failed(Timer.Sample timing, FactScope scope) {
         stop(timing, scope, "failed");
+    }
+
+    /** A question the domain filter refused (#53): not answered and not escalated, so never a silent error. */
+    void refused(Timer.Sample timing, FactScope scope) {
+        stop(timing, scope, "off_domain");
     }
 
     private void stop(Timer.Sample timing, FactScope scope, String outcome) {

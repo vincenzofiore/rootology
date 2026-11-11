@@ -7,6 +7,8 @@ import java.util.List;
  * reviewer is the GitHub login of the person who answered an escalation, otherwise null.
  * sources are the ids of the knowledge base's sources behind the answer (empty for the suite);
  * notes are what the person should know, for example the forecast used or that it was missing.
+ * context is the snapshot of the context the question was answered in (#55), null for a run that
+ * belongs to no space (the suite's).
  */
 public record PipelineAnswer(
         String questionId,
@@ -17,5 +19,6 @@ public record PipelineAnswer(
         String reviewer,
         String text,
         List<String> sources,
-        List<io.github.vincenzofiore.rootology.decision.Note> notes) {
+        List<io.github.vincenzofiore.rootology.decision.Note> notes,
+        ContextSnapshot context) {
 }

@@ -20,7 +20,7 @@ What the knowledge base needs: crops with taxonomy (family, for rotation rules) 
 
 ## Gaps
 
-- **Italian sowing and harvest calendars**: no open dataset found. Proposal: derive windows from ECOCROP temperature ranges plus the garden's climate zone and the forecast, and review a curated calendar by hand, citing the sources used. Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
+- **Italian sowing and harvest calendars**: no open dataset found. The curated calendar is central Italy's (Vasto), reviewed by hand; it is moved to each garden by `frost-shift-v1` from the garden's own climate profile (#62), and refined with the forecast (#18). Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
 - **Companion and antagonist pairs**: evidence is uneven and often folk knowledge. Keep each pair with its source and a confidence, so Jev can weigh it and the UI can show it; prefer pairs backed by cited studies.
 
 ## Proposed first set
@@ -51,3 +51,20 @@ Every fact keeps its source and license in the curated files, so the attribution
 Owner's decisions (2026-11-04): MET Norway; the recent past is estimated from stored forecasts until the station's observations (#21); first rules frost-risk-v1 and smith-period-v1; a garden without coordinates gets no weather, with a note.
 
 Frost tolerance comes from FAO ECOCROP's "killing temperature during early growth" (`temp_kill_early` in `crop-needs.csv`), available for 19 of the 38 crops with an ECOCROP record; tender crops such as tomato, zucchini, eggplant and pepper have no value and are named as not checked, never guessed. A curated value for them is a candidate for the knowledge enrichment flow (#24) or an editorial file.
+
+## Climate profile (#62), checked 2026-11-10
+
+A garden's sowing and harvest windows come from its own frost dates, not from an Italian zone. The profile is
+built from AgERA5 and the Copernicus DEM, and the garden's altitude from GeoNames.
+
+| Source | What it gives | License (as found) | Notes |
+|---|---|---|---|
+| [AgERA5 v2.0](https://cds.climate.copernicus.eu/datasets/sis-agrometeorological-indicators) (Copernicus Climate Change Service) | Daily agrometeorological indicators on a 0.1° grid, 1979 to present: temperature, precipitation, humidity, and the basis for frost days and the growing season | Copernicus C3S licence, attribution required, commercial use allowed | **Chosen.** Downloaded with the offline `tools/climate` tool (CDS account, never in the repository). |
+| [Copernicus DEM GLO-90](https://doi.org/10.5270/ESA-c5d3d65) | Global 90 m elevation model, public bucket `copernicus-dem-90m` | Copernicus DEM licence: free, commercial use allowed, attribution required; the full notice is in the climate cells file header | **Chosen** for each cell's mean land elevation and land fraction. |
+| [GeoNames GTOPO30](https://www.geonames.org/export/web-services.html) | The elevation of a position, about 1 km (USGS GTOPO30, public domain) | CC BY 4.0 (attribution to GeoNames); GTOPO30 itself is public domain | **Chosen** for a garden's altitude, through the free GeoNames account already used for places (`ROOTOLOGY_GEONAMES_USERNAME`); -9999 means no value. |
+
+Owner's decisions (2026-11-10): the file is `climate-cells-v1.csv.gz`; the dates used are the 1-in-5-years
+values (`last_frost_p80`, `first_frost_p20`); the altitude correction is 6.5 °C per 1000 m and 0.15 °C per day,
+capped at 500 m, skipped on the coast (land fraction below 0.9) and when the altitude is unknown; the window
+rule `frost-shift-v1` never moves a window earlier in spring than Vasto; the south is not moved earlier because
+frost dates do not justify it (temperature would be needed, in a later issue).

@@ -65,6 +65,10 @@ class PrivacyTest {
                 values ((select id from app_user where login = 'del-ada'), 'google', '4243', 'ada@gmail.com', now())""").update();
         notification("del-ada", bobSpace);
         notification("del-bob", bobSpace);
+        jdbc.sql("insert into telegram_link (login, chat_id, linked_at) values ('del-ada', 6001, now())").update();
+        jdbc.sql("""
+                insert into telegram_link_code (code_hash, login, created_at, expires_at)
+                values ('aaaa', 'del-ada', now(), now() + interval '10 minutes')""").update();
         jdbc.sql("""
                 insert into usage_record (github_login, space_id, kind, at, claude_calls, prompt_tokens, completion_tokens,
                                           cost_usd, jev_calls)
@@ -86,6 +90,9 @@ class PrivacyTest {
         assertThat(count("select count(*) from usage_record where github_login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from notification where recipient = 'del-ada'")).isZero();
         assertThat(count("select count(*) from notification where recipient = 'del-bob'")).isEqualTo(1);
+        // The Telegram link and any code of that person go with the account (#38).
+        assertThat(count("select count(*) from telegram_link where login = 'del-ada'")).isZero();
+        assertThat(count("select count(*) from telegram_link_code where login = 'del-ada'")).isZero();
         // Bob's space keeps Ada's question, without her login, and Bob's own question as it was.
         assertThat(jdbc.sql("select started_by from pipeline_run where question = 'a question in bob''s space'")
                 .query(String.class).single()).isEqualTo(AccountDeletion.DELETED_USER);
@@ -143,17 +150,28 @@ class PrivacyTest {
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
+                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor)
+                values ((select id from garden where space_id = :s), 'Gus pot', 'CONTAINER', 'POTTING_MIX',
+                        'N', 'SHADE', 'EXPOSED', 3)""").param("s", gusSpace).update();
+        jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'google', '5253', 'fay@gmail.com', now())""").update();
 
+        jdbc.sql("insert into telegram_link (login, chat_id, linked_at) values ('exp-fay', 6002, now())").update();
+
         String json = new String(export.export("exp-fay"), StandardCharsets.UTF_8);
 
         assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
-                        "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com")
+                        "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
+                        "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3",
+                        // #56: the garden a question belongs to is part of the export, like its space.
+                        "\"garden_id\"",
+                        // #38: the Telegram chat the person linked.
+                        "\"telegramLinks\"", "\"chat_id\" : 6002")
                 .doesNotContain("gus asks about leeks");
     }
 
@@ -165,8 +183,24 @@ class PrivacyTest {
         run(space, "ret-hal", "an old question", old);
         run(space, "ret-hal", "a recent question", Instant.now());
 
+        jdbc.sql("""
+                insert into telegram_link (login, chat_id, linked_at, failed_at)
+                values ('ret-hal', 6003, now() - interval '60 days', now() - interval '31 days')""").update();
+        jdbc.sql("""
+                insert into telegram_link (login, chat_id, linked_at)
+                values ('ret-hal-other', 6004, now())""").update();
+        jdbc.sql("""
+                insert into telegram_link_code (code_hash, login, created_at, expires_at, used_at)
+                values ('bbbb', 'ret-hal', now() - interval '31 days', now() - interval '31 days',
+                        now() - interval '31 days')""").update();
+
         retentionJob.run();
 
+        assertThat(count("select count(*) from telegram_link where chat_id = 6003"))
+                .as("a link Telegram no longer delivers to, after the retention").isZero();
+        assertThat(count("select count(*) from telegram_link where chat_id = 6004"))
+                .as("a working link stays").isEqualTo(1);
+        assertThat(count("select count(*) from telegram_link_code where code_hash = 'bbbb'")).isZero();
         assertThat(count("select count(*) from pipeline_run where question = 'an old question'")).isZero();
         assertThat(count("select count(*) from pipeline_run where question = 'a recent question'")).isEqualTo(1);
     }

@@ -3,10 +3,13 @@ package io.github.vincenzofiore.rootology.quality;
 import io.github.vincenzofiore.rootology.experiments.GoldenQuestions;
 import io.github.vincenzofiore.rootology.facts.Contribution;
 import io.github.vincenzofiore.rootology.facts.KnowledgeContributions;
+import io.github.vincenzofiore.rootology.garden.DirectSun;
 import io.github.vincenzofiore.rootology.garden.GardenService;
+import io.github.vincenzofiore.rootology.garden.Orientation;
 import io.github.vincenzofiore.rootology.garden.PlantingMethod;
 import io.github.vincenzofiore.rootology.garden.PlotKind;
 import io.github.vincenzofiore.rootology.garden.Soil;
+import io.github.vincenzofiore.rootology.garden.Wind;
 import io.github.vincenzofiore.rootology.pipeline.RunContext;
 import io.github.vincenzofiore.rootology.spaces.SpaceService;
 import io.github.vincenzofiore.rootology.weather.Forecast;
@@ -44,32 +47,78 @@ final class GoldenFixtures {
         return Clock.fixed(golden.today().atTime(10, 0).atZone(ITALY).toInstant(), ITALY);
     }
 
-    /** A new space per case (prefix keeps runs apart), so cases never see each other's garden or facts. */
+    /**
+     * A new space per case (prefix keeps runs apart), so cases never see each other's garden or facts.
+     * The run is inside the case's garden (#55), and at the space level only when the case has none.
+     */
     RunContext space(String prefix, GoldenQuestions.Case c) {
         String login = prefix + "-" + c.id();
         spaces.signedIn(login);
         long space = spaces.spacesOf(login).getFirst().id();
-        switch (c.garden()) {
+        long garden = switch (c.garden()) {
             case "rome" -> {
-                var garden = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
-                        new BigDecimal("12.50"), "IT");
-                var a = gardens.savePlot(space, login, garden.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
-                var b = gardens.savePlot(space, login, garden.id(), null, "Aiuola B", PlotKind.RAISED_BED, Soil.LOAMY, null);
+                var created = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
+                        new BigDecimal("12.50"), "IT", 25);
+                var a = gardens.savePlot(space, login, created.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+                var b = gardens.savePlot(space, login, created.id(), null, "Aiuola B", PlotKind.RAISED_BED, Soil.LOAMY, null);
                 gardens.plant(space, login, a.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
                 gardens.plant(space, login, a.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
                 var pea = gardens.plant(space, login, b.id(), "pea", PlantingMethod.SOWN, LocalDate.of(2026, 3, 1), null);
                 gardens.endPlanting(space, login, pea.id(), LocalDate.of(2026, 6, 30));
+                yield created.id();
             }
-            case "lyon" -> gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
-                    new BigDecimal("4.84"), "FR");
-            case "none" -> { }
+            case "lyon" -> {
+                var created = gardens.saveGarden(space, login, null, "Jardin", "Lyon", new BigDecimal("45.76"),
+                        new BigDecimal("4.84"), "FR", 171);
+                var plot = gardens.savePlot(space, login, created.id(), null, "Planche", PlotKind.GROUND,
+                        Soil.LOAMY, null);
+                gardens.plant(space, login, plot.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+                yield created.id();
+            }
+            // Two gardens in one space (#55): the question is asked in one of them, or outside both.
+            case "two-gardens-north", "two-gardens-south", "two-gardens-space" -> {
+                var turin = gardens.saveGarden(space, login, null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
+                        new BigDecimal("7.69"), "IT", 205);
+                var palermo = gardens.saveGarden(space, login, null, "Orto di Palermo", "Palermo",
+                        new BigDecimal("38.12"), new BigDecimal("13.36"), "IT", 13);
+                var north = gardens.savePlot(space, login, turin.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
+                var south = gardens.savePlot(space, login, palermo.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
+                gardens.plant(space, login, north.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
+                gardens.plant(space, login, south.id(), "broad-bean", PlantingMethod.SOWN, LocalDate.of(2026, 10, 20), null);
+                yield switch (c.garden()) {
+                    case "two-gardens-north" -> turin.id();
+                    case "two-gardens-south" -> palermo.id();
+                    default -> 0L;
+                };
+            }
+            // A balcony in Palermo whose only plot is declared in part shade (#54), nothing planted.
+            case "balcony" -> {
+                var balcony = gardens.saveGarden(space, login, null, "Balcone", "Palermo", new BigDecimal("38.12"),
+                        new BigDecimal("13.36"), "IT", 13);
+                gardens.savePlot(space, login, balcony.id(), null, "Davanzale", PlotKind.CONTAINER, Soil.POTTING_MIX,
+                        null, Orientation.N, DirectSun.PART_SHADE, Wind.EXPOSED, 3);
+                yield balcony.id();
+            }
+            // Two gardens with similar names in Vasto (#57): lettuce on the big terrace, garlic on the small one.
+            case "two-terraces-small", "two-terraces-space" -> {
+                var big = gardens.saveGarden(space, login, null, "Terrazzo grande", "Vasto", new BigDecimal("42.11"),
+                        new BigDecimal("14.71"), "IT", 144);
+                var small = gardens.saveGarden(space, login, null, "Terrazzo piccolo", "Vasto",
+                        new BigDecimal("42.11"), new BigDecimal("14.71"), "IT", 144);
+                var tub = gardens.savePlot(space, login, big.id(), null, "Vasca", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
+                var pot = gardens.savePlot(space, login, small.id(), null, "Vaso", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
+                gardens.plant(space, login, tub.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+                gardens.plant(space, login, pot.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
+                yield c.garden().equals("two-terraces-small") ? small.id() : 0L;
+            }
+            case "none" -> 0L;
             default -> throw new IllegalArgumentException("Unknown garden fixture " + c.garden());
-        }
+        };
         for (GoldenQuestions.SpaceAlias alias : c.spaceFacts()) {
             contributions.apply(proposalIds.incrementAndGet(), space,
                     new Contribution.Alias(alias.targetId(), alias.name(), alias.language()));
         }
-        return new RunContext(space, login);
+        return new RunContext(space, garden, login);
     }
 
     static Optional<Forecast> forecast(String fixture, Clock clock) {

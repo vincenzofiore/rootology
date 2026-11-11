@@ -25,9 +25,12 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
     public record SpaceAlias(String targetId, String name, String language) {
     }
 
-    /** answer is null when the question must escalate; escalate is then a part of the expected reason. */
+    /**
+     * answer is null when the question must escalate; escalate is then a part of the expected reason.
+     * offDomain: the domain filter must refuse the question (#53), with no answer and no escalation.
+     */
     public record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
-                List<String> answer, String escalate, List<String> notes) {
+                List<String> answer, String escalate, List<String> notes, boolean offDomain) {
     }
 
     @SuppressWarnings("unchecked")
@@ -49,7 +52,8 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
     private static Case parse(Map<String, Object> c) {
         Map<String, Object> i = (Map<String, Object>) c.get("intent");
         Intent intent = new Intent(QueryKind.valueOf((String) i.get("kind")), (String) i.get("subject"),
-                (String) i.get("season"), (String) i.get("language"), (String) i.get("zone"), (String) i.get("month"));
+                (String) i.get("season"), (String) i.get("language"), (String) i.get("zone"), (String) i.get("month"),
+                (String) i.get("garden"));
         Map<String, Object> expect = (Map<String, Object>) c.get("expect");
         List<SpaceAlias> facts = ((List<Map<String, Object>>) c.getOrDefault("spaceFacts", List.of())).stream()
                 .map(f -> new SpaceAlias((String) f.get("alias"), (String) f.get("name"), (String) f.get("language")))
@@ -58,6 +62,7 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
                 ? ((List<Object>) expect.get("answer")).stream().map(String::valueOf).toList() : null;
         return new Case((String) c.get("id"), (String) c.get("question"), intent,
                 (String) c.getOrDefault("garden", "none"), (String) c.getOrDefault("weather", "missing"), facts,
-                answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()));
+                answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()),
+                Boolean.TRUE.equals(expect.get("offDomain")));
     }
 }

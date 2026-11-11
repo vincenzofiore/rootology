@@ -1,7 +1,8 @@
-# Sowing, planting and harvest windows (central Italy, open field: CENTRO; NORD only where curated), from
-# docs/crops-v1.md (owner-approved editorial list, not yet verified: verified=no). Months 1-12;
-# from_month > to_month wraps over the new year (Oct-Feb is 10,2). NORD and SUD windows are derived
-# by the rule zone-shift-v1 (ZoneShiftRule) and tagged INFERRED; a curated NORD or SUD row here wins.
+# Sowing, planting and harvest windows of Vasto (central Italy, open field: CENTRO; NORD only where
+# curated), from docs/crops-v1.md (owner-approved editorial list, not yet verified: verified=no). These
+# CENTRO rows are the base of the rule frost-shift-v1 (FrostShiftRule): every garden's windows are derived
+# from them with its own climate profile. Months 1-12; from_month > to_month wraps over the new year
+# (Oct-Feb is 10,2). A curated NORD or SUD row applies only when the question names that zone.
 crop_id,zone,activity,from_month,to_month,note,source,verified
 tomato,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
 tomato,CENTRO,TRANSPLANT,4,5,,rootology-editorial,no

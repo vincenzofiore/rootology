@@ -13,10 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +35,15 @@ public class WeatherService {
     static final Duration STALE_LIMIT = Duration.ofHours(24);
     static final Duration PAST = Duration.ofDays(3);
     static final Duration KEPT = Duration.ofDays(30);
+
+    /**
+     * How old a stored copy may be to be shown as "now" (#67): the 7:00 alerts job fetches a new one every
+     * morning, which keeps this true until the evening, and older than that the forecast is no longer today's.
+     */
+    static final Duration NOW_MAX_AGE = Duration.ofHours(12);
+
+    /** How near a stored hour has to be to count as "now": forecasts are hourly near term (#67). */
+    private static final Duration NOW_DISTANCE = Duration.ofHours(1);
 
     private final MetNorwayClient client;
     private final JdbcClient jdbc;
@@ -91,6 +103,30 @@ public class WeatherService {
         }
     }
 
+    /**
+     * The stored forecast hour nearest to now at this position, read only: what the gardens map's popups show
+     * (#67). Empty when there is no stored copy, when it was fetched more than {@link #NOW_MAX_AGE} ago, or when
+     * no stored hour is within an hour of now. It never calls MET Norway and never writes: the overview only
+     * shows what questions and the 7:00 alerts job already stored.
+     */
+    public Optional<ForecastHour> storedNow(BigDecimal latitude, BigDecimal longitude) {
+        BigDecimal lat = latitude.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal lon = longitude.setScale(2, RoundingMode.HALF_UP);
+        Instant now = clock.instant();
+        Optional<Instant> fetchedAt = jdbc.sql("SELECT fetched_at FROM weather_location "
+                        + "WHERE latitude = ? AND longitude = ?").params(lat, lon)
+                .query((rs, i) -> rs.getTimestamp(1).toInstant()).optional();
+        if (fetchedAt.isEmpty() || Duration.between(fetchedAt.get(), now).compareTo(NOW_MAX_AGE) >= 0) {
+            return Optional.empty();
+        }
+        return jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, step_hours, "
+                        + "symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? "
+                        + "AND valid_at BETWEEN ? AND ?")
+                .params(lat, lon, ts(now.minus(NOW_DISTANCE)), ts(now.plus(NOW_DISTANCE)))
+                .query(WeatherService::hour).list().stream()
+                .min(Comparator.comparingLong(hour -> Math.abs(Duration.between(hour.time(), now).toMillis())));
+    }
+
     /** A copy fetched less than a day ago, marked stale; otherwise no weather. */
     private Optional<Forecast> fallback(Optional<Cached> cached, BigDecimal lat, BigDecimal lon, Instant now) {
         return cached.filter(c -> Duration.between(c.fetchedAt(), now).compareTo(STALE_LIMIT) < 0)
@@ -115,9 +151,14 @@ public class WeatherService {
         List<ForecastHour> hours = jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, "
                         + "step_hours, symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
                         + "ORDER BY valid_at").params(lat, lon, ts(now.minus(PAST)))
-                .query((rs, i) -> new ForecastHour(rs.getTimestamp(1).toInstant(), rs.getDouble(2),
-                        (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6))).list();
+                .query(WeatherService::hour).list();
         return new Forecast(hours, fetchedAt, stale);
+    }
+
+    /** One stored hour, in the column order every query above selects. */
+    private static ForecastHour hour(ResultSet rs, int row) throws SQLException {
+        return new ForecastHour(rs.getTimestamp(1).toInstant(), rs.getDouble(2),
+                (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6));
     }
 
     private static Timestamp ts(Instant instant) {

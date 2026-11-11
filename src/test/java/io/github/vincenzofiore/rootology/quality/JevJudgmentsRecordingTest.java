@@ -94,8 +94,9 @@ class JevJudgmentsRecordingTest {
             }
             RunContext run = fixtures.space("judge-" + startedAt.toEpochMilli(), c);
             when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
-            Intent intent = GardenPipelineAgent.withDefaults(c.intent(), LocalDate.now(clock()).getMonth());
-            GraphFacts facts = agent.gatherFacts(intent, NoiseProfile.NONE, FactScope.KNOWLEDGE_BASE, run);
+            var context = agent.resolveContext(c.intent(), run);
+            Intent intent = context.intent();
+            GraphFacts facts = agent.gatherFacts(context, NoiseProfile.NONE, FactScope.KNOWLEDGE_BASE, run);
             JevDecisionLayer.Judgments j = jev.judge(intent, facts);
             judged.add(new Judged(c.id(), intent.toString(), facts.readings().size(),
                     facts.readings().stream().map(r -> r.fact().subject() + " " + r.fact().predicate() + " "

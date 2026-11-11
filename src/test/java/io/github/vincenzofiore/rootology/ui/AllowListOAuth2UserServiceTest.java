@@ -29,6 +29,8 @@ class AllowListOAuth2UserServiceTest {
             mock(io.github.vincenzofiore.rootology.roles.RoleService.class);
     private final io.github.vincenzofiore.rootology.notifications.NotificationService notifications =
             mock(io.github.vincenzofiore.rootology.notifications.NotificationService.class);
+    private final io.github.vincenzofiore.rootology.access.AccessRequestService accessRequests =
+            mock(io.github.vincenzofiore.rootology.access.AccessRequestService.class);
 
     private static OAuth2User githubUser(String id, String login) {
         return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"),
@@ -37,43 +39,46 @@ class AllowListOAuth2UserServiceTest {
 
     private AllowListOAuth2UserService service(String... allowed) {
         return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications), mock(GitHubEmails.class));
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), mock(GitHubEmails.class));
     }
 
     @Test
     void letsTheBootstrapAllowListIn() {
-        assertThatCode(() -> service("alice").requireAllowed("alice", null, Set.of()))
-                .doesNotThrowAnyException();
+        assertThat(service("alice").requireAllowed("alice", null, Set.of(), "1")).isTrue();
     }
 
     @Test
     void letsInAnyoneWhoAlreadyBelongsToASpace() {
         when(spaces.belongsToAnySpace("bob")).thenReturn(true);
 
-        assertThatCode(() -> service().requireAllowed("bob", null, Set.of())).doesNotThrowAnyException();
+        assertThat(service().requireAllowed("bob", null, Set.of(), "2")).isTrue();
     }
 
     @Test
     void letsInSomeoneWithAValidInvitation() {
         when(invitations.admits("token", "carol", Set.of())).thenReturn(true);
 
-        assertThatCode(() -> service().requireAllowed("carol", "token", Set.of())).doesNotThrowAnyException();
+        assertThat(service().requireAllowed("carol", "token", Set.of(), "3")).isTrue();
+    }
+
+    @Test
+    void letsInAnIdentityAnAdminApproved() {
+        when(accessRequests.isApproved(IdentityProvider.GITHUB, "4")).thenReturn(true);
+
+        assertThat(service().requireAllowed("dora", null, Set.of(), "4")).isTrue();
     }
 
     @Test
     void refusesEveryoneElse() {
         when(invitations.admits("token", "mallory", Set.of())).thenReturn(false);
 
-        assertThatThrownBy(() -> service("alice").requireAllowed("mallory", null, Set.of()))
-                .isInstanceOf(OAuth2AuthenticationException.class);
-        assertThatThrownBy(() -> service("alice").requireAllowed("mallory", "token", Set.of()))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+        assertThat(service("alice").requireAllowed("mallory", null, Set.of(), "5")).isFalse();
+        assertThat(service("alice").requireAllowed("mallory", "token", Set.of(), "5")).isFalse();
     }
 
     @Test
     void anEmptyAllowListLetsNobodyInOnItsOwn() {
-        assertThatThrownBy(() -> service().requireAllowed("alice", null, Set.of()))
-                .isInstanceOf(OAuth2AuthenticationException.class);
+        assertThat(service().requireAllowed("alice", null, Set.of(), "6")).isFalse();
     }
 
     @Test

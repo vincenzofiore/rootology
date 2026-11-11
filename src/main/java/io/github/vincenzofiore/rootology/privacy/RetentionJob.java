@@ -1,7 +1,9 @@
 package io.github.vincenzofiore.rootology.privacy;
 
+import io.github.vincenzofiore.rootology.access.AccessRequestService;
 import io.github.vincenzofiore.rootology.history.RunPersonalData;
 import io.github.vincenzofiore.rootology.notifications.NotificationPersonalData;
+import io.github.vincenzofiore.rootology.notifications.TelegramPersonalData;
 import io.github.vincenzofiore.rootology.pipeline.EscalationPersonalData;
 import io.github.vincenzofiore.rootology.spaces.SpacePersonalData;
 import io.github.vincenzofiore.rootology.usage.UsagePersonalData;
@@ -27,18 +29,23 @@ public class RetentionJob {
     private final RunPersonalData runs;
     private final EscalationPersonalData escalations;
     private final NotificationPersonalData notifications;
+    private final TelegramPersonalData telegram;
     private final UsagePersonalData usage;
     private final SpacePersonalData spaces;
+    private final AccessRequestService accessRequests;
     private final Clock clock;
 
     RetentionJob(Retention retention, RunPersonalData runs, EscalationPersonalData escalations,
-                 NotificationPersonalData notifications, UsagePersonalData usage, SpacePersonalData spaces, Clock clock) {
+                 NotificationPersonalData notifications, TelegramPersonalData telegram, UsagePersonalData usage,
+                 SpacePersonalData spaces, AccessRequestService accessRequests, Clock clock) {
         this.retention = retention;
         this.runs = runs;
         this.escalations = escalations;
         this.notifications = notifications;
+        this.telegram = telegram;
         this.usage = usage;
         this.spaces = spaces;
+        this.accessRequests = accessRequests;
         this.clock = clock;
     }
 
@@ -50,7 +57,10 @@ public class RetentionJob {
                 + escalations.purge(now.minus(retention.escalations()))
                 + notifications.purge(now.minus(retention.notifications()))
                 + usage.purge(now.minus(retention.usage()))
-                + spaces.purgeInvitations(now.minus(retention.invitations()));
+                + spaces.purgeInvitations(now.minus(retention.invitations()))
+                + telegram.purge(now.minus(retention.telegram()))
+                + accessRequests.purge(now.minus(retention.rejectedAccessRequests()),
+                        now.minus(retention.pendingAccessRequests()), now.minus(retention.pendingAccessRequests()));
         log.info("Retention: {} old record(s) deleted", deleted);
     }
 }

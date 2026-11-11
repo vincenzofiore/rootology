@@ -1,6 +1,7 @@
 package io.github.vincenzofiore.rootology.weather;
 
 import io.github.vincenzofiore.rootology.TestcontainersConfiguration;
+import io.github.vincenzofiore.rootology.resilience.CircuitBreaker;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,7 +10,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -19,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** The cache and the fallbacks, with MET Norway replaced by a mock. */
@@ -43,7 +48,7 @@ class WeatherServiceTest {
 
     private void expire(String lat, String lon) {
         jdbc.sql("UPDATE weather_location SET expires_at = ? WHERE latitude = ? AND longitude = ?")
-                .params(java.sql.Timestamp.from(Instant.now().minusSeconds(60)), new BigDecimal(lat), new BigDecimal(lon))
+                .params(Timestamp.from(Instant.now().minusSeconds(60)), new BigDecimal(lat), new BigDecimal(lon))
                 .update();
     }
 
@@ -93,8 +98,8 @@ class WeatherServiceTest {
 
     @Test
     void anOpenCircuitSkipsTheServiceAndUsesTheStoredCopy() {
-        io.github.vincenzofiore.rootology.resilience.CircuitBreaker breaker =
-                new io.github.vincenzofiore.rootology.resilience.CircuitBreaker("test MET");
+        CircuitBreaker breaker =
+                new CircuitBreaker("test MET");
         WeatherService service = new WeatherService(client, jdbc, java.time.Clock.systemUTC(), breaker);
         when(client.fetch(eq(43.77), eq(11.25), isNull())).thenReturn(new MetNorwayClient.Response(comingHours(),
                 Instant.now().plusSeconds(1800), null));
@@ -109,7 +114,81 @@ class WeatherServiceTest {
 
         // One successful call, then three failures; the last two questions did not call MET Norway.
         verify(client, times(4)).fetch(eq(43.77), eq(11.25), isNull());
-        assertThat(breaker.state()).isEqualTo(io.github.vincenzofiore.rootology.resilience.CircuitBreaker.State.OPEN);
+        assertThat(breaker.state()).isEqualTo(CircuitBreaker.State.OPEN);
+    }
+
+    /** A service on a fixed clock, so "now" and the copy's age are exact (#67). */
+    private WeatherService at(Instant now, CircuitBreaker breaker) {
+        return new WeatherService(client, jdbc, Clock.fixed(now, ZoneOffset.UTC), breaker);
+    }
+
+    /** A stored copy and its hours, inserted directly: the overview only ever reads what is there (#67). */
+    private void store(String lat, String lon, Instant fetchedAt, ForecastHour... hours) {
+        BigDecimal latitude = new BigDecimal(lat);
+        BigDecimal longitude = new BigDecimal(lon);
+        jdbc.sql("INSERT INTO weather_location (latitude, longitude, fetched_at, expires_at, last_modified) "
+                        + "VALUES (?, ?, ?, ?, NULL) ON CONFLICT (latitude, longitude) DO UPDATE SET "
+                        + "fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at")
+                .params(latitude, longitude, Timestamp.from(fetchedAt),
+                        Timestamp.from(fetchedAt.plusSeconds(1800))).update();
+        for (ForecastHour hour : hours) {
+            jdbc.sql("INSERT INTO weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
+                            + "precipitation_mm, step_hours, symbol_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                            + "ON CONFLICT (latitude, longitude, valid_at) DO UPDATE SET "
+                            + "air_temperature = EXCLUDED.air_temperature, precipitation_mm = EXCLUDED.precipitation_mm, "
+                            + "step_hours = EXCLUDED.step_hours, symbol_code = EXCLUDED.symbol_code")
+                    .params(latitude, longitude, Timestamp.from(hour.time()), hour.airTemperature(),
+                            hour.relativeHumidity(), hour.precipitation(), hour.stepHours(), hour.symbol()).update();
+        }
+    }
+
+    @Test
+    void theStoredHourNearestToNowIsShownFromAFreshCopy() {
+        Instant now = Instant.parse("2026-11-11T10:00:00Z");
+        CircuitBreaker breaker =
+                new CircuitBreaker("test now");
+        WeatherService service = at(now, breaker);
+        store("45.47", "9.21", now.minus(1, ChronoUnit.HOURS),
+                new ForecastHour(now.minus(50, ChronoUnit.MINUTES), 18.0, null, null, 1, "cloudy"),
+                new ForecastHour(now.plus(40, ChronoUnit.MINUTES), 12.5, null, 0.4, 1, "rain"));
+
+        ForecastHour hour = service.storedNow(new BigDecimal("45.4700"), new BigDecimal("9.2100")).orElseThrow();
+
+        assertThat(hour.time()).isEqualTo(now.plus(40, ChronoUnit.MINUTES));
+        assertThat(hour.airTemperature()).isEqualTo(12.5);
+        assertThat(hour.symbol()).isEqualTo("rain");
+        // Reading what is stored never calls MET Norway and never touches the breaker (#67).
+        verifyNoInteractions(client);
+        assertThat(breaker.state()).isEqualTo(CircuitBreaker.State.CLOSED);
+    }
+
+    @Test
+    void aPositionWithNoStoredCopyHasNoWeatherNow() {
+        Instant now = Instant.parse("2026-11-11T10:00:00Z");
+
+        assertThat(at(now, new CircuitBreaker("test none"))
+                .storedNow(new BigDecimal("37.11"), new BigDecimal("15.29"))).isEmpty();
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void aCopyOlderThanTwelveHoursHasNoWeatherNow() {
+        Instant now = Instant.parse("2026-11-11T10:00:00Z");
+        WeatherService service = at(now, new CircuitBreaker("test old"));
+        store("44.11", "12.29", now.minus(13, ChronoUnit.HOURS),
+                new ForecastHour(now, 9.0, null, null, 1, "fair"));
+
+        assertThat(service.storedNow(new BigDecimal("44.11"), new BigDecimal("12.29"))).isEmpty();
+    }
+
+    @Test
+    void noStoredHourNearNowMeansNoWeatherNow() {
+        Instant now = Instant.parse("2026-11-11T10:00:00Z");
+        WeatherService service = at(now, new CircuitBreaker("test far"));
+        store("43.11", "11.29", now.minus(1, ChronoUnit.HOURS),
+                new ForecastHour(now.plus(3, ChronoUnit.HOURS), 7.0, null, null, 6, "fair"));
+
+        assertThat(service.storedNow(new BigDecimal("43.11"), new BigDecimal("11.29"))).isEmpty();
     }
 
     @Test

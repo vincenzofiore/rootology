@@ -34,6 +34,30 @@ class KnowledgeValidatorTest {
     }
 
     @Test
+    void refusesACropWithoutAValidFrostGroup() {
+        var k = new CuratedKnowledge(real.sources(),
+                plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
+                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP")),
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "crop lavender: frost_group must be one of " + FrostShiftRule.GROUPS + ", not NOT_A_GROUP");
+    }
+
+    @Test
+    void checksTheClimateCellsFile() {
+        assertThat(KnowledgeValidator.validateCells(new ClimateCells())).isEmpty();
+
+        ClimateCells bad = new ClimateCells(new int[]{0}, new int[]{0}, new short[]{-10_000}, new byte[]{101},
+                new short[]{0}, new short[]{400}, new short[]{0}, new short[]{0}, new byte[]{31});
+
+        assertThat(KnowledgeValidator.validateCells(bad)).anyMatch(p -> p.contains("elevation -10000"))
+                .anyMatch(p -> p.contains("land fraction 1.01"))
+                .anyMatch(p -> p.contains("last frost p80 day 400"))
+                .anyMatch(p -> p.contains("frost years 31"));
+    }
+
+    @Test
     void refusesASourceThatDoesNotAllowCommercialUse() {
         var k = new CuratedKnowledge(plus(real.sources(), new SourceRow("pfaf", "PFAF", "https://pfaf.org",
                 "CC BY-NC-SA", false, "2026-11-03")), real.crops(), real.needs(), real.windows(), real.pairs(),

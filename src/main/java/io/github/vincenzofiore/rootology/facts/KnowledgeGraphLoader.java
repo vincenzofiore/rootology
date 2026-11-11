@@ -13,8 +13,8 @@ import java.util.Map;
  * apart from the quality suite's dataset:
  * (:Crop)-[:BELONGS_TO]->(:Family), (:Crop)-[:COMPANION_OF|ANTAGONIST_OF]->(:Crop),
  * (:Organism)-[:AFFECTS]->(:Crop), (:Crop)-[:WINDOW]->(:Zone), and (:Source) nodes.
- * Every relationship carries the ids of its sources; windows also carry their provenance
- * (CURATED, or INFERRED with the rule that derived them, see {@link ZoneShiftRule}).
+ * Every relationship carries the ids of its sources; only curated windows are written, since the
+ * calendars of a site are derived by {@link ClimateWindows} and {@link FrostShiftRule} (#62).
  */
 final class KnowledgeGraphLoader {
 
@@ -52,8 +52,6 @@ final class KnowledgeGraphLoader {
                 + "note: w.note, sources: [w.source], verified: w.verified, provenance: w.provenance, "
                 + "derivedBy: w.derivedBy}]->(z)";
         tx.run(window, rows(k.windows().stream().map(w -> window(w, "CURATED", null)).toList())).consume();
-        tx.run(window, rows(ZoneShiftRule.infer(k.windows()).stream()
-                .map(i -> window(i.window(), "INFERRED", ZoneShiftRule.ID)).toList())).consume();
 
         for (String relation : KnowledgeValidator.RELATIONS) {
             // The relationship type comes from the validated set, never from the files.

@@ -16,12 +16,14 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import io.github.vincenzofiore.rootology.enrichment.InvalidProposalException;
 import io.github.vincenzofiore.rootology.enrichment.KnowledgeEnrichment;
 import io.github.vincenzofiore.rootology.enrichment.ProposalScope;
 import io.github.vincenzofiore.rootology.enrichment.ProposalStatus;
 import io.github.vincenzofiore.rootology.enrichment.ProposalSummary;
 import io.github.vincenzofiore.rootology.facts.Contribution;
+import io.github.vincenzofiore.rootology.garden.GardenService;
 import io.github.vincenzofiore.rootology.roles.AppRole;
 import io.github.vincenzofiore.rootology.facts.CropCatalog;
 import io.github.vincenzofiore.rootology.facts.KnowledgeGraph;
@@ -38,8 +40,11 @@ import java.util.Map;
 /**
  * Knowledge enrichment (#24): propose a missing fact for this space (applies at once) or for everyone
  * (a curator reviews it), see and withdraw this space's proposals, and, for curators, the review queue.
+ * The proposals belong to the space, so every garden of the space shows the same ones, and the space level
+ * has the page too (#56).
  */
-@Route(value = "knowledge", layout = MainLayout.class)
+@Route(value = "spaces/:spaceId/gardens/:gardenId/knowledge", layout = MainLayout.class)
+@RouteAlias(value = "spaces/:spaceId/knowledge", layout = MainLayout.class)
 @PermitAll
 public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
@@ -56,34 +61,41 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     static final String HOST = "HOST";
 
     private final KnowledgeEnrichment enrichment;
+    private final GardenService gardens;
     private final CurrentUser currentUser;
     private final List<Option> crops;
     private final List<Option> organisms;
-    private final Map<String, String> labels = new LinkedHashMap<>();
+    private final ProposalText text;
     private final Paragraph askedAbout = new Paragraph();
     private final Grid<ProposalSummary> mine = new Grid<>();
-    private final Grid<ProposalSummary> queue = new Grid<>();
+
+
+    /** The page's own context (#56), read from its route. */
+    private long spaceId;
+    /** Proposing and withdrawing need an OWNER or MEMBER (#33): shown once the page knows its space. */
+    private final VerticalLayout proposalForm;
+    private Grid.Column<ProposalSummary> withdraw;
 
     public KnowledgeView(KnowledgeEnrichment enrichment, CropCatalog cropCatalog, KnowledgeGraph knowledge,
-                         CurrentUser currentUser) {
+                         GardenService gardens, CurrentUser currentUser) {
         this.enrichment = enrichment;
+        this.gardens = gardens;
         this.currentUser = currentUser;
         this.crops = cropCatalog.all().stream()
                 .map(c -> new Option(c.id(), c.italianName() + " (" + c.englishName() + ")")).toList();
         this.organisms = knowledge.organisms().stream()
                 .map(o -> new Option(o.id(), o.italianName() + " (" + o.englishName() + ")")).toList();
-        crops.forEach(o -> labels.put(o.id(), o.label()));
-        organisms.forEach(o -> labels.put(o.id(), o.label()));
+        this.text = new ProposalText(cropCatalog, knowledge);
 
         askedAbout.setVisible(false);
         add(new H3(getTranslation("knowledge.title")), new Paragraph(getTranslation("knowledge.intro")),
                 askedAbout);
-        // A guest only looks (#33): no proposals, no withdrawals.
-        if (currentUser.canContribute()) {
-            add(form());
-        }
+        // A guest only looks (#33): no proposals, no withdrawals; the role is known in beforeEnter.
+        proposalForm = form();
+        proposalForm.setVisible(false);
+        add(proposalForm);
 
-        mine.addColumn(this::describe).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
+        mine.addColumn(p -> text.describe(this, p)).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
         mine.addColumn(p -> getTranslation(p.scope() == ProposalScope.SPACE ? "knowledge.for.space" : "knowledge.for.everyone"))
                 .setHeader(getTranslation("knowledge.for"))
                 .setAutoWidth(true);
@@ -91,24 +103,31 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
                 .setAutoWidth(true);
         mine.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
         mine.addColumn(this::review).setHeader(getTranslation("knowledge.review")).setFlexGrow(2);
-        mine.addComponentColumn(p -> {
+        withdraw = mine.addComponentColumn(p -> {
             Button withdraw = new Button(getTranslation("knowledge.withdraw"), e -> act(() ->
-                    enrichment.withdraw(currentUser.space().id(), currentUser.login(), p.id())));
-            withdraw.setVisible(currentUser.canContribute() && (p.status() == ProposalStatus.PENDING
-                    || (p.status() == ProposalStatus.APPROVED && p.scope() == ProposalScope.SPACE)));
+                    enrichment.withdraw(spaceId, currentUser.login(), p.id())));
+            withdraw.setVisible(p.status() == ProposalStatus.PENDING
+                    || (p.status() == ProposalStatus.APPROVED && p.scope() == ProposalScope.SPACE));
             return withdraw;
         }).setAutoWidth(true);
+        withdraw.setVisible(false);
         mine.setAllRowsVisible(true);
         add(new H4(getTranslation("knowledge.mine")), mine);
 
-        if (currentUser.hasRole(AppRole.CURATOR)) {
-            add(curatorSection());
-        }
         refresh();
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        java.util.Optional<Routed.Where> where = Routed.garden(event, currentUser, gardens);
+        if (where.isEmpty()) {
+            return;
+        }
+        spaceId = where.get().spaceId();
+        boolean contributor = currentUser.canContribute(spaceId);
+        proposalForm.setVisible(contributor);
+        withdraw.setVisible(contributor);
+        refresh();
         // From Ask: the question that could not be answered, as a reminder of what is missing.
         List<String> question = event.getLocation().getQueryParameters().getParameters().getOrDefault("question",
                 List.of());
@@ -174,7 +193,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
                 default -> new Contribution.Host(id(organism), id(host), month(from), month(to));
             };
             try {
-                ProposalSummary added = enrichment.propose(currentUser.space().id(), currentUser.login(),
+                ProposalSummary added = enrichment.propose(spaceId, currentUser.login(),
                         scope.getValue(), contribution, citation.getValue());
                 Notification.show(getTranslation(added.status() == ProposalStatus.APPROVED ? "knowledge.added"
                         : "knowledge.proposed"));
@@ -192,28 +211,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         return new VerticalLayout(kind, alias, pair, pest, row(scope, citation), propose, problems);
     }
 
-    private VerticalLayout curatorSection() {
-        TextField note = new TextField(getTranslation("knowledge.note"));
-        note.setWidth("36rem");
-        queue.addColumn(this::describe).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
-        queue.addColumn(ProposalSummary::citation).setHeader(getTranslation("knowledge.source")).setFlexGrow(2);
-        queue.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
-        queue.addComponentColumn(p -> new HorizontalLayout(
-                new Button(getTranslation("knowledge.approve"), e -> act(() ->
-                        enrichment.approve(currentUser.login(), p.id(), note.getValue()))),
-                new Button(getTranslation("knowledge.reject"), e -> act(() ->
-                        enrichment.reject(currentUser.login(), p.id(), note.getValue())))))
-                .setAutoWidth(true);
-        queue.setAllRowsVisible(true);
-        return new VerticalLayout(new H4(getTranslation("knowledge.curator")),
-                new Paragraph(getTranslation("knowledge.curator.intro")), note, queue);
-    }
-
     private void refresh() {
-        mine.setItems(enrichment.ofSpace(currentUser.space().id(), currentUser.login()));
-        if (currentUser.hasRole(AppRole.CURATOR)) {
-            queue.setItems(enrichment.pending(currentUser.login()));
-        }
+        mine.setItems(spaceId == 0 ? java.util.List.of() : enrichment.ofSpace(spaceId, currentUser.login()));
     }
 
     private void act(Runnable action) {
@@ -227,18 +226,6 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         refresh();
     }
 
-    String describe(ProposalSummary p) {
-        return switch (p.contribution()) {
-            case Contribution.Alias a -> getTranslation("knowledge.describe.alias", a.name(),
-                    getTranslation("knowledge.language." + a.language()), label(a.targetId()));
-            case Contribution.Pair pair -> getTranslation("COMPANION".equals(pair.relation())
-                    ? "knowledge.describe.companion" : "knowledge.describe.antagonist", label(pair.cropId()),
-                    label(pair.partnerId()), pair.effect());
-            case Contribution.Host h -> getTranslation("knowledge.describe.host", label(h.organismId()), label(h.cropId()),
-                    monthName(h.fromMonth()), monthName(h.toMonth()));
-        };
-    }
-
     private String review(ProposalSummary p) {
         if (p.withdrawnBy() != null) {
             return getTranslation("knowledge.withdrawnby", p.withdrawnBy());
@@ -247,14 +234,6 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
             return "";
         }
         return p.reviewedBy() + (p.reviewNote() == null ? "" : ": " + p.reviewNote());
-    }
-
-    private String label(String id) {
-        return labels.getOrDefault(id, id);
-    }
-
-    private String monthName(int month) {
-        return Month.of(month).getDisplayName(TextStyle.FULL, pageLocale());
     }
 
     private Locale pageLocale() {
