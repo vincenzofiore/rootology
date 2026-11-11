@@ -163,6 +163,26 @@ class NotificationServiceTest {
         });
     }
 
+    /** A waiting notification nobody opened before the answer came leaves the bell: it asks nothing any more. */
+    @Test
+    void aWaitingNotificationIsReadOnceTheQuestionIsAnswered() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("rita", "sara", "tea");
+
+        waiting("p-9", space, "sara", "Quali sono le compagne del cavolo?");
+        assertThat(notifications.unread("rita")).isEqualTo(1);
+
+        // Answered by someone else (an owner who never opened the bell's notification, as in production).
+        events.publishEvent(new EscalationResolved("p-9", space, 0, "sara", "someone", now));
+
+        assertThat(notifications.unread("rita")).as("unread before, nothing to do now").isZero();
+        assertThat(notifications.of("rita", 10)).singleElement().satisfies(n -> {
+            assertThat(n.resolvedAt()).isNotNull();
+            assertThat(n.unread()).isFalse();
+        });
+        assertThat(notifications.unread("sara")).as("only the answer is new for the asker").isEqualTo(1);
+    }
+
     @Test
     void theAskerGetsTheAnswerInTheAppAndByEmailButTheOthersOnlySeeTheResolution() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");

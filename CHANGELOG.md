@@ -6,6 +6,12 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Fixed
+
+- A notification of a waiting question that someone answered no longer stays in the bell's count with no way
+  to open it: it counts as read once the question has its answer, and those left unread before are cleared
+  (#73).
+
 ## [0.3.0] - 2026-11-11
 
 ### Added

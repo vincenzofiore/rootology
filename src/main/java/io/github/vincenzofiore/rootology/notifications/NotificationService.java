@@ -103,8 +103,12 @@ public class NotificationService {
     void on(EscalationResolved resolved) {
         Set<String> changed = new HashSet<>(jdbc.sql("SELECT DISTINCT recipient FROM notification WHERE process_id = ?")
                 .params(resolved.processId()).query(String.class).list());
-        jdbc.sql("UPDATE notification SET resolved_at = ?, resolved_by = ? WHERE process_id = ? AND resolved_at IS NULL")
-                .params(Timestamp.from(resolved.at()), resolved.reviewer(), resolved.processId()).update();
+        // A waiting question that has its answer asks nothing of anyone any more: it is also read, so it leaves
+        // the bell's count (its row has no Open button once resolved, so nothing else would clear it).
+        jdbc.sql("UPDATE notification SET resolved_at = ?, resolved_by = ?, read_at = COALESCE(read_at, ?) "
+                        + "WHERE process_id = ? AND resolved_at IS NULL")
+                .params(Timestamp.from(resolved.at()), resolved.reviewer(), Timestamp.from(resolved.at()),
+                        resolved.processId()).update();
         // #51: the asker gets a new, unread notification with the answer; the other recipients only see their
         // waiting notification resolved. The person who answered gets nothing new, unless someone else asked,
         // and someone who left the space while the question waited cannot open it: no notification.
