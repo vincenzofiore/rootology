@@ -8,7 +8,7 @@
 		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>io.github.vincenzofiore</groupId>
+	<groupId>app.rootology</groupId>
 	<artifactId>rootology</artifactId>
 	<!-- Maven's CI-friendly version: a release tag vX.Y.Z builds with -Drevision=X.Y.Z (#12, build.yml) -->
 	<version>${revision}</version>
