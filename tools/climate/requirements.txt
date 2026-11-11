@@ -7,3 +7,8 @@ netCDF4==1.7.5.1.post1
 numpy==2.5.4
 pandas==3.1.0
 rasterio==1.5.2
+# Transitive dependencies pinned to the installed versions, so OSV-Scanner does not assume ancient ones
+# (#41: it flagged requests 2.9.2, tqdm 4.9.0 and an old certifi on the release PR of 0.3.0).
+certifi==2026.10.23
+requests==2.34.2
+tqdm==4.70.1
