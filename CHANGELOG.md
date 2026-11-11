@@ -13,6 +13,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- A person waiting for an invitation can leave the request page: the arrow at the top signs them out and
+  goes back to the welcome page, which they can also open by its address (#76).
 - The gardens map's popups show the weather now for a garden just added or moved, and for gardens where
   nothing grows: a new place's forecast is fetched in the background when the garden is saved, and every
   garden's forecast is refreshed every 6 hours (#74).
