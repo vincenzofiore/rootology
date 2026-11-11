@@ -88,7 +88,11 @@ One small server (Hetzner Cloud CX23: 2 vCPU, 4 GB, Ubuntu 26.04 LTS, Germany), 
 `deploy/cloud-init.yaml` (the owner's public key pasted in): user `rootology` signs in with that key only,
 no passwords and no root login, Docker with Compose, fail2ban, automatic security updates. Hetzner's
 firewall allows only TCP 22, 80, 443 and ICMP in. The domain `rootology.app` (OVHcloud, DNSSEC on) points to
-the server with an `A` and an `AAAA` record. Server address and keys stay out of this repository.
+the server with an `A` and an `AAAA` record (DS record at the `.app` registry, validated, checked 2026-11-11).
+Two `CAA` records, `0 issue "letsencrypt.org"` and `0 issue "sectigo.com"` (ZeroSSL, Caddy's fallback
+issuer), allow only those authorities to issue its certificates. OVH's leftovers (the `ftp` CNAME, the web
+redirect's TXT) are gone; its default MX and SPF stay until the domain has its own email. Server address and
+keys stay out of this repository.
 
 `deploy/compose.prod.yaml` runs Caddy (HTTPS from Let's Encrypt, HTTP redirected), the app image
 `ghcr.io/vincenzofiore/rootology` (built by the `publish` job of `.github/workflows/build.yml` once the tests pass on `main`),
@@ -154,8 +158,13 @@ Which version runs is `APP_VERSION` in `.env`: a release (`0.1.0`), `latest` (th
 `deploy/backup.sh` dumps Postgres every night (1:30 UTC, the server's time zone: before the app's retention job at 3:30 Italian time) and keeps 14 days; with `BACKUP_REMOTE` set, it mirrors them
 off the server. In the `rootology` user's crontab (`crontab -e`):
 ```
-30 1 * * * BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
+30 1 * * * BACKUP_PING_URL=https://hc-ping.com/<uuid> BACKUP_REMOTE=... BACKUP_SSH="ssh -p 23" $HOME/rootology/deploy/backup.sh >> $HOME/backup.log 2>&1
 ```
+`BACKUP_PING_URL` is a Healthchecks.io check (free Hobbyist plan, the owner's account; SIA Monkey See Monkey
+Do, Latvia, hosted at Hetzner; it receives only the server's pings, no personal data of the users): the script
+pings `/start`, then the plain URL when the dump (and the mirror) succeeded, `/fail` when anything failed. The
+check expects one ping a day (period 1 day, grace 2 hours) and emails the owner when one is late or failed. The
+URL stays in the crontab, never in this repository: anyone who has it can ping the check.
 Restore (stops nothing else; the app may need a restart afterwards):
 ```sh
 docker compose -f compose.prod.yaml exec -T postgres \
@@ -168,10 +177,13 @@ from Postgres: it needs no backup.
 ### Watching it
 
 `https://rootology.app/actuator/health` answers `{"status":"UP"}` without details (database, Neo4j, disk and
-the external services; email is left out: it is sent in the background with retries). An external uptime
-monitor checks it every few minutes and emails the owner. While Claude, Jev, MET Norway or GeoNames keep
-failing (an open circuit, #29) the status is `DEGRADED`, still with HTTP 200, since the app works with its
-fallbacks. `/actuator/health/liveness` and `/actuator/health/readiness` (Postgres and Neo4j) are public too.
+the external services; email is left out: it is sent in the background with retries). UptimeRobot (free
+plan, the owner's account) checks it every 5 minutes as a plain HTTP(s) monitor and emails the owner on
+anything but a 2xx: Spring answers 503 when Postgres or Neo4j is down, and Caddy 502 when the app is not
+running. While Claude, Jev, MET Norway or GeoNames keep failing (an open circuit, #29) the status is
+`DEGRADED`, still with HTTP 200, since the app works with its fallbacks: the monitor stays quiet on purpose,
+because `OperationalAlerts` already emails the admins when a circuit opens. Caddy keeps no access log, so the
+monitor's own dashboard is where its checks are seen. `/actuator/health/liveness` and `/actuator/health/readiness` (Postgres and Neo4j) are public too.
 
 Logs are one JSON object per line in production (Spring Boot's Logstash format), with a `traceId` per HTTP
 request, also sent back as the `X-Trace-Id` header: `docker compose -f compose.prod.yaml logs --since 1h app`,
