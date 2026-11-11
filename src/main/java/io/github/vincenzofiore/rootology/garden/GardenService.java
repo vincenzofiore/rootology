@@ -30,9 +30,12 @@ public class GardenService {
     private final PlotRepository plots;
     private final PlantingRepository plantings;
     private final RotationRule rotation;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     GardenService(SpaceService spaces, CropCatalog crops, GardenRepository gardens, PlotRepository plots,
-                  PlantingRepository plantings, RotationRule rotation) {
+                  PlantingRepository plantings, RotationRule rotation,
+                  org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
         this.spaces = spaces;
         this.crops = crops;
         this.gardens = gardens;
@@ -83,8 +86,15 @@ public class GardenService {
         Garden garden = existing == null
                 ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, Instant.now())
                 : existing;
+        boolean moved = lat != null && lon != null && (existing == null
+                || !lat.equals(existing.getLatitude()) || !lon.equals(existing.getLongitude()));
         garden.update(cleanName, blankToNull(town), lat, lon, country, elevation);
-        return summary(gardens.save(garden));
+        GardenSummary saved = summary(gardens.save(garden));
+        if (moved) {
+            // A new place has no stored forecast yet: the map's popups would show no weather (#67).
+            events.publishEvent(new GardenLocated(saved.id(), lat, lon));
+        }
+        return saved;
     }
 
     /** The elevation to store: none without coordinates; the old one kept only when the place did not change. */

@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,7 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
+@RecordApplicationEvents
 class GardenServiceTest {
+
+    @Autowired
+    ApplicationEvents events;
 
     @Autowired
     GardenService gardens;
@@ -230,5 +236,21 @@ class GardenServiceTest {
                 LocalDate.of(2026, 3, 1), null);
         assertThatThrownBy(() -> gardens.endPlanting(space, "kara", carrots.id(), LocalDate.of(2026, 2, 1)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** A new place is announced so its forecast can be fetched (#67); a save that keeps the place is not. */
+    @Test
+    void aGardenThatGetsANewPlaceIsAnnounced() {
+        long space = spaceOf("ugo");
+        GardenSummary created = gardens.saveGarden(space, "ugo", null, "Orto", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"));
+        gardens.saveGarden(space, "ugo", created.id(), "Orto grande", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"));
+        gardens.saveGarden(space, "ugo", created.id(), "Orto grande", "Trivento",
+                new BigDecimal("41.78"), new BigDecimal("14.55"));
+        gardens.saveGarden(space, "ugo", null, "Senza posto", null, null, null);
+
+        assertThat(events.stream(GardenLocated.class)).extracting(GardenLocated::latitude)
+                .containsExactly(new BigDecimal("42.11"), new BigDecimal("41.78"));
     }
 }
