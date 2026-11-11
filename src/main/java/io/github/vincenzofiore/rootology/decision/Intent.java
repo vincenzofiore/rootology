@@ -9,8 +9,16 @@ package io.github.vincenzofiore.rootology.decision;
  *                 names of the knowledge base's facts and the language of the answer, never the decision
  * @param zone     NORD, CENTRO or SUD, for the knowledge base's sowing and harvest windows
  * @param month    JANUARY to DECEMBER, for {@link QueryKind#SOW_NOW}
+ * @param garden   the name of one of the space's gardens as written in the question (#57), or null; only the
+ *                 context resolver reads it, never the decision layer
  */
-public record Intent(QueryKind kind, String subject, String season, String language, String zone, String month) {
+public record Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
+                     String garden) {
+
+    /** Without a garden named: every intent before #57, and the suite's. */
+    public Intent(QueryKind kind, String subject, String season, String language, String zone, String month) {
+        this(kind, subject, season, language, zone, month, null);
+    }
 
     /** Without a language: the suite's fixed intents, answered in English. */
     public Intent(QueryKind kind, String subject, String season) {
@@ -26,12 +34,17 @@ public record Intent(QueryKind kind, String subject, String season, String langu
     }
 
     public Intent withZoneAndMonth(String zone, String month) {
-        return new Intent(kind, subject, season, language, zone, month);
+        return new Intent(kind, subject, season, language, zone, month, garden);
+    }
+
+    /** The same intent naming no garden: what Claude returns when it was given no garden names (#57). */
+    public Intent withoutGarden() {
+        return garden == null ? this : new Intent(kind, subject, season, language, zone, month, null);
     }
 
     /** The same intent about another subject, for example the plot a question named as it is really called. */
     public Intent withSubject(String subject) {
-        return new Intent(kind, subject, season, language, zone, month);
+        return new Intent(kind, subject, season, language, zone, month, garden);
     }
 
     /**
@@ -41,7 +54,7 @@ public record Intent(QueryKind kind, String subject, String season, String langu
      */
     public Intent bounded() {
         return new Intent(kind, bound(subject, 100), bound(season, 20), bound(language, 5), bound(zone, 20),
-                bound(month, 20));
+                bound(month, 20), bound(garden, 100));
     }
 
     private static String bound(String text, int max) {

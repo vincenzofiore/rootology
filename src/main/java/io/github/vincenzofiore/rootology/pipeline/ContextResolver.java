@@ -32,6 +32,11 @@ import java.util.List;
  * windows and the {@code WINDOWS_FROM_CLIMATE} note; {@code OUTSIDE_ITALY} stays only for a garden abroad
  * with no profile.
  *
+ * <p>A garden the question names (#57: {@code Intent.garden}, read by Claude from the space's garden names)
+ * wins over the page's for the kinds a garden changes, with a note when it differs; the run then belongs to
+ * that garden. A name that matches no garden or several escalates, never guessed. A place that is not one of
+ * the gardens can only name a zone.
+ *
  * <p>Ambiguity is never guessed: a garden question asked outside a garden, a garden that no longer exists
  * and a plot not found or matching several escalate deterministically, with the reason a person sees and a
  * note that says the specifics. Only a run that belongs to no space (the suite's) gets no note at all, so
@@ -56,6 +61,24 @@ class ContextResolver {
     static final String NEEDS_GARDEN_REASON = "the question needs a garden";
     static final String GARDEN_GONE_REASON = "the garden no longer exists";
     static final String PLOT_REASON = "the plot is not in this garden";
+    static final String GARDEN_NAME_REASON = "the garden named is not clear";
+
+    /** At most this many names of each kind reach Claude, each cut to {@link #NAME_LENGTH} characters. */
+    static final int MAX_NAMES = 30;
+    static final int NAME_LENGTH = 60;
+
+    /**
+     * The names Claude may read besides the question (#57): the space's gardens and the current garden's
+     * plots, nothing else (no coordinates, no plantings). Empty for a run that belongs to no space.
+     */
+    record Names(List<String> gardens, List<String> plots) {
+
+        static final Names NONE = new Names(List.of(), List.of());
+
+        boolean isEmpty() {
+            return gardens.isEmpty() && plots.isEmpty();
+        }
+    }
 
     private final SpaceService spaces;
     private final GardenService gardens;
@@ -69,6 +92,26 @@ class ContextResolver {
         this.clock = clock;
     }
 
+    /** The names of the run's space and garden for Claude (#57); none for the suite's runs. */
+    Names names(RunContext run) {
+        if (!run.hasSpace()) {
+            return Names.NONE;
+        }
+        List<String> gardenNames = gardens.gardens(run.spaceId(), run.startedBy()).stream()
+                .map(GardenSummary::name).map(ContextResolver::plainName).limit(MAX_NAMES).toList();
+        List<String> plotNames = !run.hasGarden() || gardens.garden(run.spaceId(), run.startedBy(), run.gardenId()).isEmpty()
+                ? List.of()
+                : gardens.plots(run.spaceId(), run.startedBy(), run.gardenId()).stream()
+                        .map(p -> plainName(p.name())).limit(MAX_NAMES).toList();
+        return new Names(gardenNames, plotNames);
+    }
+
+    /** A name as data: one line, no quotes to break out of, short. */
+    private static String plainName(String name) {
+        String plain = name.replaceAll("[\\p{Cntrl}\"]", " ").strip();
+        return plain.length() <= NAME_LENGTH ? plain : plain.substring(0, NAME_LENGTH);
+    }
+
     QuestionContext resolve(Intent intent, RunContext run) {
         Month current = LocalDate.now(clock).getMonth();
         if (!run.hasSpace()) {
@@ -76,15 +119,38 @@ class ContextResolver {
             return QuestionContext.none(defaults(intent, current));
         }
         List<Note> notes = new ArrayList<>();
-        GardenSummary garden = run.hasGarden()
+        GardenSummary page = run.hasGarden()
                 ? gardens.garden(run.spaceId(), run.startedBy(), run.gardenId()).orElse(null) : null;
-        boolean gone = run.hasGarden() && garden == null;
+        GardenSummary garden = page;
+        boolean gone = run.hasGarden() && page == null;
+        String refusal = null;
+        // A garden the question names wins over the page's (#57), only for the kinds a garden changes.
+        boolean unclearName = false;
+        if (intent.garden() != null && (NEEDS_ZONE.contains(intent.kind()) || NEEDS_GARDEN.contains(intent.kind()))) {
+            var named = gardens.gardenNamed(run.spaceId(), run.startedBy(), intent.garden());
+            if (named.found()) {
+                garden = named.garden();
+                gone = false;
+                if (page != null && page.id() != garden.id()) {
+                    notes.add(Note.of(Note.Kind.GARDEN_OF_QUESTION, garden.name(), page.name()));
+                }
+            } else {
+                // Never guessed: the question waits for a person, who sees the name and the candidates.
+                unclearName = true;
+                refusal = GARDEN_NAME_REASON;
+                notes.add(named.ambiguous()
+                        ? Note.of(Note.Kind.GARDEN_AMBIGUOUS, intent.garden(), String.join(", ", named.matches()))
+                        : Note.of(Note.Kind.GARDEN_NOT_FOUND, intent.garden()));
+            }
+        }
         if (gone) {
             // A garden deleted between opening the page and asking: not the space level, never a guess (#55).
             notes.add(Note.of(Note.Kind.GARDEN_GONE));
+            if (refusal == null) {
+                refusal = GARDEN_GONE_REASON;
+            }
         }
-        String refusal = gone ? GARDEN_GONE_REASON : null;
-        if (garden == null && !gone) {
+        if (garden == null && !gone && !unclearName) {
             if (NEEDS_GARDEN.contains(intent.kind())) {
                 notes.add(Note.of(Note.Kind.NO_GARDEN_FOR_QUESTION));
                 refusal = NEEDS_GARDEN_REASON;
@@ -103,7 +169,7 @@ class ContextResolver {
 
         SiteProfile climate = null;
         ContextSnapshot.ClimateFrom climateFrom = null;
-        if (asksZone && !gone) {
+        if (asksZone && !gone && !unclearName) {
             SiteProfile profile = climate(intent.zone(), garden);
             climate = profile;
             climateFrom = profile == null ? null : intent.zone() != null ? ContextSnapshot.ClimateFrom.QUESTION
@@ -122,7 +188,7 @@ class ContextResolver {
         }
 
         QuestionContext.Plot plot = null;
-        if (intent.kind() == QueryKind.SOW_IN_PLOT && !gone) {
+        if (intent.kind() == QueryKind.SOW_IN_PLOT && !gone && !unclearName) {
             plot = plot(intent.subject(), garden, run, notes);
             if (plot.outcome() == QuestionContext.Plot.Outcome.FOUND) {
                 // The question is about the plot as it is really called, so the facts and the decision layer agree.

@@ -30,7 +30,8 @@ final class ReasonText {
             new Known(Pattern.compile("what (.+) repels is not declared"), "reason.norepels"),
             new Known(Pattern.compile("the question needs a garden"), "reason.needsgarden"),
             new Known(Pattern.compile("the garden no longer exists"), "reason.gardengone"),
-            new Known(Pattern.compile("the plot is not in this garden"), "reason.plot"));
+            new Known(Pattern.compile("the plot is not in this garden"), "reason.plot"),
+            new Known(Pattern.compile("the garden named is not clear"), "reason.gardenname"));
 
     static String text(String reason, Component in) {
         return text(reason, in::getTranslation);

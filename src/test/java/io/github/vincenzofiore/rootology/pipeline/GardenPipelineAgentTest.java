@@ -644,4 +644,19 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(answer.escalated()).isTrue();
     }
+
+    /** The suite's runs get exactly the prompt they always had; inside a space the names are added as data (#57). */
+    @Test
+    void theUnderstandPromptAddsTheNamesOnlyInsideASpace() {
+        Question question = new Question("q", "Cosa semino nel davanzale?");
+
+        String suite = GardenPipelineAgent.understandPrompt(question, ContextResolver.Names.NONE);
+        String space = GardenPipelineAgent.understandPrompt(question,
+                new ContextResolver.Names(java.util.List.of("Balcone"), java.util.List.of("Davanzale")));
+
+        assertThat(suite).contains("otherwise null.\nDo not answer the question.")
+                .doesNotContain("garden:").endsWith("Question: Cosa semino nel davanzale?\n");
+        assertThat(space).contains("The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
+                "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
+    }
 }

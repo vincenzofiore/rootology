@@ -21,6 +21,21 @@ public final class GardenViews {
     }
 
     /**
+     * The gardens of a space that answer to a name written in a question (#57), with the same rule as the
+     * plots: garden is the one meant, or null when none does; matches lists them when more than one does.
+     */
+    public record GardenLookup(GardenSummary garden, List<String> matches) {
+
+        public boolean found() {
+            return garden != null;
+        }
+
+        public boolean ambiguous() {
+            return !matches.isEmpty();
+        }
+    }
+
+    /**
      * The plots of one garden that answer to a name (#55): plot is the one meant, or null when none does;
      * matches lists the plots when more than one does, so the caller can ask instead of picking one.
      */

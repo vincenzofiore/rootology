@@ -99,6 +99,18 @@ final class GoldenFixtures {
                         null, Orientation.N, DirectSun.PART_SHADE, Wind.EXPOSED, 3);
                 yield balcony.id();
             }
+            // Two gardens with similar names in Vasto (#57): lettuce on the big terrace, garlic on the small one.
+            case "two-terraces-small", "two-terraces-space" -> {
+                var big = gardens.saveGarden(space, login, null, "Terrazzo grande", "Vasto", new BigDecimal("42.11"),
+                        new BigDecimal("14.71"), "IT", 144);
+                var small = gardens.saveGarden(space, login, null, "Terrazzo piccolo", "Vasto",
+                        new BigDecimal("42.11"), new BigDecimal("14.71"), "IT", 144);
+                var tub = gardens.savePlot(space, login, big.id(), null, "Vasca", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
+                var pot = gardens.savePlot(space, login, small.id(), null, "Vaso", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
+                gardens.plant(space, login, tub.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+                gardens.plant(space, login, pot.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
+                yield c.garden().equals("two-terraces-small") ? small.id() : 0L;
+            }
             case "none" -> 0L;
             default -> throw new IllegalArgumentException("Unknown garden fixture " + c.garden());
         };

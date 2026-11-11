@@ -261,21 +261,37 @@ public class GardenService {
         if (name == null || name.isBlank()) {
             return GardenViews.PlotLookup.none();
         }
-        String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
         List<PlotSummary> all = plots.findByGardenIdOrderByName(garden(spaceId, gardenId).getId()).stream()
                 .map(GardenService::summary).toList();
-        List<PlotSummary> exact = all.stream()
-                .filter(p -> p.name().toLowerCase(java.util.Locale.ROOT).equals(wanted)).toList();
-        if (exact.size() == 1) {
-            return GardenViews.PlotLookup.one(exact.getFirst());
+        List<PlotSummary> matches = named(all, PlotSummary::name, name);
+        return matches.size() == 1 ? GardenViews.PlotLookup.one(matches.getFirst())
+                : matches.isEmpty() ? GardenViews.PlotLookup.none() : GardenViews.PlotLookup.ambiguous(matches);
+    }
+
+    /**
+     * The garden of a space that a question names (#57), with the plots' rule: the same name ignoring case
+     * wins; otherwise a whole word of one garden's name. Several are never guessed; a town is not a name.
+     */
+    public GardenViews.GardenLookup gardenNamed(long spaceId, String login, String name) {
+        List<GardenSummary> all = gardens(spaceId, login);
+        if (name == null || name.isBlank()) {
+            return new GardenViews.GardenLookup(null, List.of());
         }
-        if (exact.size() > 1) {
-            return GardenViews.PlotLookup.ambiguous(exact);
+        List<GardenSummary> matches = named(all, GardenSummary::name, name);
+        return matches.size() == 1 ? new GardenViews.GardenLookup(matches.getFirst(), List.of())
+                : new GardenViews.GardenLookup(null, matches.stream().map(GardenSummary::name).toList());
+    }
+
+    /** What answers to a name: those with that very name ignoring case, otherwise those with it as a whole word. */
+    private static <T> List<T> named(List<T> all, java.util.function.Function<T, String> nameOf, String name) {
+        String wanted = name.trim().toLowerCase(java.util.Locale.ROOT);
+        List<T> exact = all.stream().filter(t -> nameOf.apply(t).toLowerCase(java.util.Locale.ROOT).equals(wanted))
+                .toList();
+        if (!exact.isEmpty()) {
+            return exact;
         }
-        List<PlotSummary> partial = all.stream().filter(p -> java.util.Arrays.asList(
-                p.name().toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
-        return partial.size() == 1 ? GardenViews.PlotLookup.one(partial.getFirst())
-                : partial.isEmpty() ? GardenViews.PlotLookup.none() : GardenViews.PlotLookup.ambiguous(partial);
+        return all.stream().filter(t -> java.util.Arrays.asList(
+                nameOf.apply(t).toLowerCase(java.util.Locale.ROOT).split("\\s+")).contains(wanted)).toList();
     }
 
     /** Changes need an OWNER or MEMBER: a GUEST only looks (#33). */

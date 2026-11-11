@@ -15,6 +15,9 @@
 #   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
 #   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
 #   | balcony ("Balcone" in Palermo, 38.12, 13.36, SUD; one plot "Davanzale", container, declared part shade)
+#   | two-terraces-small, two-terraces-space (one space in Vasto with "Terrazzo grande", plot Vasca with
+#   lettuce since 2026-10-01, and "Terrazzo piccolo", plot Vaso with garlic since 2026-10-15; asked on the
+#   small terrace or at the space level)
 #   The question runs inside the fixture's garden (#55); with none, or two-gardens-space, at the space level.
 # weather: missing (the service gives nothing) | frost (minimum -2.0 degrees all week)
 # spaceFacts: contributed by a member of the asking space (#24), visible only to that space
@@ -267,6 +270,40 @@ cases:
     expect:
       escalate: needs a garden
       notes: [inside one of the space's gardens]
+
+  # A garden named in the question (#57): it wins over the page's, with a note; a name that matches no
+  # garden or several waits for a person.
+  - id: growing-now-in-the-garden-named
+    question: Cosa cresce nel terrazzo grande?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo grande}
+    garden: two-terraces-small
+    weather: missing
+    expect:
+      answer: [Lattuga]
+      notes: [names the garden Terrazzo grande]
+
+  - id: growing-now-in-a-garden-named-outside-a-garden
+    question: Cosa cresce nel terrazzo piccolo?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo piccolo}
+    garden: two-terraces-space
+    weather: missing
+    expect: {answer: [Aglio]}
+
+  - id: garden-named-matches-several
+    question: Cosa cresce sul terrazzo?
+    intent: {kind: GROWING_NOW, language: it, garden: terrazzo}
+    garden: two-terraces-space
+    expect:
+      escalate: the garden named is not clear
+      notes: [Terrazzo grande, Terrazzo piccolo]
+
+  - id: garden-named-not-in-the-space
+    question: Cosa cresce nell'orto della nonna?
+    intent: {kind: GROWING_NOW, language: it, garden: orto della nonna}
+    garden: two-terraces-small
+    expect:
+      escalate: the garden named is not clear
+      notes: [no garden named]
 
   - id: question-zone-wins-over-the-garden
     question: Cosa posso seminare adesso al nord?

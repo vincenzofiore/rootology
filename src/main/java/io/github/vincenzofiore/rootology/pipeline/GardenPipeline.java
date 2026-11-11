@@ -316,7 +316,11 @@ public class GardenPipeline {
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
-        events.publishEvent(new PipelineRunFinished(process.getId(), context, question, process.last(NoiseProfile.class),
+        // The garden the question was answered for, which may be the one it named (#57), owns the history row.
+        QuestionContext answered = process.last(QuestionContext.class);
+        RunContext owner = answered == null || !answered.hasSpace() ? context
+                : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
+        events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
                 process.last(Decision.class), answer, false, Instant.now()));
         return new Run(answer, null, intentOf(process), false);
     }

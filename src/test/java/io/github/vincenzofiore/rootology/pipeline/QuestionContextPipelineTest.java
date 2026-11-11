@@ -259,4 +259,27 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
                 .as("the resumed answer stores the context of the question")
                 .isNotNull();
     }
+
+    /** A question naming another garden (#57): Claude read the names, and the answer and its history are that garden's. */
+    @Test
+    void aQuestionNamingAnotherGardenIsAnsweredAndStoredForIt() {
+        long space = spaceOf("ctx-other");
+        long roof = garden(space, "ctx-other", "Orto sul tetto", "45.46", "9.19");
+        long sea = garden(space, "ctx-other", "Orto sul mare", "38.12", "13.36");
+        plant(space, "ctx-other", roof, "tomato");
+        plant(space, "ctx-other", sea, "lettuce");
+        String text = "Cosa cresce nell'orto sul mare?";
+        whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n")
+                        && prompt.contains("\"Orto sul tetto\", \"Orto sul mare\"")
+                        && prompt.contains("The plots of the current garden: \"Aiuola A\""), Intent.class)
+                .thenReturn(new Intent(QueryKind.GROWING_NOW, null, null, "it", null, null, "orto sul mare"));
+
+        var run = pipeline.askKnowledgeBase(new Question("ask", text), new RunContext(space, roof, "ctx-other"));
+
+        assertThat(run.answer().answer()).containsExactly("Lattuga");
+        assertThat(run.answer().notes()).extracting(Note::kind).contains(Note.Kind.GARDEN_OF_QUESTION);
+        assertThat(run.answer().context().gardenName()).isEqualTo("Orto sul mare");
+        assertThat(history.recent(space, sea, "ctx-other")).as("the history is the named garden's").hasSize(1);
+        assertThat(history.recent(space, roof, "ctx-other")).isEmpty();
+    }
 }

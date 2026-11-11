@@ -318,4 +318,78 @@ class ContextResolverTest {
                 .contains(Note.Kind.WINDOWS_FROM_CLIMATE)
                 .doesNotContain(Note.Kind.OUTSIDE_ITALY);
     }
+
+    /** A question naming another garden of the space (#57): that garden wins, and the note says both. */
+    @Test
+    void aGardenNamedInTheQuestionWinsOverThePagesWithANote() {
+        long space = spaceOf("ctx-named");
+        long roof = garden("ctx-named", "Orto sul tetto", "45.46", "9.19");
+        long sea = garden("ctx-named", "Orto sul mare", "38.12", "13.36");
+
+        var context = resolver().resolve(new Intent(QueryKind.GROWING_NOW, null, null, "it", null, null,
+                "orto sul mare"), new RunContext(space, roof, "ctx-named"));
+
+        assertThat(context.refusal()).isNull();
+        assertThat(context.gardenId()).as("the run now belongs to the garden named").isEqualTo(sea);
+        assertThat(context.snapshot().gardenName()).isEqualTo("Orto sul mare");
+        assertThat(context.notes()).extracting(Note::kind).containsExactly(Note.Kind.GARDEN_OF_QUESTION);
+        assertThat(context.notes().getFirst().english()).contains("Orto sul mare", "Orto sul tetto");
+
+        var same = resolver().resolve(new Intent(QueryKind.GROWING_NOW, null, null, "it", null, null,
+                "Orto sul tetto"), new RunContext(space, roof, "ctx-named"));
+        assertThat(same.notes()).as("naming the page's own garden says nothing").isEmpty();
+
+        var fromTheSpace = resolver().resolve(new Intent(QueryKind.GROWING_NOW, null, null, "it", null, null,
+                "mare"), new RunContext(space, 0, "ctx-named"));
+        assertThat(fromTheSpace.refusal()).as("a whole word of one garden's name is enough").isNull();
+        assertThat(fromTheSpace.gardenId()).isEqualTo(sea);
+    }
+
+    @Test
+    void aGardenNameThatMatchesNoneOrSeveralEscalatesAndKeepsThePagesGarden() {
+        long space = spaceOf("ctx-unclear");
+        long roof = garden("ctx-unclear", "Orto sul tetto", null, null);
+        garden("ctx-unclear", "Orto sul mare", null, null);
+
+        var missing = resolver().resolve(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null,
+                "orto della nonna"), new RunContext(space, roof, "ctx-unclear"));
+        var several = resolver().resolve(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null, "orto"),
+                new RunContext(space, roof, "ctx-unclear"));
+
+        assertThat(missing.refusal()).isEqualTo(ContextResolver.GARDEN_NAME_REASON);
+        assertThat(missing.gardenId()).isEqualTo(roof);
+        assertThat(missing.notes()).extracting(Note::kind).containsExactly(Note.Kind.GARDEN_NOT_FOUND);
+        assertThat(several.refusal()).isEqualTo(ContextResolver.GARDEN_NAME_REASON);
+        assertThat(several.notes()).extracting(Note::kind).containsExactly(Note.Kind.GARDEN_AMBIGUOUS);
+        assertThat(several.notes().getFirst().english()).contains("Orto sul tetto", "Orto sul mare");
+    }
+
+    @Test
+    void aGardenNamedInAQuestionAGardenDoesNotChangeIsIgnored() {
+        long space = spaceOf("ctx-ignored");
+        long roof = garden("ctx-ignored", "Orto sul tetto", null, null);
+
+        var context = resolver().resolve(new Intent(QueryKind.COMPANIONS, "pomodoro", null, "it", null, null,
+                "orto della nonna"), new RunContext(space, roof, "ctx-ignored"));
+
+        assertThat(context.refusal()).isNull();
+        assertThat(context.gardenId()).isEqualTo(roof);
+        assertThat(context.notes()).isEmpty();
+    }
+
+    /** Claude reads the names of the space's gardens and of the current garden's plots, and nothing else. */
+    @Test
+    void theNamesForClaudeAreTheSpacesGardensAndTheCurrentGardensPlots() {
+        long space = spaceOf("ctx-names");
+        long roof = garden("ctx-names", "Orto \"sul\" tetto", "45.46", "9.19");
+        garden("ctx-names", "Balcone", null, null);
+
+        var inside = resolver().names(new RunContext(space, roof, "ctx-names"));
+        var outside = resolver().names(new RunContext(space, 0, "ctx-names"));
+
+        assertThat(inside.gardens()).containsExactly("Orto  sul  tetto", "Balcone");
+        assertThat(inside.plots()).containsExactly("Aiuola A", "Aiuola B");
+        assertThat(outside.plots()).isEmpty();
+        assertThat(resolver().names(RunContext.NONE).isEmpty()).isTrue();
+    }
 }

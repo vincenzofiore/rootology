@@ -72,7 +72,10 @@ enum GoldenVerdict {
         return notes.stream().map(Note::english).toList();
     }
 
-    /** Whether Claude understood the question as expected: kind, subject (any case) and what the case sets. */
+    /**
+     * Whether Claude understood the question as expected: kind, subject (any case) and what the case sets.
+     * The garden always counts (#57): naming a garden the question does not name changes the answer.
+     */
     static boolean intentMatches(Intent expected, Intent understood) {
         if (understood == null || expected.kind() != understood.kind()) {
             return false;
@@ -80,7 +83,8 @@ enum GoldenVerdict {
         return same(expected.subject(), understood.subject()) && same(expected.season(), understood.season())
                 && (expected.month() == null || same(expected.month(), understood.month()))
                 && (expected.zone() == null || same(expected.zone(), understood.zone()))
-                && (expected.language() == null || same(expected.language(), understood.language()));
+                && (expected.language() == null || same(expected.language(), understood.language()))
+                && same(expected.garden(), understood.garden());
     }
 
     private static boolean same(String a, String b) {
