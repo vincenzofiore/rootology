@@ -241,7 +241,7 @@ class PrivacyTest {
         return jdbc.sql("""
                 insert into knowledge_proposal (space_id, scope, kind, target_id, alias_name, alias_language,
                     proposed_by, created_at, status, citation)
-                values (:s, :scope, 'ALIAS', 'tomato', 'pomodorino', 'it', :by, now(), :status, 'a source')
+                values (:s, :scope, 'ALIAS', 'tomato', 'pomodorino di ada', 'it', :by, now(), :status, 'a source')
                 returning id""")
                 .param("s", space).param("scope", scope).param("status", status).param("by", by)
                 .query(Long.class).single();

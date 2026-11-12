@@ -6,6 +6,7 @@ import app.rootology.pipeline.EscalationResolved;
 import app.rootology.pipeline.EscalationWaiting;
 import app.rootology.spaces.Role;
 import app.rootology.spaces.SpaceService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -93,6 +94,15 @@ class NotificationServiceTest {
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
 
+    /**
+     * The outbox starts empty: the rows another test class left are pending too, and a digest would word
+     * them in the same message (the tests of this class count the digests sent).
+     */
+    @BeforeEach
+    void emptyTheOutbox() {
+        jdbc.sql("delete from notification").update();
+    }
+
     /** A shared space: owner, a member and a guest. */
     private long space(String owner, String member, String guest) {
         spaces.signedIn(owner);
@@ -135,28 +145,28 @@ class NotificationServiceTest {
     @Test
     void aWaitingQuestionNotifiesOwnersAndMembersButNotGuestsAndIsMarkedWhenAnswered() {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("owen", "mia", "gil");
+        long space = space("n-owen", "n-mia", "n-gil");
 
-        waiting("p-1", space, "mia", "Quali sono le compagne della lavanda?");
+        waiting("p-1", space, "n-mia", "Quali sono le compagne della lavanda?");
 
-        assertThat(notifications.unread("owen")).isEqualTo(1);
-        assertThat(notifications.unread("mia")).as("the asker too").isEqualTo(1);
-        assertThat(notifications.unread("gil")).as("a guest cannot answer").isZero();
-        assertThat(notifications.of("owen", 10)).singleElement().satisfies(n -> {
+        assertThat(notifications.unread("n-owen")).isEqualTo(1);
+        assertThat(notifications.unread("n-mia")).as("the asker too").isEqualTo(1);
+        assertThat(notifications.unread("n-gil")).as("a guest cannot answer").isZero();
+        assertThat(notifications.of("n-owen", 10)).singleElement().satisfies(n -> {
             // The data only (#94): who asked and the question, no sentence and no decision reason.
-            assertThat(n.askedBy()).isEqualTo("mia");
+            assertThat(n.askedBy()).isEqualTo("n-mia");
             assertThat(n.body()).isEqualTo("Quali sono le compagne della lavanda?");
             assertThat(n.processId()).isEqualTo("p-1");
         });
 
-        notifications.markRead("owen", null);
-        events.publishEvent(new EscalationResolved("p-1", space, 0, "mia", "owen", now));
+        notifications.markRead("n-owen", null);
+        events.publishEvent(new EscalationResolved("p-1", space, 0, "n-mia", "n-owen", now));
 
-        assertThat(notifications.unread("owen")).as("the person who answered gets nothing new").isZero();
-        assertThat(notifications.of("owen", 10)).singleElement()
-                .extracting(NotificationView::resolvedBy).isEqualTo("owen");
-        assertThat(notifications.of("mia", 10)).hasSize(2).anySatisfy(n -> {
-            assertThat(n.resolvedBy()).isEqualTo("owen");
+        assertThat(notifications.unread("n-owen")).as("the person who answered gets nothing new").isZero();
+        assertThat(notifications.of("n-owen", 10)).singleElement()
+                .extracting(NotificationView::resolvedBy).isEqualTo("n-owen");
+        assertThat(notifications.of("n-mia", 10)).hasSize(2).anySatisfy(n -> {
+            assertThat(n.resolvedBy()).isEqualTo("n-owen");
             assertThat(n.resolvedAt()).isNotNull();
         }).anySatisfy(n -> {
             assertThat(n.answered()).isTrue();
@@ -170,48 +180,48 @@ class NotificationServiceTest {
     @Test
     void aWaitingNotificationIsReadOnceTheQuestionIsAnswered() {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("rita", "sara", "tea");
+        long space = space("n-rita", "n-sara", "n-tea");
 
-        waiting("p-9", space, "sara", "Quali sono le compagne del cavolo?");
-        assertThat(notifications.unread("rita")).isEqualTo(1);
+        waiting("p-9", space, "n-sara", "Quali sono le compagne del cavolo?");
+        assertThat(notifications.unread("n-rita")).isEqualTo(1);
 
         // Answered by someone else (an owner who never opened the bell's notification, as in production).
-        events.publishEvent(new EscalationResolved("p-9", space, 0, "sara", "someone", now));
+        events.publishEvent(new EscalationResolved("p-9", space, 0, "n-sara", "someone", now));
 
-        assertThat(notifications.unread("rita")).as("unread before, nothing to do now").isZero();
-        assertThat(notifications.of("rita", 10)).singleElement().satisfies(n -> {
+        assertThat(notifications.unread("n-rita")).as("unread before, nothing to do now").isZero();
+        assertThat(notifications.of("n-rita", 10)).singleElement().satisfies(n -> {
             assertThat(n.resolvedAt()).isNotNull();
             assertThat(n.unread()).isFalse();
         });
-        assertThat(notifications.unread("sara")).as("only the answer is new for the asker").isEqualTo(1);
+        assertThat(notifications.unread("n-sara")).as("only the answer is new for the asker").isEqualTo(1);
     }
 
     @Test
     void theAskerGetsTheAnswerInTheAppAndByEmailButTheOthersOnlySeeTheResolution() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("elia", "fede", "gaia");
-        notifications.save("elia", new NotificationPreferences("elia@example.org", true, true, true, true, null, null));
+        long space = space("n-elia", "n-fede", "n-gaia");
+        notifications.save("n-elia", new NotificationPreferences("n-elia@example.org", true, true, true, true, null, null));
 
-        waiting("p-5", space, "elia", "Quali sono le compagne della salvia?");
+        waiting("p-5", space, "n-elia", "Quali sono le compagne della salvia?");
 
-        assertThat(notifications.unread("elia")).isEqualTo(1);
-        assertThat(notifications.unread("fede")).isEqualTo(1);
-        notifications.markRead("elia", null);
-        notifications.markRead("fede", null);
+        assertThat(notifications.unread("n-elia")).isEqualTo(1);
+        assertThat(notifications.unread("n-fede")).isEqualTo(1);
+        notifications.markRead("n-elia", null);
+        notifications.markRead("n-fede", null);
 
-        events.publishEvent(new EscalationResolved("p-5", space, 0, "elia", "fede", now));
+        events.publishEvent(new EscalationResolved("p-5", space, 0, "n-elia", "n-fede", now));
 
-        assertThat(notifications.unread("elia")).as("the new notification is unread").isEqualTo(1);
-        assertThat(notifications.of("elia", 10)).hasSize(2)
+        assertThat(notifications.unread("n-elia")).as("the new notification is unread").isEqualTo(1);
+        assertThat(notifications.of("n-elia", 10)).hasSize(2)
                 .anySatisfy(n -> assertThat(n.answered()).isTrue())
-                .anySatisfy(n -> assertThat(n.resolvedBy()).isEqualTo("fede"));
-        assertThat(notifications.unread("fede")).as("no new notification").isZero();
-        assertThat(notifications.of("fede", 10)).singleElement().extracting(NotificationView::resolvedBy)
-                .isEqualTo("fede");
+                .anySatisfy(n -> assertThat(n.resolvedBy()).isEqualTo("n-fede"));
+        assertThat(notifications.unread("n-fede")).as("no new notification").isZero();
+        assertThat(notifications.of("n-fede", 10)).singleElement().extracting(NotificationView::resolvedBy)
+                .isEqualTo("n-fede");
 
         now = now.plus(Duration.ofMinutes(3));
         assertThat(notifications.digest()).as("only elia asked, only elia is emailed").isEqualTo(1);
-        JsonNode elia = messageTo("elia@example.org");
+        JsonNode elia = messageTo("n-elia@example.org");
         assertThat(elia.path("Subject").asString()).isEqualTo("Rootology: la tua domanda ha una risposta");
         assertThat(elia.path("Text").asString()).as("the link opens the space and garden of the question (#56)")
                 .contains("/spaces/" + space + "/history");
@@ -221,17 +231,17 @@ class NotificationServiceTest {
     @Test
     void anAskerWhoLeftTheSpaceIsNotNotified() {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("nina", "otto", "pia");
-        notifications.save("otto", new NotificationPreferences("otto@example.org", true, true, true, true, null, null));
+        long space = space("n-nina", "n-otto", "n-pia");
+        notifications.save("n-otto", new NotificationPreferences("n-otto@example.org", true, true, true, true, null, null));
 
-        waiting("p-9", space, "otto", "Domanda?");
-        notifications.markRead("otto", null);
-        spaces.removeMember(space, "otto", "otto"); // he leaves while his question waits
+        waiting("p-9", space, "n-otto", "Domanda?");
+        notifications.markRead("n-otto", null);
+        spaces.removeMember(space, "n-otto", "n-otto"); // he leaves while his question waits
 
-        events.publishEvent(new EscalationResolved("p-9", space, 0, "otto", "nina", now));
+        events.publishEvent(new EscalationResolved("p-9", space, 0, "n-otto", "n-nina", now));
         now = now.plus(Duration.ofMinutes(3));
 
-        assertThat(notifications.of("otto", 10)).as("only the waiting one, now resolved").singleElement()
+        assertThat(notifications.of("n-otto", 10)).as("only the waiting one, now resolved").singleElement()
                 .extracting(NotificationView::answered).isEqualTo(false);
         assertThat(notifications.digest()).isZero();
     }
@@ -239,32 +249,32 @@ class NotificationServiceTest {
     @Test
     void aPersonWhoAnswersTheirOwnQuestionGetsNothingNew() {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("ivo", "lia", "noa");
+        long space = space("n-ivo", "n-lia", "n-noa");
 
-        waiting("p-6", space, "ivo", "Domanda?");
-        notifications.markRead("ivo", null);
+        waiting("p-6", space, "n-ivo", "Domanda?");
+        notifications.markRead("n-ivo", null);
 
-        events.publishEvent(new EscalationResolved("p-6", space, 0, "ivo", "ivo", now));
+        events.publishEvent(new EscalationResolved("p-6", space, 0, "n-ivo", "n-ivo", now));
 
-        assertThat(notifications.of("ivo", 10)).singleElement().extracting(NotificationView::answered).isEqualTo(false);
-        assertThat(notifications.unread("ivo")).isZero();
+        assertThat(notifications.of("n-ivo", 10)).singleElement().extracting(NotificationView::answered).isEqualTo(false);
+        assertThat(notifications.unread("n-ivo")).isZero();
     }
 
     @Test
     void waitingQuestionsAreEmailedTogetherAfterTheGroupingWindowOutsideQuietHours() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("pia", "remo", "sara");
-        notifications.save("pia", new NotificationPreferences("pia@example.org", true, true, true, true, null, null));
-        notifications.save("remo", new NotificationPreferences("remo@example.org", true, true, true, true, LocalTime.of(9, 0),
+        long space = space("n-pia", "n-remo", "n-sara");
+        notifications.save("n-pia", new NotificationPreferences("n-pia@example.org", true, true, true, true, null, null));
+        notifications.save("n-remo", new NotificationPreferences("n-remo@example.org", true, true, true, true, LocalTime.of(9, 0),
                 LocalTime.of(12, 0)));
 
-        waiting("p-2", space, "remo", "Prima domanda?");
-        waiting("p-3", space, "remo", "Seconda domanda?");
+        waiting("p-2", space, "n-remo", "Prima domanda?");
+        waiting("p-3", space, "n-remo", "Seconda domanda?");
         assertThat(notifications.digest()).as("not yet: within the grouping window").isZero();
 
         now = now.plus(Duration.ofMinutes(3)); // 11:03 in Italy: remo is in his quiet hours
         assertThat(notifications.digest()).isEqualTo(1);
-        JsonNode pia = messagesTo("pia@example.org");
+        JsonNode pia = messagesTo("n-pia@example.org");
         assertThat(pia.path("messages_count").asInt()).isEqualTo(1);
         assertThat(pia.path("messages").get(0).path("Subject").asString())
                 .isEqualTo("Rootology: 2 domande aspettano una risposta");
@@ -272,70 +282,70 @@ class NotificationServiceTest {
         now = Instant.parse("2026-11-04T11:30:00Z"); // 12:30 in Italy
         assertThat(notifications.digest()).as("remo, after his quiet hours").isEqualTo(1);
         assertThat(notifications.digest()).as("never twice").isZero();
-        messagesTo("remo@example.org");
+        messagesTo("n-remo@example.org");
     }
 
     @Test
     void theAnswererIsNeverEmailed() {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("teo", "ugo", "vera");
-        notifications.save("teo", new NotificationPreferences("teo@example.org", true, true, true, true, null, null));
-        notifications.rememberEmail("ugo", "Ugo@Example.org");
-        notifications.rememberEmail("ugo", "other@example.org");
+        long space = space("n-teo", "n-ugo", "n-vera");
+        notifications.save("n-teo", new NotificationPreferences("n-teo@example.org", true, true, true, true, null, null));
+        notifications.rememberEmail("n-ugo", "N-Ugo@Example.org");
+        notifications.rememberEmail("n-ugo", "other@example.org");
 
-        waiting("p-4", space, "ugo", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-4", space, 0, "ugo", "teo", now));
+        waiting("p-4", space, "n-ugo", "Domanda?");
+        events.publishEvent(new EscalationResolved("p-4", space, 0, "n-ugo", "n-teo", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("ugo asked, teo only answered").isEqualTo(1);
-        assertThat(notifications.preferences("ugo").email()).as("the first remembered address stays")
-                .isEqualTo("ugo@example.org");
-        assertThatThrownBy(() -> notifications.save("teo", new NotificationPreferences("nope", true, true, true, true, null, null)))
+        assertThat(notifications.preferences("n-ugo").email()).as("the first remembered address stays")
+                .isEqualTo("n-ugo@example.org");
+        assertThatThrownBy(() -> notifications.save("n-teo", new NotificationPreferences("nope", true, true, true, true, null, null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void theAskersEmailPreferencesAndQuietHoursAreRespected() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("ada", "bea", "carla");
-        notifications.save("ada", new NotificationPreferences("ada@example.org", false, true, true, true, null, null));
+        long space = space("n-ada", "n-bea", "n-carla");
+        notifications.save("n-ada", new NotificationPreferences("n-ada@example.org", false, true, true, true, null, null));
 
-        waiting("p-7", space, "ada", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-7", space, 0, "ada", "bea", now));
+        waiting("p-7", space, "n-ada", "Domanda?");
+        events.publishEvent(new EscalationResolved("p-7", space, 0, "n-ada", "n-bea", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("ada turned answer emails off").isZero();
 
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long quiet = space("eva", "fio", "gina");
-        notifications.save("eva", new NotificationPreferences("eva@example.org", true, true, true, true, LocalTime.of(10, 0),
+        long quiet = space("n-eva", "n-fio", "n-gina");
+        notifications.save("n-eva", new NotificationPreferences("n-eva@example.org", true, true, true, true, LocalTime.of(10, 0),
                 LocalTime.of(12, 0)));
 
-        waiting("p-8", quiet, "eva", "Domanda?");
-        events.publishEvent(new EscalationResolved("p-8", quiet, 0, "eva", "fio", now));
+        waiting("p-8", quiet, "n-eva", "Domanda?");
+        events.publishEvent(new EscalationResolved("p-8", quiet, 0, "n-eva", "n-fio", now));
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).as("eva is in her quiet hours").isZero();
 
         now = now.plus(Duration.ofHours(2)); // 13:03 in Italy: the email waits for the end of the quiet hours
         assertThat(notifications.digest()).isEqualTo(1);
-        messagesTo("eva@example.org");
+        messagesTo("n-eva@example.org");
     }
 
     @Test
     void eachWeatherAlertOfOneEmailLinksToItsOwnGarden() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("lino", "mara", "nia");
-        notifications.save("lino", new NotificationPreferences("lino@example.org", true, true, true, true, null, null));
-        long balcony = gardens.saveGarden(space, "lino", null, "Balcony", null, null, null).id();
-        long allotment = gardens.saveGarden(space, "lino", null, "Allotment", null, null, null).id();
+        long space = space("n-lino", "n-mara", "n-nia");
+        notifications.save("n-lino", new NotificationPreferences("n-lino@example.org", true, true, true, true, null, null));
+        long balcony = gardens.saveGarden(space, "n-lino", null, "Balcony", null, null, null).id();
+        long allotment = gardens.saveGarden(space, "n-lino", null, "Allotment", null, null, null).id();
 
         notifications.weatherAlert(space, balcony, "frost:" + balcony, "Rischio gelo", "Minima prevista -2 °C");
         notifications.weatherAlert(space, allotment, "blight:" + allotment, "Rischio peronospora", "Periodo caldo e umido");
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).isEqualTo(1);
-        JsonNode mail = messageTo("lino@example.org");
+        JsonNode mail = messageTo("n-lino@example.org");
         for (String part : new String[]{"Text", "HTML"}) {
             String body = mail.path(part).asString();
             assertThat(body).as(part + ": each alert names and links its own garden")
@@ -347,15 +357,15 @@ class NotificationServiceTest {
     @Test
     void aWeatherAlertWithoutAGardenLinksToTheGardensOverview() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("olga", "pino", "qara");
-        notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, true, true, null, null));
+        long space = space("n-olga", "n-pino", "n-qara");
+        notifications.save("n-olga", new NotificationPreferences("n-olga@example.org", true, true, true, true, null, null));
 
         // Stored before #56 in a space with several gardens, or of a deleted garden: no garden (#56).
         notifications.weatherAlert(space, 0, "frost:none", "Rischio gelo", "Minima prevista -2 °C");
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).isEqualTo(1);
-        JsonNode mail = messageTo("olga@example.org");
+        JsonNode mail = messageTo("n-olga@example.org");
         for (String part : new String[]{"Text", "HTML"}) {
             assertThat(mail.path(part).asString()).as(part + ": the overview, where the gardens are")
                     .contains("/spaces/" + space + "/gardens");
@@ -366,14 +376,14 @@ class NotificationServiceTest {
     @Test
     void theDigestWordsAWaitingQuestionInItalian() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("vito", "wanda", "xeno");
-        notifications.save("vito", new NotificationPreferences("vito@example.org", true, true, true, true, null, null));
+        long space = space("n-vito", "n-wanda", "n-xeno");
+        notifications.save("n-vito", new NotificationPreferences("n-vito@example.org", true, true, true, true, null, null));
 
-        waiting("p-10", space, "wanda", "Quali sono le compagne della lavanda?");
+        waiting("p-10", space, "n-wanda", "Quali sono le compagne della lavanda?");
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).isEqualTo(1);
-        JsonNode mail = messageTo("vito@example.org");
+        JsonNode mail = messageTo("n-vito@example.org");
         for (String part : new String[]{"Text", "HTML"}) {
             assertThat(mail.path(part).asString()).as(part)
                     .contains("wanda ha chiesto: Quali sono le compagne della lavanda?")
@@ -385,17 +395,17 @@ class NotificationServiceTest {
     @Test
     void aWaitingQuestionStoredBeforeTheChangeIsEmailedAsItWas() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");
-        long space = space("yara", "zoe", "aldo");
-        notifications.save("yara", new NotificationPreferences("yara@example.org", true, true, true, true, null, null));
+        long space = space("n-yara", "n-zoe", "n-aldo");
+        notifications.save("n-yara", new NotificationPreferences("n-yara@example.org", true, true, true, true, null, null));
 
         jdbc.sql("INSERT INTO notification (recipient, space_id, kind, title, body, created_at) "
                         + "VALUES (?, ?, 'ESCALATION_WAITING', 'A question waits for an answer', ?, ?)")
-                .params("yara", space, "zoe asked: Domanda vecchia? (lavanda is not in the dataset)",
+                .params("n-yara", space, "zoe asked: Domanda vecchia? (lavanda is not in the dataset)",
                         Timestamp.from(now)).update();
         now = now.plus(Duration.ofMinutes(3));
 
         assertThat(notifications.digest()).isEqualTo(1);
-        JsonNode mail = messageTo("yara@example.org");
+        JsonNode mail = messageTo("n-yara@example.org");
         assertThat(mail.path("Text").asString()).contains("zoe asked: Domanda vecchia? (lavanda is not in the dataset)");
     }
 

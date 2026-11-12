@@ -3,6 +3,7 @@ package app.rootology.notifications;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.access.AccessRequestService;
 import app.rootology.spaces.IdentityProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +80,12 @@ class AccessNotificationsTest {
 
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
+
+    /** Every test starts from no request: the daily cap (#65) counts the requests of the whole day. */
+    @BeforeEach
+    void clean() {
+        jdbc.sql("delete from access_request").update();
+    }
 
     private void admin(String login) {
         jdbc.sql("""

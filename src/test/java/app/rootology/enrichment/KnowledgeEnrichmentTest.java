@@ -46,9 +46,11 @@ class KnowledgeEnrichmentTest {
     ApplicationEventPublisher events;
 
 
+    /** The personal space of the login: a login may belong to other spaces other tests made. */
     private long spaceOf(String login) {
         spaces.signedIn(login);
-        return spaces.spacesOf(login).getFirst().id();
+        return spaces.spacesOf(login).stream().filter(app.rootology.spaces.SpaceSummary::personal)
+                .findFirst().orElseThrow().id();
     }
 
     @Test
