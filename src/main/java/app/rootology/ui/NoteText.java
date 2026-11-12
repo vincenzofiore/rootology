@@ -36,7 +36,8 @@ final class NoteText {
             case LIGHT_IN_PLOT -> in.get("note.LIGHT_IN_PLOT", note.arg(0), note.arg(1), note.arg(2));
             case LIGHT_ANYWHERE -> in.get("note.LIGHT_ANYWHERE", note.arg(0), note.arg(1));
             case LIGHT_UNKNOWN -> in.get("note.LIGHT_UNKNOWN", note.arg(0));
-            default -> in.get("note." + note.kind().name());
+            // The other texts take the note's values in their own order ({0}, {1}, ...), or none.
+            default -> in.get("note." + note.kind().name(), note.args().toArray());
         };
     }
 

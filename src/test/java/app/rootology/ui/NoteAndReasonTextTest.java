@@ -31,6 +31,17 @@ class NoteAndReasonTextTest {
     }
 
     @Test
+    void theNamesOfAGardenOrPlotNotFoundAreFilledIn() {
+        Note plot = Note.of(Note.Kind.PLOT_NOT_FOUND, "Nord", "Terrazzo");
+        Note garden = Note.of(Note.Kind.GARDEN_OF_QUESTION, "Orto sul tetto", "Terrazzo");
+
+        assertThat(NoteText.text(plot, italian, Locale.ITALIAN))
+                .startsWith("Nell’orto Terrazzo non c’è un’aiuola che si chiami “Nord”");
+        assertThat(NoteText.text(garden, english, Locale.ENGLISH)).doesNotContain("{0}", "{1}")
+                .contains("Orto sul tetto", "Terrazzo");
+    }
+
+    @Test
     void everyNoteKindHasATextInBothLanguages() {
         for (Note.Kind kind : Note.Kind.values()) {
             Note note = switch (kind) {

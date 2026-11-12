@@ -35,6 +35,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- A note about a garden or plot named in the question shows the names instead of "{0}" and "{1}" (#86).
 - On a phone the space switcher moves into the side menu, the space and garden names leave the navbar and
   the wordmark shrinks to the sprout on very narrow screens, so the account menu is no longer pushed off the
   screen (#79).
