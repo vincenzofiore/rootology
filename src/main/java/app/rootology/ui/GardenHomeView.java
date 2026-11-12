@@ -33,6 +33,8 @@ import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
+import app.rootology.garden.GardenViews.PlotSummary;
+import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
 import app.rootology.notifications.NotificationView;
 import app.rootology.pipeline.GardenPipeline;
@@ -65,6 +67,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final WeatherService weather;
     private final NotificationService notifications;
     private final GardenPipeline pipeline;
+    private final RunHistory history;
     private final CurrentUser currentUser;
     private final H3 title = new H3();
     private final Div body = new Div();
@@ -76,12 +79,14 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long gardenId;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, WeatherService weather,
-                          NotificationService notifications, GardenPipeline pipeline, CurrentUser currentUser) {
+                          NotificationService notifications, GardenPipeline pipeline, RunHistory history,
+                          CurrentUser currentUser) {
         this.gardens = gardens;
         this.climateCells = climateCells;
         this.weather = weather;
         this.notifications = notifications;
         this.pipeline = pipeline;
+        this.history = history;
         this.currentUser = currentUser;
         question.setMaxLength(Question.MAX_LENGTH);
         question.setPlaceholder(getTranslation("ask.placeholder"));
@@ -120,11 +125,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
         title.setText(garden.name());
         body.removeAll();
+        List<PlotSummary> plots = gardens.plots(spaceId, currentUser.login(), gardenId);
+        List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(ITALY));
+        boolean asked = !history.recent(spaceId, gardenId, currentUser.login()).isEmpty();
+        FirstSteps steps = FirstSteps.of(garden, plots, growing, asked);
+        if (!steps.allDone()) {
+            body.add(new FirstStepsCard(steps, spaceId, gardenId));
+        }
         showClimate(garden);
         showWeather(garden);
         showAlerts();
         showWaiting();
-        showGrowing();
+        showGrowing(growing);
         body.add(go(MainLayout.PLOTS_ICON, getTranslation("home.garden.open"), PlotsView.class));
     }
 
@@ -187,19 +199,20 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     /** The questions of this garden waiting for a person. */
     private void showWaiting() {
         var waiting = pipeline.pending(spaceId, gardenId, currentUser.login());
-        if (!waiting.isEmpty()) {
-            body.add(section(VaadinIcon.HOURGLASS, getTranslation("home.waiting", waiting.size())));
-            waiting.stream().limit(3).forEach(r -> body.add(new Paragraph("• " + r.question().text())));
-            body.add(go(VaadinIcon.ARROW_RIGHT, getTranslation("home.waiting.open"), EscalationView.class));
+        if (waiting.isEmpty()) {
+            // Nothing waiting is the normal case: the home stays quiet (#81).
+            return;
         }
+        body.add(section(VaadinIcon.HOURGLASS, getTranslation("home.waiting", waiting.size())));
+        waiting.stream().limit(3).forEach(r -> body.add(new Paragraph("• " + r.question().text())));
+        body.add(go(VaadinIcon.ARROW_RIGHT, getTranslation("home.waiting.open"), EscalationView.class));
     }
 
     /** What grows in this garden's plots today. */
-    private void showGrowing() {
-        List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(ITALY));
+    private void showGrowing(List<PlantingSummary> growing) {
         body.add(section(MainLayout.PLOTS_ICON, getTranslation("home.growing")));
         if (growing.isEmpty()) {
-            body.add(new Paragraph(getTranslation("home.growing.none")));
+            body.add(new EmptyState(getTranslation("home.growing.none")));
             return;
         }
         Map<String, String> byPlot = growing.stream().collect(Collectors.groupingBy(PlantingSummary::plotName,

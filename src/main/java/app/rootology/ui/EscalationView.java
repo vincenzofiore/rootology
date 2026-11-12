@@ -48,6 +48,9 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     private final HorizontalLayout form = new HorizontalLayout();
     /** The notes of the selected question, next to the answer form: they can be long, so never a grid column (#60). */
     private final Div notes = new Div();
+    /** What the page shows when nothing waits (#81); the answer form is hidden then. */
+    private final EmptyState empty = new EmptyState(getTranslation("empty.escalations"));
+    private boolean contributor;
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
@@ -93,7 +96,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         form.setWrap(true);
         // A guest sees the open questions but does not answer them (#33); the role is known in beforeEnter.
         form.setVisible(false);
-        add(new H3(getTranslation("escalations.title")), intro, grid, form, notes);
+        empty.setVisible(false);
+        add(new H3(getTranslation("escalations.title")), intro, grid, empty, form, notes);
     }
 
     private void answerSelected() {
@@ -125,14 +129,21 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
-        boolean contributor = currentUser.canContribute(spaceId);
+        contributor = currentUser.canContribute(spaceId);
         form.setVisible(contributor);
         intro.setText(getTranslation(contributor ? "escalations.intro" : "escalations.intro.guest"));
         refresh();
     }
 
     private void refresh() {
-        grid.setItems(spaceId == 0 ? List.of() : pipeline.pending(spaceId, gardenId, currentUser.login()));
+        List<PendingReview> waiting = spaceId == 0 ? List.of()
+                : pipeline.pending(spaceId, gardenId, currentUser.login());
+        grid.setItems(waiting);
+        grid.setVisible(!waiting.isEmpty());
+        empty.setVisible(waiting.isEmpty());
+        intro.setVisible(!waiting.isEmpty());
+        // Nothing to answer means no form (#81); a guest never answers (#33).
+        form.setVisible(contributor && !waiting.isEmpty());
     }
 
     @Override

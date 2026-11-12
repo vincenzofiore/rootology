@@ -28,6 +28,7 @@ import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.component.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -50,6 +51,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     /** The Telegram part of the preferences, redrawn when its state changes (#38). */
     private final VerticalLayout telegramBox = new VerticalLayout();
     private final Grid<NotificationView> grid = new Grid<>();
+    /** What the page shows when nothing has happened yet (#81). */
+    private final EmptyState empty = new EmptyState(getTranslation("empty.notifications"));
     /** The space and garden the bell was used from; only a hint, never used to read data (#56). */
     private long contextSpace;
     private long contextGarden;
@@ -84,7 +87,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             refresh();
         });
 
-        add(new H3(getTranslation("notifications.title")), allRead, grid, preferences(), telegramBox);
+        empty.setVisible(false);
+        add(new H3(getTranslation("notifications.title")), allRead, grid, empty, preferences(), telegramBox);
         refreshTelegram();
         refresh();
     }
@@ -280,7 +284,10 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     }
 
     private void refresh() {
-        grid.setItems(notifications.of(currentUser.login(), 50));
+        List<NotificationView> rows = notifications.of(currentUser.login(), 50);
+        grid.setItems(rows);
+        grid.setVisible(!rows.isEmpty());
+        empty.setVisible(rows.isEmpty());
     }
 
     @Override

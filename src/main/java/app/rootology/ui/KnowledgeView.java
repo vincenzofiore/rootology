@@ -68,6 +68,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     private final ProposalText text;
     private final Paragraph askedAbout = new Paragraph();
     private final Grid<ProposalSummary> mine = new Grid<>();
+    /** What the page shows when the space has proposed nothing yet (#81). */
+    private final EmptyState empty = new EmptyState(getTranslation("empty.proposals"));
 
 
     /** The page's own context (#56), read from its route. */
@@ -112,7 +114,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         }).setAutoWidth(true);
         withdraw.setVisible(false);
         mine.setAllRowsVisible(true);
-        add(new H4(getTranslation("knowledge.mine")), mine);
+        empty.setVisible(false);
+        add(new H4(getTranslation("knowledge.mine")), mine, empty);
 
         refresh();
     }
@@ -212,7 +215,11 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void refresh() {
-        mine.setItems(spaceId == 0 ? java.util.List.of() : enrichment.ofSpace(spaceId, currentUser.login()));
+        java.util.List<ProposalSummary> proposals = spaceId == 0 ? java.util.List.of()
+                : enrichment.ofSpace(spaceId, currentUser.login());
+        mine.setItems(proposals);
+        mine.setVisible(!proposals.isEmpty());
+        empty.setVisible(proposals.isEmpty());
     }
 
     private void act(Runnable action) {

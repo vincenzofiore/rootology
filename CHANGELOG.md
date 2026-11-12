@@ -8,6 +8,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A new garden no longer shows empty grids: plots, plantings, waiting questions, escalations, history,
+  notifications, proposals and the gardens overview say what is missing and offer the next step, the answer
+  form appears only when a question waits, and the garden home shows four guided first steps until they are
+  done (#81).
 - The history speaks to gardeners: a title, the date, the question, the answer's values, who asked, the
   outcome and the context, an empty state with a way to ask, and a click on a row opens the full answer card.
   The quality suite's own columns (case, noise, arbiter, match, confidence) are gone from it, and live only in

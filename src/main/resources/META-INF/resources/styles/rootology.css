@@ -489,3 +489,73 @@ rootology-garden-map { display: block; width: 100%; }
 @media (max-width: 640px) {
     .rootology-map { height: clamp(300px, 50vh, 420px); }
 }
+
+/* What a page shows instead of an empty grid (#81): one icon, one sentence, one action. */
+.rootology-empty {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    width: 100%;
+    max-width: 32rem;
+    margin-inline: auto;
+    padding: var(--lumo-space-l) var(--lumo-space-m);
+    text-align: center;
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-empty-icon {
+    width: 2rem;
+    height: 2rem;
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-empty-text {
+    margin: 0;
+    max-width: 28rem;
+    font-size: var(--lumo-font-size-m);
+}
+
+/* The guided first steps of a garden (#81): a compact card, hidden once every step is done. */
+.rootology-firststeps {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 32rem;
+    padding: var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-firststeps h4 {
+    margin: 0 0 var(--lumo-space-s);
+    font-size: var(--lumo-font-size-m);
+}
+.rootology-firststeps-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+}
+.rootology-firststeps-step {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    min-height: 2rem;
+    color: var(--lumo-body-text-color);
+    text-decoration: none;
+}
+.rootology-firststeps-step:hover { text-decoration: underline; }
+.rootology-firststeps-step:focus-visible {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+    border-radius: var(--lumo-border-radius-s);
+}
+.rootology-firststeps-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--lumo-primary-text-color);
+}
+.rootology-firststeps-done { color: var(--lumo-secondary-text-color); }
+.rootology-firststeps-done .rootology-firststeps-icon { color: var(--lumo-success-text-color); }
+@media (pointer: coarse) {
+    .rootology-firststeps-step { min-height: 2.75rem; }
+}

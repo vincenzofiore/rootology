@@ -67,6 +67,14 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private final HorizontalLayout top = new HorizontalLayout();
     private final Button addPlot = new Button(getTranslation("garden.addplot"));
     private final Button addPlanting = new Button(getTranslation("garden.sow"));
+    /** The plantings' header: without plots there is nothing to choose, so it hides with them (#81). */
+    private final HorizontalLayout plantingHeader = new HorizontalLayout();
+    private boolean contributor;
+    /** What the page shows instead of an empty grid (#81); the actions are hidden for a guest (#33). */
+    private final EmptyState noPlots = new EmptyState(getTranslation("empty.plots"),
+            getTranslation("empty.plots.add"), () -> plotDialog(null));
+    private final EmptyState noPlantings = new EmptyState(getTranslation("empty.plantings"),
+            getTranslation("empty.plantings.add"), this::plantingDialog);
     /** The actions that need an OWNER or MEMBER (#33). */
     private Grid.Column<PlotSummary> plotActions;
     private Grid.Column<PlantingSummary> plantingActions;
@@ -128,8 +136,11 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         showContributorActions(false);
 
         // The page is the plots (#79): one name, in the menu, the title and the links.
-        add(new H3(getTranslation("garden.plots")), top, gardenInfo, weatherCard, plotGrid,
-                new HorizontalLayout(plantingTitle, addPlanting), plantingGrid);
+        noPlots.setVisible(false);
+        noPlantings.setVisible(false);
+        plantingHeader.add(plantingTitle, addPlanting);
+        add(new H3(getTranslation("garden.plots")), top, gardenInfo, weatherCard, plotGrid, noPlots,
+                plantingHeader, plantingGrid, noPlantings);
     }
 
     /** The page works in its route's garden; a space or garden the person cannot see is not found. */
@@ -151,6 +162,9 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         addPlanting.setVisible(contributor);
         plotActions.setVisible(contributor);
         plantingActions.setVisible(contributor);
+        noPlots.actionVisible(contributor);
+        this.contributor = contributor;
+        noPlantings.actionVisible(contributor);
     }
 
     private void showGarden(GardenSummary garden) {
@@ -159,6 +173,9 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
             weatherCard.removeAll();
             gardenInfo.setText(getTranslation("garden.none"));
             plotGrid.setItems(List.of());
+            plotGrid.setVisible(false);
+            noPlots.setVisible(false);
+            plantingHeader.setVisible(false);
             showPlantings(null);
             return;
         }
@@ -167,7 +184,13 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry);
         showWeather(garden);
-        plotGrid.setItems(gardens.plots(spaceId, login, garden.id()));
+        List<PlotSummary> plots = gardens.plots(spaceId, login, garden.id());
+        plotGrid.setItems(plots);
+        plotGrid.setVisible(!plots.isEmpty());
+        noPlots.setVisible(plots.isEmpty());
+        // With no plot the empty state carries the one button to add it (#81).
+        addPlot.setVisible(contributor && !plots.isEmpty());
+        plantingHeader.setVisible(!plots.isEmpty());
         showPlantings(null);
     }
 
@@ -190,7 +213,10 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
 
     private void showPlantings(PlotSummary plot) {
         plantingTitle.setText(plot == null ? getTranslation("garden.selectplot") : getTranslation("garden.in", plot.name()));
-        plantingGrid.setItems(plot == null ? List.of() : gardens.plantings(spaceId, login, plot.id()));
+        List<PlantingSummary> plantings = plot == null ? List.of() : gardens.plantings(spaceId, login, plot.id());
+        plantingGrid.setItems(plantings);
+        plantingGrid.setVisible(!plantings.isEmpty());
+        noPlantings.setVisible(plot != null && plantings.isEmpty());
     }
 
     /** Creates or edits this garden: the overview adds new ones, this page edits the one it works in. */

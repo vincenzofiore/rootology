@@ -70,7 +70,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final WeatherService weather;
     private final H3 title = new H3(getTranslation("gardens.title"));
     private final Grid<GardenSummary> grid = new Grid<>();
-    private final Paragraph none = new Paragraph(getTranslation("gardens.none"));
+    /** What the page shows when the space has no garden yet (#81); the map stays. */
+    private final EmptyState none = new EmptyState(getTranslation("gardens.none"));
     private final Button add = new Button(getTranslation("garden.new"));
     private final GardenMap map;
     private final RadioButtonGroup<ViewMode> viewMode = new RadioButtonGroup<>();

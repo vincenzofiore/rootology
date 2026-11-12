@@ -5,7 +5,6 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.badge.Badge;
 import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
@@ -21,12 +20,10 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.theme.lumo.LumoUtility.AlignItems;
 import com.vaadin.flow.theme.lumo.LumoUtility.Display;
 import com.vaadin.flow.theme.lumo.LumoUtility.FlexWrap;
 import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
-import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
 import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.garden.GardenService;
 import app.rootology.history.PipelineRunRecord;
@@ -54,9 +51,9 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
     private final H3 title = new H3(getTranslation("history.title"));
     private final Paragraph place = new Paragraph();
     private final Grid<PipelineRunRecord> grid = new Grid<>();
-    /** What the page says when there is no question yet (#80), and the way to ask one. */
-    private final Div empty = new Div();
-    private final Button ask = new Button(getTranslation("history.empty.ask"), e -> openAsk());
+    /** What the page says when there is no question yet (#80, #81), and the way to ask one. */
+    private final EmptyState empty = new EmptyState(getTranslation("history.empty"),
+            getTranslation("history.empty.ask"), this::openAsk);
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
@@ -79,16 +76,8 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         grid.setSizeFull();
 
         empty.setVisible(false);
-        empty.addClassNames(Display.FLEX, "flex-col", AlignItems.CENTER, Gap.SMALL, Padding.LARGE);
-        Icon icon = VaadinIcon.COMMENT_ELLIPSIS_O.create();
-        icon.setSize("2rem");
-        icon.addClassNames(TextColor.SECONDARY);
-        Paragraph text = new Paragraph(getTranslation("history.empty"));
-        text.addClassNames(TextColor.SECONDARY);
-        ask.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         // A guest only looks (#33): the button is shown once beforeEnter knows the space's role.
-        ask.setVisible(false);
-        empty.add(icon, text, ask);
+        empty.actionVisible(false);
 
         add(title, place, grid, empty);
         setSizeFull();
@@ -109,7 +98,7 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
                 ? gardens.garden(spaceId, currentUser.login(), gardenId)
                 .map(g -> getTranslation("context.place.garden", spaceName, g.name())).orElse(spaceName)
                 : getTranslation("context.place.nogarden", spaceName));
-        ask.setVisible(currentUser.canContribute(spaceId));
+        empty.actionVisible(currentUser.canContribute(spaceId));
         refresh();
     }
 
