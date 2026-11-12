@@ -25,26 +25,36 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * The coming days of a garden's forecast (#31): a tile per day with MET Norway's icon (MIT, served from
  * /weather-icons), maximum and minimum, precipitation, and frost days highlighted. Credits MET Norway, as its
- * licence asks.
+ * licence asks. It is a card of the garden home (#84).
  */
 class WeatherCard extends Div {
 
     /** A day at or below this minimum is shown as a frost day. */
     static final double FROST = 0.0;
 
+    /** The first day of the forecast at or below the frost threshold, if any (#84, the plots page). */
+    static Optional<DailyForecast> firstFrost(List<DailyForecast> days) {
+        return days.stream().filter(WeatherCard::frost).findFirst();
+    }
+
+    private static boolean frost(DailyForecast day) {
+        return day.minimum() <= FROST;
+    }
+
     WeatherCard(List<DailyForecast> days, Instant fetchedAt, boolean stale) {
-        addClassNames(Display.FLEX, FlexDirection.COLUMN, Gap.SMALL, Padding.MEDIUM, BorderRadius.LARGE,
-                Background.CONTRAST_5);
+        addClassNames("rootology-card", "rootology-weather", Display.FLEX, FlexDirection.COLUMN, Gap.SMALL, Padding.MEDIUM,
+                BorderRadius.LARGE, Background.CONTRAST_5);
         Locale locale = NoteText.locale(this);
         Icon cloud = VaadinIcon.CLOUD_O.create();
         Span title = new Span(getTranslation("weather.title"));
         title.addClassNames(FontWeight.SEMIBOLD);
         Div header = new Div(cloud, title);
-        header.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.SMALL);
+        header.addClassNames("rootology-card-title", Display.FLEX, AlignItems.CENTER, Gap.SMALL);
         add(header);
 
         Div tiles = new Div();
@@ -64,7 +74,7 @@ class WeatherCard extends Div {
     }
 
     private Div tile(DailyForecast day, Locale locale) {
-        boolean frost = day.minimum() <= FROST;
+        boolean frost = frost(day);
         Span name = new Span(day.day().getDayOfWeek().getDisplayName(TextStyle.SHORT, locale) + " " + day.day().getDayOfMonth());
         name.addClassNames(FontSize.SMALL, FontWeight.MEDIUM);
         Div tile = new Div(name);

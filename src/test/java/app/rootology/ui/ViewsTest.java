@@ -241,13 +241,14 @@ class ViewsTest {
 
     private static app.rootology.notifications.NotificationView weather(long spaceId, long gardenId) {
         return new app.rootology.notifications.NotificationView(2, spaceId, gardenId,
-                "WEATHER_ALERT", null, "Rischio gelo", "Minima prevista", java.time.Instant.now(), null, null, null);
+                "WEATHER_ALERT", null, "Rischio gelo", "Minima prevista", java.time.Instant.now(), null, null, null,
+                "frost:" + gardenId + ":2026-11-12");
     }
 
     private static app.rootology.notifications.NotificationView notification(long spaceId,
                                                                                               long gardenId) {
         return new app.rootology.notifications.NotificationView(1, spaceId, gardenId,
-                "ESCALATION_WAITING", "p-1", "title", "body", java.time.Instant.now(), null, null, null);
+                "ESCALATION_WAITING", "p-1", "title", "body", java.time.Instant.now(), null, null, null, null);
     }
 
     @Autowired

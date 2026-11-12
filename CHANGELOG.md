@@ -27,6 +27,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 - The question count shows only when five or fewer questions are left today (#79).
 - Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
   amber) instead of Lumo's slate blue; light mode is unchanged (#75).
+- The garden home is a grid of cards: the question field with Ask and two compact actions on top, then the
+  weather, the alerts of the last three days coloured by severity, the questions waiting for a person with
+  their count, what grows as chips per plot and the climate of the site, with the AgERA5 cell as a source
+  line. The weather card now lives only there: the plots page shows at most a frost marker linking back to
+  it (#84).
 
 ### Fixed
 

@@ -19,14 +19,7 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.theme.lumo.LumoUtility.AlignItems;
-import com.vaadin.flow.theme.lumo.LumoUtility.Background;
-import com.vaadin.flow.theme.lumo.LumoUtility.BorderRadius;
-import com.vaadin.flow.theme.lumo.LumoUtility.Display;
-import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
-import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
-import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
-import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
+import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
 import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.SiteProfile;
@@ -49,18 +42,24 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * The home of one garden (#39, #56): a question field, the weather there, the weather alerts of the last
- * days, the questions waiting for a person, and what grows now, plot by plot. Only this garden's.
+ * The home of one garden (#39, #56, #84): the quick actions on top (ask, add a planting, open the plots), the
+ * first steps while they last, and a grid of cards with the weather there, the alerts of the last days, the
+ * questions waiting for a person, what grows now plot by plot, and the climate of its site. Only this garden's.
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId", layout = MainLayout.class)
 @PermitAll
 public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
+    /** How far back the home shows the weather alerts of #37. */
+    static final int ALERT_DAYS = 3;
+    /** How many waiting questions the card lists; the escalations page has them all. */
+    static final int WAITING_SHOWN = 3;
 
     private final GardenService gardens;
     private final ClimateCells climateCells;
@@ -70,10 +69,16 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final RunHistory history;
     private final CurrentUser currentUser;
     private final H3 title = new H3();
-    private final Div body = new Div();
     private final TextField question = new TextField();
     /** The question field: a guest only looks (#33); its visibility depends on the route's space. */
     private final HorizontalLayout form = new HorizontalLayout();
+    /** The compact actions under it: add a planting (contributors only) and open the plots (#84). */
+    private final HorizontalLayout actions = new HorizontalLayout();
+    private final Button addPlanting = new Button(getTranslation("home.actions.plant"), VaadinIcon.PLUS.create());
+    private final Button openPlots = new Button(getTranslation("home.garden.open"), MainLayout.PLOTS_ICON.create());
+    /** The first steps of #81, while they last; then the cards. */
+    private final Div firstSteps = new Div();
+    private final Div grid = new Div();
     /** The page's own context (#56), read from its route. */
     private long spaceId;
     private long gardenId;
@@ -90,17 +95,27 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         this.currentUser = currentUser;
         question.setMaxLength(Question.MAX_LENGTH);
         question.setPlaceholder(getTranslation("ask.placeholder"));
-        question.setWidth("32rem");
-        question.setMaxWidth("100%");
         question.setPrefixComponent(VaadinIcon.COMMENT_ELLIPSIS_O.create());
         Button ask = new Button(getTranslation("ask.button"), e -> ask());
         ask.addThemeName("primary");
         question.addKeyPressListener(com.vaadin.flow.component.Key.ENTER, e -> ask.click());
         form.add(question, ask);
+        form.addClassName("rootology-home-ask");
         form.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END);
         form.setWrap(true);
         form.setVisible(false);
-        add(title, form, body);
+        addPlanting.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        addPlanting.setTooltipText(getTranslation("home.actions.plant"));
+        addPlanting.setAriaLabel(getTranslation("home.actions.plant"));
+        addPlanting.addClickListener(e -> goToPlots());
+        openPlots.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_TERTIARY);
+        openPlots.setTooltipText(getTranslation("home.garden.open"));
+        openPlots.setAriaLabel(getTranslation("home.garden.open"));
+        openPlots.addClickListener(e -> goToPlots());
+        actions.add(addPlanting, openPlots);
+        actions.addClassName("rootology-home-actions");
+        grid.addClassName("rootology-home-grid");
+        add(title, form, actions, firstSteps, grid);
     }
 
     /** Hands the question to this garden's Ask page, which answers it as the page opens. */
@@ -108,9 +123,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         if (question.getValue().isBlank()) {
             return;
         }
-        UI.getCurrent().navigate(AskView.class, new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId),
-                        Routed.GARDEN, String.valueOf(gardenId))),
+        UI.getCurrent().navigate(AskView.class, gardenParameters(),
                 QueryParameters.simple(Map.of(AskView.QUESTION, question.getValue().trim())));
+    }
+
+    /** A planting needs a plot chosen on the plots page, so the action opens it (#84). */
+    private void goToPlots() {
+        getUI().ifPresent(ui -> ui.navigate(PlotsView.class, gardenParameters()));
+    }
+
+    private RouteParameters gardenParameters() {
+        return new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId),
+                Routed.GARDEN, String.valueOf(gardenId)));
     }
 
     @Override
@@ -121,130 +145,194 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
-        form.setVisible(currentUser.canContribute(spaceId));
+        boolean contributor = currentUser.canContribute(spaceId);
+        form.setVisible(contributor);
+        // A guest only looks (#33): no planting, but the plots page is there to read.
+        addPlanting.setVisible(contributor);
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
         title.setText(garden.name());
-        body.removeAll();
+        firstSteps.removeAll();
+        grid.removeAll();
         List<PlotSummary> plots = gardens.plots(spaceId, currentUser.login(), gardenId);
         List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(ITALY));
         boolean asked = !history.recent(spaceId, gardenId, currentUser.login()).isEmpty();
         FirstSteps steps = FirstSteps.of(garden, plots, growing, asked);
         if (!steps.allDone()) {
-            body.add(new FirstStepsCard(steps, spaceId, gardenId));
+            firstSteps.add(new FirstStepsCard(steps, spaceId, gardenId));
         }
-        showClimate(garden);
-        showWeather(garden);
-        showAlerts();
-        showWaiting();
-        showGrowing(growing);
-        body.add(go(MainLayout.PLOTS_ICON, getTranslation("home.garden.open"), PlotsView.class));
+        weatherCard(garden);
+        alertsCard();
+        waitingCard();
+        growingCard(growing);
+        climateCard(garden);
     }
 
-    /** The garden's climate profile (#62): altitude, both 1-in-5-year frost dates and the cell. */
-    private void showClimate(GardenSummary garden) {
+    /** The coming week at this garden (#31), or a hint to add its coordinates. */
+    private void weatherCard(GardenSummary garden) {
         if (garden.latitude() == null || garden.longitude() == null) {
-            return;
-        }
-        body.add(section(VaadinIcon.SUN_O, getTranslation("home.climate")));
-        java.util.Locale locale = NoteText.locale(this);
-        climateCells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
-                .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null))
-                .ifPresentOrElse(profile -> body.add(climate(profile, locale)),
-                        () -> body.add(new Paragraph(getTranslation("home.climate.noprofile"))));
-    }
-
-    private Div climate(SiteProfile profile, java.util.Locale locale) {
-        Div lines = new Div();
-        lines.add(new Paragraph(profile.altitudeM() == null
-                ? getTranslation("home.climate.altitude.none")
-                : getTranslation("home.climate.altitude", profile.altitudeM())));
-        lines.add(new Paragraph(getTranslation("home.climate.last", profile.lastFrostDay() == null
-                ? getTranslation("home.climate.none.spring")
-                : ClimateText.frost(profile.lastFrostDay(), this::getTranslation, locale))));
-        lines.add(new Paragraph(getTranslation("home.climate.first", profile.firstFrostDay() == null
-                ? getTranslation("home.climate.none.autumn")
-                : ClimateText.frost(profile.firstFrostDay(), this::getTranslation, locale))));
-        lines.add(new Paragraph(getTranslation("home.climate.cell", profile.cell())));
-        return lines;
-    }
-
-    /** The coming week at this garden (#31): a hint for coordinates, or nothing when there is no forecast. */
-    private void showWeather(GardenSummary garden) {
-        if (garden.latitude() == null || garden.longitude() == null) {
-            Paragraph hint = new Paragraph(getTranslation("weather.nocoordinates"));
-            hint.addClassNames(TextColor.SECONDARY);
-            body.add(hint);
+            Card card = new Card(VaadinIcon.CLOUD_O, getTranslation("weather.title"));
+            card.content().add(paragraph(getTranslation("weather.nocoordinates")));
+            grid.add(card);
             return;
         }
         weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
             List<DailyForecast> days = DailyForecast.of(forecast, ITALY, LocalDate.now(ITALY), 7);
             if (!days.isEmpty()) {
-                body.add(new WeatherCard(days, forecast.fetchedAt(), forecast.stale()));
+                grid.add(new WeatherCard(days, forecast.fetchedAt(), forecast.stale()));
             }
         });
     }
 
-    /** The weather alerts (#37) of this garden in the last three days. */
-    private void showAlerts() {
-        Instant since = Instant.now().minus(3, ChronoUnit.DAYS);
+    /** The weather alerts (#37) of this garden in the last three days, coloured by severity. */
+    private void alertsCard() {
+        Instant since = Instant.now().minus(ALERT_DAYS, ChronoUnit.DAYS);
         List<NotificationView> alerts = notifications.of(currentUser.login(), 50).stream()
                 .filter(n -> n.weather() && n.spaceId() == spaceId && n.gardenId() == gardenId
                         && n.createdAt().isAfter(since)).toList();
-        if (!alerts.isEmpty()) {
-            body.add(section(VaadinIcon.WARNING, getTranslation("home.alerts")));
-            alerts.forEach(a -> body.add(callout(a.title() + ": " + a.body())));
+        if (alerts.isEmpty()) {
+            return;
         }
+        Card card = new Card(VaadinIcon.WARNING, getTranslation("home.alerts"));
+        alerts.forEach(a -> card.content().add(alert(a)));
+        grid.add(card);
     }
 
-    /** The questions of this garden waiting for a person. */
-    private void showWaiting() {
+    /** One alert: its icon and colour say the rule, then the title and what the morning check saw. */
+    private static Div alert(NotificationView alert) {
+        AlertSeverity severity = AlertSeverity.of(alert.dedupKey());
+        Icon icon = severity.icon().create();
+        icon.addClassName("rootology-alert-icon");
+        icon.getElement().setAttribute("aria-hidden", "true");
+        Span alertTitle = new Span(alert.title());
+        alertTitle.addClassName("rootology-alert-title");
+        Div text = new Div(alertTitle, new Span(alert.body()));
+        Div line = new Div(icon, text);
+        line.addClassName("rootology-alert");
+        line.addClassName(severity.className());
+        return line;
+    }
+
+    /** The questions of this garden waiting for a person: a big count, and up to three of them. */
+    private void waitingCard() {
         var waiting = pipeline.pending(spaceId, gardenId, currentUser.login());
         if (waiting.isEmpty()) {
             // Nothing waiting is the normal case: the home stays quiet (#81).
             return;
         }
-        body.add(section(VaadinIcon.HOURGLASS, getTranslation("home.waiting", waiting.size())));
-        waiting.stream().limit(3).forEach(r -> body.add(new Paragraph("• " + r.question().text())));
-        body.add(go(VaadinIcon.ARROW_RIGHT, getTranslation("home.waiting.open"), EscalationView.class));
+        Card card = new Card(VaadinIcon.HOURGLASS, getTranslation("home.waiting.title"));
+        Span count = new Span(String.valueOf(waiting.size()));
+        count.addClassName("rootology-count");
+        Span countWord = new Span(getTranslation("home.waiting.count", waiting.size()));
+        Div summary = new Div(count, countWord);
+        summary.addClassName("rootology-waiting-summary");
+        card.content().add(summary);
+        Div list = new Div();
+        list.addClassName("rootology-waiting-list");
+        waiting.stream().limit(WAITING_SHOWN).forEach(pending -> {
+            RouterLink link = new RouterLink("", EscalationView.class, gardenParameters());
+            link.addClassName("rootology-home-waiting-question");
+            link.add(new Span(pending.question().text()));
+            list.add(link);
+        });
+        card.content().add(list);
+        grid.add(card);
     }
 
-    /** What grows in this garden's plots today. */
-    private void showGrowing(List<PlantingSummary> growing) {
-        body.add(section(MainLayout.PLOTS_ICON, getTranslation("home.growing")));
+    /** What grows in this garden's plots today, as a chip per crop under its plot. */
+    private void growingCard(List<PlantingSummary> growing) {
+        Card card = new Card(MainLayout.PLOTS_ICON, getTranslation("home.growing"));
         if (growing.isEmpty()) {
-            body.add(new EmptyState(getTranslation("home.growing.none")));
+            card.content().add(new EmptyState(getTranslation("home.growing.none")));
+            grid.add(card);
             return;
         }
-        Map<String, String> byPlot = growing.stream().collect(Collectors.groupingBy(PlantingSummary::plotName,
-                LinkedHashMap::new, Collectors.mapping(PlantingSummary::cropName, Collectors.joining(", "))));
-        byPlot.forEach((plot, crops) -> body.add(new Paragraph(plot + ": " + crops)));
+        Map<String, List<String>> byPlot = growing.stream().collect(Collectors.groupingBy(PlantingSummary::plotName,
+                LinkedHashMap::new, Collectors.mapping(PlantingSummary::cropName, Collectors.toList())));
+        byPlot.forEach((plot, crops) -> {
+            Div group = new Div();
+            group.addClassName("rootology-chip-group");
+            Span plotName = new Span(plot);
+            plotName.addClassName("rootology-chip-plot");
+            Div chips = new Div();
+            chips.addClassName("rootology-chips");
+            crops.forEach(crop -> {
+                Span chip = new Span(crop);
+                chip.addClassName("rootology-grow-chip");
+                chips.add(chip);
+            });
+            group.add(plotName, chips);
+            card.content().add(group);
+        });
+        grid.add(card);
     }
 
-    private Button go(VaadinIcon icon, String text, Class<? extends com.vaadin.flow.component.Component> view) {
-        Button button = new Button(text, icon.create(), e -> getUI().ifPresent(ui -> ui.navigate(view,
-                new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId),
-                        Routed.GARDEN, String.valueOf(gardenId))))));
-        button.addThemeName("tertiary");
-        return button;
+    /** The climate profile of the garden's site (#62): the frost dates and the altitude as values. */
+    private void climateCard(GardenSummary garden) {
+        if (garden.latitude() == null || garden.longitude() == null) {
+            return;
+        }
+        Card card = new Card(VaadinIcon.SUN_O, getTranslation("home.climate"));
+        Locale locale = NoteText.locale(this);
+        climateCells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
+                .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null))
+                .ifPresentOrElse(profile -> climate(card, profile, locale),
+                        () -> card.content().add(paragraph(getTranslation("home.climate.noprofile"))));
+        grid.add(card);
     }
 
-    private static H4 section(VaadinIcon icon, String text) {
-        Icon i = icon.create();
-        i.setSize("1em");
-        H4 title = new H4(i, new Span(" " + text));
-        title.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.SMALL);
-        return title;
+    private void climate(Card card, SiteProfile profile, Locale locale) {
+        card.content().add(fact(VaadinIcon.ASTERISK, getTranslation("home.climate.last.title"),
+                profile.lastFrostDay() == null ? getTranslation("home.climate.none.spring")
+                        : ClimateText.frost(profile.lastFrostDay(), this::getTranslation, locale)));
+        card.content().add(fact(VaadinIcon.ASTERISK, getTranslation("home.climate.first.title"),
+                profile.firstFrostDay() == null ? getTranslation("home.climate.none.autumn")
+                        : ClimateText.frost(profile.firstFrostDay(), this::getTranslation, locale)));
+        card.content().add(fact(VaadinIcon.ARROW_UP, getTranslation("home.climate.altitude.title"),
+                profile.altitudeM() == null ? getTranslation("home.climate.altitude.none")
+                        : getTranslation("home.climate.altitude", profile.altitudeM())));
+        // The AgERA5 cell and its period are a source, not something to decide by (#84).
+        Span source = new Span(getTranslation("home.climate.cell", profile.cell()));
+        source.addClassName("rootology-card-source");
+        card.content().add(source);
     }
 
-    private static Div callout(String text) {
-        Icon i = VaadinIcon.WARNING.create();
-        i.addClassNames(TextColor.ERROR);
-        i.setSize("1.1em");
-        Div callout = new Div(i, new Span(text));
-        callout.addClassNames(Display.FLEX, AlignItems.START, Gap.SMALL, Padding.SMALL, BorderRadius.MEDIUM,
-                FontSize.SMALL, Background.ERROR_10);
-        callout.setMaxWidth("48rem");
-        return callout;
+    /** One value with its icon: the word stays the tooltip and what a screen reader says (#84). */
+    private static Div fact(VaadinIcon icon, String label, String value) {
+        Icon drawing = icon.create();
+        drawing.addClassName("rootology-fact-icon");
+        drawing.getElement().setAttribute("aria-hidden", "true");
+        Span word = new Span(label);
+        word.addClassName("rootology-visually-hidden");
+        Div row = new Div(drawing, word, new Span(value));
+        row.addClassName("rootology-fact");
+        row.getElement().setAttribute("title", label);
+        return row;
+    }
+
+    private static Paragraph paragraph(String text) {
+        Paragraph paragraph = new Paragraph(text);
+        paragraph.addClassName("rootology-card-text");
+        return paragraph;
+    }
+
+    /** A card of the home (#84): a title with its icon, then its content; the look is in the stylesheet. */
+    private static final class Card extends Div {
+
+        private final Div content = new Div();
+
+        Card(VaadinIcon icon, String title) {
+            addClassName("rootology-card");
+            Icon drawing = icon.create();
+            drawing.getElement().setAttribute("aria-hidden", "true");
+            H4 heading = new H4(drawing, new Span(" " + title));
+            heading.addClassName("rootology-card-title");
+            content.addClassName("rootology-card-content");
+            add(heading, content);
+        }
+
+        Div content() {
+            return content;
+        }
     }
 
     @Override

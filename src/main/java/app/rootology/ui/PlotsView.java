@@ -10,6 +10,8 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -21,6 +23,8 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
 import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
@@ -40,7 +44,10 @@ import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /** One garden of the space: its plots, and what is sown or planted in each (#56). */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/plots", layout = MainLayout.class)
@@ -52,7 +59,8 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private final GeoNames geoNames;
     private final ClimateCells climateCells;
     private final WeatherService weather;
-    private final Div weatherCard = new Div();
+    /** At most a frost marker here (#84): the weather card lives on the garden home. */
+    private final Div frostMark = new Div();
     private final CurrentUser currentUser;
     private final String login;
     /** The page's own context (#56), read from its route. */
@@ -139,7 +147,9 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         noPlots.setVisible(false);
         noPlantings.setVisible(false);
         plantingHeader.add(plantingTitle, addPlanting);
-        add(new H3(getTranslation("garden.plots")), top, gardenInfo, weatherCard, plotGrid, noPlots,
+        frostMark.addClassName("rootology-plots-frost");
+        frostMark.setVisible(false);
+        add(new H3(getTranslation("garden.plots")), top, gardenInfo, frostMark, plotGrid, noPlots,
                 plantingHeader, plantingGrid, noPlantings);
     }
 
@@ -170,7 +180,8 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
     private void showGarden(GardenSummary garden) {
         this.garden = garden;
         if (garden == null) {
-            weatherCard.removeAll();
+            frostMark.removeAll();
+            frostMark.setVisible(false);
             gardenInfo.setText(getTranslation("garden.none"));
             plotGrid.setItems(List.of());
             plotGrid.setVisible(false);
@@ -183,7 +194,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         String where = garden.town() == null ? getTranslation("garden.notown") : garden.town();
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry);
-        showWeather(garden);
+        showFrost(garden);
         List<PlotSummary> plots = gardens.plots(spaceId, login, garden.id());
         plotGrid.setItems(plots);
         plotGrid.setVisible(!plots.isEmpty());
@@ -194,21 +205,41 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         showPlantings(null);
     }
 
-    /** The coming week at the garden (#31); a hint to add coordinates, or nothing when there is no forecast. */
-    private void showWeather(GardenSummary garden) {
-        weatherCard.removeAll();
+    /**
+     * A frost day in the forecast is the only weather this page shows (#84): one line that opens the garden
+     * home, where the coming days are. MET Norway is credited wherever its data appears.
+     */
+    private void showFrost(GardenSummary garden) {
+        frostMark.removeAll();
+        frostMark.setVisible(false);
         if (garden.latitude() == null || garden.longitude() == null) {
-            Paragraph hint = new Paragraph(getTranslation("weather.nocoordinates"));
-            hint.addClassNames(com.vaadin.flow.theme.lumo.LumoUtility.TextColor.SECONDARY);
-            weatherCard.add(hint);
             return;
         }
-        weather.around(garden.latitude(), garden.longitude()).ifPresentOrElse(forecast -> {
-            var days = DailyForecast.of(forecast, java.time.ZoneId.of("Europe/Rome"), LocalDate.now(), 7);
-            if (!days.isEmpty()) {
-                weatherCard.add(new WeatherCard(days, forecast.fetchedAt(), forecast.stale()));
-            }
-        }, () -> weatherCard.add(new Paragraph(getTranslation("note.FORECAST_UNAVAILABLE_FROST"))));
+        weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
+            var days = DailyForecast.of(forecast, GardenHomeView.ITALY, LocalDate.now(GardenHomeView.ITALY), 7);
+            WeatherCard.firstFrost(days).ifPresent(frost -> {
+                RouterLink link = frostLink(frost);
+                Span credit = new Span(getTranslation("weather.credit"));
+                credit.addClassName("rootology-plots-frost-credit");
+                frostMark.add(link, credit);
+                frostMark.setVisible(true);
+            });
+        });
+    }
+
+    private RouterLink frostLink(DailyForecast frost) {
+        Locale locale = NoteText.locale(this);
+        String day = frost.day().getDayOfWeek().getDisplayName(TextStyle.SHORT, locale) + " "
+                + frost.day().getDayOfMonth();
+        String text = getTranslation("plots.frost", day);
+        Icon icon = VaadinIcon.ASTERISK.create();
+        icon.getElement().setAttribute("aria-hidden", "true");
+        RouterLink link = new RouterLink("", GardenHomeView.class, new RouteParameters(Map.of(
+                Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(garden.id()))));
+        link.add(icon, new Span(text));
+        link.addClassName("rootology-frost-marker");
+        link.getElement().setAttribute("aria-label", text);
+        return link;
     }
 
     private void showPlantings(PlotSummary plot) {

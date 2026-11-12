@@ -152,7 +152,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
         return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
-                        + "resolved_at, resolved_by FROM notification WHERE recipient = ? "
+                        + "resolved_at, resolved_by, dedup_key FROM notification WHERE recipient = ? "
                         + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
                 .query((rs, i) -> {
@@ -163,7 +163,7 @@ public class NotificationService {
                     return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
                             rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
                             rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
-                            instant(rs.getTimestamp(10)), rs.getString(11));
+                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12));
                 })
                 .list();
     }

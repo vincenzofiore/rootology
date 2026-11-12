@@ -624,3 +624,204 @@ rootology-garden-map { display: block; width: 100%; }
     .rootology-answer-controls { max-width: 100%; }
     .rootology-chip { box-sizing: border-box; }
 }
+
+/* The garden home (#84): quick actions on top, then a grid of cards. */
+.rootology-home-ask {
+    width: 100%;
+    max-width: 42rem;
+}
+/* The question field takes the room it has and never pushes the button off a 360 px screen. */
+.rootology-home-ask vaadin-text-field { flex: 1 1 16rem; min-width: 0; }
+.rootology-home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+}
+.rootology-home-grid {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--lumo-space-m);
+    width: 100%;
+    align-items: start;
+}
+/* The 7 days need the whole row; the other cards share two columns. */
+.rootology-home-grid > .rootology-weather { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+    .rootology-home-ask vaadin-text-field { flex-basis: 100%; }
+    .rootology-home-ask vaadin-button { width: 100%; }
+    .rootology-home-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* One card of the home: a title with its icon, then its content. */
+.rootology-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    margin: 0;
+    font-size: var(--lumo-font-size-m);
+    font-weight: 600;
+}
+.rootology-card-title vaadin-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--lumo-primary-text-color);
+}
+.rootology-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+}
+.rootology-card-text { margin: 0; }
+/* A source line (the AgERA5 cell) is there to be checked, not to decide by. */
+.rootology-card-source {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+
+/* An alert of #37, coloured by its rule: a frost is red, late blight amber. */
+.rootology-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    border-inline-start: 3px solid currentColor;
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-alert-frost { background: var(--lumo-error-color-10pct); }
+.rootology-alert-frost .rootology-alert-icon { color: var(--lumo-error-text-color); }
+.rootology-alert-blight { background: var(--lumo-warning-color-10pct); }
+.rootology-alert-blight .rootology-alert-icon { color: var(--lumo-warning-text-color); }
+.rootology-alert-neutral .rootology-alert-icon { color: var(--lumo-secondary-text-color); }
+.rootology-alert-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+}
+.rootology-alert-title {
+    display: block;
+    font-weight: 600;
+}
+
+/* Questions waiting for a person: the count first, then up to three of them. */
+.rootology-waiting-summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--lumo-space-s);
+}
+.rootology-count {
+    font-size: var(--lumo-font-size-xxxl);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--lumo-warning-text-color);
+}
+.rootology-waiting-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+}
+.rootology-home-waiting-question {
+    display: flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-s);
+    background: var(--lumo-contrast-5pct);
+    color: var(--lumo-body-text-color);
+    text-decoration: none;
+}
+.rootology-home-waiting-question:hover { text-decoration: underline; }
+.rootology-home-waiting-question:focus-visible {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+}
+@media (pointer: coarse) {
+    .rootology-home-waiting-question { min-height: 2.75rem; }
+}
+
+/* What grows, as a chip per crop under its plot. */
+.rootology-chip-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+}
+.rootology-chip-plot {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+}
+.rootology-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+}
+.rootology-grow-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0 var(--lumo-space-s);
+    border-radius: 999px;
+    background: var(--lumo-success-color-10pct);
+    color: var(--lumo-success-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+/* One value of the climate card: its icon, then the value; the word is the tooltip. */
+.rootology-fact {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+}
+.rootology-fact-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--lumo-secondary-text-color);
+}
+
+/* The plots page (#84) keeps at most a frost marker: the weather card is on the garden home. */
+.rootology-plots-frost {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+}
+.rootology-frost-marker {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    min-height: 2rem;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-error-color-10pct);
+    color: var(--lumo-error-text-color);
+    font-weight: 500;
+    text-decoration: none;
+}
+.rootology-frost-marker:hover { text-decoration: underline; }
+.rootology-frost-marker:focus-visible {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+}
+.rootology-frost-marker vaadin-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+}
+.rootology-plots-frost-credit {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
