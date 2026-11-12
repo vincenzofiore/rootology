@@ -59,7 +59,7 @@ services:
 
   neo4j:
     # Rebuilt from the curated files at every start of the app: its data needs no backup.
-    image: neo4j:2026.10-community
+    image: neo4j:2026.10.1-community
     restart: unless-stopped
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
