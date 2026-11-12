@@ -116,6 +116,28 @@ class WeatherFactsTest {
     }
 
     @Test
+    void aGreenhouseKeepsTheOutdoorMinimumAndSaysSo() {
+        when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
+        RunContext run = space("bruna", true);
+        gardens.savePlot(run.spaceId(), "bruna", run.gardenId(), null, "Tunnel", PlotKind.GREENHOUSE, Soil.LOAMY, null);
+        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, CLOCK);
+
+        WeatherFacts.Result tunnel = facts().frost(resolver.resolve(new app.rootology.decision.Intent(
+                app.rootology.decision.QueryKind.SOW_IN_PLOT, "Tunnel", null, "it", null, "NOVEMBER"), run), SOWABLE);
+        WeatherFacts.Result bed = facts().frost(resolver.resolve(new app.rootology.decision.Intent(
+                app.rootology.decision.QueryKind.SOW_IN_PLOT, "Bed", null, "it", null, "NOVEMBER"), run), SOWABLE);
+
+        // Conservative (#85): the same exclusion as outdoors, with a note that the minimum is the outdoor one.
+        assertThat(tunnel.readings()).extracting(Reading::fact).contains(new Fact("Lattuga", "avoidNow", "frost"));
+        assertThat(tunnel.notes()).extracting(app.rootology.decision.Note::kind)
+                .contains(app.rootology.decision.Note.Kind.GREENHOUSE_OUTDOOR_MINIMUM);
+        assertThat(tunnel.notes()).extracting(app.rootology.decision.Note::english)
+                .anyMatch(n -> n.startsWith("Tunnel is a greenhouse or tunnel"));
+        assertThat(bed.notes()).extracting(app.rootology.decision.Note::kind)
+                .doesNotContain(app.rootology.decision.Note.Kind.GREENHOUSE_OUTDOOR_MINIMUM);
+    }
+
+    @Test
     void anotherMonthOrNoCoordinatesMeansNoWeather() {
         when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
 

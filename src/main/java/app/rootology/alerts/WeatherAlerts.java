@@ -5,6 +5,7 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GrowingGarden;
 import app.rootology.garden.GardenViews.PlantingSummary;
+import app.rootology.garden.PlotKind;
 import app.rootology.notifications.NotificationService;
 import app.rootology.weather.Forecast;
 import app.rootology.weather.ForecastHour;
@@ -97,15 +98,21 @@ public class WeatherAlerts {
         Map<String, Double> killing = knowledge.killingTemperatures();
         List<String> atRisk = new ArrayList<>();
         List<String> unknown = new ArrayList<>();
+        boolean greenhouse = false;
         for (PlantingSummary p : garden.growing()) {
             Double kill = killing.get(p.cropId());
             if (kill == null) {
                 unknown.add(name(p) + " (" + p.plotName() + ")");
             } else if (FrostRule.tooCold(minimum, kill)) {
                 atRisk.add(name(p) + " (" + p.plotName() + ")");
+            } else {
+                continue;
             }
+            greenhouse |= p.plotKind() == PlotKind.GREENHOUSE;
         }
         boolean unknownWorthIt = minimum <= UNKNOWN_TOLERANCE_ALERT && !unknown.isEmpty();
+        // No source quantifies a greenhouse's protection: its crops are checked on the outdoor minimum (#85).
+        greenhouse &= !atRisk.isEmpty() || unknownWorthIt;
         if (atRisk.isEmpty() && !unknownWorthIt) {
             return 0;
         }
@@ -113,7 +120,8 @@ public class WeatherAlerts {
         String body = String.format(Locale.ITALIAN, "Minima prevista %.1f °C a %s (MET Norway, %s).", minimum,
                 garden.garden().name(), FrostRule.ID)
                 + (atRisk.isEmpty() ? "" : " A rischio: " + String.join(", ", atRisk) + ".")
-                + (unknownWorthIt ? " Tolleranza al gelo non nota: " + String.join(", ", unknown) + "." : "");
+                + (unknownWorthIt ? " Tolleranza al gelo non nota: " + String.join(", ", unknown) + "." : "")
+                + (greenhouse ? " In serra o tunnel il rischio è minore: la minima è quella all’aperto." : "");
         int notified = notifications.weatherAlert(garden.spaceId(), garden.garden().id(),
                 "frost:" + garden.garden().id() + ":" + day, "Rischio gelo " + DAY.format(day), body);
         return notified > 0 ? 1 : 0;

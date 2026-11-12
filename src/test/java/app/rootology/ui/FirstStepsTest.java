@@ -24,7 +24,7 @@ class FirstStepsTest {
     private static final GardenSummary UNLOCATED = garden(null, null);
     private static final PlotSummary PLOT = new PlotSummary(1, 1, "Aiuola 1", PlotKind.GROUND, Soil.UNKNOWN,
             null, null, null, null, null);
-    private static final PlantingSummary PLANTING = new PlantingSummary(1, 1, "Aiuola 1", "tomato", "Pomodoro",
+    private static final PlantingSummary PLANTING = new PlantingSummary(1, 1, "Aiuola 1", PlotKind.GROUND, "tomato", "Pomodoro",
             PlantingMethod.TRANSPLANTED, LocalDate.now(), null, null);
 
     @Test

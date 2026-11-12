@@ -67,8 +67,8 @@ public final class GardenViews {
     public record GrowingGarden(long spaceId, GardenSummary garden, List<PlantingSummary> growing) {
     }
 
-    public record PlantingSummary(long id, long plotId, String plotName, String cropId, String cropName,
-                                  PlantingMethod method, LocalDate plantedOn, LocalDate endedOn, String notes) {
+    public record PlantingSummary(long id, long plotId, String plotName, PlotKind plotKind, String cropId,
+                                  String cropName, PlantingMethod method, LocalDate plantedOn, LocalDate endedOn, String notes) {
     }
 
     private GardenViews() {

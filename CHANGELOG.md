@@ -13,7 +13,8 @@ What each version of Rootology brings, for the people who use it and run it. The
   day you choose with an undo while the toast is shown, a planting entered by mistake deleted after a
   confirmation, the area's past plantings folded away under Details, and the area dialog in two steps with the
   exposure behind Details. The page is `/spaces/{space}/gardens/{garden}/areas` and the old `plots` link
-  forwards there (#85).
+  forwards there. Frost checks for a greenhouse or tunnel still use the outdoor minimum and say so, in answers
+  and in the morning alerts, and a question such as "cosa semino nell'aiuola Nord?" finds the area "Nord" (#85).
 - On a phone, inside a garden, a bar at the bottom (Home, Ask, Areas, Waiting questions with the count),
   "Skip to content" as the first Tab, and the app installable from the home screen with no offline use (#88).
 

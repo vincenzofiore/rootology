@@ -19,6 +19,8 @@ public record Note(Kind kind, List<String> args) {
         FORECAST_MINIMUM,
         /** args: rule, crops (comma-separated). */
         FROST_EXCLUDED,
+        /** args: the greenhouse area. The frost check used the outdoor minimum (#85). */
+        GREENHOUSE_OUTDOOR_MINIMUM,
         /** args: crops (comma-separated). */
         FROST_UNKNOWN,
         /** args: day the period ends, crops, rule, staleSince. */
@@ -87,6 +89,8 @@ public record Note(Kind kind, List<String> args) {
             case FORECAST_MINIMUM -> "Forecast minimum in the next 7 days: " + arg(0) + " °C on "
                     + DAY.format(LocalDate.parse(arg(1))) + " (MET Norway" + stale(arg(2)) + ").";
             case FROST_EXCLUDED -> "Not advised now because of frost risk (" + arg(0) + "): " + arg(1) + ".";
+            case GREENHOUSE_OUTDOOR_MINIMUM -> arg(0) + " is a greenhouse or tunnel: the frost risk is lower there, "
+                    + "but the minimum used is the outdoor one.";
             case FROST_UNKNOWN -> "Frost tolerance not known, not checked: " + arg(0) + ".";
             case SMITH_PERIOD -> "Smith period ending " + DAY.format(LocalDate.parse(arg(0))) + ": the weather favours "
                     + "late blight on " + arg(1) + " (" + arg(2) + ", MET Norway" + stale(arg(3)) + ").";

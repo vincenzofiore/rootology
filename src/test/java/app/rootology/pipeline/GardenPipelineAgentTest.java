@@ -657,6 +657,6 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(suite).contains("otherwise null.\nDo not answer the question.")
                 .doesNotContain("garden:").endsWith("Question: Cosa semino nel davanzale?\n");
         assertThat(space).contains("The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
-                "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
+                "is not part of the name", "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
     }
 }

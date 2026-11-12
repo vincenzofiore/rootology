@@ -67,13 +67,17 @@ class WeatherAlertsTest {
 
     /** A space with an owner and a guest, and a garden at these coordinates growing these crops. */
     private long garden(String owner, String guest, String lat, String lon, String... crops) {
+        return garden(PlotKind.GROUND, owner, guest, lat, lon, crops);
+    }
+
+    private long garden(PlotKind kind, String owner, String guest, String lat, String lon, String... crops) {
         spaces.signedIn(owner);
         spaces.signedIn(guest);
         long space = spaces.spacesOf(owner).getFirst().id();
         spaces.addMember(space, owner, guest, Role.GUEST);
         var garden = gardens.saveGarden(space, owner, null, "Orto di " + owner, null, new BigDecimal(lat),
                 new BigDecimal(lon), "IT");
-        var plot = gardens.savePlot(space, owner, garden.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+        var plot = gardens.savePlot(space, owner, garden.id(), null, "Aiuola A", kind, Soil.LOAMY, null);
         for (String crop : crops) {
             gardens.plant(space, owner, plot.id(), crop, PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
         }
@@ -104,12 +108,25 @@ class WeatherAlertsTest {
         assertThat(weatherOf("fabio")).singleElement().satisfies(n -> {
             assertThat(n.title()).startsWith("Rischio gelo");
             assertThat(n.body()).contains("-2,0 °C").contains("A rischio: Lattuga (Aiuola A)")
-                    .contains("Tolleranza al gelo non nota: Pomodoro (Aiuola A)").doesNotContain("Aglio");
+                    .contains("Tolleranza al gelo non nota: Pomodoro (Aiuola A)").doesNotContain("Aglio", "serra");
         });
         assertThat(weatherOf("gaia")).as("a guest is told too").hasSize(1);
 
         alerts.check();
         assertThat(weatherOf("fabio")).as("the same frost, never twice").hasSize(1);
+    }
+
+    @Test
+    void frostInAGreenhouseSaysTheOutdoorMinimumWasUsed() {
+        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        garden(PlotKind.GREENHOUSE, "rita", "sara", "45.07", "7.69", "lettuce");
+        when(weather.around(eq(new BigDecimal("45.07")), eq(new BigDecimal("7.69")))).thenReturn(steady(-2.0, 80.0));
+
+        alerts.check();
+
+        assertThat(weatherOf("rita")).singleElement().satisfies(n -> assertThat(n.body())
+                .contains("A rischio: Lattuga (Aiuola A)")
+                .contains("In serra o tunnel il rischio è minore: la minima è quella all’aperto."));
     }
 
     @Test

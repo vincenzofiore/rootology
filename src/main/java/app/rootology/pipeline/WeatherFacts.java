@@ -8,6 +8,7 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.SourcedFact;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.PlantingSummary;
+import app.rootology.garden.PlotKind;
 import app.rootology.weather.Forecast;
 import app.rootology.weather.ForecastHour;
 import app.rootology.weather.FrostRule;
@@ -96,6 +97,9 @@ class WeatherFacts {
         LocalDate day = LocalDate.ofInstant(coldest.get().time(), GardenPipelineAgent.ITALY);
         notes.add(Note.of(Note.Kind.FORECAST_MINIMUM, String.format(Locale.ROOT, "%.1f", minimum), day.toString(),
                 staleSince(forecast)));
+        if (inGreenhouse(context)) {
+            notes.add(Note.of(Note.Kind.GREENHOUSE_OUTDOOR_MINIMUM, context.plot().found().name()));
+        }
         if (!avoided.isEmpty()) {
             notes.add(Note.of(Note.Kind.FROST_EXCLUDED, FrostRule.ID, String.join(", ", avoided)));
         }
@@ -140,6 +144,15 @@ class WeatherFacts {
         }
         return new Result(readings, List.of(Note.of(Note.Kind.SMITH_PERIOD, period.get().toString(),
                 String.join(", ", names), SmithPeriodRule.ID, staleSince(forecast))));
+    }
+
+    /**
+     * A SOW_IN_PLOT question about a greenhouse or tunnel: frost-risk-v1 stays on the outdoor minimum, since no
+     * source quantifies the protection, and the person is told so (#85).
+     */
+    private static boolean inGreenhouse(QuestionContext context) {
+        return context.plot() != null && context.plot().found() != null
+                && context.plot().found().kind() == PlotKind.GREENHOUSE;
     }
 
     /** The questions the forecast applies to: a real space, a garden, and the current month. */

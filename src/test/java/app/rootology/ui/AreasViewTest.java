@@ -60,7 +60,8 @@ class AreasViewTest {
 
     private static app.rootology.garden.GardenViews.PlantingSummary planting(long id, String cropId,
                                                                            LocalDate plantedOn, LocalDate endedOn) {
-        return new app.rootology.garden.GardenViews.PlantingSummary(id, 7, "Area", cropId, cropId,
+        return new app.rootology.garden.GardenViews.PlantingSummary(id, 7, "Area",
+                app.rootology.garden.PlotKind.GROUND, cropId, cropId,
                 app.rootology.garden.PlantingMethod.SOWN, plantedOn, endedOn, null);
     }
 

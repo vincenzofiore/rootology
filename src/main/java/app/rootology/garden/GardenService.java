@@ -370,7 +370,7 @@ public class GardenService {
 
     private PlantingSummary summary(Planting p) {
         String name = crops.byId(p.getCropId()).map(Crop::italianName).orElse(p.getCropId());
-        return new PlantingSummary(p.getId(), p.getPlot().getId(), p.getPlot().getName(), p.getCropId(), name,
+        return new PlantingSummary(p.getId(), p.getPlot().getId(), p.getPlot().getName(), p.getPlot().getKind(), p.getCropId(), name,
                 p.getMethod(), p.getPlantedOn(), p.getEndedOn(), p.getNotes());
     }
 }
