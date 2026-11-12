@@ -138,19 +138,45 @@ vaadin-grid {
     height: 0.68em;
     margin: 0 0.04em -0.07em;
 }
-.rootology-app-title { font-size: 2.25rem; line-height: 1; margin: 0 0.5rem; }
+.rootology-app-title {
+    font-size: 2.25rem;
+    line-height: 1;
+    margin: 0 0.5rem;
+    min-width: 0;
+    flex-shrink: 1;
+}
 @media (max-width: 640px) {
     /* On a phone the navbar also holds the space, the bell and the person menu. */
     .rootology-app-title { font-size: 1.5rem; }
     .rootology-public-title { font-size: var(--lumo-font-size-xl); }
 }
+@media (max-width: 400px) {
+    /* A very narrow phone keeps only the sprout (#79): the name is still read by screen readers. */
+    .rootology-app-title { margin: 0 0.25rem; }
+    .rootology-wordmark > span { display: none; }
+    .rootology-wordmark img {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin: 0;
+    }
+}
 
 /* The navbar (#56): the space switcher, the way back to the space and garden, the person menu. */
-.rootology-space-switcher {
+/* The end of the navbar stays together and reaches the right edge, so the avatar is never pushed off (#79). */
+.rootology-navbar-end {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
     margin-left: auto;
+    min-width: 0;
+    flex-shrink: 0;
+}
+.rootology-space-switcher {
     width: 12rem;
     min-width: 6rem;
 }
+/* Below 640 px the switcher moves into the side menu (#79): the drawer's copy is hidden on a wide screen. */
+.rootology-drawer-space { display: none; }
 .rootology-where {
     display: flex;
     align-items: center;
@@ -169,6 +195,7 @@ vaadin-grid {
     display: flex;
     align-items: center;
     gap: var(--lumo-space-s);
+    flex-shrink: 0;
 }
 .rootology-user-menu { margin-right: 0.5rem; }
 .rootology-menu-item {
@@ -177,9 +204,37 @@ vaadin-grid {
     gap: var(--lumo-space-s);
 }
 @media (max-width: 640px) {
-    /* On a phone the navbar is full: the way back stays, the switcher narrows. */
-    .rootology-space-switcher { width: 7rem; }
-    .rootology-where { max-width: 8rem; }
+    /* On a phone the navbar is full (#79): the switcher goes in the side menu, so the avatar stays visible. */
+    .rootology-navbar-end { gap: var(--lumo-space-xs); }
+    .rootology-space-switcher { display: none !important; }
+    .rootology-drawer-space {
+        display: block;
+        padding: var(--lumo-space-m) var(--lumo-space-m) 0;
+    }
+    .rootology-space-switcher-narrow { width: 100%; }
+    /* The drawer already shows the space (#79): the navbar keeps only the actions. */
+    .rootology-where { display: none; }
+    .rootology-user-menu { margin-right: 0; }
+}
+/* The navbar's actions stay comfortable to tap on a phone (#79). */
+@media (pointer: coarse) {
+    .rootology-navbar-end vaadin-button,
+    .rootology-user-menu vaadin-menu-bar-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+/* A count that helps a decision, small enough not to take the eye (#79): the questions left today. */
+.rootology-count-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-warning-color-10pct);
+    color: var(--lumo-warning-text-color);
+    font-size: var(--lumo-font-size-xs);
+    white-space: nowrap;
 }
 
 /* The sign-in accounts of My account (#28): one line per account, the ways to link below. */

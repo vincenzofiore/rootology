@@ -7,7 +7,6 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -80,6 +79,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         question.setMaxLength(Question.MAX_LENGTH);
         Button ask = new Button(getTranslation("ask.button"), e -> ask(question.getValue()));
         ask.addThemeName("primary");
+        questionsToday.addClassName("rootology-count-badge");
         form.add(question, ask, questionsToday);
         form.setDefaultVerticalComponentAlignment(Alignment.END);
         form.setWrap(true);
@@ -145,7 +145,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         } catch (ServiceUnavailableException ex) {
             result.add(new Paragraph(getTranslation("error.claude")));
         } catch (RuntimeException ex) {
-            Notification.show(getTranslation("ask.failed", ex.getMessage()));
+            UiErrors.show(this, ex);
         } finally {
             showQuestionsToday();
         }
@@ -172,10 +172,19 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         return link;
     }
 
-    /** Today's questions against the personal limit (#19). */
+    /** Few questions left: shown as a small badge; while there is room the count stays out of the way (#79). */
+    private static final int SHOW_WHEN_LEFT = 5;
+
+    /** Today's questions against the personal limit (#19), only when the person should start planning. */
     private void showQuestionsToday() {
         UsageService.Today today = usage.today(currentUser.login());
         questionsToday.setText(getTranslation("ask.today", today.used(), today.limit()));
+        questionsToday.setVisible(fewLeft(today.used(), today.limit()));
+    }
+
+    /** The count is a badge only when it helps a decision (#79): five questions left, or fewer. */
+    static boolean fewLeft(int used, int limit) {
+        return limit - used <= SHOW_WHEN_LEFT;
     }
 
     private void show(PipelineAnswer answer) {
@@ -188,7 +197,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     new AnswerCard.SourceLine(VaadinIcon.USER_STAR, p.scope() == ProposalScope.GLOBAL
                             ? getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
                             : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id())), null)));
-            sources.byId(id).ifPresent(s -> lines.add(new AnswerCard.SourceLine(VaadinIcon.BOOK, s.title(), s.url())));
+            sources.byId(id).ifPresent(s -> lines.add(
+                    new AnswerCard.SourceLine(VaadinIcon.BOOK, sourceTitle(id, s.title()), s.url())));
         }
         AnswerCard card = new AnswerCard();
         if (answer.context() != null) {
@@ -196,6 +206,12 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         }
         result.add(card.answered(answer.text(), answer.answer(), answer.confidence())
                 .notes(answer.notes()).sources(lines));
+    }
+
+    /** A short title of a source in the page's language (#79), the catalogue's own title when there is none. */
+    private String sourceTitle(String id, String fallback) {
+        String key = "source." + id;
+        return Translations.has(key, getLocale()) ? getTranslation(key) : fallback;
     }
 
     @Override

@@ -33,9 +33,6 @@ import app.rootology.history.PipelineRunRecord;
 import app.rootology.history.RunHistory;
 import jakarta.annotation.security.PermitAll;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,7 +67,7 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         this.currentUser = currentUser;
 
         place.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
-        grid.addComponentColumn(this::date).setHeader(getTranslation("history.date")).setAutoWidth(true);
+        grid.addComponentColumn(r -> DateText.dateTimeSpan(r.getFinishedAt(), this)).setHeader(getTranslation("history.date")).setAutoWidth(true);
         grid.addColumn(PipelineRunRecord::getQuestion).setHeader(getTranslation("history.question")).setFlexGrow(2);
         grid.addComponentColumn(this::values).setHeader(getTranslation("history.answer")).setFlexGrow(1);
         grid.addColumn(PipelineRunRecord::getStartedBy).setHeader(getTranslation("history.askedby")).setAutoWidth(true);
@@ -125,15 +122,6 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
     }
 
     /** The date as the browser's short form, with the full date and time on hover. */
-    private Component date(PipelineRunRecord run) {
-        Locale locale = NoteText.locale(this);
-        Span span = new Span(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale)
-                .withZone(ZoneId.systemDefault()).format(run.getFinishedAt()));
-        span.getElement().setAttribute("title", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                .withLocale(locale).withZone(ZoneId.systemDefault()).format(run.getFinishedAt()));
-        return span;
-    }
-
     /** The answer's values as small badges, and nothing when the question was refused (#53). */
     private Component values(PipelineRunRecord run) {
         Div badges = new Div();

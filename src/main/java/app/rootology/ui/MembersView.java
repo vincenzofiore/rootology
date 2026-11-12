@@ -8,6 +8,7 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
@@ -34,6 +35,10 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
     /** Changing roles and removing someone need an OWNER (#15): the column shows for them only. */
     private final Grid.Column<Member> actions;
     private final Button leave = new Button(getTranslation("space.leave"));
+    /** An owner renames the space here (#79): the personal space starts with the login alone. */
+    private final TextField name = new TextField(getTranslation("space.name"));
+    private final Button rename = new Button(getTranslation("space.rename"));
+    private final HorizontalLayout renameRow = new HorizontalLayout();
     /** The page's own space (#56), read from its route. */
     private long spaceId;
 
@@ -52,7 +57,13 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
             getUI().ifPresent(ui -> ui.getPage().reload());
         });
         leave.setVisible(false);
-        add(title, yourRole, members, leave);
+        name.setMaxLength(SpaceService.MAX_NAME);
+        rename.addClickListener(e -> rename());
+        renameRow.add(name, rename);
+        renameRow.setDefaultVerticalComponentAlignment(Alignment.END);
+        renameRow.setWrap(true);
+        renameRow.setVisible(false);
+        add(title, renameRow, yourRole, members, leave);
     }
 
     @Override
@@ -66,7 +77,10 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         title.setText(space.name());
         yourRole.setText(getTranslation("space.yourrole", getTranslation("role." + space.role().name())));
         leave.setVisible(!space.personal());
-        actions.setVisible(space.role() == Role.OWNER);
+        boolean owner = space.role() == Role.OWNER;
+        actions.setVisible(owner);
+        renameRow.setVisible(owner);
+        name.setValue(space.name());
         refresh();
     }
 
@@ -89,9 +103,23 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         try {
             action.run();
         } catch (RuntimeException ex) {
-            Notification.show(ex.getMessage());
+            UiErrors.show(this, ex);
         }
         refresh();
+    }
+
+    /** A name the person can use: the service checks it again, this only says why it was refused (#79). */
+    private void rename() {
+        try {
+            spaces.rename(spaceId, currentUser.login(), name.getValue());
+            Notification.show(getTranslation("common.saved"));
+            // The switcher and the title of every page carry the name: start again with the new one.
+            getUI().ifPresent(ui -> ui.getPage().reload());
+        } catch (IllegalArgumentException ex) {
+            Notification.show(getTranslation("space.rename.invalid", SpaceService.MAX_NAME));
+        } catch (RuntimeException ex) {
+            UiErrors.show(this, ex);
+        }
     }
 
     private void refresh() {

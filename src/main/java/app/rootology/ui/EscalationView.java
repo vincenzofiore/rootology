@@ -110,7 +110,7 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         } catch (ServiceUnavailableException ex) {
             Notification.show(getTranslation("error.claude"));
         } catch (RuntimeException ex) {
-            Notification.show(getTranslation("escalations.failed", ex.getMessage()));
+            UiErrors.show(this, ex);
         }
         note.clear();
         refresh();

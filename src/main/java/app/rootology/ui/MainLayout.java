@@ -48,8 +48,10 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private final Ungardened ungardened;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
-    /** The space of the page being shown; choosing another one opens its gardens. */
+    /** The space of the page being shown; choosing another one opens its gardens (#56). */
     private final ComboBox<SpaceSummary> space = new ComboBox<>();
+    /** On a phone the navbar is full (#79): the same switcher lives in the side menu, below the name. */
+    private final ComboBox<SpaceSummary> drawerSpace = new ComboBox<>();
     /** Light or dark (#31): automatic (the device's setting), light or dark; kept in this browser. */
     private final Button scheme = new Button();
     private final SideNav nav = new SideNav();
@@ -75,15 +77,8 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         addToNavbar(toggle, title, where);
         where.addClassName("rootology-where");
 
-        space.addClassName("rootology-space-switcher");
-        space.setItemLabelGenerator(SpaceSummary::name);
-        space.addValueChangeListener(e -> {
-            if (e.isFromClient() && e.getValue() != null) {
-                currentUser.switchTo(e.getValue().id());
-                UI.getCurrent().navigate(GardensView.class, new RouteParameters(
-                        Map.of(Routed.SPACE, String.valueOf(e.getValue().id()))));
-            }
-        });
+        switcher(space, "rootology-space-switcher");
+        switcher(drawerSpace, "rootology-space-switcher-narrow");
         // The person's menu, top right (#40): their account and signing out. The login hides on a phone.
         Avatar avatar = new Avatar(currentUser.login());
         avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
@@ -107,11 +102,33 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         showUnread();
         scheme.addThemeName("tertiary");
         scheme.addClickListener(e -> nextScheme());
-        addToNavbar(space, scheme, bell, user);
+        // The end of the navbar stays together and reaches the right edge (#79); below 640 px the
+        // switcher is hidden and the drawer's copy takes its place.
+        Div end = new Div(space, scheme, bell, user);
+        end.addClassName("rootology-navbar-end");
+        addToNavbar(end);
         // The menu fills the drawer and the service pages sit at its bottom.
-        Div drawer = new Div(nav, new ServiceLinks());
+        Div drawerSpaceBox = new Div(drawerSpace);
+        drawerSpaceBox.addClassName("rootology-drawer-space");
+        Div drawer = new Div(drawerSpaceBox, nav, new ServiceLinks());
         drawer.addClassName("rootology-drawer");
         addToDrawer(drawer);
+    }
+
+    /** The plots are beds, not the home of the garden (#79): the same icon in the menu and in the links. */
+    static final VaadinIcon PLOTS_ICON = VaadinIcon.GRID_BIG;
+
+    /** A space switcher: choosing a space opens its gardens. Two of them, the navbar's and the drawer's. */
+    private void switcher(ComboBox<SpaceSummary> box, String className) {
+        box.addClassName(className);
+        box.setItemLabelGenerator(SpaceSummary::name);
+        box.addValueChangeListener(e -> {
+            if (e.isFromClient() && e.getValue() != null) {
+                currentUser.switchTo(e.getValue().id());
+                UI.getCurrent().navigate(GardensView.class, new RouteParameters(
+                        Map.of(Routed.SPACE, String.valueOf(e.getValue().id()))));
+            }
+        });
     }
 
     /**
@@ -140,8 +157,12 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         SpaceSummary current = currentUser.spaces().stream().filter(s -> s.id() == pageSpace).findFirst()
                 .orElse(currentUser.space());
         space.setItems(currentUser.spaces());
+        drawerSpace.setItems(currentUser.spaces());
         if (!current.equals(space.getValue())) {
             space.setValue(current);
+        }
+        if (!current.equals(drawerSpace.getValue())) {
+            drawerSpace.setValue(current);
         }
         showWhere(current, pageGarden);
         menu(current, pageGarden);
@@ -186,7 +207,7 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             nav.addItem(new SideNavItem(getTranslation("nav.gardenhome"), GardenHomeView.class, new RouteParameters(here),
                     VaadinIcon.DASHBOARD.create()));
             nav.addItem(new SideNavItem(getTranslation("nav.plots"), PlotsView.class, new RouteParameters(here),
-                    VaadinIcon.HOME_O.create()));
+                    PLOTS_ICON.create()));
         }
         nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, new RouteParameters(here),
                 VaadinIcon.COMMENT_ELLIPSIS_O.create()));

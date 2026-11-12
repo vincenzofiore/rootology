@@ -22,8 +22,6 @@ import app.rootology.spaces.SpaceSummary;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 /**
  * The invitations of one space (#23, #56): an owner creates single-use links, by email or for one login,
@@ -32,9 +30,6 @@ import java.time.format.DateTimeFormatter;
 @Route(value = "spaces/:spaceId/invitations", layout = MainLayout.class)
 @PermitAll
 public class InvitationsView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
-
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.systemDefault());
 
     private final InvitationService invitations;
     private final CurrentUser currentUser;
@@ -67,7 +62,8 @@ public class InvitationsView extends VerticalLayout implements HasDynamicTitle, 
                 : i.invitedLogin() != null ? i.invitedLogin() : getTranslation("space.invite.anyone"))
                 .setHeader(getTranslation("space.invite.for"));
         pending.addColumn(InvitationSummary::createdBy).setHeader(getTranslation("space.invite.by"));
-        pending.addColumn(i -> DAY.format(i.expiresAt())).setHeader(getTranslation("space.invite.expires")).setAutoWidth(true);
+        pending.addComponentColumn(i -> DateText.dateSpan(i.expiresAt().atZone(DateText.ITALY).toLocalDate(), this))
+                .setHeader(getTranslation("space.invite.expires")).setAutoWidth(true);
         pending.addComponentColumn(i -> new Button(getTranslation("space.invite.revoke"), e -> act(() ->
                 invitations.revoke(spaceId, currentUser.login(), i.id())))).setAutoWidth(true);
         pending.setAllRowsVisible(true);
@@ -112,7 +108,7 @@ public class InvitationsView extends VerticalLayout implements HasDynamicTitle, 
         try {
             action.run();
         } catch (RuntimeException ex) {
-            Notification.show(ex.getMessage());
+            UiErrors.show(this, ex);
         }
         refresh();
     }

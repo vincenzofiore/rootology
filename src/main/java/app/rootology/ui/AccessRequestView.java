@@ -21,8 +21,6 @@ import app.rootology.access.AccessState;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 /**
  * The page of someone who signed in but is not admitted (#65): ask for an invitation with a short motivation,
@@ -34,9 +32,6 @@ import java.time.format.DateTimeFormatter;
 public class AccessRequestView extends Div implements BeforeEnterObserver, HasDynamicTitle {
 
     static final String ROUTE = "request-access";
-
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("d MMMM yyyy")
-            .withZone(ZoneId.of("Europe/Rome"));
 
     private final AccessRequestService requests;
     private final AuthenticationContext authentication;
@@ -64,13 +59,14 @@ public class AccessRequestView extends Div implements BeforeEnterObserver, HasDy
             AccessState request = requests.state(identity.provider(), identity.subject());
             String who = getTranslation("provider." + identity.provider().id());
             if (request.pending()) {
-                state.add(new Paragraph(getTranslation("access.pending", WHEN.format(request.createdAt()))),
+                state.add(new Paragraph(getTranslation("access.pending", DateText.dateTime(request.createdAt(), this))),
                         new Paragraph(getTranslation("access.pending.text")), withdraw(identity));
             } else if (request.approved()) {
                 state.add(new Paragraph(getTranslation("access.approved")), signOut());
             } else if (request.rejected() && request.retryAfter().isAfter(Instant.now())) {
-                state.add(new Paragraph(getTranslation("access.rejected", WHEN.format(request.decidedAt()))),
-                        new Paragraph(getTranslation("access.rejected.retry", WHEN.format(request.retryAfter()))));
+                state.add(new Paragraph(getTranslation("access.rejected", DateText.dateTime(request.decidedAt(), this))),
+                        new Paragraph(getTranslation("access.rejected.retry",
+                                DateText.date(request.retryAfter().atZone(DateText.ITALY).toLocalDate(), this))));
             } else if (request.capReached()) {
                 state.add(new Paragraph(getTranslation("access.toomany")));
             } else {

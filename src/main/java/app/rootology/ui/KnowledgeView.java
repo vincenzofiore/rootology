@@ -204,7 +204,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
             } catch (InvalidProposalException ex) {
                 ex.problems().forEach(p -> problems.add(new Paragraph(p)));
             } catch (RuntimeException ex) {
-                Notification.show(getTranslation("knowledge.failed", ex.getMessage()));
+                UiErrors.show(this, ex);
             }
         });
         propose.addThemeName("primary");
@@ -221,7 +221,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         } catch (InvalidProposalException ex) {
             Notification.show(String.join("; ", ex.problems()));
         } catch (RuntimeException ex) {
-            Notification.show(ex.getMessage());
+            UiErrors.show(this, ex);
         }
         refresh();
     }

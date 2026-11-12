@@ -110,6 +110,15 @@ class ViewsTest {
     app.rootology.facts.KnowledgeGraph knowledge;
 
     @Test
+    void theQuestionCountShowsOnlyWhenFewAreLeft() {
+        assertThat(AskView.fewLeft(0, 30)).isFalse();
+        assertThat(AskView.fewLeft(24, 30)).isFalse();
+        assertThat(AskView.fewLeft(25, 30)).isTrue();
+        assertThat(AskView.fewLeft(26, 30)).isTrue();
+        assertThat(AskView.fewLeft(30, 30)).isTrue();
+    }
+
+    @Test
     void everyRouteAndItsLayoutDeclareAccess() {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, MembersView.class,

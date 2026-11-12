@@ -125,7 +125,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         showAlerts();
         showWaiting();
         showGrowing();
-        body.add(go(VaadinIcon.ARROW_RIGHT, getTranslation("home.garden.open"), PlotsView.class));
+        body.add(go(MainLayout.PLOTS_ICON, getTranslation("home.garden.open"), PlotsView.class));
     }
 
     /** The garden's climate profile (#62): altitude, both 1-in-5-year frost dates and the cell. */
@@ -197,7 +197,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     /** What grows in this garden's plots today. */
     private void showGrowing() {
         List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(ITALY));
-        body.add(section(VaadinIcon.HOME_O, getTranslation("home.growing")));
+        body.add(section(MainLayout.PLOTS_ICON, getTranslation("home.growing")));
         if (growing.isEmpty()) {
             body.add(new Paragraph(getTranslation("home.growing.none")));
             return;

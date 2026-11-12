@@ -81,7 +81,9 @@ public class GardenPipelineAgent {
 
     static final String NOTES_PROMPT = """
             Notes: %s
-            Mention the notes briefly, in the language of the question, without adding anything to them.
+            The person sees these notes separately, under your answer, so do not repeat them: say nothing
+            about them and add nothing to them.
+            In Italian a vegetable garden is "orto", never "giardino".
             """;
 
     static final String HUMAN_PHRASE_PROMPT = """

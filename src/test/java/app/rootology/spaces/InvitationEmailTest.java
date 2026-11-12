@@ -67,7 +67,7 @@ class InvitationEmailTest {
 
         JsonNode message = messageTo("bruno@example.org");
 
-        assertThat(message.path("Subject").asString()).isEqualTo("Invito a \"ada's garden\" su Rootology");
+        assertThat(message.path("Subject").asString()).isEqualTo("Invito a \"ada\" su Rootology");
         assertThat(message.path("Text").asString()).contains("ada ti invita a unirti")
                 .contains("https://rootology.example/invite/" + token).contains("come membro");
         assertThat(message.path("HTML").asString()).contains("href=\"https://rootology.example/invite/" + token + "\"");

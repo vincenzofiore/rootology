@@ -37,6 +37,11 @@ class Space {
         this.personalOf = personalOf;
     }
 
+    /** An OWNER gives the space a new name (#79); the service checks the name first. */
+    void rename(String name) {
+        this.name = name;
+    }
+
     /** True if this is the given person's personal space. */
     boolean isPersonalSpaceOf(AppUser user) {
         return personalOf != null && personalOf.getId().equals(user.getId());

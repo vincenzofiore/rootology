@@ -25,8 +25,6 @@ import app.rootology.notifications.NotificationView;
 import app.rootology.notifications.TelegramLinks;
 import jakarta.annotation.security.PermitAll;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import com.vaadin.flow.component.Component;
 
 import java.util.HashMap;
@@ -44,9 +42,6 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     /** The context the person came from, as a hint for the confirmation before opening one (#56). */
     static final String SPACE = "space";
     static final String GARDEN = "garden";
-
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.of("Europe/Rome"));
 
     private final NotificationService notifications;
     private final GardenService gardens;
@@ -66,7 +61,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         this.currentUser = currentUser;
         this.telegram = telegram;
 
-        grid.addColumn(n -> WHEN.format(n.createdAt())).setHeader(getTranslation("notifications.when")).setAutoWidth(true);
+        grid.addComponentColumn(n -> DateText.dateTimeSpan(n.createdAt(), this))
+                .setHeader(getTranslation("notifications.when")).setAutoWidth(true);
         grid.addColumn(n -> (n.unread() ? "● " : "") + (n.weather() ? n.title()
                 : n.accessRequest() ? getTranslation("notifications.accessrequest")
                 : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting")))
@@ -221,7 +217,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                         telegramWeather.getValue(), quietFrom.getValue(), quietTo.getValue()));
                 Notification.show(getTranslation("common.saved"));
             } catch (RuntimeException ex) {
-                Notification.show(ex.getMessage());
+                UiErrors.show(this, ex);
             }
         });
         HorizontalLayout quiet = new HorizontalLayout(quietFrom, quietTo);
@@ -248,7 +244,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         Optional<TelegramLinks.Link> link = telegram.of(currentUser.login());
         link.filter(l -> l.working()).ifPresentOrElse(working -> {
             telegramBox.add(new Paragraph(getTranslation("notifications.telegram.linked",
-                    WHEN.format(working.linkedAt()))));
+                    DateText.dateTime(working.linkedAt(), this))));
             telegramBox.add(unlink());
         }, () -> {
             if (link.isPresent()) {

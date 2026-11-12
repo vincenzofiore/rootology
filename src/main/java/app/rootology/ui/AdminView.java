@@ -8,6 +8,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -23,8 +24,6 @@ import app.rootology.roles.RoleService;
 import app.rootology.usage.UsageService;
 import jakarta.annotation.security.RolesAllowed;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,9 +36,6 @@ import java.util.Set;
 @Route(value = "admin", layout = MainLayout.class)
 @RolesAllowed("ADMIN")
 public class AdminView extends VerticalLayout implements HasDynamicTitle {
-
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.of("Europe/Rome"));
 
     private final RoleService roles;
     private final CurrentUser currentUser;
@@ -81,8 +77,10 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
 
         history.addColumn(RoleGrantView::githubLogin).setHeader(getTranslation("admin.who")).setAutoWidth(true);
         history.addColumn(g -> g.role().name()).setHeader(getTranslation("space.role")).setAutoWidth(true);
-        history.addColumn(g -> g.grantedBy() + ", " + WHEN.format(g.grantedAt())).setHeader(getTranslation("admin.granted"));
-        history.addColumn(g -> g.active() ? "" : g.revokedBy() + ", " + WHEN.format(g.revokedAt()))
+        history.addComponentColumn(g -> new Span(g.grantedBy() + ", " + DateText.dateTime(g.grantedAt(), this)))
+                .setHeader(getTranslation("admin.granted"));
+        history.addComponentColumn(g -> new Span(g.active() ? "" : g.revokedBy() + ", "
+                        + DateText.dateTime(g.revokedAt(), this)))
                 .setHeader(getTranslation("admin.revoked"));
         history.setAllRowsVisible(true);
 
@@ -129,7 +127,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
      * decided ones. Approving or rejecting asks first; both record who decided and when.
      */
     private VerticalLayout requestsSection() {
-        waitingRequests.addColumn(r -> WHEN.format(r.createdAt()))
+        waitingRequests.addComponentColumn(r -> DateText.dateTimeSpan(r.createdAt(), this))
                 .setHeader(getTranslation("admin.requests.when")).setAutoWidth(true);
         waitingRequests.addColumn(r -> getTranslation("provider." + r.provider().id()))
                 .setHeader(getTranslation("admin.requests.provider")).setAutoWidth(true);
@@ -147,7 +145,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         waitingRequests.setAllRowsVisible(true);
         waitingRequests.setEmptyStateText(getTranslation("admin.requests.none"));
 
-        decidedRequests.addColumn(r -> WHEN.format(r.decidedAt()))
+        decidedRequests.addComponentColumn(r -> DateText.dateTimeSpan(r.decidedAt(), this))
                 .setHeader(getTranslation("admin.requests.decided")).setAutoWidth(true);
         decidedRequests.addColumn(app.rootology.access.AccessRequestView::login)
                 .setHeader(getTranslation("space.login")).setAutoWidth(true);
@@ -194,7 +192,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         try {
             action.run();
         } catch (RuntimeException e) {
-            Notification.show(e.getMessage());
+            UiErrors.show(this, e);
         }
         refresh();
     }

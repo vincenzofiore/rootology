@@ -40,7 +40,8 @@ public class SpaceService {
             return;
         }
         user.markFirstLogin(now);
-        Space personal = spaces.save(new Space(login + "'s garden", now, user));
+        // The personal space is called after its owner (#79): no English "garden" in an Italian UI.
+        Space personal = spaces.save(new Space(login, now, user));
         members.save(new SpaceMember(personal, user, Role.OWNER, now));
     }
 
@@ -53,6 +54,27 @@ public class SpaceService {
                                 m.getSpace().isPersonalSpaceOf(user)))
                         .toList())
                 .orElse(List.of());
+    }
+
+    /** How long a space's name may be (#79): enough for a place, short enough for a menu. */
+    public static final int MAX_NAME = 60;
+
+    /** A space's name as people read it (#79): trimmed, not empty, not too long. */
+    static String checkedName(String name) {
+        String trimmed = name == null ? "" : name.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("A space needs a name");
+        }
+        if (trimmed.length() > MAX_NAME) {
+            throw new IllegalArgumentException("A space name is at most " + MAX_NAME + " characters");
+        }
+        return trimmed;
+    }
+
+    /** An OWNER renames the space (#79). The name is all that changes: its gardens and questions stay. */
+    @Transactional
+    public void rename(long spaceId, String requester, String name) {
+        requireOwner(spaceId, requester).getSpace().rename(checkedName(name));
     }
 
     /** True if this person is a member of the space. */

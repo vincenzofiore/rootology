@@ -23,9 +23,34 @@ class SpaceServiceTest {
         spaces.signedIn("erin");
 
         assertThat(spaces.spacesOf("erin")).singleElement().satisfies(space -> {
-            assertThat(space.name()).isEqualTo("erin's garden");
+            assertThat(space.name()).isEqualTo("erin");
             assertThat(space.role()).isEqualTo(Role.OWNER);
         });
+    }
+
+    @Test
+    void anOwnerRenamesTheSpace() {
+        spaces.signedIn("nora");
+        long space = spaces.spacesOf("nora").getFirst().id();
+
+        spaces.rename(space, "nora", "  Casa in collina  ");
+
+        assertThat(spaces.spacesOf("nora")).singleElement().extracting(SpaceSummary::name)
+                .isEqualTo("Casa in collina");
+    }
+
+    @Test
+    void onlyAnOwnerRenamesAndTheNameMustBeUsable() {
+        spaces.signedIn("otto");
+        long space = spaces.spacesOf("otto").getFirst().id();
+        spaces.addMember(space, "otto", "pia", Role.MEMBER);
+
+        assertThatThrownBy(() -> spaces.rename(space, "pia", "Altro")).isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> spaces.rename(space, "otto", "   "))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> spaces.rename(space, "otto", "x".repeat(SpaceService.MAX_NAME + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(spaces.spacesOf("otto")).singleElement().extracting(SpaceSummary::name).isEqualTo("otto");
     }
 
     @Test
@@ -52,8 +77,8 @@ class SpaceServiceTest {
 
         assertThat(spaces.spacesOf("leo")).extracting(SpaceSummary::name, SpaceSummary::role)
                 .containsExactlyInAnyOrder(
-                        tuple("kim's garden", Role.MEMBER),
-                        tuple("leo's garden", Role.OWNER));
+                        tuple("kim", Role.MEMBER),
+                        tuple("leo", Role.OWNER));
     }
 
     @Test
@@ -63,7 +88,7 @@ class SpaceServiceTest {
         spaces.addMember(garden, "MONA", "Nils", Role.MEMBER);
         spaces.signedIn("nils");
 
-        assertThat(spaces.spacesOf("MONA")).singleElement().extracting(SpaceSummary::name).isEqualTo("mona's garden");
+        assertThat(spaces.spacesOf("MONA")).singleElement().extracting(SpaceSummary::name).isEqualTo("mona");
         assertThat(spaces.isMember(garden, "NILS")).isTrue();
         assertThat(spaces.membersOf(garden, "mona")).extracting(Member::githubLogin).containsExactly("mona", "nils");
     }

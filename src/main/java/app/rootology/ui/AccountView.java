@@ -38,11 +38,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * My account (#40): the sign-in accounts of the person and how to link or unlink one (#28), downloading one's
@@ -170,9 +166,7 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
     }
 
     private String date(LinkedIdentity identity) {
-        return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(getLocale() == null
-                        ? Locale.ITALIAN : getLocale())
-                .format(identity.linkedAt().atZone(ZoneId.systemDefault()).toLocalDate());
+        return DateText.date(identity.linkedAt().atZone(DateText.ITALY).toLocalDate(), this);
     }
 
     /** How a link ended, told once the person is back in My account (#28). */

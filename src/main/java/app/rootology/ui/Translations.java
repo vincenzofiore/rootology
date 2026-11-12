@@ -32,6 +32,16 @@ public class Translations implements I18NProvider {
         return List.of(ITALIAN, Locale.ENGLISH);
     }
 
+    /** Whether a key exists, for keys built at run time from data such as a source's id (#79). */
+    public static boolean has(String key, Locale locale) {
+        Locale language = locale != null && locale.getLanguage().equals("en") ? Locale.ENGLISH : ITALIAN;
+        try {
+            return ResourceBundle.getBundle(BUNDLE, language, NO_SYSTEM_FALLBACK).containsKey(key);
+        } catch (MissingResourceException e) {
+            return false;
+        }
+    }
+
     @Override
     public String getTranslation(String key, Locale locale, Object... params) {
         Locale language = locale != null && locale.getLanguage().equals("en") ? Locale.ENGLISH : ITALIAN;

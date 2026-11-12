@@ -85,7 +85,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         plantingTitle.setText(getTranslation("garden.selectplot"));
         editGarden.addClickListener(e -> gardenDialog());
         // A guest only looks (#33): every action is hidden, and the role is known in beforeEnter.
-        top.add(editGarden);
+        top.add(editGarden, addPlot);
         top.setDefaultVerticalComponentAlignment(Alignment.END);
 
         plotGrid.addColumn(PlotSummary::name).setHeader(getTranslation("garden.plot"));
@@ -105,9 +105,11 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
 
         plantingGrid.addColumn(p -> cropName(p.cropId(), p.cropName())).setHeader(getTranslation("garden.crop"));
         plantingGrid.addColumn(p -> getTranslation("method." + p.method().name())).setHeader(getTranslation("garden.method"));
-        plantingGrid.addColumn(PlantingSummary::plantedOn).setHeader(getTranslation("garden.since"));
+        plantingGrid.addComponentColumn(p -> DateText.relativeSpan(p.plantedOn(), this))
+                .setHeader(getTranslation("garden.since"));
         plantingGrid.addColumn(p -> p.endedOn() == null ? getTranslation("garden.growing")
-                : getTranslation("garden.ended", p.endedOn().toString())).setHeader(getTranslation("garden.status"));
+                : getTranslation("garden.ended", DateText.date(p.endedOn(), this)))
+                .setHeader(getTranslation("garden.status"));
         plantingGrid.addColumn(p -> p.notes() == null ? "" : p.notes()).setHeader(getTranslation("garden.notes"));
         plantingActions = plantingGrid.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("garden.harvested"), e -> act(() ->
@@ -115,7 +117,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
                 RowActions.delete(getTranslation("common.delete"), e -> RowActions.confirmDelete(
                         getTranslation("garden.planting.delete.title"),
                         getTranslation("garden.planting.delete.text", cropName(p.cropId(), p.cropName()),
-                                p.plantedOn().toString()),
+                                DateText.date(p.plantedOn(), this)),
                         null, getTranslation("garden.planting.delete.button"), getTranslation("common.cancel"),
                         () -> act(() -> gardens.deletePlanting(spaceId, login, p.id()))))))
                 .setAutoWidth(true);
@@ -125,8 +127,8 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         addPlanting.addClickListener(e -> plantingDialog());
         showContributorActions(false);
 
-        add(new H3(getTranslation("garden.title")), top, gardenInfo, weatherCard,
-                new HorizontalLayout(new H4(getTranslation("garden.plots")), addPlot), plotGrid,
+        // The page is the plots (#79): one name, in the menu, the title and the links.
+        add(new H3(getTranslation("garden.plots")), top, gardenInfo, weatherCard, plotGrid,
                 new HorizontalLayout(plantingTitle, addPlanting), plantingGrid);
     }
 
@@ -160,10 +162,10 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
             showPlantings(null);
             return;
         }
+        // Town and country are enough (#79): the exact position is the map's business.
         String where = garden.town() == null ? getTranslation("garden.notown") : garden.town();
-        String coords = garden.latitude() == null ? "" : " (" + garden.latitude() + ", " + garden.longitude() + ")";
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
-        gardenInfo.setText(where + inCountry + coords);
+        gardenInfo.setText(where + inCountry);
         showWeather(garden);
         plotGrid.setItems(gardens.plots(spaceId, login, garden.id()));
         showPlantings(null);
@@ -247,7 +249,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
                 dialog.close();
                 showGarden(garden);
             } catch (RuntimeException ex) {
-                Notification.show(ex.getMessage());
+                UiErrors.show(this, ex);
             }
         }));
         dialog.open();
@@ -283,7 +285,8 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         Runnable checkRotation = () -> rotationWarning.setText(crop.getValue() == null || date.getValue() == null ? ""
                 : gardens.rotationWarning(spaceId, login, plot.id(), crop.getValue().id(), date.getValue())
                 .map(w -> getTranslation("garden.rotation", cropName(crop.getValue().id(), crop.getValue().italianName()),
-                        cropName(w.previous().cropId(), w.previous().cropName()), w.previous().plantedOn().toString(),
+                        cropName(w.previous().cropId(), w.previous().cropName()),
+                        DateText.date(w.previous().plantedOn(), this),
                         w.family(), w.previous().plotName(), w.rule())).orElse(""));
         crop.addValueChangeListener(e -> checkRotation.run());
         date.addValueChangeListener(e -> checkRotation.run());
@@ -297,7 +300,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
                 dialog.close();
                 showPlantings(plot);
             } catch (RuntimeException ex) {
-                Notification.show(ex.getMessage());
+                UiErrors.show(this, ex);
             }
         }));
         dialog.open();
@@ -308,7 +311,7 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
         try {
             action.run();
         } catch (RuntimeException ex) {
-            Notification.show(ex.getMessage());
+            UiErrors.show(this, ex);
         }
         PlotSummary selected = plotGrid.asSingleSelect().getValue();
         showGarden(garden);
@@ -325,6 +328,6 @@ public class PlotsView extends VerticalLayout implements HasDynamicTitle, Before
 
     @Override
     public String getPageTitle() {
-        return getTranslation("garden.title") + " · Rootology";
+        return getTranslation("garden.plots") + " · Rootology";
     }
 }

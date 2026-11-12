@@ -132,8 +132,9 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
                     : card(getTranslation("qa.arm.pipeline"), getTranslation("qa.waiting"),
                     getTranslation("qa.waiting.why", run.pending().decision().reason())));
         } catch (RuntimeException ex) {
-            Notification.show(getTranslation("qa.failed", ex.getMessage()));
-            arms.add(card(getTranslation("qa.arm.pipeline"), getTranslation("qa.failed.short"), ex.getMessage()));
+            String failure = UiErrors.text(this, ex);
+            Notification.show(failure);
+            arms.add(card(getTranslation("qa.arm.pipeline"), getTranslation("qa.failed.short"), failure));
         }
     }
 

@@ -136,7 +136,7 @@ class SignInTest {
         assertThat(count("select count(*) from app_user where login = 'sign-new'")).isEqualTo(1);
         assertThat(identity("sign-new", IdentityProvider.GITHUB)).get()
                 .satisfies(row -> assertThat(row.get("subject")).isEqualTo("105"));
-        assertThat(spaces.spacesOf("sign-new")).extracting(s -> s.name()).containsExactly("sign-new's garden");
+        assertThat(spaces.spacesOf("sign-new")).extracting(s -> s.name()).containsExactly("sign-new");
         assertThat(jdbc.sql("select email from notification_preference where github_login = 'sign-new'")
                 .query(String.class).single()).isEqualTo("ada@example.org");
     }

@@ -12,11 +12,24 @@ What each version of Rootology brings, for the people who use it and run it. The
   outcome and the context, an empty state with a way to ask, and a click on a row opens the full answer card.
   The quality suite's own columns (case, noise, arbiter, match, confidence) are gone from it, and live only in
   Compare for QA; the page refreshes when it opens, without a Refresh button (#80).
+- The answer no longer repeats the notes shown below it as callouts, and calls a vegetable garden "orto"
+  (#79).
+- Dates are short and localized ("3 mag", "12 giorni fa"), the sources of an answer have short translated
+  titles, and the plots header keeps only town and country (#79).
+- The personal space is named after its owner, and an owner can rename a space from the members page (#79).
+- The question count shows only when five or fewer questions are left today (#79).
 - Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
   amber) instead of Lumo's slate blue; light mode is unchanged (#75).
 
 ### Fixed
 
+- On a phone the space switcher moves into the side menu, the space and garden names leave the navbar and
+  the wordmark shrinks to the sprout on very narrow screens, so the account menu is no longer pushed off the
+  screen (#79).
+- The garden's pages, menu items and links use one name each: the plots are not called "the garden" and no
+  longer use a house icon, and the home page is "Home" (#79).
+- A failed action says what the person can act on, or a generic sentence with a request reference, instead
+  of the service's English message (#79).
 - A person waiting for an invitation can leave the request page: the arrow at the top signs them out and
   goes back to the welcome page, which they can also open by its address (#76).
 - The gardens map's popups show the weather now for a garden just added or moved, and for gardens where

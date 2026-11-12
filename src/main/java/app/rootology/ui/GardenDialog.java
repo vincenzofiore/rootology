@@ -175,7 +175,7 @@ final class GardenDialog {
                 dialog.close();
                 saved.accept(garden);
             } catch (RuntimeException ex) {
-                Notification.show(ex.getMessage());
+                UiErrors.show(ui, ex);
             }
         });
         dialog.open();

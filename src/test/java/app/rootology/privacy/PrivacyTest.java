@@ -78,7 +78,7 @@ class PrivacyTest {
         long spaceFact = proposal(adaSpace, "SPACE", "APPROVED", "del-ada");
         long inBobSpace = proposal(bobSpace, "GLOBAL", "PENDING", "del-ada");
 
-        assertThat(deletion.preview("del-ada").spacesDeleted()).containsExactly("del-ada's garden");
+        assertThat(deletion.preview("del-ada").spacesDeleted()).containsExactly("del-ada");
         deletion.delete("DEL-Ada");
 
         assertThat(count("select count(*) from app_user where login = 'del-ada'")).isZero();
@@ -164,7 +164,7 @@ class PrivacyTest {
 
         String json = new String(export.export("exp-fay"), StandardCharsets.UTF_8);
 
-        assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus's garden",
+        assertThat(json).contains("\"githubLogin\" : \"exp-fay\"", "fay asks about basil", "Gus garden", "exp-gus",
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
                         "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
                         "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3",

@@ -87,6 +87,19 @@ class TranslationsTest {
     }
 
     @Test
+    void everySourceHasAShortTitleInBothLanguages() throws IOException {
+        Properties it = load("messages.properties");
+        Properties en = load("messages_en.properties");
+        try (Stream<String> lines = Files.lines(Path.of("src/main/resources/knowledge/sources.csv"))) {
+            Set<String> ids = lines.filter(line -> !line.isBlank() && !line.startsWith("#")
+                            && !line.startsWith("id,"))
+                    .map(line -> line.substring(0, line.indexOf(','))).collect(Collectors.toSet());
+            assertThat(ids).isNotEmpty()
+                    .allMatch(id -> it.containsKey("source." + id) && en.containsKey("source." + id));
+        }
+    }
+
+    @Test
     void italianIsTheDefaultAndEnglishIsKept() {
         Translations translations = new Translations();
 

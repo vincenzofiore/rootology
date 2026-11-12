@@ -58,7 +58,7 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
         } catch (InvalidProposalException ex) {
             Notification.show(String.join("; ", ex.problems()));
         } catch (RuntimeException ex) {
-            Notification.show(ex.getMessage());
+            UiErrors.show(this, ex);
         }
         refresh();
     }

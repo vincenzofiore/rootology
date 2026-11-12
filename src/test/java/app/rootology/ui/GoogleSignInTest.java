@@ -106,7 +106,7 @@ class GoogleSignInTest {
                     assertThat(row.get("subject")).isEqualTo("google-101");
                     assertThat(row.get("email")).isEqualTo("gio@example.org");
                 });
-        assertThat(spaces.spacesOf("gio")).extracting(s -> s.name()).containsExactly("gio's garden");
+        assertThat(spaces.spacesOf("gio")).extracting(s -> s.name()).containsExactly("gio");
         assertThat(jdbc.sql("select email from notification_preference where github_login = 'gio'")
                 .query(String.class).single()).isEqualTo("gio@example.org");
     }
