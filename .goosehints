@@ -10,3 +10,12 @@ Notes for agents other than Claude Code:
 - Before going back to `spring-boot:run` after a `-Pproduction` build, run `./mvnw clean`.
 - Never commit, push, tag or open pull requests: stop, show the diff, and ask the owner. Ask the owner too before adding a dependency or an external data source.
 - Keep changes small and within the GitHub issue being worked on. Do not refactor unrelated code.
+
+Headless runs started by the orchestrator (Claude Code, see "Agent orchestration" in CLAUDE.md):
+
+- You work in a git worktree on a branch `goose/<issue>`, created from `develop`. Stay inside it: never touch the main checkout or other worktrees.
+- Nobody answers questions during the run. When something is unclear, choose the smallest reasonable option, keep going, and list the choice under "Open questions" in your final summary. If the task cannot be done safely, stop and explain why.
+- Read the issue with `gh issue view <n>` and follow its scope; the prompt may narrow it further.
+- One task per run, from a fresh session. Start from a clean build: run `./mvnw clean test` before you finish and fix what fails. Run the full suite once. If a failure looks unrelated (for example an intermittent Testcontainers connection, #68), rerun only the failing test classes once and report it; do not run the full suite again for that.
+- Keep your context small: search before reading, read only the relevant parts, never paste whole files or full logs. End with a summary of at most 25 lines in plain text: what changed and why, files touched, the test result (tests run, failures), open questions, and anything the orchestrator should check in the browser.
+- Leave the changes uncommitted in the worktree; the orchestrator reviews the diff and the owner decides on the commit.
