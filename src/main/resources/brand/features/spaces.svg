@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 170" class="rootology-draw" role="img" aria-label="{label}">
+<g class="rootology-draw-figure">
+<circle cx="60" cy="58" r="11"/>
+<path d="M36 154 V96 C36 82 47 74 60 74 C73 74 84 82 84 96 V154"/>
+<path d="M78 88 L102 90"/>
+<path class="rootology-draw-paper" d="M92 98 H120 L116 124 H96 Z"/>
+<path d="M98 98 C98 86 114 86 114 98"/>
+<path d="M118 106 L136 94 M133 89 L140 98"/>
+<circle cx="208" cy="100" r="9"/>
+<path d="M190 154 V128 C190 117 198 112 208 112 C218 112 226 117 226 128 V154"/>
+<path d="M194 122 L181 113"/>
+<path class="rootology-draw-paper" d="M172 116 H186 L184 130 H174 Z"/>
+<path d="M175 116 C175 108 183 108 183 116"/>
+<path d="M173 120 L164 111"/>
+</g>
+<g class="rootology-draw-sky">
+<path d="M141 104 V108 M146 108 V112 M139 113 V117 M161 116 V119 M157 120 V123"/>
+</g>
+<g class="rootology-draw-plant">
+<path d="M118 154 C128 144 172 144 182 154"/>
+<path d="M150 147 V126"/>
+<path d="M150 134 C142 134 137 129 137 122 C145 122 150 127 150 134 Z"/>
+<path d="M150 130 C150 122 156 117 163 117 C163 125 157 130 150 130 Z"/>
+</g>
+</svg>

@@ -23,6 +23,17 @@ What each version of Rootology brings, for the people who use it and run it. The
 - A visual identity of its own: the sprout's green instead of the default blue, in light and dark, titles and the
   wordmark in Fraunces, the slogan "Ask. Know. Grow." on the welcome page, and hand-drawn icons for the five kinds
   of area (#87).
+- Frost, pest and waiting questions keep their own colours everywhere (weather card, alerts, answers, map), the
+  gardens map turns dark with the app, and empty pages show a small drawing instead of a bare sentence (#87).
+- Knowledge is in the side menu outside a garden too, since the proposals belong to the space (#87).
+- The sprout in a circle is now the third "o" of Rootology, always with the slogan "Ask. Know. Grow." under the
+  name, and the browser and home-screen icons show it too. The welcome page draws how the app works, Ask, Know
+  and Grow in a circle, instead of the radish, and every public page has Sign in at the top right, with GitHub,
+  Google and a way to ask for an invitation (#87).
+- The welcome page shows its four features as drawings: answers with their sources, it does not guess, it sees
+  problems coming, a garden to share. Asking for an invitation starts from Sign in at the top right, which
+  says how. Signing out now lands on the welcome page, with a short notice. In dark mode the gardens map's zoom
+  buttons are dark too (#87).
 - A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
   confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
   answer?" (#83).

@@ -19,12 +19,18 @@ import com.vaadin.flow.theme.lumo.Lumo;
 @StyleSheet("styles/rootology.css")
 public class AppShell implements AppShellConfigurator {
 
+    /**
+     * Raised whenever the icons are redrawn: browsers keep a favicon for a long time and ask again only for a new
+     * address (#87). The manifest's icons carry the same value.
+     */
+    static final String ICONS_VERSION = "?v=2";
+
     /** The sprout icon (#12, docs/brand): SVG for browsers, PNG for older ones and the phone's home screen. */
     @Override
     public void configurePage(AppShellSettings settings) {
-        settings.addFavIcon("icon", "icons/rootology.svg", "any");
-        settings.addFavIcon("icon", "icons/favicon-32.png", "32x32");
-        settings.addFavIcon("apple-touch-icon", "icons/apple-touch-icon.png", "180x180");
+        settings.addFavIcon("icon", "icons/rootology.svg" + ICONS_VERSION, "any");
+        settings.addFavIcon("icon", "icons/favicon-32.png" + ICONS_VERSION, "32x32");
+        settings.addFavIcon("apple-touch-icon", "icons/apple-touch-icon.png" + ICONS_VERSION, "180x180");
         // Add to Home screen (#88): a full-screen start, never offline (ADR 0001).
         settings.addLink("manifest", "manifest.json");
     }

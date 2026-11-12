@@ -109,7 +109,7 @@ class AnswerCard extends Div {
     }
 
     AnswerCard waiting(String reason) {
-        add(header(VaadinIcon.HOURGLASS, TextColor.WARNING, getTranslation("card.waiting")));
+        add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
         add(new Paragraph(getTranslation("card.waiting.why", reason)));
         return whyLast();
     }
@@ -129,7 +129,19 @@ class AnswerCard extends Div {
         for (Note note : notes) {
             if (NoteText.actionable(note)) {
                 HasComponents into = warnings == null ? this : warnings;
-                into.add(callout(NoteText.icon(note), NoteText.Tone.MISSING, NoteText.text(note, this)));
+                Div warning = callout(NoteText.icon(note), NoteText.Tone.MISSING, NoteText.text(note, this));
+                // Frost and late blight keep their own colours (#87): ice blue and amber.
+                String state = switch (note.kind()) {
+                    case FROST_EXCLUDED -> "rootology-callout-frost";
+                    case SMITH_PERIOD -> "rootology-callout-pest";
+                    default -> null;
+                };
+                if (state != null) {
+                    warning.removeClassName(Background.WARNING_10);
+                    warning.getChildren().findFirst().ifPresent(i -> i.getElement().getClassList().remove(TextColor.WARNING));
+                    warning.addClassName(state);
+                }
+                into.add(warning);
                 if (warnings != null) {
                     warnings.setVisible(true);
                 }

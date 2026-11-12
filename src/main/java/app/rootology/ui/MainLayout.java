@@ -93,7 +93,8 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         // In the browser, not through the server: the hash alone would leave the focus on the link.
         skip.getElement().executeJs("this.addEventListener('click', e => { e.preventDefault();"
                 + " const main = document.getElementById('main-content'); if (main) { main.focus(); } })");
-        addToNavbar(skip, toggle, title, where);
+        // The name always comes with the slogan (#87).
+        addToNavbar(skip, toggle, Wordmark.withSlogan(title), where);
         where.addClassName("rootology-where");
 
         switcher(space, "rootology-space-switcher");
@@ -324,10 +325,9 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
                 VaadinIcon.HOURGLASS.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.history"), HistoryView.class, new RouteParameters(here),
                 VaadinIcon.CLOCK.create()));
-        if (gardenId > 0) {
-            nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
-                    VaadinIcon.BOOK.create()));
-        }
+        // The proposals belong to the space, so Knowledge is offered inside and outside a garden.
+        nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
+                VaadinIcon.BOOK.create()));
         if (gardenId == 0) {
             // The questions the space asked outside a garden (#56): offered only when there are some.
             if (ungardened.any(space.id(), currentUser.login())) {

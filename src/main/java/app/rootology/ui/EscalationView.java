@@ -48,7 +48,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     /** One card per waiting question (#86), in the order they started waiting. */
     private final Div cards = new Div();
     /** What the page shows when nothing waits (#81). */
-    private final EmptyState empty = new EmptyState(getTranslation("empty.escalations"));
+    private final EmptyState empty = new EmptyState(getTranslation("empty.escalations"))
+            .drawing(EmptyState.Drawing.WATERING_CAN);
     private final Button refresh = new Button(getTranslation("escalations.refresh"), e -> refresh());
     private boolean contributor;
     /** The page's own context (#56), read from its route; 0 garden at the space level. */

@@ -1,35 +1,25 @@
 package app.rootology.ui;
 
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.HasDynamicTitle;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import org.springframework.beans.factory.annotation.Value;
+
+import java.util.List;
+import java.util.Map;
 
 /**
- * Where logout lands. It must be public: sending the browser back to a protected page would
- * start the sign-in flow again, and the provider, still signed in, would let the user straight back in.
- * The ways in are the same as the welcome page (#47).
+ * The old page logout landed on. Logout now lands on the welcome page, which says the person left (#87); this
+ * route only forwards there, for bookmarks. It stays public: a protected page would start the sign-in again.
  */
 @Route(SecurityConfiguration.LOGGED_OUT_PAGE)
 @AnonymousAllowed
-public class LoggedOutView extends VerticalLayout implements HasDynamicTitle {
-
-    public LoggedOutView(@Value("${spring.security.oauth2.client.registration.google.client-id:not-set}")
-                         String googleClientId) {
-        Anchor privacy = new Anchor("/" + PrivacyView.ROUTE, getTranslation("nav.privacy"));
-        privacy.setRouterIgnore(true);
-        add(new H2(getTranslation("loggedout.title")), new Paragraph(getTranslation("loggedout.github")),
-                new SignInButtons(getTranslation("loggedout.signin"), getTranslation("signin.google"),
-                        SecurityConfiguration.googleConfigured(googleClientId)),
-                privacy);
-    }
+public class LoggedOutView extends Div implements BeforeEnterObserver {
 
     @Override
-    public String getPageTitle() {
-        return getTranslation("loggedout.page") + " · Rootology";
+    public void beforeEnter(BeforeEnterEvent event) {
+        event.forwardTo(WelcomeView.ROUTE, new QueryParameters(Map.of(WelcomeView.SIGNED_OUT, List.of(""))));
     }
 }

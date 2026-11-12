@@ -40,4 +40,14 @@ class EmptyStateTest {
         assertThat(empty.getChildren().filter(Button.class::isInstance).map(Button.class::cast)
                 .findFirst().orElseThrow().isVisible()).isFalse();
     }
+
+    @Test
+    void theSproutUnlessThePageSaysOtherwise() {
+        assertThat(new EmptyState("Nothing here yet.").drawingSrc()).isEqualTo("icons/empty/sprout.svg");
+        assertThat(new EmptyState("No notifications.").drawing(EmptyState.Drawing.BELL).drawingSrc())
+                .isEqualTo("icons/empty/bell.svg");
+        for (EmptyState.Drawing drawing : EmptyState.Drawing.values()) {
+            assertThat(getClass().getResource("/META-INF/resources/" + drawing.src())).as(drawing.name()).isNotNull();
+        }
+    }
 }

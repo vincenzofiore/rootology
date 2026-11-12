@@ -5,9 +5,9 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 
 /**
  * The ways into the app (#47): GitHub always, Google only when it is configured (#28).
- * Shared by the welcome page, the invitation page and the logged-out page, so the three
- * pages offer the same ways in. Labels are passed in so each page can word them for its case
- * (joining an invitation, coming back, or just signing in).
+ * Shared by the welcome page, the invitation page and the Sign in menu of the public bar, so they
+ * offer the same ways in. Labels are passed in so each place can word them for its case
+ * (joining an invitation, asking for one, or just signing in).
  */
 class SignInButtons extends HorizontalLayout {
 

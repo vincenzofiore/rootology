@@ -102,10 +102,12 @@ rootology:
   # The app's public address, for links in emails (#25).
   base-url: ${ROOTOLOGY_BASE_URL:http://localhost:8080}
   map:
-    # The map of the gardens overview (#66): OpenFreeMap's Liberty style, free, no key and no cookies, one
-    # style for light and dark. Style, tiles, glyphs and sprites all come from tiles.openfreemap.org, which
+    # The map of the gardens overview (#66): OpenFreeMap's Liberty style, free, no key and no cookies, and its
+    # Dark style for a dark page (#87). Style, tiles, glyphs and sprites all come from tiles.openfreemap.org, which
     # has no SLA and may stop: keep the URL here, not in the code, and the table works when the map does not.
     style-url: https://tiles.openfreemap.org/styles/liberty
+    # The same tiles drawn dark, for a dark page (#87).
+    dark-style-url: https://tiles.openfreemap.org/styles/dark
   privacy:
     # Named on the public privacy page (#40); set per deployment, not in the repository.
     controller: ${ROOTOLOGY_PRIVACY_CONTROLLER:}

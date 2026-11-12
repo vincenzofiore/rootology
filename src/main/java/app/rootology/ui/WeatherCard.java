@@ -81,7 +81,7 @@ class WeatherCard extends Div {
         name.addClassNames(FontSize.SMALL, FontWeight.MEDIUM);
         Div tile = new Div(name);
         tile.addClassNames(Display.FLEX, FlexDirection.COLUMN, AlignItems.CENTER, Gap.XSMALL, Padding.SMALL,
-                BorderRadius.MEDIUM, frost ? Background.ERROR_10 : Background.BASE);
+                BorderRadius.MEDIUM, frost ? "rootology-frost-day" : Background.BASE);
         tile.setWidth("5.5rem");
         if (day.symbol() != null) {
             Image icon = new Image("weather-icons/" + day.symbol() + ".svg", day.symbol().replace('_', ' '));
@@ -92,7 +92,7 @@ class WeatherCard extends Div {
         Span max = new Span(String.format(locale, "%.0f°", day.maximum()));
         max.addClassNames(FontWeight.SEMIBOLD);
         Span min = new Span(String.format(locale, "%.0f°", day.minimum()));
-        min.addClassNames(frost ? TextColor.ERROR : TextColor.SECONDARY);
+        min.addClassNames(frost ? "rootology-frost-text" : TextColor.SECONDARY);
         Div temps = new Div(max, new Span(" / "), min);
         temps.addClassNames(FontSize.SMALL);
         tile.add(temps);
@@ -107,7 +107,7 @@ class WeatherCard extends Div {
             Icon ice = VaadinIcon.ASTERISK.create();
             ice.setSize("0.8em");
             Div label = new Div(ice, new Span(" " + getTranslation("weather.frost")));
-            label.addClassNames(FontSize.XSMALL, TextColor.ERROR, Display.FLEX, AlignItems.CENTER);
+            label.addClassNames(FontSize.XSMALL, "rootology-frost-text", Display.FLEX, AlignItems.CENTER);
             tile.add(label);
         }
         return tile;

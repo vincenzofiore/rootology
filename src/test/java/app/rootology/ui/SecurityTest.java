@@ -47,10 +47,10 @@ class SecurityTest {
     }
 
     @Test
-    void logoutLandsOnTheLoggedOutPage() throws Exception {
+    void logoutLandsOnTheWelcomePage() throws Exception {
         mockMvc.perform(post("/logout").with(oauth2Login()).with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/" + SecurityConfiguration.LOGGED_OUT_PAGE));
+                .andExpect(redirectedUrl("/" + WelcomeView.ROUTE + "?" + WelcomeView.SIGNED_OUT));
     }
 
     @Test

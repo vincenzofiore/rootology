@@ -310,7 +310,7 @@ class GardensMapTest {
 
     private GardensView view(String login) {
         return new GardensView(gardens, geoNames, ungardened, new CurrentUser(spaces, login), cells, pipeline,
-                weather, STYLE);
+                weather, STYLE, "");
     }
 
     private long garden(long spaceId, String login, String name, String latitude, String longitude) {

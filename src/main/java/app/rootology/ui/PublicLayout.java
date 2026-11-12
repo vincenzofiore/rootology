@@ -11,10 +11,12 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * The frame of the public pages (Welcome, Sources, Privacy): MainLayout needs a signed-in person, so these
- * pages get a plain bar that leads back to the app, or to sign-in for someone who is not signed in. A person
+ * pages get a bar with the name and the slogan, and on the right the way back to the app, or "Sign in" for
+ * someone who is not signed in (#87). A person
  * waiting for an invitation (#65) has no app to go back to, and "/" or the welcome page would only lead them
  * to their request again: their link signs them out and lands on the welcome page as a visitor.
  */
@@ -22,24 +24,33 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserver {
 
     private final Anchor back;
+    private final SignInMenu signIn;
     private final boolean signedIn;
     private final ServiceLinks footer = new ServiceLinks();
 
-    public PublicLayout() {
-        signedIn = VaadinRequest.getCurrent() != null && VaadinRequest.getCurrent().getUserPrincipal() != null;
+    public PublicLayout(
+            @Value("${spring.security.oauth2.client.registration.google.client-id:not-set}") String googleClientId) {
         boolean pending = PendingAccess.isPending();
-        // A plain link, not a RouterLink: for someone not signed in "/" leads to the welcome page (#47).
+        boolean principal = VaadinRequest.getCurrent() != null && VaadinRequest.getCurrent().getUserPrincipal() != null;
+        signedIn = principal || pending;
+        // A plain link, not a RouterLink: "/" leads a signed-in person into the app.
         back = new Anchor(pending ? "/" + WelcomeView.ROUTE : "/", "");
-        back.setRouterIgnore(!signedIn || pending);
-        back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(pending ? "public.leave"
-                : signedIn ? "public.back" : "public.signin")));
+        back.setRouterIgnore(pending);
+        back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(pending ? "public.leave" : "public.back")));
         if (pending) {
             back.getElement().addEventListener("click", e -> leave()).preventDefault();
         }
         back.addClassName("rootology-public-back");
-        Wordmark title = new Wordmark();
-        title.addClassName("rootology-public-title");
-        Header bar = new Header(back, title);
+        // A visitor signs in from the top right of every public page (#87); "/" leads them to the welcome page.
+        signIn = new SignInMenu(SecurityConfiguration.googleConfigured(googleClientId));
+        signIn.setVisible(!signedIn);
+        back.setVisible(signedIn);
+        Wordmark name = new Wordmark();
+        name.addClassName("rootology-public-title");
+        Anchor home = new Anchor("/", Wordmark.withSlogan(name));
+        home.setRouterIgnore(true);
+        home.addClassName("rootology-public-home");
+        Header bar = new Header(home, back, signIn);
         bar.addClassName("rootology-public-bar");
         add(bar, footer);
     }
@@ -59,9 +70,8 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // On the welcome page a visitor would find a link back to the page itself, since "/" leads there (#50).
-        // Signed-in people never see the welcome page: they are sent to Home by WelcomeView.
-        boolean onWelcome = WelcomeView.class.equals(event.getNavigationTarget());
-        back.setVisible(!onWelcome || signedIn);
+        // Signed-in people never see the welcome page (WelcomeView sends them Home); elsewhere they go back.
+        back.setVisible(signedIn);
+        signIn.setVisible(!signedIn);
     }
 }

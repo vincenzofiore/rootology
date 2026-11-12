@@ -27,22 +27,26 @@ class PublicLayoutTest {
     }
 
     private static PublicLayout navigatedTo(Class<? extends com.vaadin.flow.component.Component> target) {
-        PublicLayout layout = new PublicLayout();
+        PublicLayout layout = new PublicLayout("not-set");
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
         doReturn(target).when(event).getNavigationTarget();
         layout.beforeEnter(event);
         return layout;
     }
 
-    @Test
-    void theWelcomePageHasNoBackLink() {
-        assertThat(backLink(navigatedTo(WelcomeView.class)).isVisible()).isFalse();
+    private static SignInMenu signIn(PublicLayout layout) {
+        return layout.getChildren().filter(Header.class::isInstance).map(Header.class::cast)
+                .flatMap(Header::getChildren).filter(SignInMenu.class::isInstance).map(SignInMenu.class::cast)
+                .findFirst().orElseThrow();
     }
 
     @Test
-    void thePrivacyAndSourcesPagesKeepTheBackLink() {
-        assertThat(backLink(navigatedTo(PrivacyView.class)).isVisible()).isTrue();
-        assertThat(backLink(navigatedTo(SourcesView.class)).isVisible()).isTrue();
+    void aVisitorSignsInFromEveryPublicPage() {
+        for (var page : java.util.List.of(WelcomeView.class, PrivacyView.class, SourcesView.class)) {
+            PublicLayout layout = navigatedTo(page);
+            assertThat(backLink(layout).isVisible()).as("no link back to an app they are not in").isFalse();
+            assertThat(signIn(layout).isVisible()).as("Sign in at the top right (#87)").isTrue();
+        }
     }
 
     /** A pending principal (#65): ROLE_PENDING alone. */
@@ -79,7 +83,7 @@ class PublicLayoutTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         BeforeEnterEvent event = mock(BeforeEnterEvent.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
 
-        new WelcomeView(authentication, "not-set").beforeEnter(event);
+        new WelcomeView(authentication).beforeEnter(event);
 
         verify(event, never()).rerouteTo(any(Class.class));
     }
@@ -90,7 +94,7 @@ class PublicLayoutTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
 
-        new WelcomeView(authentication, "not-set").beforeEnter(event);
+        new WelcomeView(authentication).beforeEnter(event);
 
         verify(event).rerouteTo(StartView.class);
     }

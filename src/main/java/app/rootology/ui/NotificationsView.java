@@ -48,7 +48,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     /** The same rows as cards on a phone (#93), where a table's "What" column has no room. */
     private final Div cards = new Div();
     /** What the page shows when nothing has happened yet (#81). */
-    private final EmptyState empty = new EmptyState(getTranslation("empty.notifications"));
+    private final EmptyState empty = new EmptyState(getTranslation("empty.notifications"))
+            .drawing(EmptyState.Drawing.BELL);
     /** The space and garden the bell was used from; only a hint, never used to read data (#56). */
     private long contextSpace;
     private long contextGarden;

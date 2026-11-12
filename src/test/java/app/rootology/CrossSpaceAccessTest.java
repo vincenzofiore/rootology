@@ -143,14 +143,14 @@ class CrossSpaceAccessTest {
         long located = gardens.saveGarden(victimSpace, victim, null, "Victim map garden", "Milan",
                 new java.math.BigDecimal("45.07"), new java.math.BigDecimal("9.19"), "IT").id();
         GardensView intrudersOverview = new GardensView(gardens, geoNames, ungardened, session(intruder, intruderSpace),
-                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty");
+                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty", "");
         intrudersOverview.beforeEnter(entering(intruderSpace));
         assertThat(mapIds(intrudersOverview)).doesNotContain(located);
         assertThat(intrudersOverview.map().select(Long.toString(located)))
                 .as("and the map refuses to select it").isEmpty();
 
         GardensView victimsOverview = new GardensView(gardens, geoNames, ungardened, session(victim, victimSpace),
-                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty");
+                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty", "");
         victimsOverview.beforeEnter(entering(victimSpace));
         assertThat(victimsOverview.map().select(Long.toString(located))).hasValue(located);
     }

@@ -158,7 +158,7 @@ class ViewsTest {
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE)
+        assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE, "")
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
@@ -381,21 +381,13 @@ class ViewsTest {
     }
 
     @Test
-    void theWelcomeAndLoggedOutPagesOfferTheSameWaysIn() {
-        assertThat(hrefs(new WelcomeView(authentication, "not-set")))
-                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
-        assertThat(hrefs(new WelcomeView(authentication, "1234.apps.googleusercontent.com")))
-                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
-        assertThat(hrefs(new LoggedOutView("not-set")))
-                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE);
-        assertThat(hrefs(new LoggedOutView("1234.apps.googleusercontent.com")))
-                .containsExactly(SecurityConfiguration.GITHUB_LOGIN_PAGE, SecurityConfiguration.GOOGLE_LOGIN_PAGE);
+    void theWelcomePageDrawsItsFourFeatures() {
+        // #87: answers with sources, it does not guess, it sees problems coming, a garden to share.
+        WelcomeView view = new WelcomeView(authentication);
+        Div features = view.getChildren().filter(Div.class::isInstance).map(Div.class::cast)
+                .filter(d -> d.getClassNames().contains("rootology-features")).findFirst().orElseThrow();
+        assertThat(features.getChildren().map(f -> f.getChildren().findFirst().orElseThrow()))
+                .hasSize(4).allMatch(drawing -> drawing.getClassNames().contains("rootology-feature-drawing"));
     }
 
-    private static List<String> hrefs(Component view) {
-        SignInButtons buttons = view.getChildren().filter(SignInButtons.class::isInstance)
-                .map(SignInButtons.class::cast).findFirst().orElseThrow();
-        return buttons.getChildren().filter(Anchor.class::isInstance).map(Component::getElement)
-                .map(element -> element.getAttribute("href")).toList();
-    }
 }

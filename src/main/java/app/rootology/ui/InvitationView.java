@@ -80,7 +80,7 @@ public class InvitationView extends VerticalLayout implements BeforeEnterObserve
     /**
      * The ways in. GitHub always; Google only when it is configured (#28), since an unconfigured provider would
      * send the person to an error page. Both keep the invitation in the session, so signing in joins them.
-     * The buttons come from the shared component so the welcome, invitation and logged-out pages match (#47).
+     * The buttons come from the shared component so the welcome and invitation pages match (#47).
      */
     HorizontalLayout signInButtons() {
         return new SignInButtons(getTranslation("invite.signin"), getTranslation("invite.signin.google"),

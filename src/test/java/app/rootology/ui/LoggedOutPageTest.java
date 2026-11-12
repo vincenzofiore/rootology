@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Public pages, served without a login by the real Vaadin servlet (MockMvc has none): the welcome page (#47),
  * the page logout lands on (if it were protected, the browser would go straight back through the provider and
- * log the user in again), invitation links (the invited person has no account yet) and the mascot.
+ * log the user in again) and invitation links (the invited person has no account yet).
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -36,11 +36,6 @@ class LoggedOutPageTest {
     @Test
     void theWelcomePageIsPublic() throws Exception {
         assertThat(get("/" + WelcomeView.ROUTE).statusCode()).isEqualTo(200);
-    }
-
-    @Test
-    void theMascotIsPublic() throws Exception {
-        assertThat(get("/images/mascot-radish.svg").statusCode()).isEqualTo(200);
     }
 
     @Test

@@ -69,7 +69,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     private final Paragraph askedAbout = new Paragraph();
     private final Grid<ProposalSummary> mine = new Grid<>();
     /** What the page shows when the space has proposed nothing yet (#81). */
-    private final EmptyState empty = new EmptyState(getTranslation("empty.proposals"));
+    private final EmptyState empty = new EmptyState(getTranslation("empty.proposals"))
+            .drawing(EmptyState.Drawing.NOTEBOOK);
 
 
     /** The page's own context (#56), read from its route. */

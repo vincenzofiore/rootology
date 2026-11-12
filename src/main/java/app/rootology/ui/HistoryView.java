@@ -55,7 +55,7 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
     private final Div cards = new Div();
     /** What the page says when there is no question yet (#80, #81), and the way to ask one. */
     private final EmptyState empty = new EmptyState(getTranslation("history.empty"),
-            getTranslation("history.empty.ask"), this::openAsk);
+            getTranslation("history.empty.ask"), this::openAsk).drawing(EmptyState.Drawing.NOTEBOOK);
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;

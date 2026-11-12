@@ -39,7 +39,7 @@ class SecurityConfiguration {
     /** Google (OpenID Connect); the button is offered only when it is configured (#28). */
     static final String GOOGLE_LOGIN_PAGE = "/oauth2/authorization/google";
 
-    /** Public page shown after logout (see LoggedOutView). */
+    /** The old page logout landed on; it now forwards to the welcome page (see LoggedOutView). */
     static final String LOGGED_OUT_PAGE = "logged-out";
 
     /** The OAuth2 page that starts signing in with a provider (also the link started in My account, #28). */
@@ -112,7 +112,7 @@ class SecurityConfiguration {
                 .requestMatchers("/actuator/**").hasRole("ADMIN"));
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
-        loggedOut.setDefaultTargetUrl("/" + LOGGED_OUT_PAGE);
+        loggedOut.setDefaultTargetUrl("/" + WelcomeView.ROUTE + "?" + WelcomeView.SIGNED_OUT);
         loggedOut.setRedirectStrategy(new UidlRedirectStrategy()); // also redirects Vaadin's own requests
         // A visitor who is not signed in lands on the welcome page, not straight on GitHub (#47).
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin

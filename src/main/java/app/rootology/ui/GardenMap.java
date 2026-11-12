@@ -66,8 +66,9 @@ public final class GardenMap extends Component {
     private boolean contributor;
     private int centreCount;
 
-    GardenMap(String styleUrl) {
+    GardenMap(String styleUrl, String darkStyleUrl) {
         setStyleUrl(styleUrl);
+        getElement().setProperty("darkStyleUrl", darkStyleUrl == null ? "" : darkStyleUrl);
     }
 
     void setStyleUrl(String url) {

@@ -68,7 +68,8 @@ class PublicSeoTest {
         assertThat(response.body())
                 .contains("\"name\": \"Rootology\"", "\"short_name\": \"Rootology\"",
                         "\"start_url\": \"/\"", "\"display\": \"standalone\"",
-                        "\"icons/icon-192.png\"", "\"icons/icon-512.png\"");
+                        "\"icons/icon-192.png" + AppShell.ICONS_VERSION + "\"",
+                        "\"icons/icon-512.png" + AppShell.ICONS_VERSION + "\"");
     }
 
     @Test

@@ -220,6 +220,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             return;
         }
         Card card = new Card(VaadinIcon.HOURGLASS, getTranslation("home.waiting.title"));
+        card.iconClass("rootology-waiting-icon");
         Span count = new Span(String.valueOf(waiting.size()));
         count.addClassName("rootology-count");
         Span countWord = new Span(getTranslation("home.waiting.count", waiting.size()));
@@ -319,10 +320,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private static final class Card extends Div {
 
         private final Div content = new Div();
+        private final Icon drawing;
 
         Card(VaadinIcon icon, String title) {
             addClassName("rootology-card");
-            Icon drawing = icon.create();
+            drawing = icon.create();
             drawing.getElement().setAttribute("aria-hidden", "true");
             H4 heading = new H4(drawing, new Span(" " + title));
             heading.addClassName("rootology-card-title");
@@ -332,6 +334,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
         Div content() {
             return content;
+        }
+
+        /** A state colour for the card's icon (#87). */
+        void iconClass(String className) {
+            drawing.addClassName(className);
         }
     }
 

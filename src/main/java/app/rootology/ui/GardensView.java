@@ -91,7 +91,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     public GardensView(GardenService gardens, GeoNames geoNames, Ungardened ungardened, CurrentUser currentUser,
                        ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
-                       @Value("${rootology.map.style-url}") String styleUrl) {
+                       @Value("${rootology.map.style-url}") String styleUrl,
+                       @Value("${rootology.map.dark-style-url:}") String darkStyleUrl) {
         this.gardens = gardens;
         this.geoNames = geoNames;
         this.ungardened = ungardened;
@@ -115,7 +116,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         add.addThemeName("primary");
         add.addClickListener(e -> addGarden());
 
-        map = new GardenMap(styleUrl);
+        map = new GardenMap(styleUrl, darkStyleUrl);
         map.setLabels(new GardenMap.Labels(getTranslation("gardens.open"), getTranslation("common.edit"),
                 getTranslation("common.delete"), getTranslation("gardens.map.altitude.label"),
                 getTranslation("gardens.map.weather.label"), getTranslation("weather.credit"),
