@@ -72,6 +72,16 @@ class PublicSeoTest {
     }
 
     @Test
+    void theIconsSafariAsksForAtTheRootArePublicImages() throws Exception {
+        for (String path : java.util.List.of("/apple-touch-icon.png", "/apple-touch-icon-precomposed.png")) {
+            HttpResponse<String> response = get(path);
+
+            assertThat(response.statusCode()).as(path).isEqualTo(200);
+            assertThat(response.headers().firstValue("Content-Type").orElse("")).as(path).startsWith("image/png");
+        }
+    }
+
+    @Test
     void theWelcomePageStatesItsCanonicalAddress() throws Exception {
         HttpResponse<String> response = get("/" + WelcomeView.ROUTE);
 

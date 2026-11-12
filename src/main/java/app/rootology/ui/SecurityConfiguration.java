@@ -104,7 +104,10 @@ class SecurityConfiguration {
                         "/images/**", "/actuator/health", "/actuator/health/**",
                         // For crawlers, which have no session (#91), and the manifest of the home screen icon (#88):
                         // static files, see AccessRouting.
-                        "/robots.txt", "/sitemap.xml", "/manifest.json")
+                        "/robots.txt", "/sitemap.xml", "/manifest.json",
+                        // Safari asks for these at the root on its own: protected, the request was kept as the
+                        // page to open after the sign-in, and the browser then downloaded the icon.
+                        "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png")
                 .permitAll()
                 .requestMatchers("/actuator/**").hasRole("ADMIN"));
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
