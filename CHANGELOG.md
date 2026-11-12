@@ -20,6 +20,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A visual identity of its own: the sprout's green instead of the default blue, in light and dark, titles and the
+  wordmark in Fraunces, the slogan "Ask. Know. Grow." on the welcome page, and hand-drawn icons for the five kinds
+  of area (#87).
 - A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
   confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
   answer?" (#83).

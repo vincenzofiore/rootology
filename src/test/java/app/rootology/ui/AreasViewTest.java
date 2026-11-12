@@ -26,7 +26,9 @@ class AreasViewTest {
         assertThat(app.rootology.garden.PlotKind.values()).hasSize(5);
         assertThat(java.util.Arrays.stream(app.rootology.garden.PlotKind.values())
                 .map(AreaKindIcons::of).toList())
-                .doesNotHaveDuplicates();
+                .doesNotHaveDuplicates()
+                .allSatisfy(path -> assertThat(getClass().getResource("/META-INF/resources/" + path))
+                        .as(path).isNotNull());
     }
 
     @Test

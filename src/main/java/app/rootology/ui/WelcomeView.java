@@ -35,7 +35,10 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
 
         Wordmark brand = new Wordmark();
         brand.addClassName("rootology-welcome-brand");
-        add(brand);
+        // The slogan is English in every language of the UI (#87).
+        Paragraph slogan = new Paragraph(Wordmark.SLOGAN);
+        slogan.addClassName("rootology-slogan");
+        add(brand, slogan);
 
         Image mascot = new Image("images/mascot-radish.svg", getTranslation("welcome.mascot"));
         mascot.addClassName("rootology-welcome-mascot");

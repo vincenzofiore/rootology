@@ -10,6 +10,9 @@ import com.vaadin.flow.component.html.Span;
  */
 class Wordmark extends Span {
 
+    /** The slogan, the same in every language of the UI (#87). */
+    static final String SLOGAN = "Ask. Know. Grow.";
+
     Wordmark() {
         Span root = new Span("Root");
         Image o = new Image("icons/rootology.svg", "");

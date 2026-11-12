@@ -1,38 +1,50 @@
 /* Rootology's own styles (#31): only what Lumo does not do by itself for small screens and touch. */
 
 /*
- * Dark mode in GitHub's palette instead of Lumo's slate blue: canvas #0d1117, text #e6edf3, shadows #010409,
- * accent #2f81f7 / #58a6ff, and GitHub's red, green and amber. Lumo defines its colours with light-dark() on
- * :where(:root), so this rule wins; the first value of each pair is Lumo's own light colour, unchanged.
+ * Rootology's palette (#87, direction "Orto"): the sprout's green as the accent and neutrals that lean towards
+ * it, in light and dark. Lumo defines its colours with light-dark() on :where(:root), so this rule wins; the
+ * first value of each pair is the light colour, the second the dark one. Red, green and amber keep their
+ * meaning (error, success, warning).
  */
+@font-face {
+    /* Fraunces (SIL Open Font License 1.1, fonts/Fraunces-OFL.txt), served from this origin: no font host. */
+    font-family: "Fraunces";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/fraunces-latin.woff2") format("woff2");
+}
 :root {
-    --lumo-base-color: light-dark(#fff, #0d1117);
-    --lumo-tint: light-dark(#fff, #e6edf3);
-    --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(230, 237, 243, .06));
-    --lumo-tint-10pct: light-dark(hsla(0, 0%, 100%, .37), rgba(230, 237, 243, .12));
-    --lumo-tint-20pct: light-dark(hsla(0, 0%, 100%, .44), rgba(230, 237, 243, .2));
-    --lumo-tint-30pct: light-dark(hsla(0, 0%, 100%, .5), rgba(230, 237, 243, .3));
-    --lumo-tint-40pct: light-dark(hsla(0, 0%, 100%, .57), rgba(230, 237, 243, .4));
-    --lumo-tint-50pct: light-dark(hsla(0, 0%, 100%, .64), rgba(230, 237, 243, .5));
-    --lumo-tint-60pct: light-dark(hsla(0, 0%, 100%, .7), rgba(230, 237, 243, .6));
-    --lumo-tint-70pct: light-dark(hsla(0, 0%, 100%, .77), rgba(230, 237, 243, .7));
-    --lumo-tint-80pct: light-dark(hsla(0, 0%, 100%, .84), rgba(230, 237, 243, .8));
-    --lumo-tint-90pct: light-dark(hsla(0, 0%, 100%, .9), rgba(230, 237, 243, .9));
-    --lumo-shade: light-dark(#192434, #010409);
-    --lumo-shade-5pct: light-dark(rgba(25, 59, 103, .05), rgba(1, 4, 9, .1));
-    --lumo-shade-10pct: light-dark(rgba(26, 57, 96, .1), rgba(1, 4, 9, .2));
-    --lumo-shade-20pct: light-dark(rgba(28, 55, 90, .16), rgba(1, 4, 9, .3));
-    --lumo-shade-30pct: light-dark(rgba(28, 52, 84, .26), rgba(1, 4, 9, .4));
-    --lumo-shade-40pct: light-dark(rgba(28, 50, 79, .38), rgba(1, 4, 9, .5));
-    --lumo-shade-50pct: light-dark(rgba(28, 48, 74, .52), rgba(1, 4, 9, .6));
-    --lumo-shade-60pct: light-dark(rgba(28, 46, 69, .6), rgba(1, 4, 9, .7));
-    --lumo-shade-70pct: light-dark(rgba(27, 43, 65, .69), rgba(1, 4, 9, .75));
-    --lumo-shade-80pct: light-dark(rgba(26, 41, 61, .83), rgba(1, 4, 9, .85));
-    --lumo-shade-90pct: light-dark(rgba(24, 39, 57, .94), rgba(1, 4, 9, .92));
-    --lumo-primary-color: light-dark(#006af5, #1f6feb);
-    --lumo-primary-color-50pct: light-dark(rgba(0, 108, 250, .76), rgba(47, 129, 247, .7));
-    --lumo-primary-color-10pct: light-dark(rgba(51, 139, 255, .13), rgba(56, 139, 253, .15));
-    --lumo-primary-text-color: light-dark(#005fdb, #58a6ff);
+    --rootology-display-font: "Fraunces", Georgia, "Times New Roman", serif;
+    --rootology-earth: light-dark(#8a5a3b, #c9a27f);
+    --lumo-base-color: light-dark(#fcfdfa, #111611);
+    --lumo-tint: light-dark(#fff, #e4ebe2);
+    --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(228, 235, 226, .06));
+    --lumo-tint-10pct: light-dark(hsla(0, 0%, 100%, .37), rgba(228, 235, 226, .12));
+    --lumo-tint-20pct: light-dark(hsla(0, 0%, 100%, .44), rgba(228, 235, 226, .2));
+    --lumo-tint-30pct: light-dark(hsla(0, 0%, 100%, .5), rgba(228, 235, 226, .3));
+    --lumo-tint-40pct: light-dark(hsla(0, 0%, 100%, .57), rgba(228, 235, 226, .4));
+    --lumo-tint-50pct: light-dark(hsla(0, 0%, 100%, .64), rgba(228, 235, 226, .5));
+    --lumo-tint-60pct: light-dark(hsla(0, 0%, 100%, .7), rgba(228, 235, 226, .6));
+    --lumo-tint-70pct: light-dark(hsla(0, 0%, 100%, .77), rgba(228, 235, 226, .7));
+    --lumo-tint-80pct: light-dark(hsla(0, 0%, 100%, .84), rgba(228, 235, 226, .8));
+    --lumo-tint-90pct: light-dark(hsla(0, 0%, 100%, .9), rgba(228, 235, 226, .9));
+    --lumo-shade: light-dark(#1e2a20, #050805);
+    --lumo-shade-5pct: light-dark(rgba(30, 52, 34, .05), rgba(5, 8, 5, .1));
+    --lumo-shade-10pct: light-dark(rgba(30, 52, 34, .1), rgba(5, 8, 5, .2));
+    --lumo-shade-20pct: light-dark(rgba(30, 50, 33, .16), rgba(5, 8, 5, .3));
+    --lumo-shade-30pct: light-dark(rgba(30, 48, 33, .26), rgba(5, 8, 5, .4));
+    --lumo-shade-40pct: light-dark(rgba(30, 46, 32, .38), rgba(5, 8, 5, .5));
+    --lumo-shade-50pct: light-dark(rgba(30, 44, 32, .52), rgba(5, 8, 5, .6));
+    --lumo-shade-60pct: light-dark(rgba(30, 42, 32, .6), rgba(5, 8, 5, .7));
+    --lumo-shade-70pct: light-dark(rgba(30, 42, 32, .69), rgba(5, 8, 5, .75));
+    --lumo-shade-80pct: light-dark(rgba(30, 42, 32, .83), rgba(5, 8, 5, .85));
+    --lumo-shade-90pct: light-dark(rgba(30, 42, 32, .94), rgba(5, 8, 5, .92));
+    --lumo-primary-color: light-dark(#2f7a3b, #6fbf6a);
+    --lumo-primary-color-50pct: light-dark(rgba(47, 122, 59, .76), rgba(111, 191, 106, .7));
+    --lumo-primary-color-10pct: light-dark(rgba(47, 122, 59, .12), rgba(111, 191, 106, .15));
+    --lumo-primary-text-color: light-dark(#2a6e35, #8fd488);
+    --lumo-primary-contrast-color: light-dark(#fff, #0d150d);
     --lumo-error-color: light-dark(#e21d12, #da3633);
     --lumo-error-color-50pct: light-dark(rgba(231, 29, 19, .5), rgba(248, 81, 73, .5));
     --lumo-error-color-10pct: light-dark(rgba(231, 29, 19, .1), rgba(248, 81, 73, .1));
@@ -44,6 +56,22 @@
     --lumo-warning-color: light-dark(#fc0, #d29922);
     --lumo-warning-color-10pct: light-dark(rgba(255, 204, 0, .25), rgba(187, 128, 9, .15));
     --lumo-warning-text-color: light-dark(#995200, #d29922);
+}
+
+/* Titles in the brand's face (#87); running text stays on the system font, quick and legible on a phone. */
+h1, h2, h3, h4 {
+    font-family: var(--rootology-display-font);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+}
+.rootology-slogan {
+    font-family: var(--rootology-display-font);
+    font-size: var(--lumo-font-size-l);
+    font-weight: 500;
+    color: var(--lumo-secondary-text-color);
+    margin: 0 0 var(--lumo-space-m);
 }
 
 /* Fields with a fixed width never overflow a narrow screen. */
@@ -132,7 +160,14 @@ vaadin-grid {
 }
 
 /* The name with the sprout as its central "o" (Wordmark): the icon sized and seated like a lowercase o. */
-.rootology-wordmark { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.rootology-wordmark {
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+    font-family: var(--rootology-display-font);
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
 .rootology-wordmark img {
     width: 0.68em;
     height: 0.68em;
@@ -153,8 +188,9 @@ vaadin-grid {
 @media (max-width: 400px) {
     /* A very narrow phone keeps only the sprout (#79): the name is still read by screen readers. */
     .rootology-app-title { margin: 0 0.25rem; }
-    .rootology-wordmark > span { display: none; }
-    .rootology-wordmark img {
+    /* Only in the bars: the welcome page keeps the whole name (#87). */
+    :is(.rootology-app-title .rootology-wordmark, .rootology-public-title) > span { display: none; }
+    :is(.rootology-app-title .rootology-wordmark, .rootology-public-title) img {
         width: 1.5rem;
         height: 1.5rem;
         margin: 0;
@@ -243,7 +279,7 @@ vaadin-grid {
 .rootology-signin-provider { font-weight: 600; min-width: 5rem; }
 
 /* The public welcome page (#47): the brand at the top, the mascot, and the ways in. */
-.rootology-welcome-brand { font-size: 2.5rem; line-height: 1; margin: 0 0 var(--lumo-space-m); }
+.rootology-welcome-brand { font-size: 2.5rem; line-height: 1; margin: 0 0 var(--lumo-space-xs); }
 .rootology-welcome-mascot {
     display: block;
     width: 12rem;
@@ -865,8 +901,8 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-area-name vaadin-icon,
 .rootology-kind-icon {
     flex: none;
-    width: var(--lumo-icon-size-m);
-    height: var(--lumo-icon-size-m);
+    width: 1.6em;
+    height: 1.6em;
     color: var(--lumo-primary-text-color);
 }
 .rootology-area-actions {
