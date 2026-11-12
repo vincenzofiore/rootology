@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -42,7 +43,8 @@ import java.util.List;
 
 /**
  * My account (#40): the sign-in accounts of the person and how to link or unlink one (#28), downloading one's
- * data as JSON and deleting the account, as the privacy page promises. Deleting asks for the login to be typed,
+ * data as JSON and deleting the account, as the privacy page promises, and a way to the notification
+ * preferences (#88). Deleting asks for the login to be typed,
  * and is refused, with the reason, while the person is the only owner of a space others use or the last admin.
  */
 @Route(value = AccountView.ROUTE, layout = MainLayout.class)
@@ -67,6 +69,12 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
 
         add(new H3(getTranslation("account.signin.title")), new Paragraph(getTranslation("account.signin.text")));
         add(signInAccounts(login, identities));
+
+        // The notification preferences are a page of their own (#88), reachable from here and from the list.
+        add(new H3(getTranslation("account.notifications.title")),
+                new Paragraph(getTranslation("account.notifications.text")));
+        add(new Button(getTranslation("account.notifications.button"),
+                e -> UI.getCurrent().navigate(NotificationSettingsView.class)));
 
         add(new H3(getTranslation("account.export.title")), new Paragraph(getTranslation("account.export.text")));
         String fileName = "rootology-" + login + "-" + LocalDate.now() + ".json";

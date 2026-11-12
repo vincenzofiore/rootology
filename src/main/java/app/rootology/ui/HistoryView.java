@@ -51,6 +51,8 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
     private final H3 title = new H3(getTranslation("history.title"));
     private final Paragraph place = new Paragraph();
     private final Grid<PipelineRunRecord> grid = new Grid<>();
+    /** The same rows as cards on a phone (#88), where a table's question column has no room. */
+    private final Div cards = new Div();
     /** What the page says when there is no question yet (#80, #81), and the way to ask one. */
     private final EmptyState empty = new EmptyState(getTranslation("history.empty"),
             getTranslation("history.empty.ask"), this::openAsk);
@@ -73,13 +75,15 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
                 .setHeader(getTranslation("history.context")).setFlexGrow(2);
         grid.addItemClickListener(e -> show(e.getItem()));
         grid.addClassName("rootology-clickable-rows");
+        grid.addClassName("rootology-history-grid");
         grid.setSizeFull();
+        cards.addClassName("rootology-history-cards");
 
         empty.setVisible(false);
         // A guest only looks (#33): the button is shown once beforeEnter knows the space's role.
         empty.actionVisible(false);
 
-        add(title, place, grid, empty);
+        add(title, place, grid, cards, empty);
         setSizeFull();
     }
 
@@ -107,12 +111,14 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         List<PipelineRunRecord> runs = spaceId == 0 ? List.of() : history.recent(spaceId, gardenId, currentUser.login());
         grid.setItems(runs);
         grid.setVisible(!runs.isEmpty());
+        cards.removeAll();
+        runs.forEach(run -> cards.add(card(run)));
+        cards.setVisible(!runs.isEmpty());
         empty.setVisible(runs.isEmpty());
     }
 
-    /** The date as the browser's short form, with the full date and time on hover. */
     /** The answer's values as small badges, and nothing when the question was refused (#53). */
-    private Component values(PipelineRunRecord run) {
+    private Div values(PipelineRunRecord run) {
         Div badges = new Div();
         badges.addClassNames(Display.FLEX, FlexWrap.WRAP, Gap.XSMALL);
         if (run.isOffDomain()) {
@@ -146,6 +152,33 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         described.getElement().setAttribute("aria-label", word);
         described.setTooltipText(word);
         return described;
+    }
+
+    /**
+     * One question as a card for a phone (#88): the date and its outcome, the question on as many lines as it
+     * needs, the answer's values and who asked. The same click opens the full answer.
+     */
+    private Component card(PipelineRunRecord run) {
+        Div card = new Div();
+        card.addClassName("rootology-history-card");
+        Div head = new Div(DateText.dateTimeSpan(run.getFinishedAt(), this), outcome(run));
+        head.addClassName("rootology-history-card-head");
+        Span question = new Span(run.getQuestion());
+        question.addClassName("rootology-history-card-question");
+        Div badges = values(run);
+        badges.addClassName("rootology-history-card-values");
+        Span askedBy = new Span(getTranslation("history.askedby") + " " + run.getStartedBy());
+        askedBy.addClassNames(FontSize.XSMALL, TextColor.SECONDARY);
+        card.add(head, question, badges, askedBy);
+        history.contextOf(run).ifPresent(context -> {
+            Span line = new Span(ContextText.line(context, this));
+            line.addClassNames(FontSize.XSMALL, TextColor.SECONDARY, "rootology-history-card-context");
+            card.add(line);
+        });
+        Button open = RowActions.open(getTranslation("history.open"), e -> show(run));
+        open.addClassName("rootology-history-card-open");
+        card.add(open);
+        return card;
     }
 
     /** A row opens the full answer of the question (#80), with the context it was given in. */

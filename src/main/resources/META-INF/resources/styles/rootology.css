@@ -934,3 +934,189 @@ rootology-garden-map { display: block; width: 100%; }
         flex: 1 1 auto;
     }
 }
+
+/* Phone use (#88): a bar at the bottom inside a garden, the weather in one row, one card per question in the
+   history, and a way past the menu. The height is shared with Ask's field and with the page's bottom room. */
+:root {
+    --rootology-bottom-nav-height: 3.5rem;
+}
+
+/* The first Tab (#88): out of sight until it has the focus, then a link over the page. */
+.rootology-skip {
+    position: fixed;
+    top: var(--lumo-space-s);
+    inset-inline-start: var(--lumo-space-s);
+    z-index: 100;
+    transform: translateY(-300%);
+    padding: var(--lumo-space-xs) var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--lumo-base-color);
+    color: var(--lumo-primary-text-color);
+    font-weight: 600;
+}
+.rootology-skip:focus {
+    transform: none;
+}
+/* The skip link lands here (#88): the page is focused, and a frame around all of it says nothing. */
+#main-content:focus {
+    outline: none;
+}
+
+/* Home, Ask, Plots and Waiting questions at the bottom of a phone (#88): never above 640 px. */
+.rootology-bottom-nav {
+    display: none;
+}
+
+/* The space and garden at the top of the drawer (#88), where the navbar hides them on a phone (#79). */
+.rootology-drawer-where {
+    display: none;
+}
+
+/* Seven days of weather in one row that scrolls sideways (#88), not in columns with the last day alone. */
+.rootology-weather-days {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* The history as cards (#88) is only for a phone; the table is the page on a computer. */
+.rootology-history-cards {
+    display: none;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    width: 100%;
+    max-width: 100%;
+}
+.rootology-history-card {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-history-card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-history-card-question {
+    padding-inline-end: var(--lumo-size-s);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-history-card-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+}
+.rootology-history-card-context {
+    overflow-wrap: anywhere;
+}
+.rootology-history-card-open {
+    position: absolute;
+    top: var(--lumo-space-xs);
+    inset-inline-end: var(--lumo-space-xs);
+}
+
+@media (max-width: 640px) {
+    .rootology-drawer-where {
+        display: block;
+        padding: var(--lumo-space-xs) var(--lumo-space-m) var(--lumo-space-s);
+        color: var(--lumo-secondary-text-color);
+        font-size: var(--lumo-font-size-s);
+        overflow-wrap: anywhere;
+    }
+    .rootology-bottom-nav {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 20;
+        display: flex;
+        align-items: stretch;
+        justify-content: space-around;
+        box-sizing: border-box;
+        padding: var(--lumo-space-xs) var(--lumo-space-xs)
+                calc(var(--lumo-space-xs) + env(safe-area-inset-bottom, 0px));
+        background: var(--lumo-base-color);
+        border-top: 1px solid var(--lumo-contrast-10pct);
+    }
+    .rootology-bottom-nav-item {
+        position: relative;
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        min-height: 44px;
+        color: var(--lumo-secondary-text-color);
+        font-size: var(--lumo-font-size-xs);
+        text-decoration: none;
+        text-align: center;
+    }
+    .rootology-bottom-nav-item vaadin-icon {
+        width: var(--lumo-icon-size-m);
+        height: var(--lumo-icon-size-m);
+    }
+    .rootology-bottom-nav-item span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .rootology-bottom-nav-current {
+        color: var(--lumo-primary-text-color);
+        font-weight: 600;
+    }
+    .rootology-bottom-nav-badge {
+        position: absolute;
+        top: 0;
+        inset-inline-start: 50%;
+        margin-inline-start: 0.35rem;
+        min-width: 1.15rem;
+        padding: 0 0.3em;
+        border-radius: 999px;
+        background: var(--lumo-error-color);
+        color: #fff;
+        font-size: 0.7rem;
+        line-height: 1.3;
+        text-align: center;
+    }
+    /* The page keeps its last card above the bar (#88). */
+    vaadin-app-layout.rootology-with-bottom-nav::part(content) {
+        padding-bottom: calc(var(--rootology-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+    /* Ask's field sits just above the bar, one stack instead of two overlapping fixed elements (#82, #88). */
+    .rootology-with-bottom-nav .rootology-ask-form {
+        bottom: calc(var(--rootology-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+    .rootology-with-bottom-nav .rootology-ask {
+        padding-bottom: calc(var(--rootology-bottom-nav-height) + 5rem + env(safe-area-inset-bottom, 0px));
+    }
+    /* The weather row scrolls itself, never the page (#88). */
+    .rootology-weather-days {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: var(--lumo-space-xs);
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+    }
+    .rootology-weather-days > * {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+    /* One question per card, readable at 360 px (#88): the table has no room for the question there. */
+    .rootology-history-grid {
+        display: none;
+    }
+    .rootology-history-cards {
+        display: flex;
+    }
+}

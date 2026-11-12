@@ -6,6 +6,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Added
+
+- On a phone, inside a garden, a bar at the bottom (Home, Ask, Plots, Waiting questions with the count),
+  "Skip to content" as the first Tab, and the app installable from the home screen with no offline use (#88).
+
 ### Changed
 
 - Asking no longer blocks the page: the question runs in the background, a card shows it with the seconds so
@@ -30,6 +35,9 @@ What each version of Rootology brings, for the people who use it and run it. The
   titles, and the plots header keeps only town and country (#79).
 - The personal space is named after its owner, and an owner can rename a space from the members page (#79).
 - The question count shows only when five or fewer questions are left today (#79).
+- On a phone the weather scrolls in one row, the history shows one card per question, the drawer names the
+  current garden, and the notification preferences moved to My account, with a link from the notifications
+  page (#88).
 - Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
   amber) instead of Lumo's slate blue; light mode is unchanged (#75).
 - The garden home is a grid of cards: the question field with Ask and two compact actions on top, then the

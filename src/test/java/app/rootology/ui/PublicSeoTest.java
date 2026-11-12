@@ -60,6 +60,18 @@ class PublicSeoTest {
     }
 
     @Test
+    void theManifestIsPublicAndInstallsTheApp() throws Exception {
+        HttpResponse<String> response = get("/manifest.json");
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
+        assertThat(response.body())
+                .contains("\"name\": \"Rootology\"", "\"short_name\": \"Rootology\"",
+                        "\"start_url\": \"/\"", "\"display\": \"standalone\"",
+                        "\"icons/icon-192.png\"", "\"icons/icon-512.png\"");
+    }
+
+    @Test
     void theWelcomePageStatesItsCanonicalAddress() throws Exception {
         HttpResponse<String> response = get("/" + WelcomeView.ROUTE);
 

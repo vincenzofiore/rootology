@@ -57,8 +57,10 @@ class WeatherCard extends Div {
         header.addClassNames("rootology-card-title", Display.FLEX, AlignItems.CENTER, Gap.SMALL);
         add(header);
 
+        // Seven days: a column-wrapped grid on a computer, one scrollable row on a phone (#88), so the
+        // seventh day is never alone on a line of its own.
         Div tiles = new Div();
-        tiles.addClassNames(Display.FLEX, FlexWrap.WRAP, Gap.SMALL);
+        tiles.addClassNames("rootology-weather-days", Display.FLEX, FlexWrap.WRAP, Gap.SMALL);
         days.forEach(day -> tiles.add(tile(day, locale)));
         add(tiles);
 

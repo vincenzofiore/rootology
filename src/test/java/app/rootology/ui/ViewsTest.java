@@ -136,7 +136,7 @@ class ViewsTest {
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, MembersView.class,
                 InvitationsView.class, CuratorView.class,
                 PlotsView.class, GardensView.class, GardenHomeView.class, AskView.class, KnowledgeView.class,
-                AdminView.class, NotificationsView.class, StartView.class,
+                AdminView.class, NotificationsView.class, NotificationSettingsView.class, StartView.class,
                 AccountView.class)) {
             Route route = view.getAnnotation(Route.class);
             assertThat(view.isAnnotationPresent(PermitAll.class)
@@ -165,9 +165,10 @@ class ViewsTest {
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(gardens, viewer()).getChildren()).isEmpty();
-        assertThat(new NotificationsView(notificationService, gardens, viewer(), telegramLinks).getChildren()).isNotEmpty();
+        assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
                 .getChildren()).isNotEmpty();
+        assertThat(new NotificationSettingsView(notificationService, viewer(), telegramLinks).getChildren()).isNotEmpty();
         assertThat(new KnowledgeView(enrichment, crops, knowledge, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(AdminView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("ADMIN");
@@ -187,24 +188,24 @@ class ViewsTest {
         long otherGarden = registeredGarden(mine, me.login());
         long strangerGarden = registeredGarden(other, "notifications-other-space");
 
-        NotificationsView fromGarden = new NotificationsView(notificationService, gardens, me, telegramLinks);
+        NotificationsView fromGarden = new NotificationsView(notificationService, gardens, me);
         fromGarden.beforeEnter(notificationsFrom(mine, garden));
         assertThat(fromGarden.asksBeforeOpening(notification(mine, garden))).as("same garden").isFalse();
         assertThat(fromGarden.asksBeforeOpening(notification(mine, otherGarden))).as("another garden").isTrue();
         assertThat(fromGarden.asksBeforeOpening(notification(mine))).as("the space level while in a garden").isTrue();
         assertThat(fromGarden.asksBeforeOpening(notification(other))).as("another space").isTrue();
 
-        NotificationsView fromSpace = new NotificationsView(notificationService, gardens, me, telegramLinks);
+        NotificationsView fromSpace = new NotificationsView(notificationService, gardens, me);
         fromSpace.beforeEnter(notificationsFrom(mine, 0));
         assertThat(fromSpace.asksBeforeOpening(notification(mine))).as("the space level, from there").isFalse();
         assertThat(fromSpace.asksBeforeOpening(notification(mine, garden))).as("a garden, from the space level").isTrue();
 
-        NotificationsView fromNowhere = new NotificationsView(notificationService, gardens, me, telegramLinks);
+        NotificationsView fromNowhere = new NotificationsView(notificationService, gardens, me);
         fromNowhere.beforeEnter(notificationsFrom(0, 0));
         assertThat(fromNowhere.asksBeforeOpening(notification(mine))).as("no context").isTrue();
         assertThat(fromNowhere.asksBeforeOpening(notification(mine, garden))).as("no context, a garden").isTrue();
 
-        NotificationsView fromAStranger = new NotificationsView(notificationService, gardens, me, telegramLinks);
+        NotificationsView fromAStranger = new NotificationsView(notificationService, gardens, me);
         fromAStranger.beforeEnter(notificationsFrom(other, strangerGarden));
         assertThat(fromAStranger.asksBeforeOpening(notification(mine))).as("a space the person is not in is ignored").isTrue();
     }
@@ -214,7 +215,7 @@ class ViewsTest {
         CurrentUser me = viewer();
         long mine = personalSpace(me.login());
         long garden = registeredGarden(mine, me.login());
-        NotificationsView view = new NotificationsView(notificationService, gardens, me, telegramLinks);
+        NotificationsView view = new NotificationsView(notificationService, gardens, me);
 
         NotificationsView.Target alertOfAGarden = view.target(weather(mine, garden));
         assertThat(alertOfAGarden.view()).isEqualTo(GardenHomeView.class);

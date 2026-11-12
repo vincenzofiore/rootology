@@ -25,5 +25,7 @@ public class AppShell implements AppShellConfigurator {
         settings.addFavIcon("icon", "icons/rootology.svg", "any");
         settings.addFavIcon("icon", "icons/favicon-32.png", "32x32");
         settings.addFavIcon("apple-touch-icon", "icons/apple-touch-icon.png", "180x180");
+        // Add to Home screen (#88): a full-screen start, never offline (ADR 0001).
+        settings.addLink("manifest", "manifest.json");
     }
 }
