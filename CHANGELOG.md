@@ -13,6 +13,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- On a phone the notifications are one card each (unread dot, when, the whole text wrapping, space · garden
+  and the open action), so nothing is cut at 360 px (#93).
 - Asking no longer blocks the page: the question runs in the background, a card shows it with the seconds so
   far, the button is disabled meanwhile, and the visit's answers stack below the field, the newest first, each
   with "ask again" and "copy". The long paragraph of instructions is now a few suggested questions chosen by the

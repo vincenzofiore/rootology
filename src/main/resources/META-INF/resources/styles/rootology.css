@@ -979,8 +979,10 @@ rootology-garden-map { display: block; width: 100%; }
     max-width: 100%;
 }
 
-/* The history as cards (#88) is only for a phone; the table is the page on a computer. */
-.rootology-history-cards {
+/* The history (#88) and the notifications (#93) as cards is only for a phone; the table is the page on a
+   computer. */
+.rootology-history-cards,
+.rootology-notification-cards {
     display: none;
     box-sizing: border-box;
     flex-direction: column;
@@ -988,7 +990,8 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
     max-width: 100%;
 }
-.rootology-history-card {
+.rootology-history-card,
+.rootology-notification-card {
     position: relative;
     box-sizing: border-box;
     display: flex;
@@ -999,7 +1002,8 @@ rootology-garden-map { display: block; width: 100%; }
     border-radius: var(--lumo-border-radius-l);
     background: var(--lumo-contrast-5pct);
 }
-.rootology-history-card-head {
+.rootology-history-card-head,
+.rootology-notification-card-head {
     display: flex;
     align-items: center;
     gap: var(--lumo-space-s);
@@ -1019,10 +1023,26 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-history-card-context {
     overflow-wrap: anywhere;
 }
-.rootology-history-card-open {
+.rootology-history-card-open,
+.rootology-notification-card-open {
     position: absolute;
     top: var(--lumo-space-xs);
     inset-inline-end: var(--lumo-space-xs);
+}
+
+/* What happened, on as many lines as it needs at 360 px (#93), and never under the open button. */
+.rootology-notification-card-what {
+    padding-inline-end: var(--lumo-size-s);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-notification-card-details,
+.rootology-notification-card-status,
+.rootology-notification-card-where {
+    overflow-wrap: anywhere;
+}
+.rootology-notification-card-unread {
+    color: var(--lumo-primary-text-color);
 }
 
 @media (max-width: 640px) {
@@ -1112,11 +1132,13 @@ rootology-garden-map { display: block; width: 100%; }
         flex: 0 0 auto;
         scroll-snap-align: start;
     }
-    /* One question per card, readable at 360 px (#88): the table has no room for the question there. */
-    .rootology-history-grid {
+    /* One card per row, readable at 360 px (#88, #93): a table has no room for a long text there. */
+    .rootology-history-grid,
+    .rootology-notification-grid {
         display: none;
     }
-    .rootology-history-cards {
+    .rootology-history-cards,
+    .rootology-notification-cards {
         display: flex;
     }
 }

@@ -4,14 +4,18 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
+import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.notifications.NotificationService;
@@ -27,7 +31,7 @@ import java.util.Map;
 /**
  * The signed-in person’s notifications (#26) and a way to the waiting question; their preferences live in
  * Notification settings (#88). Notifications are never filtered (#56): one of another space or garden asks
- * first, naming both, and then goes there.
+ * first, naming both, and then goes there. On a computer they are a table; below 640 px one card each (#93).
  */
 @Route(value = "notifications", layout = MainLayout.class)
 @PermitAll
@@ -41,6 +45,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     private final GardenService gardens;
     private final CurrentUser currentUser;
     private final Grid<NotificationView> grid = new Grid<>();
+    /** The same rows as cards on a phone (#93), where a table's "What" column has no room. */
+    private final Div cards = new Div();
     /** What the page shows when nothing has happened yet (#81). */
     private final EmptyState empty = new EmptyState(getTranslation("empty.notifications"));
     /** The space and garden the bell was used from; only a hint, never used to read data (#56). */
@@ -54,22 +60,16 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
         grid.addComponentColumn(n -> DateText.dateTimeSpan(n.createdAt(), this))
                 .setHeader(getTranslation("notifications.when")).setAutoWidth(true);
-        grid.addColumn(n -> (n.unread() ? "● " : "") + (n.weather() ? n.title()
-                : n.accessRequest() ? getTranslation("notifications.accessrequest")
-                : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting")))
+        grid.addColumn(n -> (n.unread() ? "● " : "") + what(n))
                 .setHeader(getTranslation("notifications.what")).setAutoWidth(true);
         grid.addColumn(this::where).setHeader(getTranslation("notifications.where")).setAutoWidth(true);
         grid.addColumn(NotificationView::body).setHeader(getTranslation("notifications.details")).setFlexGrow(3);
-        grid.addColumn(n -> n.weather() || n.answered() || n.accessRequest() ? ""
-                        : n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
-                        : getTranslation("notifications.status.answered", n.resolvedBy()))
+        grid.addColumn(this::status)
                 .setHeader(getTranslation("notifications.status")).setAutoWidth(true);
-        grid.addComponentColumn(n -> {
-            Button open = RowActions.open(getTranslation("notifications.open"), e -> open(n));
-            open.setVisible(n.resolvedAt() == null);
-            return open;
-        }).setAutoWidth(true);
+        grid.addComponentColumn(this::openButton).setAutoWidth(true);
+        grid.addClassName("rootology-notification-grid");
         grid.setAllRowsVisible(true);
+        cards.addClassName("rootology-notification-cards");
         Button allRead = new Button(getTranslation("notifications.allread"), e -> {
             notifications.markRead(currentUser.login(), null);
             refresh();
@@ -80,7 +80,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                 e -> UI.getCurrent().navigate(NotificationSettingsView.class));
 
         empty.setVisible(false);
-        add(new H3(getTranslation("notifications.title")), allRead, preferences, grid, empty);
+        add(new H3(getTranslation("notifications.title")), allRead, preferences, grid, cards, empty);
         refresh();
     }
 
@@ -193,10 +193,80 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         return space + " · " + garden;
     }
 
+    /** What happened, in a word or in the alert's own title: the table's "What" and the card's main line. */
+    String what(NotificationView n) {
+        return n.weather() ? n.title()
+                : n.accessRequest() ? getTranslation("notifications.accessrequest")
+                : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting");
+    }
+
+    /** Waiting for a person or answered by one; the other kinds carry their news in the title (#93). */
+    String status(NotificationView n) {
+        if (n.weather() || n.answered() || n.accessRequest()) {
+            return "";
+        }
+        return n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
+                : getTranslation("notifications.status.answered", n.resolvedBy());
+    }
+
+    private Button openButton(NotificationView n) {
+        Button open = RowActions.open(getTranslation("notifications.open"), e -> open(n));
+        open.setVisible(n.resolvedAt() == null);
+        return open;
+    }
+
+    /**
+     * One notification as a card for a phone (#93): unread dot, when, what happened on as many lines as it
+     * needs, the details, its space and garden, and the open action. Opening it behaves as the row's.
+     */
+    private Div card(NotificationView n) {
+        Div card = new Div();
+        card.addClassName("rootology-notification-card");
+        Div head = new Div();
+        head.addClassName("rootology-notification-card-head");
+        if (n.unread()) {
+            Span unread = new Span("●");
+            unread.addClassName("rootology-notification-card-unread");
+            unread.getElement().setAttribute("role", "img");
+            unread.getElement().setAttribute("aria-label", getTranslation("notifications.unread"));
+            unread.setTitle(getTranslation("notifications.unread"));
+            head.add(unread);
+        }
+        head.add(DateText.dateTimeSpan(n.createdAt(), this));
+
+        Span happened = new Span(what(n));
+        happened.addClassName("rootology-notification-card-what");
+
+        card.add(head, happened);
+        // Only a weather alert's text is written for people, in Italian; a question's is the service's (#93).
+        if (n.weather() && n.body() != null && !n.body().isBlank()) {
+            Span details = new Span(n.body());
+            details.addClassNames(FontSize.SMALL, "rootology-notification-card-details");
+            card.add(details);
+        }
+        String status = status(n);
+        if (!status.isEmpty()) {
+            Span line = new Span(status);
+            line.addClassNames(FontSize.XSMALL, TextColor.SECONDARY, "rootology-notification-card-status");
+            card.add(line);
+        }
+        Span where = new Span(where(n));
+        where.addClassNames(FontSize.XSMALL, TextColor.SECONDARY, "rootology-notification-card-where");
+        card.add(where);
+
+        Button open = openButton(n);
+        open.addClassName("rootology-notification-card-open");
+        card.add(open);
+        return card;
+    }
+
     private void refresh() {
         List<NotificationView> rows = notifications.of(currentUser.login(), 50);
         grid.setItems(rows);
         grid.setVisible(!rows.isEmpty());
+        cards.removeAll();
+        rows.forEach(n -> cards.add(card(n)));
+        cards.setVisible(!rows.isEmpty());
         empty.setVisible(rows.isEmpty());
     }
 

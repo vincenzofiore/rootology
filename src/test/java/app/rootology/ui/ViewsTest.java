@@ -228,6 +228,33 @@ class ViewsTest {
         assertThat(alertWithoutAGarden.route().get(Routed.SPACE)).contains(String.valueOf(mine));
     }
 
+    @Test
+    void aNotificationCardSaysWhatHappenedAndWhetherItIsUnread() {
+        // Without a Vaadin session getTranslation hands back the key itself (#93): the test checks which
+        // text each kind gets.
+        NotificationsView view = new NotificationsView(notificationService, gardens, viewer());
+        app.rootology.notifications.NotificationView waiting = notification(1);
+        assertThat(waiting.unread()).isTrue();
+        assertThat(view.what(waiting)).contains("notifications.waiting");
+        assertThat(view.status(waiting)).contains("notifications.status.waiting");
+
+        // A weather alert carries its own title, and has no status beyond it.
+        app.rootology.notifications.NotificationView alert = weather(1, 0);
+        assertThat(view.what(alert)).isEqualTo("Rischio gelo");
+        assertThat(view.status(alert)).isEmpty();
+
+        java.time.Instant now = java.time.Instant.now();
+        app.rootology.notifications.NotificationView answered = new app.rootology.notifications.NotificationView(3, 1,
+                0, "ESCALATION_ANSWERED", "p-2", "title", "body", now, now, now, "ada", null);
+        assertThat(view.what(answered)).contains("notifications.answered");
+        assertThat(view.status(answered)).isEmpty();
+
+        app.rootology.notifications.NotificationView request = new app.rootology.notifications.NotificationView(4, 0,
+                0, "ACCESS_REQUEST", null, "title", "body", now, null, null, null, null);
+        assertThat(view.what(request)).contains("notifications.accessrequest");
+        assertThat(view.status(request)).isEmpty();
+    }
+
     private long registeredGarden(long spaceId, String login) {
         return gardens.saveGarden(spaceId, login, null, "Garden " + System.nanoTime(), null, null, null).id();
     }
