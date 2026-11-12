@@ -20,6 +20,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -142,7 +143,9 @@ class NotificationServiceTest {
         assertThat(notifications.unread("mia")).as("the asker too").isEqualTo(1);
         assertThat(notifications.unread("gil")).as("a guest cannot answer").isZero();
         assertThat(notifications.of("owen", 10)).singleElement().satisfies(n -> {
-            assertThat(n.body()).contains("mia asked: Quali sono le compagne della lavanda?");
+            // The data only (#94): who asked and the question, no sentence and no decision reason.
+            assertThat(n.askedBy()).isEqualTo("mia");
+            assertThat(n.body()).isEqualTo("Quali sono le compagne della lavanda?");
             assertThat(n.processId()).isEqualTo("p-1");
         });
 
@@ -158,7 +161,7 @@ class NotificationServiceTest {
         }).anySatisfy(n -> {
             assertThat(n.answered()).isTrue();
             assertThat(n.processId()).isEqualTo("p-1");
-            assertThat(n.body()).isEqualTo("owen answered your question");
+            assertThat(n.body()).as("who answered is in resolvedBy (#94)").isNull();
             assertThat(n.unread()).isTrue();
         });
     }
@@ -357,6 +360,43 @@ class NotificationServiceTest {
             assertThat(mail.path(part).asString()).as(part + ": the overview, where the gardens are")
                     .contains("/spaces/" + space + "/gardens");
         }
+    }
+
+    /** The email says it in Italian like the rest of its text, and never the decision's reason (#94). */
+    @Test
+    void theDigestWordsAWaitingQuestionInItalian() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("vito", "wanda", "xeno");
+        notifications.save("vito", new NotificationPreferences("vito@example.org", true, true, true, true, null, null));
+
+        waiting("p-10", space, "wanda", "Quali sono le compagne della lavanda?");
+        now = now.plus(Duration.ofMinutes(3));
+
+        assertThat(notifications.digest()).isEqualTo(1);
+        JsonNode mail = messageTo("vito@example.org");
+        for (String part : new String[]{"Text", "HTML"}) {
+            assertThat(mail.path(part).asString()).as(part)
+                    .contains("wanda ha chiesto: Quali sono le compagne della lavanda?")
+                    .doesNotContain("asked:", "lavanda is not in the dataset");
+        }
+    }
+
+    /** A row stored before #94 keeps the sentence it was stored with: nothing parses it (#94). */
+    @Test
+    void aWaitingQuestionStoredBeforeTheChangeIsEmailedAsItWas() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("yara", "zoe", "aldo");
+        notifications.save("yara", new NotificationPreferences("yara@example.org", true, true, true, true, null, null));
+
+        jdbc.sql("INSERT INTO notification (recipient, space_id, kind, title, body, created_at) "
+                        + "VALUES (?, ?, 'ESCALATION_WAITING', 'A question waits for an answer', ?, ?)")
+                .params("yara", space, "zoe asked: Domanda vecchia? (lavanda is not in the dataset)",
+                        Timestamp.from(now)).update();
+        now = now.plus(Duration.ofMinutes(3));
+
+        assertThat(notifications.digest()).isEqualTo(1);
+        JsonNode mail = messageTo("yara@example.org");
+        assertThat(mail.path("Text").asString()).contains("zoe asked: Domanda vecchia? (lavanda is not in the dataset)");
     }
 
     /** A linked chat, as the /start of a good code leaves it. */

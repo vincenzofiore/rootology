@@ -63,7 +63,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         grid.addColumn(n -> (n.unread() ? "● " : "") + what(n))
                 .setHeader(getTranslation("notifications.what")).setAutoWidth(true);
         grid.addColumn(this::where).setHeader(getTranslation("notifications.where")).setAutoWidth(true);
-        grid.addColumn(NotificationView::body).setHeader(getTranslation("notifications.details")).setFlexGrow(3);
+        grid.addColumn(this::details).setHeader(getTranslation("notifications.details")).setFlexGrow(3);
         grid.addColumn(this::status)
                 .setHeader(getTranslation("notifications.status")).setAutoWidth(true);
         grid.addComponentColumn(this::openButton).setAutoWidth(true);
@@ -200,6 +200,11 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                 : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting");
     }
 
+    /** What the notification says beyond its title, in the page's language (#94). */
+    String details(NotificationView n) {
+        return NotificationText.details(n, this::getTranslation);
+    }
+
     /** Waiting for a person or answered by one; the other kinds carry their news in the title (#93). */
     String status(NotificationView n) {
         if (n.weather() || n.answered() || n.accessRequest()) {
@@ -238,11 +243,13 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         happened.addClassName("rootology-notification-card-what");
 
         card.add(head, happened);
-        // Only a weather alert's text is written for people, in Italian; a question's is the service's (#93).
-        if (n.weather() && n.body() != null && !n.body().isBlank()) {
-            Span details = new Span(n.body());
-            details.addClassNames(FontSize.SMALL, "rootology-notification-card-details");
-            card.add(details);
+        // The details in the reader's language (#94), on the card as in the table's column: an invitation
+        // request already says everything in its title.
+        String details = n.accessRequest() ? "" : details(n);
+        if (!details.isBlank()) {
+            Span line = new Span(details);
+            line.addClassNames(FontSize.SMALL, "rootology-notification-card-details");
+            card.add(line);
         }
         String status = status(n);
         if (!status.isEmpty()) {

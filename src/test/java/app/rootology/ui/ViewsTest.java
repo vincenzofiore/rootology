@@ -237,6 +237,8 @@ class ViewsTest {
         assertThat(waiting.unread()).isTrue();
         assertThat(view.what(waiting)).contains("notifications.waiting");
         assertThat(view.status(waiting)).contains("notifications.status.waiting");
+        // The details are built here, in the page's language (#94): without a session the key names it.
+        assertThat(view.details(waiting)).contains("notifications.details.asked");
 
         // A weather alert carries its own title, and has no status beyond it.
         app.rootology.notifications.NotificationView alert = weather(1, 0);
@@ -245,12 +247,13 @@ class ViewsTest {
 
         java.time.Instant now = java.time.Instant.now();
         app.rootology.notifications.NotificationView answered = new app.rootology.notifications.NotificationView(3, 1,
-                0, "ESCALATION_ANSWERED", "p-2", "title", "body", now, now, now, "ada", null);
+                0, "ESCALATION_ANSWERED", "p-2", "title", "body", now, now, now, "ada", null, null);
         assertThat(view.what(answered)).contains("notifications.answered");
         assertThat(view.status(answered)).isEmpty();
+        assertThat(view.details(answered)).as("an old answered row keeps its sentence (#94)").isEqualTo("body");
 
         app.rootology.notifications.NotificationView request = new app.rootology.notifications.NotificationView(4, 0,
-                0, "ACCESS_REQUEST", null, "title", "body", now, null, null, null, null);
+                0, "ACCESS_REQUEST", null, "title", "body", now, null, null, null, null, null);
         assertThat(view.what(request)).contains("notifications.accessrequest");
         assertThat(view.status(request)).isEmpty();
     }
@@ -281,13 +284,14 @@ class ViewsTest {
     private static app.rootology.notifications.NotificationView weather(long spaceId, long gardenId) {
         return new app.rootology.notifications.NotificationView(2, spaceId, gardenId,
                 "WEATHER_ALERT", null, "Rischio gelo", "Minima prevista", java.time.Instant.now(), null, null, null,
-                "frost:" + gardenId + ":2026-11-12");
+                "frost:" + gardenId + ":2026-11-12", null);
     }
 
     private static app.rootology.notifications.NotificationView notification(long spaceId,
                                                                                               long gardenId) {
         return new app.rootology.notifications.NotificationView(1, spaceId, gardenId,
-                "ESCALATION_WAITING", "p-1", "title", "body", java.time.Instant.now(), null, null, null, null);
+                "ESCALATION_WAITING", "p-1", "title", "body", java.time.Instant.now(), null, null, null, null,
+                "mia");
     }
 
     @Autowired

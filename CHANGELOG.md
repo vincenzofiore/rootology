@@ -51,6 +51,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- A waiting question’s notification says who asked and the question in the reader’s language, in the app and
+  in the email, instead of the service’s English sentence; the phone card shows the details again (#94).
 - Signing in from Safari no longer ends with a download of `apple-touch-icon.png`: the icons Safari asks for at the root are public images.
 - A note about a garden or plot named in the question shows the names instead of "{0}" and "{1}" (#86).
 - On a phone the space switcher moves into the side menu, the space and garden names leave the navbar and

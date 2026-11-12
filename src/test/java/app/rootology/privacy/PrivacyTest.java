@@ -65,6 +65,8 @@ class PrivacyTest {
                 values ((select id from app_user where login = 'del-ada'), 'google', '4243', 'ada@gmail.com', now())""").update();
         notification("del-ada", bobSpace);
         notification("del-bob", bobSpace);
+        // Bob was told that Ada asked a question in his space (#94).
+        jdbc.sql("update notification set asked_by = 'del-ada' where recipient = 'del-bob'").update();
         jdbc.sql("insert into telegram_link (login, chat_id, linked_at) values ('del-ada', 6001, now())").update();
         jdbc.sql("""
                 insert into telegram_link_code (code_hash, login, created_at, expires_at)
@@ -90,6 +92,8 @@ class PrivacyTest {
         assertThat(count("select count(*) from usage_record where github_login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from notification where recipient = 'del-ada'")).isZero();
         assertThat(count("select count(*) from notification where recipient = 'del-bob'")).isEqualTo(1);
+        assertThat(jdbc.sql("select asked_by from notification where recipient = 'del-bob'").query(String.class).single())
+                .isEqualTo(AccountDeletion.DELETED_USER);
         // The Telegram link and any code of that person go with the account (#38).
         assertThat(count("select count(*) from telegram_link where login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from telegram_link_code where login = 'del-ada'")).isZero();

@@ -87,11 +87,12 @@ public class NotificationService {
         Set<String> recipients = spaces.membersOf(waiting.spaceId(), waiting.askedBy()).stream()
                 .filter(m -> m.role().contributes()).map(Member::githubLogin).collect(Collectors.toSet());
         for (String recipient : recipients) {
+            // The data only (#94): the page and the email word it in the reader's language, and the reason
+            // of the decision stays on the Escalations card.
             jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, process_id, title, body, "
-                            + "created_at) VALUES (?, ?, ?, 'ESCALATION_WAITING', ?, ?, ?, ?)")
+                            + "asked_by, created_at) VALUES (?, ?, ?, 'ESCALATION_WAITING', ?, ?, ?, ?, ?)")
                     .params(recipient, waiting.spaceId(), garden(waiting.gardenId()), waiting.processId(),
-                            "A question waits for an answer",
-                            truncate(waiting.askedBy() + " asked: " + waiting.question() + " (" + waiting.reason() + ")", 1000),
+                            "A question waits for an answer", truncate(waiting.question(), 1000), waiting.askedBy(),
                             Timestamp.from(clock.instant()))
                     .update();
         }
@@ -115,12 +116,10 @@ public class NotificationService {
         String asker = normalize(resolved.askedBy());
         if (!asker.isEmpty() && !asker.equals(normalize(resolved.reviewer()))
                 && spaces.isMember(resolved.spaceId(), asker)) {
-            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, process_id, title, body, "
-                            + "resolved_by, created_at) VALUES (?, ?, ?, 'ESCALATION_ANSWERED', ?, ?, ?, ?, ?)")
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, process_id, title, "
+                            + "resolved_by, created_at) VALUES (?, ?, ?, 'ESCALATION_ANSWERED', ?, ?, ?, ?)")
                     .params(asker, resolved.spaceId(), garden(resolved.gardenId()), resolved.processId(),
-                            "Your question has an answer",
-                            truncate(resolved.reviewer() + " answered your question", 1000), resolved.reviewer(),
-                            Timestamp.from(resolved.at()))
+                            "Your question has an answer", resolved.reviewer(), Timestamp.from(resolved.at()))
                     .update();
             changed.add(asker);
         }
@@ -152,7 +151,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
         return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
-                        + "resolved_at, resolved_by, dedup_key FROM notification WHERE recipient = ? "
+                        + "resolved_at, resolved_by, dedup_key, asked_by FROM notification WHERE recipient = ? "
                         + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
                 .query((rs, i) -> {
@@ -163,7 +162,7 @@ public class NotificationService {
                     return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
                             rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
                             rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
-                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12));
+                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12), rs.getString(13));
                 })
                 .list();
     }
@@ -361,7 +360,8 @@ public class NotificationService {
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
         // An access request (#65) belongs to no space: the join must not drop it.
         var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, "
-                        + "n.garden_id, s.name, g.name FROM notification n LEFT JOIN space s ON s.id = n.space_id "
+                        + "n.garden_id, s.name, g.name, n.asked_by FROM notification n "
+                        + "LEFT JOIN space s ON s.id = n.space_id "
                         + "LEFT JOIN garden g ON g.id = n.garden_id "
                         + "WHERE n." + mark + " IS NULL AND n.resolved_at IS NULL"
                         + (notAfter == null ? "" : " AND n.created_at <= :notAfter")
@@ -371,7 +371,7 @@ public class NotificationService {
         }
         query.query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
                         rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
-                        rs.getString(10))).list()
+                        rs.getString(10), rs.getString(11))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         return byRecipient;
     }
@@ -425,11 +425,11 @@ public class NotificationService {
         if (!questions.isEmpty()) {
             text.append(questions.size() == 1 ? "una domanda nel tuo spazio aspetta una risposta:\n"
                     : "alcune domande nei tuoi spazi aspettano una risposta:\n");
-            questions.forEach(p -> text.append("- ").append(p.body()).append('\n')
+            questions.forEach(p -> text.append("- ").append(p.questionLine()).append('\n')
                     .append("  Per rispondere: ").append(link("escalations", p)).append('\n'));
             html.append("<p>").append(questions.size() == 1 ? "Una domanda nel tuo spazio aspetta una risposta:"
                     : "Alcune domande nei tuoi spazi aspettano una risposta:").append("</p><ul>");
-            questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body()))
+            questions.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.questionLine()))
                     .append(" — <a href=\"").append(HtmlUtils.htmlEscape(link("escalations", p)))
                     .append("\">Rispondi</a></li>"));
             html.append("</ul>");
@@ -482,7 +482,15 @@ public class NotificationService {
     }
 
     private record Pending(long id, String recipient, String kind, String title, String body, String resolvedBy,
-                           long spaceId, long gardenId, String spaceName, String gardenName) {
+                           long spaceId, long gardenId, String spaceName, String gardenName, String askedBy) {
+
+        /**
+         * A waiting question in the email, in Italian (#94): who asked and the question. A row stored before
+         * #94 kept the service's English sentence in body and has no askedBy: it says what it always said.
+         */
+        String questionLine() {
+            return askedBy == null ? body : askedBy + " ha chiesto: " + body;
+        }
 
         /** Where it happened, as the notification page shows it: space · garden, or the space alone. */
         String place() {

@@ -6,10 +6,13 @@ import java.time.Instant;
  * A notification as its recipient sees it; processId leads to the waiting question (null for weather alerts).
  * gardenId is 0 for a notification about the space level (a question asked outside a garden, #56). dedupKey
  * names the event of a weather alert ("frost:...", "blight:...", #37), so the home can colour it (#84).
+ * body is the question of a waiting question, the text of a weather alert and nothing for an answer (#94);
+ * askedBy is who asked a waiting question, null on the rows stored before #94, which keep the sentence the
+ * service wrote for them then.
  */
 public record NotificationView(long id, long spaceId, long gardenId, String kind, String processId, String title,
                                String body, Instant createdAt, Instant readAt, Instant resolvedAt,
-                               String resolvedBy, String dedupKey) {
+                               String resolvedBy, String dedupKey, String askedBy) {
 
     public boolean weather() {
         return "WEATHER_ALERT".equals(kind);
