@@ -1,0 +1,16 @@
+# Rootology (https://rootology.app): the public pages only, everything else needs a sign-in.
+User-agent: *
+Allow: /welcome
+Allow: /sources
+Allow: /privacy
+# What Vaadin needs to render those pages.
+Allow: /VAADIN/
+Allow: /styles/
+Allow: /images/
+Allow: /icons/
+Allow: /weather-icons/
+# The app itself: /spaces/, /invite/, /request-access, /account, /notifications, /admin, /compare, /curator,
+# /actuator and anything else.
+Disallow: /
+
+Sitemap: https://rootology.app/sitemap.xml

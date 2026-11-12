@@ -206,3 +206,11 @@ They are kept in memory since the last start; a place to keep and chart them com
 Alerts (#27): every minute the app checks the circuits and the disk (`rootology.operations`), and emails the
 admins once per event, in Italian: when a service's circuit opens, and when the disk is 90 % full. An admin
 receives them only with an address in Notifications (set from GitHub at sign-in); quiet hours do not apply.
+
+### Search engines (#91)
+
+`/robots.txt` and `/sitemap.xml` are static files served without a sign-in, so a crawler reads them: robots
+allows only the public pages (`/welcome`, `/sources`, `/privacy`) and the assets Vaadin needs to render them,
+and disallows everything else, since the app lives behind a login. The sitemap lists those three pages with
+the addresses of `https://rootology.app`. The owner submits `https://rootology.app/sitemap.xml` in Google
+Search Console once, and again only if the public pages change.

@@ -43,6 +43,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Search engines can read the public pages: `robots.txt` and `sitemap.xml` answer without a sign-in, and the
+  welcome, sources and privacy pages state their canonical address (#91).
 - A person can request an invitation from the welcome page after signing in with GitHub or Google; admins
   approve or reject it in Administration and are notified by email and Telegram (#65).
 - The gardens of a space are on a map, beside the table (below it on a narrow screen); the map alone is

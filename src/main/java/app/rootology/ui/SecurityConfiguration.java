@@ -101,7 +101,9 @@ class SecurityConfiguration {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/" + LOGGED_OUT_PAGE, "/" + InvitationView.ROUTE + "/**", "/" + SourcesView.ROUTE,
                         "/" + PrivacyView.ROUTE, "/" + WelcomeView.ROUTE, "/weather-icons/**", "/styles/**", "/icons/**",
-                        "/images/**", "/actuator/health", "/actuator/health/**")
+                        "/images/**", "/actuator/health", "/actuator/health/**",
+                        // For crawlers, which have no session (#91): static files, see AccessRouting.
+                        "/robots.txt", "/sitemap.xml")
                 .permitAll()
                 .requestMatchers("/actuator/**").hasRole("ADMIN"));
         // GitHub is plain OAuth2, not OIDC, so the post-logout URL is set on the logout handler itself.
