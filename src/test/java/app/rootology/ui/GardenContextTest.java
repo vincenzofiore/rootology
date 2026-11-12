@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.RouteParameters;
@@ -22,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -160,6 +162,66 @@ class GardenContextTest {
         guestAsk.beforeEnter(enteringSpace(shared));
         assertThat(ownAsk.canAsk()).isTrue();
         assertThat(guestAsk.canAsk()).as("a guest asks nothing").isFalse();
+    }
+
+    @Test
+    void theSuggestedQuestionsFollowTheRoleOfTheSpace() {
+        String login = "suggested-" + Long.toString(System.nanoTime(), 36);
+        String host = "suggested-host-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        spaces.signedIn(host);
+        long own = personalSpace(login);
+        long shared = personalSpace(host);
+        spaces.addMember(shared, host, login, app.rootology.spaces.Role.GUEST);
+        CurrentUser session = new CurrentUser(spaces, login);
+
+        AskView ownAsk = askView(session);
+        ownAsk.beforeEnter(enteringSpace(own));
+        AskView guestAsk = askView(session);
+        guestAsk.beforeEnter(enteringSpace(shared));
+
+        assertThat(ownAsk.suggestionCount()).as("the month's general questions").isEqualTo(3);
+        assertThat(guestAsk.suggestionCount()).as("a guest asks nothing, so nothing suggests it (#33)").isZero();
+    }
+
+    @Test
+    void aSecondQuestionWhileOneRunsStartsNothing() {
+        String login = "one-at-a-time-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = personalSpace(login);
+        long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
+        CurrentUser session = new CurrentUser(spaces, login);
+        Queued queued = new Queued();
+        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, queued);
+
+        view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
+        assertThat(queued.queued).isEqualTo(1);
+        assertThat(view.asking()).isTrue();
+        // The button is disabled, so this is a reused link, the hand-off of the home page, or a chip.
+        view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
+
+        assertThat(queued.queued).as("one question at a time").isEqualTo(1);
+    }
+
+    /** An executor that keeps the question: nothing runs, so the page stays as it is while it waits. */
+    private static final class Queued implements Executor {
+        private int queued;
+
+        @Override
+        public void execute(Runnable command) {
+            queued++;
+        }
+    }
+
+    /** The hand-off of the garden home (#31, #82): the question comes in the address. */
+    private static BeforeEnterEvent asking(long spaceId, long gardenId, String question) {
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters(Map.of(
+                Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId))));
+        when(event.getLocation()).thenReturn(new Location(
+                "spaces/" + spaceId + "/gardens/" + gardenId + "/ask",
+                QueryParameters.of(AskView.QUESTION, question)));
+        return event;
     }
 
     private static BeforeEnterEvent enteringSpace(long spaceId) {

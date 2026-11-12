@@ -27,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -109,6 +110,16 @@ class ViewsTest {
 
     @Autowired
     app.rootology.facts.KnowledgeGraph knowledge;
+
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("applicationTaskExecutor")
+    Executor askExecutor;
+
+    @Test
+    void aQuestionRunsOnTheAppsOwnExecutor() {
+        // The Ask page runs the question off the UI thread (#82) on the executor Spring Boot already runs (@EnableAsync).
+        assertThat(askExecutor).isNotNull();
+    }
 
     @Test
     void theQuestionCountShowsOnlyWhenFewAreLeft() {

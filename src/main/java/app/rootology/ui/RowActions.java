@@ -47,6 +47,16 @@ final class RowActions {
         return icon(VaadinIcon.CLOSE_SMALL, label, listener);
     }
 
+    /** Asking the same question again (#82): the words go back in the field, ready to send. */
+    static Button again(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.REFRESH, label, listener);
+    }
+
+    /** Putting a question and its answer on the clipboard (#82). */
+    static Button copy(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.COPY, label, listener);
+    }
+
     static Button delete(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         Button button = icon(VaadinIcon.TRASH, label, listener);
         button.addThemeVariants(ButtonVariant.LUMO_ERROR);

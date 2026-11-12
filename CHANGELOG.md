@@ -8,6 +8,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Asking no longer blocks the page: the question runs in the background, a card shows it with the seconds so
+  far, the button is disabled meanwhile, and the visit's answers stack below the field, the newest first, each
+  with "ask again" and "copy". The long paragraph of instructions is now a few suggested questions chosen by the
+  month and by what grows in the garden, and on a phone the question field stays at the bottom of the screen like
+  a chat (#82).
 - A waiting question is a card on Escalations and in Ask: the question, its context, why it waits, the notes,
   who asked and when, and the answer on the card itself, with the proposed values as removable chips, a field
   with suggestions from crops and organisms, and an explicit "none" (#86).

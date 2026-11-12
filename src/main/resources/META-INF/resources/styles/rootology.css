@@ -825,3 +825,112 @@ rootology-garden-map { display: block; width: 100%; }
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
 }
+
+/* The Ask page (#82): chips instead of a paragraph, answers of the visit below the field, a card while the
+   question runs, and, on a phone, the field pinned to the bottom like a chat. */
+.rootology-ask {
+    box-sizing: border-box;
+}
+.rootology-ask-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+    max-width: 42rem;
+}
+/* A chip is a button that asks: a pill, the words readable in light and dark. */
+.rootology-ask-chip {
+    max-width: 100%;
+    min-height: 2rem;
+    border: 1px solid var(--lumo-primary-color-50pct);
+    border-radius: 999px;
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+    font-weight: 500;
+    white-space: normal;
+    text-align: start;
+}
+.rootology-ask-chip::part(label) {
+    overflow-wrap: anywhere;
+}
+.rootology-ask-chip:hover {
+    background: var(--lumo-primary-color-10pct);
+    border-color: var(--lumo-primary-color);
+}
+.rootology-ask-form {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 42rem;
+}
+/* The field takes the room it has and never pushes the button off a 360 px screen. */
+.rootology-ask-field {
+    flex: 1 1 20rem;
+    min-width: 0;
+    max-width: 100%;
+}
+.rootology-ask-answers {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 42rem;
+}
+.rootology-ask-item {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+.rootology-ask-actions {
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+    padding: 0 var(--lumo-space-xs) var(--lumo-space-s);
+}
+/* The question while Claude and Jev work: the words, a bar that moves and the seconds so far. */
+.rootology-thinking {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    width: 100%;
+    max-width: 42rem;
+    margin-top: var(--lumo-space-m);
+    padding: var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-thinking-question {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-thinking-bar {
+    width: 100%;
+    max-width: 14rem;
+}
+.rootology-thinking-elapsed {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+@media (max-width: 640px) {
+    /* The field stays where the thumb is: the page scrolls above it, and its last card is never covered. */
+    .rootology-ask {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    }
+    .rootology-ask-form {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 10;
+        max-width: none;
+        padding: var(--lumo-space-s) var(--lumo-space-m)
+                calc(var(--lumo-space-s) + env(safe-area-inset-bottom, 0px));
+        background: var(--lumo-base-color);
+        border-top: 1px solid var(--lumo-contrast-10pct);
+    }
+    .rootology-ask-field {
+        flex: 1 1 100%;
+    }
+    .rootology-ask-form vaadin-button {
+        flex: 1 1 auto;
+    }
+}
