@@ -146,10 +146,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setVisible(contributor);
         guest.setVisible(!contributor);
         showSuggestions();
-        event.getLocation().getQueryParameters().getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(q -> {
-            question.setValue(q);
-            ask(q);
-        });
+        event.getLocation().getQueryParameters().getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(this::ask);
     }
 
     /** Chips instead of a paragraph (#82): the month, what grows here now, and never for a guest (#33). */
@@ -161,10 +158,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 : List.of();
         for (SuggestedQuestions.Suggestion chip : chips) {
             String text = chip.text(this::getTranslation);
-            Button button = new Button(text, e -> {
-                question.setValue(text);
-                ask(text);
-            });
+            Button button = new Button(text, e -> ask(text));
             button.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
             button.addClassName("rootology-ask-chip");
             suggested.add(button);
@@ -232,6 +226,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         UI ui = getUI().or(() -> Optional.ofNullable(UI.getCurrent())).orElse(null);
         asking = true;
         askButton.setEnabled(false);
+        // The question moves into its card, like a chat: the field is free for the next one, and every card
+        // has "ask again" to bring the text back.
+        question.clear();
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
         answers.addComponentAsFirst(thinking);
         executor.execute(() -> {
@@ -354,6 +351,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** How many suggested questions the page shows, for the tests (#82). */
     int suggestionCount() {
         return suggested.getComponentCount();
+    }
+
+    /** What the question field holds, for the tests: empty once a question starts. */
+    String typed() {
+        return question.getValue();
     }
 
     /** Whether a question is running, for the tests: one at a time (#82). */

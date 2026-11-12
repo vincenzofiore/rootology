@@ -197,6 +197,7 @@ class GardenContextTest {
         view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
         assertThat(queued.queued).isEqualTo(1);
         assertThat(view.asking()).isTrue();
+        assertThat(view.typed()).as("the question moved into its card").isEmpty();
         // The button is disabled, so this is a reused link, the hand-off of the home page, or a chip.
         view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
 

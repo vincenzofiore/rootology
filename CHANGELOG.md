@@ -13,6 +13,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Ask empties the question field as soon as a question starts: the question stays on its card, with "ask again".
 - On a phone the notifications are one card each (unread dot, when, the whole text wrapping, space · garden
   and the open action), so nothing is cut at 360 px (#93).
 - Asking no longer blocks the page: the question runs in the background, a card shows it with the seconds so
