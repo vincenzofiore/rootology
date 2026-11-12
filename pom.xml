@@ -32,7 +32,7 @@
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
-		<vaadin.version>25.3.4</vaadin.version>
+		<vaadin.version>25.3.5</vaadin.version>
 		<!-- Tests tagged live-api call Claude and Jev for real; run them with -Plive -->
 		<excluded.test.groups>live-api</excluded.test.groups>
 	</properties>
