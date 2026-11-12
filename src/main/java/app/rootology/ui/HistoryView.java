@@ -1,39 +1,65 @@
 package app.rootology.ui;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.badge.Badge;
+import com.vaadin.flow.component.badge.BadgeVariant;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.theme.lumo.LumoUtility.AlignItems;
+import com.vaadin.flow.theme.lumo.LumoUtility.Display;
+import com.vaadin.flow.theme.lumo.LumoUtility.FlexWrap;
+import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
+import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
+import com.vaadin.flow.theme.lumo.LumoUtility.Padding;
+import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.garden.GardenService;
 import app.rootology.history.PipelineRunRecord;
 import app.rootology.history.RunHistory;
-import app.rootology.roles.AppRole;
 import jakarta.annotation.security.PermitAll;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
- * The latest finished pipeline runs of the page's context, stored in Postgres: one garden's, or the space's
- * questions without a garden (#56). QA also sees the arbiter's answer.
+ * The latest finished questions of the page's context, stored in Postgres: one garden's, or the space's
+ * questions without a garden (#56). For the gardener (#80): when, the question, the answer's values, who
+ * asked, the outcome and the context, and a click on a row shows the full answer. The quality suite's own
+ * details (case, noise, arbiter, match) live only in Compare, for QA.
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/history", layout = MainLayout.class)
 @RouteAlias(value = "spaces/:spaceId/history", layout = MainLayout.class)
 @PermitAll
 public class HistoryView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            .withZone(ZoneId.systemDefault());
-
     private final RunHistory history;
     private final GardenService gardens;
     private final CurrentUser currentUser;
+    private final H3 title = new H3(getTranslation("history.title"));
+    private final Paragraph place = new Paragraph();
     private final Grid<PipelineRunRecord> grid = new Grid<>();
+    /** What the page says when there is no question yet (#80), and the way to ask one. */
+    private final Div empty = new Div();
+    private final Button ask = new Button(getTranslation("history.empty.ask"), e -> openAsk());
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
@@ -43,32 +69,31 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         this.gardens = gardens;
         this.currentUser = currentUser;
 
-        grid.addColumn(r -> TIME.format(r.getFinishedAt())).setHeader(getTranslation("history.finished")).setAutoWidth(true);
-        // Suite columns (case, noise, arbiter) are for QA (#32); everyone sees their questions and answers.
-        boolean qa = currentUser.hasRole(AppRole.QA);
-        grid.addColumn(PipelineRunRecord::getQuestionId).setHeader(getTranslation("history.case")).setAutoWidth(true)
-                .setVisible(qa);
-        grid.addColumn(PipelineRunRecord::getStartedBy).setHeader(getTranslation("history.askedby")).setAutoWidth(true);
+        place.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+        grid.addComponentColumn(this::date).setHeader(getTranslation("history.date")).setAutoWidth(true);
         grid.addColumn(PipelineRunRecord::getQuestion).setHeader(getTranslation("history.question")).setFlexGrow(2);
-        grid.addColumn(r -> r.isNoisy() ? getTranslation("history.noisy", r.getNoiseSeed()) : getTranslation("history.clean"))
-                .setHeader(getTranslation("history.input")).setAutoWidth(true).setVisible(qa);
-        // A refusal (#53) has no values and no confidence: the person sees why in the answer column.
-        grid.addColumn(r -> r.isOffDomain() ? getTranslation("history.offdomain") : values(r.getAnswer()))
-                .setHeader(getTranslation("history.answer")).setFlexGrow(1);
-        grid.addColumn(r -> r.getJenaAnswer() == null ? "-" : values(r.getJenaAnswer())).setHeader("Jena").setFlexGrow(1)
-                .setVisible(qa);
-        grid.addColumn(r -> r.getMatchesJena() == null ? "-" : getTranslation(r.getMatchesJena() ? "common.yes" : "common.no"))
-                .setHeader(getTranslation("history.matches")).setAutoWidth(true).setVisible(qa);
-        grid.addColumn(r -> r.isOffDomain() ? "-" : "%.2f".formatted(r.getDecisionConfidence()))
-                .setHeader(getTranslation("history.confidence")).setAutoWidth(true);
+        grid.addComponentColumn(this::values).setHeader(getTranslation("history.answer")).setFlexGrow(1);
+        grid.addColumn(PipelineRunRecord::getStartedBy).setHeader(getTranslation("history.askedby")).setAutoWidth(true);
+        grid.addComponentColumn(this::outcome).setHeader(getTranslation("history.outcome")).setAutoWidth(true);
         grid.addColumn(r -> history.contextOf(r).map(context -> ContextText.line(context, this)).orElse(""))
-                .setHeader(getTranslation("history.context")).setAutoWidth(true);
-        grid.addColumn(r -> r.isAnsweredByHuman() ? getTranslation("history.byhuman", r.getReviewer())
-                : r.isDecisionEscalated() ? getTranslation("history.escalated") : "-")
-                .setHeader(getTranslation("history.person")).setAutoWidth(true);
+                .setHeader(getTranslation("history.context")).setFlexGrow(2);
+        grid.addItemClickListener(e -> show(e.getItem()));
+        grid.addClassName("rootology-clickable-rows");
         grid.setSizeFull();
 
-        add(new Button(getTranslation("common.refresh"), e -> refresh()), grid);
+        empty.setVisible(false);
+        empty.addClassNames(Display.FLEX, "flex-col", AlignItems.CENTER, Gap.SMALL, Padding.LARGE);
+        Icon icon = VaadinIcon.COMMENT_ELLIPSIS_O.create();
+        icon.setSize("2rem");
+        icon.addClassNames(TextColor.SECONDARY);
+        Paragraph text = new Paragraph(getTranslation("history.empty"));
+        text.addClassNames(TextColor.SECONDARY);
+        ask.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        // A guest only looks (#33): the button is shown once beforeEnter knows the space's role.
+        ask.setVisible(false);
+        empty.add(icon, text, ask);
+
+        add(title, place, grid, empty);
         setSizeFull();
     }
 
@@ -81,15 +106,97 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
+        String spaceName = currentUser.spaces().stream().filter(s -> s.id() == spaceId)
+                .map(app.rootology.spaces.SpaceSummary::name).findFirst().orElse("");
+        place.setText(gardenId > 0
+                ? gardens.garden(spaceId, currentUser.login(), gardenId)
+                .map(g -> getTranslation("context.place.garden", spaceName, g.name())).orElse(spaceName)
+                : getTranslation("context.place.nogarden", spaceName));
+        ask.setVisible(currentUser.canContribute(spaceId));
         refresh();
     }
 
     private void refresh() {
-        grid.setItems(spaceId == 0 ? List.of() : history.recent(spaceId, gardenId, currentUser.login()));
+        // Refreshed when the page opens (#80): there is no Refresh button to press.
+        List<PipelineRunRecord> runs = spaceId == 0 ? List.of() : history.recent(spaceId, gardenId, currentUser.login());
+        grid.setItems(runs);
+        grid.setVisible(!runs.isEmpty());
+        empty.setVisible(runs.isEmpty());
     }
 
-    private static String values(List<String> values) {
-        return values.isEmpty() ? "∅" : String.join(", ", values);
+    /** The date as the browser's short form, with the full date and time on hover. */
+    private Component date(PipelineRunRecord run) {
+        Locale locale = NoteText.locale(this);
+        Span span = new Span(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale)
+                .withZone(ZoneId.systemDefault()).format(run.getFinishedAt()));
+        span.getElement().setAttribute("title", DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                .withLocale(locale).withZone(ZoneId.systemDefault()).format(run.getFinishedAt()));
+        return span;
+    }
+
+    /** The answer's values as small badges, and nothing when the question was refused (#53). */
+    private Component values(PipelineRunRecord run) {
+        Div badges = new Div();
+        badges.addClassNames(Display.FLEX, FlexWrap.WRAP, Gap.XSMALL);
+        if (run.isOffDomain()) {
+            return badges;
+        }
+        run.getAnswer().forEach(value -> {
+            Badge badge = new Badge(value);
+            badge.addThemeVariants(BadgeVariant.SMALL);
+            badges.add(badge);
+        });
+        return badges;
+    }
+
+    /** Answered, waiting for a person or off domain (#53): an icon whose tooltip and aria label say the word. */
+    private Component outcome(PipelineRunRecord run) {
+        VaadinIcon icon = run.isOffDomain() ? VaadinIcon.INFO_CIRCLE_O
+                : run.isDecisionEscalated() && !run.isAnsweredByHuman() ? VaadinIcon.HOURGLASS
+                : VaadinIcon.CHECK_CIRCLE_O;
+        String word = run.isOffDomain() ? getTranslation("history.offdomain")
+                : run.isDecisionEscalated() && !run.isAnsweredByHuman() ? getTranslation("history.escalated")
+                : getTranslation("history.answered");
+        Icon described = icon.create();
+        if (run.isOffDomain()) {
+            described.addClassNames(TextColor.SECONDARY);
+        } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
+            described.addClassNames(TextColor.WARNING);
+        } else {
+            described.addClassNames(TextColor.SUCCESS);
+        }
+        described.getElement().setAttribute("role", "img");
+        described.getElement().setAttribute("aria-label", word);
+        described.setTooltipText(word);
+        return described;
+    }
+
+    /** A row opens the full answer of the question (#80), with the context it was given in. */
+    private void show(PipelineRunRecord run) {
+        Dialog dialog = new Dialog(run.getQuestion());
+        dialog.setWidth("36rem");
+        dialog.setMaxWidth("100%");
+        AnswerCard card = new AnswerCard();
+        history.contextOf(run).ifPresent(context -> card.context(ContextText.line(context, this)));
+        if (run.isOffDomain()) {
+            card.refused(run.getAnswerText() == null ? getTranslation("ask.offdomain") : run.getAnswerText());
+        } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
+            card.waiting(ReasonText.text(run.getDecisionReason(), this));
+        } else {
+            card.answered(run.getAnswerText() == null ? "" : run.getAnswerText(), run.getAnswer(),
+                    run.getDecisionConfidence());
+        }
+        dialog.add(card);
+        dialog.getFooter().add(new Button(getTranslation("common.close"), e -> dialog.close()));
+        dialog.open();
+    }
+
+    /** The Ask page of the same context: the same garden, or the space level like this page. */
+    private void openAsk() {
+        Map<String, String> parameters = gardenId > 0
+                ? Map.of(Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId))
+                : Map.of(Routed.SPACE, String.valueOf(spaceId));
+        UI.getCurrent().navigate(AskView.class, new RouteParameters(parameters));
     }
 
     @Override

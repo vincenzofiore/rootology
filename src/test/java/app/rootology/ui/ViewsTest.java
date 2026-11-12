@@ -130,7 +130,10 @@ class ViewsTest {
 
     @Test
     void historySpaceAndCuratorViewsBuild() {
-        assertThat(new HistoryView(history, gardens, viewer()).getChildren()).isNotEmpty();
+        HistoryView historyView = new HistoryView(history, gardens, viewer());
+        assertThat(historyView.getChildren()).isNotEmpty();
+        // The page has a title of its own (#80), like the other pages.
+        assertThat(historyView.getChildren().anyMatch(com.vaadin.flow.component.html.H3.class::isInstance)).isTrue();
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new PlotsView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
@@ -288,16 +291,22 @@ class ViewsTest {
 
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "QA")
-    void historyShowsTheArbiterToQaOnly() {
-        long suiteColumnsForQa = new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
-                .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
-                .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
+    void historyShowsTheSameColumnsToEveryone() {
+        // The quality suite's own details live only in Compare (#80): a gardener and QA see the same history.
+        List<String> forQa = historyColumns();
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        long columnsForMember = new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
-                .map(Grid.class::cast).flatMap(g -> g.getColumns().stream())
-                .filter(c -> ((Grid.Column<?>) c).isVisible()).count();
+        List<String> forMember = historyColumns();
 
-        assertThat(suiteColumnsForQa - columnsForMember).as("case, input, Jena, matches").isEqualTo(4);
+        assertThat(forMember).hasSize(6).containsExactlyElementsOf(forQa);
+    }
+
+    private List<String> historyColumns() {
+        return new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
+                .map(Grid.class::cast)
+                .flatMap(g -> g.getColumns().stream())
+                .filter(c -> ((Grid.Column<?>) c).isVisible())
+                .map(c -> ((Grid.Column<?>) c).getHeaderText() == null ? "" : ((Grid.Column<?>) c).getHeaderText())
+                .toList();
     }
 
     /** A person's own space, signed in so it exists. */

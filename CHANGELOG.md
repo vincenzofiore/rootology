@@ -8,6 +8,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- The history speaks to gardeners: a title, the date, the question, the answer's values, who asked, the
+  outcome and the context, an empty state with a way to ask, and a click on a row opens the full answer card.
+  The quality suite's own columns (case, noise, arbiter, match, confidence) are gone from it, and live only in
+  Compare for QA; the page refreshes when it opens, without a Refresh button (#80).
 - Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
   amber) instead of Lumo's slate blue; light mode is unchanged (#75).
 

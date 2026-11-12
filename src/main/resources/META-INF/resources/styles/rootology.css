@@ -58,6 +58,11 @@ vaadin-grid {
     max-width: 100%;
 }
 
+/* A table whose rows open something says so with the pointer (#80). */
+.rootology-clickable-rows::part(row) {
+    cursor: pointer;
+}
+
 /* Comfortable touch targets on phones and tablets (about 44 px instead of 36). */
 @media (pointer: coarse) {
     html {
