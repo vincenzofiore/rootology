@@ -120,7 +120,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     /** A person with a garden of their own, working inside it (#56). */
     private RunContext inAGarden(String login) {
         spaces.signedIn(login);
-        long space = spaces.spacesOf(login).getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, login);
         long garden = gardens.saveGarden(space, login, null, "Home garden", null, null, null).id();
         return new RunContext(space, garden, login);
     }
@@ -128,7 +128,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     /** A person with their personal space, as after their first login. */
     private RunContext signedIn(String login) {
         spaces.signedIn(login);
-        return new RunContext(spaces.spacesOf(login).getFirst().id(), 0, login);
+        return new RunContext(app.rootology.TestSpaces.personal(spaces, login), 0, login);
     }
 
     private PipelineRunRecord stored(RunContext run, String processId) {

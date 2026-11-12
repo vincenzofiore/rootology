@@ -53,7 +53,10 @@ Rules for a new test:
   (`pomodorino di ada` in `PrivacyTest`), or it will be resolved by name in another class.
 - **Ask for the personal space, not the first one.** A login can belong to spaces other classes made:
   `spaces.spacesOf(login).getFirst()` may return a shared space where that login is a guest
-  (`KnowledgeEnrichmentTest.spaceOf` filters `personal()`).
+  use `TestSpaces.personal(spaces, login)`. The order of the test classes differs between macOS and the CI
+  runner, so a test that only passes locally may fail in CI.
+- **Wait for the Vaadin dev server.** A test that reads a Vaadin page over HTTP may get Vaadin's waiting page
+  while the dev server starts (`PublicSeoTest.page` retries until it is gone).
 
 If a test needs an empty database, it says so and empties what it counts; it does not rely on the order of
 the classes.

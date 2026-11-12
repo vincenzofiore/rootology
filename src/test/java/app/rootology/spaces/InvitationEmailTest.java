@@ -39,7 +39,7 @@ class InvitationEmailTest {
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
-        return spaces.spacesOf(login).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, login);
     }
 
     /** The message Mailpit received for this address, waiting for the background send. */

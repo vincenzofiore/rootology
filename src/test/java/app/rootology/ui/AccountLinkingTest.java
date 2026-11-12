@@ -287,7 +287,7 @@ class AccountLinkingTest {
     void linkingAcceptsNoInvitationAndRunsNoAllowList() {
         github("link-ivan").signIn(githubUser(209, "link-ivan"), GitHubEmails.Verified.NONE, null);
         spaces.signedIn("link-owner");
-        long shared = spaces.spacesOf("link-owner").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "link-owner");
         String token = invitations.create(shared, "link-owner", Role.MEMBER, null, "ivan@example.org");
         request.getSession().setAttribute(PendingInvitation.SESSION_KEY, token);
 

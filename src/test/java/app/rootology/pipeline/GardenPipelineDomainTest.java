@@ -70,7 +70,7 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     /** A person with their personal space, as after their first login. */
     private RunContext signedIn(String login) {
         spaces.signedIn(login);
-        return new RunContext(spaces.spacesOf(login).getFirst().id(), 0, login);
+        return new RunContext(app.rootology.TestSpaces.personal(spaces, login), 0, login);
     }
 
     private RunContext inAGarden(String login) {

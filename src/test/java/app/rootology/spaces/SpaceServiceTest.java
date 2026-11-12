@@ -31,7 +31,7 @@ class SpaceServiceTest {
     @Test
     void anOwnerRenamesTheSpace() {
         spaces.signedIn("nora");
-        long space = spaces.spacesOf("nora").getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, "nora");
 
         spaces.rename(space, "nora", "  Casa in collina  ");
 
@@ -42,7 +42,7 @@ class SpaceServiceTest {
     @Test
     void onlyAnOwnerRenamesAndTheNameMustBeUsable() {
         spaces.signedIn("otto");
-        long space = spaces.spacesOf("otto").getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, "otto");
         spaces.addMember(space, "otto", "pia", Role.MEMBER);
 
         assertThatThrownBy(() -> spaces.rename(space, "pia", "Altro")).isInstanceOf(SpaceAccessException.class);
@@ -56,7 +56,7 @@ class SpaceServiceTest {
     @Test
     void anOwnerAddsAMemberWhoThenSeesTheSpace() {
         spaces.signedIn("frank");
-        long garden = spaces.spacesOf("frank").getFirst().id();
+        long garden = app.rootology.TestSpaces.personal(spaces, "frank");
 
         spaces.addMember(garden, "frank", "grace", Role.MEMBER);
         spaces.signedIn("grace");
@@ -70,7 +70,7 @@ class SpaceServiceTest {
     @Test
     void someoneAddedBeforeTheirFirstLoginStillGetsAPersonalSpace() {
         spaces.signedIn("kim");
-        long shared = spaces.spacesOf("kim").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "kim");
         spaces.addMember(shared, "kim", "leo", Role.MEMBER);
 
         spaces.signedIn("leo");
@@ -84,7 +84,7 @@ class SpaceServiceTest {
     @Test
     void gitHubLoginsAreCaseInsensitive() {
         spaces.signedIn("Mona");
-        long garden = spaces.spacesOf("mona").getFirst().id();
+        long garden = app.rootology.TestSpaces.personal(spaces, "mona");
         spaces.addMember(garden, "MONA", "Nils", Role.MEMBER);
         spaces.signedIn("nils");
 
@@ -96,7 +96,7 @@ class SpaceServiceTest {
     @Test
     void ownersRemoveMembersAndMembersLeaveButNobodyLeavesTheirPersonalSpace() {
         spaces.signedIn("ada");
-        long garden = spaces.spacesOf("ada").getFirst().id();
+        long garden = app.rootology.TestSpaces.personal(spaces, "ada");
         spaces.addMember(garden, "ada", "bea", Role.MEMBER);
         spaces.addMember(garden, "ada", "cid", Role.MEMBER);
 
@@ -115,7 +115,7 @@ class SpaceServiceTest {
     void aSpaceAlwaysKeepsAnOwner() {
         spaces.signedIn("dan");
         spaces.signedIn("eve");
-        long shared = spaces.spacesOf("dan").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "dan");
         spaces.addMember(shared, "dan", "eve", Role.OWNER);
 
         spaces.changeRole(shared, "eve", "dan", Role.MEMBER);
@@ -129,7 +129,7 @@ class SpaceServiceTest {
     void aGuestLooksButDoesNotContributeAndTheLastOwnerCannotBecomeOne() {
         spaces.signedIn("olga");
         spaces.signedIn("gus");
-        long shared = spaces.spacesOf("olga").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "olga");
         spaces.addMember(shared, "olga", "gus", Role.GUEST);
 
         assertThat(spaces.isMember(shared, "gus")).isTrue();
@@ -148,7 +148,7 @@ class SpaceServiceTest {
     void onlyOwnersAddMembersAndOnlyMembersSeeTheList() {
         spaces.signedIn("heidi");
         spaces.signedIn("ivan");
-        long garden = spaces.spacesOf("heidi").getFirst().id();
+        long garden = app.rootology.TestSpaces.personal(spaces, "heidi");
         spaces.addMember(garden, "heidi", "judy", Role.MEMBER);
 
         assertThatThrownBy(() -> spaces.addMember(garden, "judy", "mallory", Role.MEMBER))

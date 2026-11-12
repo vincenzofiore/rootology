@@ -125,7 +125,7 @@ class GoogleSignInTest {
     @Test
     void anInvitationBoundToTheVerifiedAddressAdmitsThem() {
         spaces.signedIn("gowner");
-        long shared = spaces.spacesOf("gowner").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "gowner");
         String token = invitations.create(shared, "gowner", Role.MEMBER, null, "invitee@example.org");
 
         OidcUser principal = service().signIn(googleUser("google-103", "invitee@example.org"), token);
@@ -137,7 +137,7 @@ class GoogleSignInTest {
     @Test
     void anInvitationBoundToAGitHubLoginIsNotUsedByGoogle() {
         spaces.signedIn("ghowner");
-        long shared = spaces.spacesOf("ghowner").getFirst().id();
+        long shared = app.rootology.TestSpaces.personal(spaces, "ghowner");
         String token = invitations.create(shared, "ghowner", Role.MEMBER, "some-github-name");
 
         // #65: the invitation is not for a Google person, and without an admission they sign in as pending.

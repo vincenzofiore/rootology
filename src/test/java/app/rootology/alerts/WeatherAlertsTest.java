@@ -73,7 +73,7 @@ class WeatherAlertsTest {
     private long garden(PlotKind kind, String owner, String guest, String lat, String lon, String... crops) {
         spaces.signedIn(owner);
         spaces.signedIn(guest);
-        long space = spaces.spacesOf(owner).getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, owner);
         spaces.addMember(space, owner, guest, Role.GUEST);
         var garden = gardens.saveGarden(space, owner, null, "Orto di " + owner, null, new BigDecimal(lat),
                 new BigDecimal(lon), "IT");

@@ -70,7 +70,7 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
     private RunContext signedIn(String login, String email) {
         spaces.signedIn(login);
         notifications.save(login, new NotificationPreferences(email, true, true, true, true, null, null));
-        return new RunContext(spaces.spacesOf(login).getFirst().id(), 0, login);
+        return new RunContext(app.rootology.TestSpaces.personal(spaces, login), 0, login);
     }
 
     private double questions(String outcome) {

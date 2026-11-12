@@ -210,7 +210,7 @@ class PrivacyTest {
     }
 
     private long personalSpace(String login) {
-        return spaces.spacesOf(login).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, login);
     }
 
     private void member(long space, String login, String role) {

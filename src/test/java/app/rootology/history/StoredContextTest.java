@@ -37,7 +37,7 @@ class StoredContextTest {
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
-        return spaces.spacesOf(login).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, login);
     }
 
     private void store(String processId, long space, String login, String contextJson) {

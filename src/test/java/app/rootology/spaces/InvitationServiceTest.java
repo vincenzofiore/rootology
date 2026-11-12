@@ -29,7 +29,7 @@ class InvitationServiceTest {
 
     private long spaceOf(String owner) {
         spaces.signedIn(owner);
-        return spaces.spacesOf(owner).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, owner);
     }
 
     @Test

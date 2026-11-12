@@ -48,7 +48,7 @@ class LightFactsTest {
 
     private RunContext garden(String login, String plotName, DirectSun sun) {
         spaces.signedIn(login);
-        long id = spaces.spacesOf(login).getFirst().id();
+        long id = app.rootology.TestSpaces.personal(spaces, login);
         var garden = gardens.saveGarden(id, login, null, "Balcony", "Torino", null, null);
         gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.POT, Soil.POTTING_MIX, null,
                 Orientation.N, sun, Wind.EXPOSED, 3);
@@ -133,7 +133,7 @@ class LightFactsTest {
         assertThat(onlyShade.notes()).singleElement().extracting(Note::kind).isEqualTo(Note.Kind.LIGHT_ANYWHERE);
 
         spaces.signedIn("light-elio");
-        long id = spaces.spacesOf("light-elio").getFirst().id();
+        long id = app.rootology.TestSpaces.personal(spaces, "light-elio");
         var terrace = gardens.saveGarden(id, "light-elio", null, "Terrace", "Roma", null, null);
         gardens.savePlot(id, "light-elio", terrace.id(), null, "Shady", PlotKind.POT, Soil.POTTING_MIX, null,
                 null, DirectSun.SHADE, null, null);

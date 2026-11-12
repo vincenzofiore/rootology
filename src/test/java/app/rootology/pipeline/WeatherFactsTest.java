@@ -66,7 +66,7 @@ class WeatherFactsTest {
     /** A person with one garden, asked in it: the forecast is that garden's. */
     private RunContext space(String login, boolean withCoordinates) {
         spaces.signedIn(login);
-        long id = spaces.spacesOf(login).getFirst().id();
+        long id = app.rootology.TestSpaces.personal(spaces, login);
         var garden = gardens.saveGarden(id, login, null, "Terrace", "Roma",
                 withCoordinates ? new BigDecimal("41.90") : null, withCoordinates ? new BigDecimal("12.50") : null);
         var bed = gardens.savePlot(id, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);

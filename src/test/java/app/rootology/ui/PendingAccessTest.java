@@ -129,7 +129,7 @@ class PendingAccessTest {
         String login = "pending-stranger";
         pending(login, 900_003L);
         spaces.signedIn("pending-owner");
-        long space = spaces.spacesOf("pending-owner").getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, "pending-owner");
 
         assertThat(spaces.spacesOf(login)).isEmpty();
         assertThat(spaces.isMember(space, login)).isFalse();

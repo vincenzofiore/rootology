@@ -99,7 +99,7 @@ class SignInTest {
     @Test
     void aRenamedGitHubAccountKeepsItsLoginAndItsSpaces() {
         service("sign-bea").signIn(githubUser(102, "sign-bea"), GitHubEmails.Verified.NONE, null);
-        long personal = spaces.spacesOf("sign-bea").getFirst().id();
+        long personal = app.rootology.TestSpaces.personal(spaces, "sign-bea");
 
         OAuth2User principal = service("sign-bea").signIn(githubUser(102, "sign-bea-renamed"), GitHubEmails.Verified.NONE, null);
 

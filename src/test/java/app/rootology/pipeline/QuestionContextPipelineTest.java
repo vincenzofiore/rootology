@@ -64,7 +64,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
-        return spaces.spacesOf(login).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, login);
     }
 
     private long garden(long space, String login, String name, String latitude, String longitude) {

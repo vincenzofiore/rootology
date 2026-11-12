@@ -81,9 +81,22 @@ class PublicSeoTest {
         }
     }
 
+    /**
+     * A Vaadin page once its dev server is ready: until then, in development mode, Vaadin answers with a
+     * waiting page. With shared test containers (#98) the context starts faster than the dev server.
+     */
+    private HttpResponse<String> page(String path) throws Exception {
+        HttpResponse<String> response = get(path);
+        for (int i = 0; i < 120 && response.body().contains("devServerIsNotLoaded"); i++) {
+            Thread.sleep(1000);
+            response = get(path);
+        }
+        return response;
+    }
+
     @Test
     void theWelcomePageStatesItsCanonicalAddress() throws Exception {
-        HttpResponse<String> response = get("/" + WelcomeView.ROUTE);
+        HttpResponse<String> response = page("/" + WelcomeView.ROUTE);
 
         assertThat(response.statusCode()).isEqualTo(200);
         String canonical = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

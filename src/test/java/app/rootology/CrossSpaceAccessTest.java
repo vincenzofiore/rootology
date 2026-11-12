@@ -86,8 +86,8 @@ class CrossSpaceAccessTest {
         intruder = "intruder-" + suffix;
         spaces.signedIn(victim);
         spaces.signedIn(intruder);
-        victimSpace = spaces.spacesOf(victim).getFirst().id();
-        intruderSpace = spaces.spacesOf(intruder).getFirst().id();
+        victimSpace = app.rootology.TestSpaces.personal(spaces, victim);
+        intruderSpace = app.rootology.TestSpaces.personal(spaces, intruder);
         garden = gardens.saveGarden(victimSpace, victim, null, "Victim garden", null, null, null).id();
         plot = gardens.savePlot(victimSpace, victim, garden, null, "A", PlotKind.GROUND, Soil.LOAMY, null).id();
         planting = gardens.plant(victimSpace, victim, plot, "tomato", PlantingMethod.SOWN, LocalDate.of(2026, 4, 1), null)

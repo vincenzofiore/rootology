@@ -46,7 +46,7 @@ class ContextResolverTest {
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
-        return spaces.spacesOf(login).getFirst().id();
+        return app.rootology.TestSpaces.personal(spaces, login);
     }
 
     /** A garden of the person's space, with two plots and, optionally, coordinates. */

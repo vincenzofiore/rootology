@@ -54,7 +54,7 @@ final class GoldenFixtures {
     RunContext space(String prefix, GoldenQuestions.Case c) {
         String login = prefix + "-" + c.id();
         spaces.signedIn(login);
-        long space = spaces.spacesOf(login).getFirst().id();
+        long space = app.rootology.TestSpaces.personal(spaces, login);
         long garden = switch (c.garden()) {
             case "rome" -> {
                 var created = gardens.saveGarden(space, login, null, "Orto", "Roma", new BigDecimal("41.90"),
