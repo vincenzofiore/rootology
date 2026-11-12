@@ -58,7 +58,8 @@ class WaitingQuestionCard extends AnswerCard {
             context(ContextText.line(review.snapshot(), this));
         }
         waiting(ReasonText.text(review.decision().reason(), this));
-        notes(review.notes());
+        // Whoever answers needs every note at hand (#60): none is folded away here.
+        addNotes(review.notes(), this, this);
         add(meta(review));
         chips.addClassName("rootology-chip-row");
         add(chips);

@@ -20,6 +20,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
+  confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
+  answer?" (#83).
 - Ask empties the question field as soon as a question starts: the question stays on its card, with "ask again".
 - On a phone the notifications are one card each (unread dot, when, the whole text wrapping, space · garden
   and the open action), so nothing is cut at 360 px (#93).

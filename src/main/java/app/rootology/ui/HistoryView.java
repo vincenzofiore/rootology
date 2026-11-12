@@ -187,7 +187,7 @@ public class HistoryView extends VerticalLayout implements HasDynamicTitle, Befo
         dialog.setWidth("36rem");
         dialog.setMaxWidth("100%");
         AnswerCard card = new AnswerCard();
-        history.contextOf(run).ifPresent(context -> card.context(ContextText.line(context, this)));
+        history.contextOf(run).ifPresent(card::context);
         if (run.isOffDomain()) {
             card.refused(run.getAnswerText() == null ? getTranslation("ask.offdomain") : run.getAnswerText());
         } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {

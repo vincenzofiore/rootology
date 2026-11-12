@@ -32,7 +32,7 @@ final class AnswerCards {
         }
         AnswerCard card = new AnswerCard();
         if (answer.context() != null) {
-            card.context(ContextText.line(answer.context(), in));
+            card.context(answer.context());
         }
         return card.answered(answer.text(), answer.answer(), answer.confidence())
                 .notes(answer.notes()).sources(lines);

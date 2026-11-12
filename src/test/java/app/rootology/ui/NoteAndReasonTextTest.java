@@ -42,6 +42,23 @@ class NoteAndReasonTextTest {
     }
 
     @Test
+    void onlyRisksAndWhatThePersonCanFixStayInSightTheRestIsFolded() {
+        assertThat(NoteText.actionable(Note.of(Note.Kind.FROST_EXCLUDED, "frost-risk-v1", "Lattuga"))).isTrue();
+        assertThat(NoteText.actionable(Note.of(Note.Kind.NO_COORDINATES_FROST))).isTrue();
+        assertThat(NoteText.actionable(Note.of(Note.Kind.FORECAST_MINIMUM, "1.0", "2026-11-06", ""))).isFalse();
+        assertThat(NoteText.actionable(Note.of(Note.Kind.FROST_UNKNOWN, "Pomodoro"))).isFalse();
+        assertThat(NoteText.actionable(Note.of(Note.Kind.ALTITUDE_COAST))).isFalse();
+    }
+
+    @Test
+    void theConfidenceIsSaidInThreeWords() {
+        assertThat(AnswerCard.confidenceKey(0.92)).isEqualTo("card.confidence.high");
+        assertThat(AnswerCard.confidenceKey(0.80)).isEqualTo("card.confidence.high");
+        assertThat(AnswerCard.confidenceKey(0.70)).isEqualTo("card.confidence.good");
+        assertThat(AnswerCard.confidenceKey(0.55)).isEqualTo("card.confidence.fair");
+    }
+
+    @Test
     void everyNoteKindHasATextInBothLanguages() {
         for (Note.Kind kind : Note.Kind.values()) {
             Note note = switch (kind) {

@@ -49,6 +49,24 @@ final class ContextText {
         return in.get("context.for", String.join(" · ", parts));
     }
 
+    /** The short line above an answer (#83): the garden (or the space without one), the area, the month. */
+    static String brief(ContextSnapshot context, Component in) {
+        return brief(context, in::getTranslation, NoteText.locale(in));
+    }
+
+    static String brief(ContextSnapshot context, NoteText.Texts in, Locale locale) {
+        List<String> parts = new ArrayList<>();
+        parts.add(context.hasGarden() ? context.gardenName()
+                : in.get("context.place.nogarden", name(context.spaceName())));
+        if (context.plotName() != null) {
+            parts.add(context.plotName());
+        }
+        if (context.month() != null) {
+            parts.add(Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale));
+        }
+        return String.join(" · ", parts);
+    }
+
     private static String name(String spaceName) {
         return spaceName == null ? "" : spaceName;
     }

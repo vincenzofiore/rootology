@@ -50,6 +50,15 @@ final class NoteText {
         };
     }
 
+    /**
+     * What the person should act on (#83): a risk, or something only they can fix (the garden's coordinates).
+     * Shown as a warning under the answer; every other note goes under "Why this answer?".
+     */
+    static boolean actionable(Note note) {
+        return tone(note) == Tone.RISK || note.kind() == Note.Kind.NO_COORDINATES_FROST
+                || note.kind() == Note.Kind.NO_COORDINATES_RISK;
+    }
+
     static VaadinIcon icon(Note note) {
         return switch (note.kind()) {
             case FORECAST_MINIMUM, FROST_EXCLUDED, FROST_UNKNOWN, GREENHOUSE_OUTDOOR_MINIMUM -> VaadinIcon.ASTERISK;

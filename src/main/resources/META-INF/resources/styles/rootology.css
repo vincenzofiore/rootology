@@ -1259,3 +1259,53 @@ rootology-garden-map { display: block; width: 100%; }
         display: flex;
     }
 }
+
+/* The answer card (#83): the sentence and the values first, the confidence in words, the rest folded away. */
+.rootology-answer-text {
+    margin: 0;
+    font-size: var(--lumo-font-size-l);
+    line-height: var(--lumo-line-height-s);
+}
+.rootology-answer-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+}
+.rootology-answer-value {
+    padding: var(--lumo-space-xs) var(--lumo-space-m);
+    border-radius: 999px;
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+    font-size: var(--lumo-font-size-m);
+    font-weight: 600;
+}
+.rootology-answer-value-none {
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-secondary-text-color);
+    font-weight: 500;
+}
+.rootology-confidence-bar {
+    width: 8rem;
+    margin: 0;
+}
+.rootology-answer-why {
+    margin: 0;
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-answer-why::part(summary) {
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-why-line {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-body-text-color);
+}
+.rootology-why-icon {
+    flex: none;
+    width: 1em;
+    height: 1em;
+    margin-top: 0.15em;
+    color: var(--lumo-secondary-text-color);
+}

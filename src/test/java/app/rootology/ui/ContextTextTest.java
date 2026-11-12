@@ -77,4 +77,15 @@ class ContextTextTest {
                 .isEqualTo("Risposta per: Casa · Orto · zona SUD (dalla domanda) · marzo (dalla domanda)");
         assertThat(ContextText.line(companions, italian, Locale.ITALIAN)).isEqualTo("Risposta per: Casa · Orto");
     }
+
+    @Test
+    void theBriefLineAboveAnAnswerSaysOnlyTheGardenTheAreaAndTheMonth() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", "NORD", ZoneFrom.GARDEN,
+                "NOVEMBER", MonthFrom.QUESTION, "Aiuola B");
+        ContextSnapshot noGarden = new ContextSnapshot("Casa", null, null, null, "MARCH", MonthFrom.DEFAULT, null);
+
+        assertThat(ContextText.brief(context, italian, Locale.ITALIAN)).isEqualTo("Orto sul tetto · Aiuola B · novembre");
+        assertThat(ContextText.brief(context, english, Locale.ENGLISH)).isEqualTo("Orto sul tetto · Aiuola B · November");
+        assertThat(ContextText.brief(noGarden, italian, Locale.ITALIAN)).isEqualTo("Casa · senza orto · marzo");
+    }
 }
