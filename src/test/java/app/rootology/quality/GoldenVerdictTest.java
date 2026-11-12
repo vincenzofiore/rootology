@@ -10,6 +10,7 @@ import app.rootology.pipeline.Question;
 import app.rootology.pipeline.RunContext;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +28,7 @@ class GoldenVerdictTest {
     private static GardenPipeline.Run escalated(List<Note> notes) {
         GardenPipeline.PendingReview review = new GardenPipeline.PendingReview("process", RunContext.NONE,
                 new Question("case", "Cosa cresce nel mio orto?"),
-                Decision.escalated("the question needs a garden"), null, notes);
+                Decision.escalated("the question needs a garden"), null, notes, Instant.now());
         return new GardenPipeline.Run(null, review, null, false);
     }
 
@@ -67,7 +68,7 @@ class GoldenVerdictTest {
     void escalatingAnOffDomainQuestionIsASilentError() {
         GardenPipeline.PendingReview review = new GardenPipeline.PendingReview("process", RunContext.NONE,
                 new Question("off-1", "Come si fa il punto zig-zag a macchina?"),
-                Decision.escalated("the question does not fit any supported shape"), null, List.of());
+                Decision.escalated("the question does not fit any supported shape"), null, List.of(), Instant.now());
         GardenPipeline.Run escalated = new GardenPipeline.Run(null, review, null, false);
 
         assertThat(GoldenVerdict.of(offDomain(), escalated)).isEqualTo(GoldenVerdict.SILENT_WRONG);

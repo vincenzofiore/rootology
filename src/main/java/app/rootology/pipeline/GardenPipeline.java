@@ -46,9 +46,10 @@ public class GardenPipeline {
     /**
      * snapshot: the context the question was asked in (#55), shown to whoever answers; null for older rows.
      * notes: what the person should know about the facts behind the decision (#60), never sent to Jev.
+     * askedAt: when the question started waiting, so the card says who asked and when (#86).
      */
     public record PendingReview(String processId, RunContext context, Question question, Decision decision,
-                                ContextSnapshot snapshot, List<Note> notes) {
+                                ContextSnapshot snapshot, List<Note> notes, java.time.Instant askedAt) {
 
         public PendingReview {
             notes = notes == null ? List.of() : List.copyOf(notes);
@@ -294,17 +295,18 @@ public class GardenPipeline {
             long gardenId = questionContext == null ? context.gardenId() : questionContext.gardenId();
             // Every escalation was decided on facts, so its notes come from them (#60).
             GraphFacts facts = process.last(GraphFacts.class);
+            Instant askedAt = Instant.now();
             PendingReview review = new PendingReview(process.getId(),
                     new RunContext(context.spaceId(), gardenId, context.startedBy()), question,
                     process.last(Decision.class), questionContext == null ? null : questionContext.snapshot(),
-                    facts == null ? List.of() : facts.notes());
+                    facts == null ? List.of() : facts.notes(), askedAt);
             // Stored and announced together (#36): the notifications (#26) are written in the same transaction.
             transaction.executeWithoutResult(status -> {
                 pending.save(process.getId(), context, gardenId, question, review.decision(), facts,
-                        process.last(NoiseProfile.class), questionContext, Instant.now());
+                        process.last(NoiseProfile.class), questionContext, askedAt);
                 if (context.hasSpace()) {
                     events.publishEvent(new EscalationWaiting(process.getId(), context.spaceId(), gardenId,
-                            context.startedBy(), question.text(), review.decision().reason(), Instant.now()));
+                            context.startedBy(), question.text(), review.decision().reason(), askedAt));
                 }
             });
             return new Run(null, review, intentOf(process), false);

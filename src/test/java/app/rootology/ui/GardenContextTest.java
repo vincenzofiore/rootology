@@ -7,6 +7,8 @@ import com.vaadin.flow.router.RouteParameters;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.enrichment.KnowledgeEnrichment;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.CropCatalog;
+import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.garden.GardenService;
 import app.rootology.pipeline.GardenPipeline;
@@ -54,6 +56,12 @@ class GardenContextTest {
 
     @Autowired
     Ungardened ungardened;
+
+    @Autowired
+    CropCatalog crops;
+
+    @Autowired
+    KnowledgeGraph knowledge;
 
     @Autowired
     ClimateCells cells;
@@ -162,7 +170,7 @@ class GardenContextTest {
     }
 
     private AskView askView(CurrentUser session) {
-        return new AskView(pipeline, sources, session, enrichment, usage, gardens);
+        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge);
     }
 
     /** The map's style: nothing is fetched here, the map is inspected as data (#66). */

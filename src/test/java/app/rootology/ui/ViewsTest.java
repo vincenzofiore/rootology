@@ -2,6 +2,7 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Location;
@@ -148,7 +149,7 @@ class ViewsTest {
         assertThat(new PlotsView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE)
                 .getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
@@ -325,10 +326,14 @@ class ViewsTest {
     }
 
     @Test
-    void escalationViewListsPendingReviews() {
-        EscalationView view = new EscalationView(pipeline, gardens, viewer());
+    void escalationViewShowsOneCardPerWaitingQuestion() {
+        EscalationView view = new EscalationView(pipeline, gardens, viewer(), crops, knowledge, sourceCatalog,
+                enrichment);
 
-        assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isTrue();
+        // One card per waiting question, never a grid with a form below it (#86).
+        assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isFalse();
+        assertThat(view.getChildren().filter(Div.class::isInstance).map(Div.class::cast)
+                .anyMatch(d -> d.getClassNames().contains("rootology-cards"))).isTrue();
     }
 
     @Test

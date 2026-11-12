@@ -37,6 +37,16 @@ final class RowActions {
         return button;
     }
 
+    /** Something added to a list the person is building (a value of an answer, #86): a plus. */
+    static Button add(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.PLUS, label, listener);
+    }
+
+    /** Taking one item out of a list the person is building (#86): a small cross, never a delete. */
+    static Button remove(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.CLOSE_SMALL, label, listener);
+    }
+
     static Button delete(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         Button button = icon(VaadinIcon.TRASH, label, listener);
         button.addThemeVariants(ButtonVariant.LUMO_ERROR);

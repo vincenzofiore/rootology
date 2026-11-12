@@ -5,7 +5,6 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -19,19 +18,20 @@ import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import app.rootology.enrichment.KnowledgeEnrichment;
+import app.rootology.facts.CropCatalog;
+import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
-import app.rootology.enrichment.ProposalScope;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.resilience.ServiceUnavailableException;
 import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
+import app.rootology.pipeline.HumanAnswer;
 import app.rootology.pipeline.PipelineAnswer;
 import app.rootology.pipeline.Question;
 import app.rootology.pipeline.RunContext;
 import jakarta.annotation.security.PermitAll;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -54,6 +54,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final KnowledgeEnrichment enrichment;
     private final UsageService usage;
     private final GardenService gardens;
+    private final CropCatalog crops;
+    private final KnowledgeGraph knowledge;
     private final Span questionsToday = new Span();
     private final Div result = new Div();
     /** A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member. */
@@ -65,8 +67,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private long gardenId;
 
     public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
-                   KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens) {
+                   KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens,
+                   CropCatalog crops, KnowledgeGraph knowledge) {
         this.gardens = gardens;
+        this.crops = crops;
+        this.knowledge = knowledge;
         this.enrichment = enrichment;
         this.usage = usage;
         this.pipeline = pipeline;
@@ -129,14 +134,14 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 return;
             }
             if (run.answer() == null) {
-                AnswerCard card = new AnswerCard();
-                if (run.pending().snapshot() != null) {
-                    card.context(ContextText.line(run.pending().snapshot(), this));
-                }
-                // Whoever answers sees what shaped the decision: the notes below the reason (#60).
-                result.add(card.waiting(ReasonText.text(run.pending().decision().reason(), this))
-                        .notes(run.pending().notes())
-                        .extra(propose(text.trim())));
+                // The same card as Escalations (#86): the person answers without leaving Ask.
+                WaitingQuestionCard card = new WaitingQuestionCard(run.pending(),
+                        currentUser.canContribute(spaceId), suggestions(),
+                        (values, note) -> pipeline.respond(run.pending().processId(), spaceId, gardenId,
+                                new HumanAnswer(values, note, currentUser.login())),
+                        answer -> AnswerCards.of(answer, spaceId, currentUser.login(), sources, enrichment, this));
+                card.extra(propose(text.trim()));
+                result.add(card);
                 return;
             }
             show(run.answer());
@@ -188,30 +193,15 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     }
 
     private void show(PipelineAnswer answer) {
-        List<AnswerCard.SourceLine> lines = new ArrayList<>();
-        for (String id : answer.sources()) {
-            if (id.equals("garden")) {
-                lines.add(new AnswerCard.SourceLine(VaadinIcon.HOME_O, getTranslation("ask.source.garden"), null));
-            }
-            enrichment.source(spaceId, currentUser.login(), id).ifPresent(p -> lines.add(
-                    new AnswerCard.SourceLine(VaadinIcon.USER_STAR, p.scope() == ProposalScope.GLOBAL
-                            ? getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
-                            : getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id())), null)));
-            sources.byId(id).ifPresent(s -> lines.add(
-                    new AnswerCard.SourceLine(VaadinIcon.BOOK, sourceTitle(id, s.title()), s.url())));
-        }
-        AnswerCard card = new AnswerCard();
-        if (answer.context() != null) {
-            card.context(ContextText.line(answer.context(), this));
-        }
-        result.add(card.answered(answer.text(), answer.answer(), answer.confidence())
-                .notes(answer.notes()).sources(lines));
+        result.add(AnswerCards.of(answer, spaceId, currentUser.login(), sources, enrichment, this));
     }
 
-    /** A short title of a source in the page's language (#79), the catalogue's own title when there is none. */
-    private String sourceTitle(String id, String fallback) {
-        String key = "source." + id;
-        return Translations.has(key, getLocale()) ? getTranslation(key) : fallback;
+    /** The values a person can add: the catalogue's crops and the knowledge base's organisms, in the page's language. */
+    private List<String> suggestions() {
+        boolean english = NoteText.locale(this).getLanguage().equals("en");
+        return WaitingQuestionCard.suggestions(
+                crops.all().stream().map(c -> english ? c.englishName() : c.italianName()),
+                knowledge.organisms().stream().map(o -> english ? o.englishName() : o.italianName()));
     }
 
     @Override

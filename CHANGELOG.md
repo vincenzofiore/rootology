@@ -8,6 +8,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A waiting question is a card on Escalations and in Ask: the question, its context, why it waits, the notes,
+  who asked and when, and the answer on the card itself, with the proposed values as removable chips, a field
+  with suggestions from crops and organisms, and an explicit "none" (#86).
 - A new garden no longer shows empty grids: plots, plantings, waiting questions, escalations, history,
   notifications, proposals and the gardens overview say what is missing and offer the next step, the answer
   form appears only when a question waits, and the garden home shows four guided first steps until they are

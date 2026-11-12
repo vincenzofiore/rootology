@@ -559,3 +559,68 @@ rootology-garden-map { display: block; width: 100%; }
 @media (pointer: coarse) {
     .rootology-firststeps-step { min-height: 2.75rem; }
 }
+
+/* One waiting question as a card (#86): the question, why it waits, and the answer on the card itself. */
+.rootology-cards {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-m);
+    width: 100%;
+}
+.rootology-waiting-card { box-sizing: border-box; width: 100%; }
+/* A long question wraps instead of being cut, at 360 px too. */
+.rootology-waiting-question {
+    margin: 0;
+    font-size: var(--lumo-font-size-l);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-waiting-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-xs) var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-waiting-novalues {
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+/* One value of the answer (#86): the text and its small remove button, readable in light and dark. */
+.rootology-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    max-width: 100%;
+}
+.rootology-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    max-width: 100%;
+    padding: var(--lumo-space-xs) var(--lumo-space-xs) var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+.rootology-chip > span { min-width: 0; }
+.rootology-answer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    width: 100%;
+    max-width: 26rem;
+}
+.rootology-answer-field { width: 100%; }
+.rootology-answer-field vaadin-combo-box { flex: 1 1 12rem; min-width: 0; }
+.rootology-answer-actions { flex-wrap: wrap; }
+@media (max-width: 640px) {
+    .rootology-answer-controls { max-width: 100%; }
+    .rootology-chip { box-sizing: border-box; }
+}

@@ -72,7 +72,7 @@ class PendingEscalations {
     }
 
     private static final String SELECT = "SELECT process_id, space_id, garden_id, started_by, question_id, "
-            + "question_text, decision_json, facts_json, noise_json, context_json FROM pending_escalation ";
+            + "question_text, decision_json, facts_json, noise_json, context_json, created_at FROM pending_escalation ";
 
     private static Stored stored(java.sql.ResultSet rs) throws java.sql.SQLException {
         long garden = rs.getLong("garden_id");
@@ -85,7 +85,7 @@ class PendingEscalations {
         GraphFacts facts = JSON.readValue(rs.getString("facts_json"), GraphFacts.class);
         // The notes are the facts' own (#60): the row stores them once, not in a column of their own.
         return new Stored(new GardenPipeline.PendingReview(rs.getString("process_id"), context, question, decision,
-                snapshot, facts == null ? List.of() : facts.notes()), facts,
+                snapshot, facts == null ? List.of() : facts.notes(), rs.getTimestamp("created_at").toInstant()), facts,
                 JSON.readValue(rs.getString("noise_json"), NoiseProfile.class),
                 snapshot);
     }
