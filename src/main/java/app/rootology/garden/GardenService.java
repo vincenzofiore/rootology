@@ -197,6 +197,13 @@ public class GardenService {
         planting(spaceId, plantingId).end(endedOn);
     }
 
+    /** Undoing the harvest above (#85): the planting grows again, when it was harvested by mistake. */
+    @Transactional
+    public void undoEndPlanting(long spaceId, String login, long plantingId) {
+        requireContributor(spaceId, login);
+        planting(spaceId, plantingId).resume();
+    }
+
     @Transactional
     public void deletePlanting(long spaceId, String login, long plantingId) {
         requireContributor(spaceId, login);

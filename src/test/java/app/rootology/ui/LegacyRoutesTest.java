@@ -44,7 +44,7 @@ class LegacyRoutesTest {
         assertThat(target(LegacyRoutes.ASK, QueryParameters.empty(), user))
                 .isEqualTo("/spaces/" + space + "/gardens/" + garden + "/ask");
         assertThat(target(LegacyRoutes.GARDEN, QueryParameters.empty(), user))
-                .isEqualTo("/spaces/" + space + "/gardens/" + garden + "/plots");
+                .isEqualTo("/spaces/" + space + "/gardens/" + garden + "/areas");
         assertThat(target(LegacyRoutes.KNOWLEDGE, QueryParameters.empty(), user))
                 .isEqualTo("/spaces/" + space + "/gardens/" + garden + "/knowledge");
         assertThat(target(LegacyRoutes.ESCALATIONS, QueryParameters.empty(), user))

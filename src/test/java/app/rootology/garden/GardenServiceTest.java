@@ -43,7 +43,7 @@ class GardenServiceTest {
         long space = spaceOf("gina");
         GardenSummary terrace = gardens.saveGarden(space, "gina", null, "Terrace", "Roma",
                 new BigDecimal("41.902782"), new BigDecimal("12.496366"));
-        PlotSummary pot = gardens.savePlot(space, "gina", terrace.id(), null, "Big pot", PlotKind.CONTAINER,
+        PlotSummary pot = gardens.savePlot(space, "gina", terrace.id(), null, "Big pot", PlotKind.POT,
                 Soil.POTTING_MIX, new BigDecimal("0.5"));
         gardens.plant(space, "gina", pot.id(), "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 4, 20), null);
         gardens.plant(space, "gina", pot.id(), "basil", PlantingMethod.SOWN, LocalDate.of(2026, 4, 25), "next to the tomato");
@@ -76,7 +76,7 @@ class GardenServiceTest {
         long space = spaceOf("nino");
         GardenSummary balcony = gardens.saveGarden(space, "nino", null, "Balcony", "Torino", null, null);
 
-        PlotSummary pot = gardens.savePlot(space, "nino", balcony.id(), null, "Pot", PlotKind.CONTAINER,
+        PlotSummary pot = gardens.savePlot(space, "nino", balcony.id(), null, "Pot", PlotKind.POT,
                 Soil.POTTING_MIX, null, Orientation.NW, DirectSun.PART_SHADE, Wind.SHELTERED, 3);
 
         assertThat(pot.orientation()).isEqualTo(Orientation.NW);
@@ -88,13 +88,13 @@ class GardenServiceTest {
             assertThat(p.floor()).isEqualTo(3);
         });
 
-        PlotSummary cleared = gardens.savePlot(space, "nino", balcony.id(), pot.id(), "Pot", PlotKind.CONTAINER,
+        PlotSummary cleared = gardens.savePlot(space, "nino", balcony.id(), pot.id(), "Pot", PlotKind.POT,
                 Soil.POTTING_MIX, null);
         assertThat(cleared.orientation()).isNull();
         assertThat(cleared.directSun()).isNull();
         assertThat(cleared.wind()).isNull();
         assertThat(cleared.floor()).isNull();
-        assertThatThrownBy(() -> gardens.savePlot(space, "nino", balcony.id(), null, "Bad", PlotKind.CONTAINER,
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino", balcony.id(), null, "Bad", PlotKind.POT,
                 Soil.POTTING_MIX, null, null, null, null, -1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -112,6 +112,46 @@ class GardenServiceTest {
                 .extracting(PlantingSummary::cropId).containsExactly("pea");
         assertThat(gardens.growingOn(space, "hugo", garden.id(), LocalDate.of(2026, 6, 1)))
                 .extracting(PlantingSummary::cropId).containsExactly("zucchini");
+    }
+
+    @Test
+    void aHarvestCanBeUndoneAndOnlyByAContributor() {
+        long space = spaceOf("nora");
+        spaces.signedIn("gisella");
+        spaces.addMember(space, "nora", "gisella", app.rootology.spaces.Role.GUEST);
+        GardenSummary garden = gardens.saveGarden(space, "nora", null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, "nora", garden.id(), null, "Area", PlotKind.GROUND, Soil.LOAMY, null);
+        PlantingSummary beans = gardens.plant(space, "nora", bed.id(), "bean", PlantingMethod.SOWN,
+                LocalDate.of(2026, 4, 1), null);
+        gardens.endPlanting(space, "nora", beans.id(), LocalDate.of(2026, 7, 1));
+
+        assertThatThrownBy(() -> gardens.undoEndPlanting(space, "gisella", beans.id()))
+                .isInstanceOf(SpaceAccessException.class);
+
+        gardens.undoEndPlanting(space, "nora", beans.id());
+
+        assertThat(gardens.growingOn(space, "nora", garden.id(), LocalDate.of(2026, 7, 2)))
+                .extracting(PlantingSummary::cropId).containsExactly("bean");
+        assertThat(gardens.plantings(space, "nora", bed.id()))
+                .extracting(PlantingSummary::endedOn).containsExactly((LocalDate) null);
+    }
+
+    @Test
+    void aPlantingEnteredByMistakeIsDeletedAndOnlyByAContributor() {
+        long space = spaceOf("rosa");
+        spaces.signedIn("sergio");
+        spaces.addMember(space, "rosa", "sergio", app.rootology.spaces.Role.GUEST);
+        GardenSummary garden = gardens.saveGarden(space, "rosa", null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, "rosa", garden.id(), null, "Area", PlotKind.GROUND, Soil.LOAMY, null);
+        PlantingSummary mistake = gardens.plant(space, "rosa", bed.id(), "bean", PlantingMethod.SOWN,
+                LocalDate.of(2026, 4, 1), null);
+
+        assertThatThrownBy(() -> gardens.deletePlanting(space, "sergio", mistake.id()))
+                .isInstanceOf(SpaceAccessException.class);
+
+        gardens.deletePlanting(space, "rosa", mistake.id());
+
+        assertThat(gardens.plantings(space, "rosa", bed.id())).isEmpty();
     }
 
     @Test

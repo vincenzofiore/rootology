@@ -44,7 +44,7 @@ class SuggestedQuestionsTest {
                 "ask.suggest.crop.harvest", "ask.suggest.plot", "ask.suggest.companions.summer");
         assertThat(chips.get(1).text(italian)).isEqualTo("Quali parassiti minacciano Pomodoro questo mese?");
         assertThat(chips.get(2).text(italian)).contains("Zucchina");
-        assertThat(chips.get(3).text(italian)).isEqualTo("Cosa posso seminare nell’aiuola Nord?");
+        assertThat(chips.get(3).text(italian)).isEqualTo("Cosa posso seminare nell’area Nord?");
     }
 
     @Test

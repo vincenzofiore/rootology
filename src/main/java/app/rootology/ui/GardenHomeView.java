@@ -129,7 +129,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /** A planting needs a plot chosen on the plots page, so the action opens it (#84). */
     private void goToPlots() {
-        getUI().ifPresent(ui -> ui.navigate(PlotsView.class, gardenParameters()));
+        getUI().ifPresent(ui -> ui.navigate(AreasView.class, gardenParameters()));
     }
 
     private RouteParameters gardenParameters() {

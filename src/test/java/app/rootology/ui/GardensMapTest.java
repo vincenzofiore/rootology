@@ -260,7 +260,7 @@ class GardensMapTest {
         long space = personalSpace(login);
         long balcony = garden(space, login, "Balcony", "45.07", "9.19");
         long terrace = garden(space, login, "Terrace", "42.11", "14.71");
-        long pot = gardens.savePlot(space, login, balcony, null, "Pot", PlotKind.CONTAINER, Soil.POTTING_MIX,
+        long pot = gardens.savePlot(space, login, balcony, null, "Pot", PlotKind.POT, Soil.POTTING_MIX,
                 null).id();
         gardens.plant(space, login, pot, "tomato", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 4, 20), null);
 

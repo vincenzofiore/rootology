@@ -23,8 +23,8 @@ public class FirstStepsCard extends Div {
         list.addClassName("rootology-firststeps-list");
         list.add(step(steps.located(), getTranslation("firststeps.location"), GardensView.class,
                 Map.of(Routed.SPACE, String.valueOf(spaceId))));
-        list.add(step(steps.hasPlot(), getTranslation("firststeps.plot"), PlotsView.class, garden(spaceId, gardenId)));
-        list.add(step(steps.hasPlanting(), getTranslation("firststeps.planting"), PlotsView.class,
+        list.add(step(steps.hasPlot(), getTranslation("firststeps.plot"), AreasView.class, garden(spaceId, gardenId)));
+        list.add(step(steps.hasPlanting(), getTranslation("firststeps.planting"), AreasView.class,
                 garden(spaceId, gardenId)));
         list.add(step(steps.hasQuestion(), getTranslation("firststeps.question"), AskView.class,
                 garden(spaceId, gardenId)));

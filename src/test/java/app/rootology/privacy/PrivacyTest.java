@@ -155,7 +155,7 @@ class PrivacyTest {
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
                 insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor)
-                values ((select id from garden where space_id = :s), 'Gus pot', 'CONTAINER', 'POTTING_MIX',
+                values ((select id from garden where space_id = :s), 'Gus pot', 'POT', 'POTTING_MIX',
                         'N', 'SHADE', 'EXPOSED', 3)""").param("s", gusSpace).update();
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)

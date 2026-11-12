@@ -53,6 +53,11 @@ class Planting {
         this.endedOn = endedOn;
     }
 
+    /** Undoing a harvest (#85): the planting grows again. */
+    void resume() {
+        this.endedOn = null;
+    }
+
     boolean isGrowingOn(LocalDate day) {
         return !plantedOn.isAfter(day) && (endedOn == null || endedOn.isAfter(day));
     }

@@ -50,7 +50,7 @@ class LightFactsTest {
         spaces.signedIn(login);
         long id = spaces.spacesOf(login).getFirst().id();
         var garden = gardens.saveGarden(id, login, null, "Balcony", "Torino", null, null);
-        gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.CONTAINER, Soil.POTTING_MIX, null,
+        gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.POT, Soil.POTTING_MIX, null,
                 Orientation.N, sun, Wind.EXPOSED, 3);
         return new RunContext(id, garden.id(), login);
     }
@@ -135,9 +135,9 @@ class LightFactsTest {
         spaces.signedIn("light-elio");
         long id = spaces.spacesOf("light-elio").getFirst().id();
         var terrace = gardens.saveGarden(id, "light-elio", null, "Terrace", "Roma", null, null);
-        gardens.savePlot(id, "light-elio", terrace.id(), null, "Shady", PlotKind.CONTAINER, Soil.POTTING_MIX, null,
+        gardens.savePlot(id, "light-elio", terrace.id(), null, "Shady", PlotKind.POT, Soil.POTTING_MIX, null,
                 null, DirectSun.SHADE, null, null);
-        gardens.savePlot(id, "light-elio", terrace.id(), null, "Sunny", PlotKind.CONTAINER, Soil.POTTING_MIX, null,
+        gardens.savePlot(id, "light-elio", terrace.id(), null, "Sunny", PlotKind.POT, Soil.POTTING_MIX, null,
                 null, DirectSun.FULL_SUN, null, null);
         RunContext sunnier = new RunContext(id, terrace.id(), "light-elio");
 

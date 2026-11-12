@@ -771,6 +771,7 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-grow-chip {
     display: inline-flex;
     align-items: center;
+    gap: var(--lumo-space-xs);
     min-height: 1.75rem;
     padding: 0 var(--lumo-space-s);
     border-radius: 999px;
@@ -792,8 +793,8 @@ rootology-garden-map { display: block; width: 100%; }
     color: var(--lumo-secondary-text-color);
 }
 
-/* The plots page (#84) keeps at most a frost marker: the weather card is on the garden home. */
-.rootology-plots-frost {
+/* The areas page (#85) keeps at most a frost marker: the weather card is on the garden home. */
+.rootology-areas-frost {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -821,9 +822,125 @@ rootology-garden-map { display: block; width: 100%; }
     width: var(--lumo-icon-size-m);
     height: var(--lumo-icon-size-m);
 }
-.rootology-plots-frost-credit {
+.rootology-areas-frost-credit {
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
+}
+
+
+/* The areas page (#85): one card per area, two or three columns on a desktop and one on a phone. */
+.rootology-area-cards {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: var(--lumo-space-m);
+    width: 100%;
+    align-items: start;
+}
+.rootology-area-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-area-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-s);
+}
+.rootology-area-name {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    margin: 0;
+    min-width: 0;
+    font-size: var(--lumo-font-size-m);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-area-name vaadin-icon,
+.rootology-kind-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--lumo-primary-text-color);
+}
+.rootology-area-actions {
+    display: flex;
+    gap: var(--lumo-space-xs);
+    margin-inline-start: auto;
+}
+.rootology-area-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+/* The crops growing in an area: the same chip as the garden home, with the harvest on it. */
+.rootology-grow-days {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+/* The harvest on a chip (#85): a small icon button that never makes the chip taller. */
+.rootology-grow-chip vaadin-button {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    min-width: 0;
+    min-height: 0;
+    margin-inline-start: var(--lumo-space-xs);
+    padding: 0;
+}
+/* What grew in an area before (#85): folded away, one line per past planting. */
+.rootology-area-past {
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-past-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+    padding-top: var(--lumo-space-xs);
+}
+.rootology-past-row {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-past-dates {
+    margin-inline-start: auto;
+    white-space: nowrap;
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-past-row vaadin-button {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+}
+.rootology-sun-toggle {
+    display: flex;
+    gap: var(--lumo-space-xs);
+    align-items: center;
+}
+.rootology-sun-chosen {
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+    box-shadow: inset 0 0 0 2px var(--lumo-primary-color);
+}
+.rootology-area-details {
+    margin-top: var(--lumo-space-s);
+}
+@media (max-width: 640px) {
+    .rootology-area-cards { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* The Ask page (#82): chips instead of a paragraph, answers of the visit below the field, a card while the

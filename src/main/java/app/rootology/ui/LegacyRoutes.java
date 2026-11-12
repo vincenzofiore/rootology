@@ -35,7 +35,7 @@ final class LegacyRoutes {
         String only = all.size() == 1 ? String.valueOf(all.getFirst().id()) : null;
         return switch (path) {
             case ASK -> only == null ? base + "/ask" : base + "/gardens/" + only + "/ask";
-            case GARDEN -> only == null ? base + "/gardens" : base + "/gardens/" + only + "/plots";
+            case GARDEN -> only == null ? base + "/gardens" : base + "/gardens/" + only + "/areas";
             case KNOWLEDGE -> only == null ? base + "/gardens" : base + "/gardens/" + only + "/knowledge";
             case ESCALATIONS -> questions(base, ESCALATIONS, only,
                     !pipeline.pending(spaceId, 0, user.login()).isEmpty());

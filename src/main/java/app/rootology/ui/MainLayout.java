@@ -273,7 +273,7 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         int waiting = pipeline.pending(space.id(), gardenId, currentUser.login()).size();
         bottomBar.add(bottomItem(VaadinIcon.DASHBOARD, "nav.gardenhome", GardenHomeView.class, here, target, 0),
                 bottomItem(VaadinIcon.COMMENT_ELLIPSIS_O, "nav.ask", AskView.class, here, target, 0),
-                bottomItem(PLOTS_ICON, "nav.plots", PlotsView.class, here, target, 0),
+                bottomItem(PLOTS_ICON, "nav.plots", AreasView.class, here, target, 0),
                 bottomItem(VaadinIcon.HOURGLASS, "nav.waiting", EscalationView.class, here, target, waiting));
     }
 
@@ -315,7 +315,7 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         if (gardenId > 0) {
             nav.addItem(new SideNavItem(getTranslation("nav.gardenhome"), GardenHomeView.class, new RouteParameters(here),
                     VaadinIcon.DASHBOARD.create()));
-            nav.addItem(new SideNavItem(getTranslation("nav.plots"), PlotsView.class, new RouteParameters(here),
+            nav.addItem(new SideNavItem(getTranslation("nav.plots"), AreasView.class, new RouteParameters(here),
                     PLOTS_ICON.create()));
         }
         nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, new RouteParameters(here),

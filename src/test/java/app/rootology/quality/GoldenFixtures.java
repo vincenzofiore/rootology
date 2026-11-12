@@ -95,7 +95,7 @@ final class GoldenFixtures {
             case "balcony" -> {
                 var balcony = gardens.saveGarden(space, login, null, "Balcone", "Palermo", new BigDecimal("38.12"),
                         new BigDecimal("13.36"), "IT", 13);
-                gardens.savePlot(space, login, balcony.id(), null, "Davanzale", PlotKind.CONTAINER, Soil.POTTING_MIX,
+                gardens.savePlot(space, login, balcony.id(), null, "Davanzale", PlotKind.POT, Soil.POTTING_MIX,
                         null, Orientation.N, DirectSun.PART_SHADE, Wind.EXPOSED, 3);
                 yield balcony.id();
             }
@@ -105,8 +105,8 @@ final class GoldenFixtures {
                         new BigDecimal("14.71"), "IT", 144);
                 var small = gardens.saveGarden(space, login, null, "Terrazzo piccolo", "Vasto",
                         new BigDecimal("42.11"), new BigDecimal("14.71"), "IT", 144);
-                var tub = gardens.savePlot(space, login, big.id(), null, "Vasca", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
-                var pot = gardens.savePlot(space, login, small.id(), null, "Vaso", PlotKind.CONTAINER, Soil.POTTING_MIX, null);
+                var tub = gardens.savePlot(space, login, big.id(), null, "Vasca", PlotKind.POT, Soil.POTTING_MIX, null);
+                var pot = gardens.savePlot(space, login, small.id(), null, "Vaso", PlotKind.POT, Soil.POTTING_MIX, null);
                 gardens.plant(space, login, tub.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
                 gardens.plant(space, login, pot.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
                 yield c.garden().equals("two-terraces-small") ? small.id() : 0L;

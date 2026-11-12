@@ -135,7 +135,7 @@ class ViewsTest {
         // Vaadin denies a view whose route or parent layout has no access annotation.
         for (Class<?> view : List.of(ComparisonView.class, EscalationView.class, HistoryView.class, MembersView.class,
                 InvitationsView.class, CuratorView.class,
-                PlotsView.class, GardensView.class, GardenHomeView.class, AskView.class, KnowledgeView.class,
+                AreasView.class, PlotsRedirectView.class, GardensView.class, GardenHomeView.class, AskView.class, KnowledgeView.class,
                 AdminView.class, NotificationsView.class, NotificationSettingsView.class, StartView.class,
                 AccountView.class)) {
             Route route = view.getAnnotation(Route.class);
@@ -157,7 +157,7 @@ class ViewsTest {
         assertThat(historyView.getChildren().anyMatch(com.vaadin.flow.component.html.H3.class::isInstance)).isTrue();
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new PlotsView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE)
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge).getChildren()).isNotEmpty();
