@@ -17,7 +17,7 @@ Drawn for Rootology as plain SVG (no generated or third-party artwork).
 - `features/*.svg` in `src/main/resources/brand/`: the welcome page's four features, in the same line style and
   colour roles (figures in soil brown, plants green, weather blue, pests amber; `rootology-draw-*` in
   `rootology.css`), every robot with the app's mark on its chest: `sources` (a robot studying a botany book,
-  books and the weather), `unsure` (the robot shrugs under question marks, a farmer and a teacher with her finger
+  books and the weather), `unsure` (the robot shrugs under a question mark on its right, a farmer and a teacher with her finger
   raised under a lit bulb), `warns` (a thoughtful robot looks at a weather station in the snow and imagines a
   frozen seedling) and `spaces` (an adult and a child water a seedling). The drawings carry no words, so they
   serve every language; `BrandDrawing` fills `{label}`, their description for screen readers, with the

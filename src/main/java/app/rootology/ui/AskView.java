@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -133,6 +134,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         askButton.setText(getTranslation("ask.button"));
         askButton.addThemeName("primary");
         askButton.addClickListener(e -> ask(question.getValue()));
+        // Enter in the field asks too, like the button: one question at a time all the same.
+        question.addKeyDownListener(Key.ENTER, e -> ask(question.getValue()));
         questionsToday.addClassName("rootology-count-badge");
         form.addClassName("rootology-ask-form");
         form.add(question, askButton, questionsToday);

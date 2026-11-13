@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Svg;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -87,6 +88,10 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
         Div feature = new Div(drawing, new H3(getTranslation("welcome." + name + ".title")),
                 new Paragraph(getTranslation("welcome." + name + ".text")));
         feature.addClassName("rootology-feature");
+        if (name.equals("sources")) {
+            // The facts' sources can be looked up: the public Sources page lists every one with its licence.
+            feature.add(new Anchor("/" + SourcesView.ROUTE, getTranslation("welcome.sources.link")));
+        }
         return feature;
     }
 

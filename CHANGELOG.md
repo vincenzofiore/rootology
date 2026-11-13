@@ -20,6 +20,9 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Enter in Ask's field asks the question, like the Ask button (#87).
+- The welcome page says that answers come from a knowledge graph whose facts each cite a source, with a link to
+  the Sources page, and that Rootology does not extrapolate (#87).
 - The history is beside the question: Ask has a History button (a clock with the count of questions) that opens
   the questions asked in this garden, or in the space outside a garden, as a column on the right, with a search on
   their words; on a phone the question and the history take turns. A past question opens its answer on Ask, with
