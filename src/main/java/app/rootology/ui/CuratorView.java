@@ -2,9 +2,7 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -47,7 +45,7 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
                         enrichment.reject(currentUser.login(), p.id(), note.getValue())))))
                 .setAutoWidth(true);
         queue.setAllRowsVisible(true);
-        add(new H3(getTranslation("knowledge.curator")), new Paragraph(getTranslation("knowledge.curator.intro")),
+        add(new PageHeader(getTranslation("knowledge.curator")), new Paragraph(getTranslation("knowledge.curator.intro")),
                 note, queue);
         refresh();
     }
@@ -56,7 +54,7 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
         try {
             action.run();
         } catch (InvalidProposalException ex) {
-            Notification.show(String.join("; ", ex.problems()));
+            Toasts.problem(String.join("; ", ex.problems()));
         } catch (RuntimeException ex) {
             UiErrors.show(this, ex);
         }

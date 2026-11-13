@@ -154,7 +154,7 @@ class ViewsTest {
         HistoryView historyView = new HistoryView(history, gardens, viewer());
         assertThat(historyView.getChildren()).isNotEmpty();
         // The page has a title of its own (#80), like the other pages.
-        assertThat(historyView.getChildren().anyMatch(com.vaadin.flow.component.html.H3.class::isInstance)).isTrue();
+        assertThat(historyView.getChildren().anyMatch(PageHeader.class::isInstance)).isTrue();
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();

@@ -3,10 +3,8 @@ package app.rootology.ui;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -68,7 +66,7 @@ public class InvitationsView extends VerticalLayout implements HasDynamicTitle, 
                 invitations.revoke(spaceId, currentUser.login(), i.id())))).setAutoWidth(true);
         pending.setAllRowsVisible(true);
 
-        add(new H3(getTranslation("space.invitations")), new Paragraph(getTranslation("space.invitations.intro")),
+        add(new PageHeader(getTranslation("space.invitations")), new Paragraph(getTranslation("space.invitations.intro")),
                 form, link, new H4(getTranslation("space.invitations.pending")), pending);
     }
 
@@ -93,7 +91,7 @@ public class InvitationsView extends VerticalLayout implements HasDynamicTitle, 
             String token = invitations.create(spaceId, currentUser.login(), role.getValue(), onlyFor.getValue(),
                     email.getValue());
             if (!email.getValue().isBlank()) {
-                Notification.show(getTranslation("space.invite.sent", email.getValue().trim()));
+                Toasts.done(getTranslation("space.invite.sent", email.getValue().trim()));
             }
             email.clear();
             link.setValue(ServletUriComponentsBuilder.fromCurrentContextPath()

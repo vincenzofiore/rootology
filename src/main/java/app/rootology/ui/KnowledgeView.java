@@ -4,10 +4,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
@@ -91,7 +89,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         this.text = new ProposalText(cropCatalog, knowledge);
 
         askedAbout.setVisible(false);
-        add(new H3(getTranslation("knowledge.title")), new Paragraph(getTranslation("knowledge.intro")),
+        add(new PageHeader(getTranslation("knowledge.title")), new Paragraph(getTranslation("knowledge.intro")),
                 askedAbout);
         // A guest only looks (#33): no proposals, no withdrawals; the role is known in beforeEnter.
         proposalForm = form();
@@ -199,7 +197,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
             try {
                 ProposalSummary added = enrichment.propose(spaceId, currentUser.login(),
                         scope.getValue(), contribution, citation.getValue());
-                Notification.show(getTranslation(added.status() == ProposalStatus.APPROVED ? "knowledge.added"
+                Toasts.done(getTranslation(added.status() == ProposalStatus.APPROVED ? "knowledge.added"
                         : "knowledge.proposed"));
                 name.clear();
                 effect.clear();
@@ -227,7 +225,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         try {
             action.run();
         } catch (InvalidProposalException ex) {
-            Notification.show(String.join("; ", ex.problems()));
+            Toasts.problem(String.join("; ", ex.problems()));
         } catch (RuntimeException ex) {
             UiErrors.show(this, ex);
         }

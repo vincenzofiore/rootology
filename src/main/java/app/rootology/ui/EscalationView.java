@@ -2,19 +2,13 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
-import com.vaadin.flow.theme.lumo.LumoUtility.AlignItems;
-import com.vaadin.flow.theme.lumo.LumoUtility.FlexWrap;
-import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
-import com.vaadin.flow.theme.lumo.LumoUtility.JustifyContent;
 import app.rootology.enrichment.KnowledgeEnrichment;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.KnowledgeGraph;
@@ -67,12 +61,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         this.sources = sources;
         this.enrichment = enrichment;
 
-        H3 title = new H3(getTranslation("escalations.title"));
         refresh.addThemeName("tertiary");
-        HorizontalLayout header = new HorizontalLayout(title, refresh);
-        header.setWidthFull();
-        header.setWrap(true);
-        header.addClassNames(AlignItems.CENTER, JustifyContent.BETWEEN, Gap.MEDIUM, FlexWrap.WRAP);
+        PageHeader header = new PageHeader(getTranslation("escalations.title"), refresh);
         cards.addClassName("rootology-cards");
         empty.setVisible(false);
         add(header, intro, empty, cards);

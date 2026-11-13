@@ -3,9 +3,7 @@ package app.rootology.ui;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -29,7 +27,7 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
 
     private final SpaceService spaces;
     private final CurrentUser currentUser;
-    private final H3 title = new H3();
+    private final PageHeader title = new PageHeader("");
     private final Paragraph yourRole = new Paragraph();
     private final Grid<Member> members = new Grid<>();
     /** Changing roles and removing someone need an OWNER (#15): the column shows for them only. */
@@ -74,7 +72,7 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         }
         spaceId = where.get().spaceId();
         SpaceSummary space = currentUser.spaces().stream().filter(sp -> sp.id() == spaceId).findFirst().orElseThrow();
-        title.setText(space.name());
+        title.setHeading(space.name());
         yourRole.setText(getTranslation("space.yourrole", getTranslation("role." + space.role().name())));
         leave.setVisible(!space.personal());
         boolean owner = space.role() == Role.OWNER;
@@ -112,11 +110,11 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
     private void rename() {
         try {
             spaces.rename(spaceId, currentUser.login(), name.getValue());
-            Notification.show(getTranslation("common.saved"));
+            Toasts.done(getTranslation("common.saved"));
             // The switcher and the title of every page carry the name: start again with the new one.
             getUI().ifPresent(ui -> ui.getPage().reload());
         } catch (IllegalArgumentException ex) {
-            Notification.show(getTranslation("space.rename.invalid", SpaceService.MAX_NAME));
+            Toasts.problem(getTranslation("space.rename.invalid", SpaceService.MAX_NAME));
         } catch (RuntimeException ex) {
             UiErrors.show(this, ex);
         }

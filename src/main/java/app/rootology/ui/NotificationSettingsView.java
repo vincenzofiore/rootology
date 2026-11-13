@@ -4,10 +4,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -45,7 +43,8 @@ public class NotificationSettingsView extends VerticalLayout implements HasDynam
         this.telegram = telegram;
 
         Button back = new Button(getTranslation("notifications.back"), e -> UI.getCurrent().navigate(NotificationsView.class));
-        add(new H3(getTranslation("notifications.preferences")), back, preferences(), telegramBox);
+        back.addThemeName("tertiary");
+        add(new PageHeader(getTranslation("notifications.preferences"), back), preferences(), telegramBox);
         refreshTelegram();
     }
 
@@ -66,7 +65,7 @@ public class NotificationSettingsView extends VerticalLayout implements HasDynam
                 notifications.save(currentUser.login(), new NotificationPreferences(email.getValue(),
                         escalations.getValue(), weather.getValue(), telegramEscalations.getValue(),
                         telegramWeather.getValue(), quietFrom.getValue(), quietTo.getValue()));
-                Notification.show(getTranslation("common.saved"));
+                Toasts.done(getTranslation("common.saved"));
             } catch (RuntimeException ex) {
                 UiErrors.show(this, ex);
             }
@@ -124,7 +123,7 @@ public class NotificationSettingsView extends VerticalLayout implements HasDynam
     private Button unlink() {
         return new Button(getTranslation("notifications.telegram.unlink"), e -> {
             telegram.unlink(currentUser.login());
-            Notification.show(getTranslation("notifications.telegram.unlinked"));
+            Toasts.done(getTranslation("notifications.telegram.unlinked"));
             refreshTelegram();
         });
     }

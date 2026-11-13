@@ -29,6 +29,9 @@ Drawn for Rootology as plain SVG (no generated or third-party artwork).
   hand-drawn line style, rounded caps, in the text's colour: the area kinds in `META-INF/resources/icons/areas/`;
   the empty-state drawings (sprout, notebook, bell, watering can) in `META-INF/resources/icons/empty/`, in soil
   brown (`EmptyState.Drawing`).
+- Pages and messages (#87): every page starts with its title on the left and its main action on the right
+  (`PageHeader`) and fades in briefly, never for a device that asks for less motion; short messages
+  (`Toasts`) carry an icon and a coloured edge for done (green), a problem (red) or information (accent).
 - State colours (`--rootology-frost`, `--rootology-pest`, `--rootology-waiting` in `rootology.css`, each with a
   10 % tint): the same colour for frost, pests and waiting questions on every screen.
 - `mascot-radish.svg` (and `mascot-radish-1024.png`): the radish mascot, kept for promotion only; it is no longer

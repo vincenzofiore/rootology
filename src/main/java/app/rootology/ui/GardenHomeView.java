@@ -3,7 +3,6 @@ package app.rootology.ui;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -68,7 +67,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final GardenPipeline pipeline;
     private final RunHistory history;
     private final CurrentUser currentUser;
-    private final H3 title = new H3();
+    private final PageHeader title = new PageHeader("");
     private final TextField question = new TextField();
     /** The question field: a guest only looks (#33); its visibility depends on the route's space. */
     private final HorizontalLayout form = new HorizontalLayout();
@@ -115,7 +114,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         actions.add(addPlanting, openPlots);
         actions.addClassName("rootology-home-actions");
         grid.addClassName("rootology-home-grid");
-        add(title, form, actions, firstSteps, grid);
+        title.addAction(actions);
+        add(title, form, firstSteps, grid);
     }
 
     /** Hands the question to this garden's Ask page, which answers it as the page opens. */
@@ -150,7 +150,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         // A guest only looks (#33): no planting, but the plots page is there to read.
         addPlanting.setVisible(contributor);
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
-        title.setText(garden.name());
+        title.setHeading(garden.name());
         firstSteps.removeAll();
         grid.removeAll();
         List<PlotSummary> plots = gardens.plots(spaceId, currentUser.login(), gardenId);

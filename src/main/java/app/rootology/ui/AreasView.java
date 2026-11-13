@@ -9,13 +9,11 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
@@ -100,13 +98,16 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         top.add(editGarden, addArea);
         top.setDefaultVerticalComponentAlignment(Alignment.END);
         addArea.addClickListener(e -> areaDialog(null));
+        addArea.setIcon(VaadinIcon.PLUS.create());
+        addArea.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        editGarden.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         showContributorActions(false);
 
         areaCards.addClassName("rootology-area-cards");
         noAreas.setVisible(false);
         frostMark.addClassName("rootology-areas-frost");
         frostMark.setVisible(false);
-        add(new H3(getTranslation("garden.plots")), top, gardenInfo, frostMark, areaCards, noAreas);
+        add(new PageHeader(getTranslation("garden.plots"), top), gardenInfo, frostMark, areaCards, noAreas);
     }
 
     /** The page works in its route's garden; a space or garden the person cannot see is not found. */
@@ -368,7 +369,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private void areaDialog(PlotSummary existing) {
         GardenSummary garden = this.garden;
         if (garden == null) {
-            Notification.show(getTranslation("garden.first"));
+            Toasts.info(getTranslation("garden.first"));
             return;
         }
         TextField name = new TextField(getTranslation("garden.name"));
@@ -456,24 +457,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     }
 
     private void toastHarvested(PlantingSummary planting) {
-        Notification toast = new Notification();
-        toast.setDuration(6000);
-        toast.setPosition(Notification.Position.BOTTOM_CENTER);
-        Button undo = new Button(getTranslation("common.undo"), e -> {
-            try {
-                gardens.undoEndPlanting(spaceId, login, planting.id());
-                toast.close();
-                showAreas();
-            } catch (RuntimeException ex) {
-                UiErrors.show(this, ex);
-            }
-        });
-        undo.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        HorizontalLayout row = new HorizontalLayout(
-                new Span(getTranslation("harvest.done", cropName(planting.cropId(), planting.cropName()))), undo);
-        row.setDefaultVerticalComponentAlignment(Alignment.CENTER);
-        toast.add(row);
-        toast.open();
+        Toasts.withUndo(getTranslation("harvest.done", cropName(planting.cropId(), planting.cropName())),
+                getTranslation("common.undo"), () -> {
+                    try {
+                        gardens.undoEndPlanting(spaceId, login, planting.id());
+                        showAreas();
+                    } catch (RuntimeException ex) {
+                        UiErrors.show(this, ex);
+                    }
+                });
     }
 
     private void plantingDialog(PlotSummary area) {

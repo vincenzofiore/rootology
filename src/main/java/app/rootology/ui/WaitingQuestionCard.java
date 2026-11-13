@@ -8,7 +8,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -181,8 +180,7 @@ class WaitingQuestionCard extends AnswerCard {
         } catch (ServiceUnavailableException ex) {
             // The answer is not stored when the agent cannot finish: say so instead of pretending (#86).
             answer.setEnabled(true);
-            Notification.show(getTranslation("escalations.phrasenotavailable"), 8000,
-                    Notification.Position.BOTTOM_START);
+            Toasts.problem(getTranslation("escalations.phrasenotavailable"));
         } catch (RuntimeException ex) {
             answer.setEnabled(true);
             UiErrors.show(this, ex);

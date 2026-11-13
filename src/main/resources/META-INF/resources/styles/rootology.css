@@ -133,6 +133,7 @@ vaadin-grid {
     margin: var(--lumo-space-l) 0 var(--lumo-space-xs);
     font-size: var(--lumo-font-size-l);
 }
+.rootology-prose h3.rootology-page-title { margin: 0; font-size: var(--lumo-font-size-xxl); }
 .rootology-prose p { margin: 0 0 var(--lumo-space-s); }
 .rootology-prose ul { margin: 0 0 var(--lumo-space-s); padding-inline-start: 1.25em; }
 .rootology-prose li { margin-bottom: var(--lumo-space-xs); }
@@ -522,7 +523,14 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-s) var(--lumo-space-m);
     width: 100%;
 }
-.rootology-page-title { flex: 1 1 auto; min-width: 0; margin: 0; }
+.rootology-page-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--lumo-font-size-xxl);
+    overflow-wrap: anywhere;
+}
+.rootology-page-header { margin-bottom: var(--lumo-space-s); }
 .rootology-page-actions { display: flex; gap: var(--lumo-space-s); align-items: center; }
 /* Taller than wide screens make it look: a frame where a popup fits above or below its marker. */
 .rootology-map {
@@ -1578,3 +1586,32 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-callout-frost > vaadin-icon { color: var(--rootology-frost); }
 .rootology-callout-pest { background: var(--rootology-pest-10pct); }
 .rootology-callout-pest > vaadin-icon { color: var(--rootology-pest); }
+
+/* Toasts (#87, `Toasts`): an icon and a tone say done, a problem or information; Undo when it can be taken back. */
+vaadin-notification-card.rootology-toast::part(overlay) {
+    background: var(--lumo-base-color);
+    color: var(--lumo-body-text-color);
+    box-shadow: var(--lumo-box-shadow-l);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-left: 4px solid var(--rootology-toast-tone, var(--lumo-primary-color));
+}
+vaadin-notification-card.rootology-toast-done { --rootology-toast-tone: var(--lumo-success-color); }
+vaadin-notification-card.rootology-toast-problem { --rootology-toast-tone: var(--lumo-error-color); }
+vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lumo-primary-color); }
+.rootology-toast-row { display: flex; align-items: center; gap: var(--lumo-space-s); }
+.rootology-toast-icon { color: var(--rootology-toast-tone); flex: none; width: 1.2em; height: 1.2em; }
+.rootology-toast-done .rootology-toast-icon { color: var(--lumo-success-text-color); }
+.rootology-toast-problem .rootology-toast-icon { color: var(--lumo-error-text-color); }
+.rootology-toast-info .rootology-toast-icon { color: var(--lumo-primary-text-color); }
+.rootology-toast-undo { margin-left: var(--lumo-space-s); }
+
+/* A page fades in when it opens (#87); nothing moves for whoever asks the system for less motion. */
+@keyframes rootology-page-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+.rootology-page-header { animation: rootology-page-in 180ms ease-out; }
+.rootology-page-header ~ * { animation: rootology-page-in 220ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .rootology-page-header, .rootology-page-header ~ * { animation: none; }
+}

@@ -8,7 +8,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -89,14 +88,14 @@ public class AccessRequestView extends Div implements BeforeEnterObserver, HasDy
         motivation.setPlaceholder(getTranslation("access.motivation.placeholder"));
         Button send = new Button(getTranslation("access.send"), e -> {
             if (motivation.getValue() == null || motivation.getValue().isBlank()) {
-                Notification.show(getTranslation("access.motivation.required"));
+                Toasts.problem(getTranslation("access.motivation.required"));
                 return;
             }
             try {
                 requests.request(identity.provider(), identity.subject(), identity.login(),
                         identity.emails().stream().findFirst().orElse(null), motivation.getValue());
             } catch (RuntimeException ex) {
-                Notification.show(getTranslation("access.notsent"));
+                Toasts.problem(getTranslation("access.notsent"));
             }
             refresh();
         });

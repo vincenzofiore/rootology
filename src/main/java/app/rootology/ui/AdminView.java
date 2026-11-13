@@ -9,7 +9,6 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -84,11 +83,12 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
                 .setHeader(getTranslation("admin.revoked"));
         history.setAllRowsVisible(true);
 
+        add(new PageHeader(getTranslation("admin.title")));
         add(new H3(getTranslation("admin.roles")), new Paragraph(getTranslation("admin.roles.intro")),
                 people, new H4(getTranslation("admin.history")), history);
         add(usageSection());
         add(requestsSection());
-        Button checkWeather = new Button(getTranslation("admin.weather.check"), e -> Notification.show(
+        Button checkWeather = new Button(getTranslation("admin.weather.check"), e -> Toasts.info(
                 getTranslation("admin.weather.result", weatherAlerts.checkNow())));
         add(new H3(getTranslation("admin.weather")), new Paragraph(getTranslation("admin.weather.intro")), checkWeather);
         refresh();

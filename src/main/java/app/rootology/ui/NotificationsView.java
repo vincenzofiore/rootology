@@ -5,10 +5,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -81,7 +79,9 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                 e -> UI.getCurrent().navigate(NotificationSettingsView.class));
 
         empty.setVisible(false);
-        add(new H3(getTranslation("notifications.title")), allRead, preferences, grid, cards, empty);
+        allRead.addThemeName("tertiary");
+        preferences.addThemeName("tertiary");
+        add(new PageHeader(getTranslation("notifications.title"), allRead, preferences), grid, cards, empty);
         refresh();
     }
 
@@ -124,7 +124,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             return;
         }
         if (!currentUser.memberOf(n.spaceId())) {
-            Notification.show(getTranslation("notifications.gone"));
+            Toasts.info(getTranslation("notifications.gone"));
             refresh();
             return;
         }

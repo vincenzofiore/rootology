@@ -10,7 +10,6 @@ import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -135,7 +134,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         map.addDeleteListener(e -> map.change(e.gardenId())
                 .ifPresent(id -> shownGarden(id).ifPresent(this::confirmDelete)));
         map.addAddHereListener(e -> map.point(e.latitude(), e.longitude()).ifPresent(this::addGardenAt));
-        map.addLocateFailedListener(e -> Notification.show(getTranslation("gardens.map.locate.failed")));
+        map.addLocateFailedListener(e -> Toasts.problem(getTranslation("gardens.map.locate.failed")));
 
         // The search sits on the map, as in the map apps people know (#87): no label, a lens and a placeholder.
         search.setPlaceholder(getTranslation("gardens.map.search"));

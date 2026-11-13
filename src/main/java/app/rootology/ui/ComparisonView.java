@@ -7,7 +7,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -73,6 +72,7 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
 
         arms.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         arms.getStyle().set("gap", "1rem");
+        add(new PageHeader(getTranslation("qa.title")));
         add(new H3(getTranslation("qa.experiment")), controls, new Paragraph(getTranslation("qa.experiment.intro")),
                 arms);
         add(goldenSection(goldenRuns));
@@ -133,7 +133,7 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
                     getTranslation("qa.waiting.why", run.pending().decision().reason())));
         } catch (RuntimeException ex) {
             String failure = UiErrors.text(this, ex);
-            Notification.show(failure);
+            Toasts.problem(failure);
             arms.add(card(getTranslation("qa.arm.pipeline"), getTranslation("qa.failed.short"), failure));
         }
     }

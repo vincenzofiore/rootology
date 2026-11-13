@@ -1,7 +1,6 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.notification.Notification;
 import app.rootology.spaces.SpaceAccessException;
 import app.rootology.usage.UsageLimitException;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ final class UiErrors {
     }
 
     static void show(Component in, RuntimeException failure) {
-        Notification.show(text(in, failure));
+        Toasts.problem(text(in, failure));
     }
 
     private UiErrors() {

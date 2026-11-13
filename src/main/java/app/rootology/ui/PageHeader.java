@@ -22,6 +22,10 @@ class PageHeader extends Div {
         addClassName("rootology-page-header");
     }
 
+    void addAction(Component action) {
+        actions.add(action);
+    }
+
     void setHeading(String text) {
         title.setText(text);
     }

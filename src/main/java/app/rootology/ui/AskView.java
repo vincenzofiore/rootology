@@ -5,10 +5,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -122,7 +120,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         suggested.addClassName("rootology-ask-chips");
         answers.addClassName("rootology-ask-answers");
         guest.setVisible(false);
-        add(new H3(getTranslation("ask.title")), suggested, guest, form, answers);
+        add(new PageHeader(getTranslation("ask.title")), suggested, guest, form, answers);
         showQuestionsToday();
     }
 
@@ -312,7 +310,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** The question and the answer's sentence, on the clipboard; the browser may refuse, so nothing depends on it. */
     private void copy(String asked, String answer) {
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", asked + "\n\n" + answer));
-        Notification.show(getTranslation("ask.copied"), 2000, Notification.Position.BOTTOM_END);
+        Toasts.done(getTranslation("ask.copied"));
     }
 
     /**

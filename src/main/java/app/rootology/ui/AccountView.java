@@ -8,15 +8,12 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.AttachmentType;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -65,7 +62,7 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
         this.googleClientId = googleClientId;
         addClassName("rootology-prose");
         String login = currentUser.login();
-        add(new H2(getTranslation("account.title")), new Paragraph(getTranslation("account.signedin", login)));
+        add(new PageHeader(getTranslation("account.title")), new Paragraph(getTranslation("account.signedin", login)));
 
         add(new H3(getTranslation("account.signin.title")), new Paragraph(getTranslation("account.signin.text")));
         add(signInAccounts(login, identities));
@@ -149,8 +146,7 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
                     identities.unlink(login, identity.provider());
                     getUI().ifPresent(ui -> ui.getPage().reload());
                 } catch (SpaceAccessException refused) {
-                    Notification.show(getTranslation("account.signin.unlink.last"), 6000,
-                            Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    Toasts.problem(getTranslation("account.signin.unlink.last"));
                 }
             });
             row.add(unlink);
@@ -186,10 +182,12 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
         if (result == null) {
             return;
         }
-        Notification notification = Notification.show(getTranslation("account.signin." + result.code()),
-                6000, Notification.Position.MIDDLE);
-        notification.addThemeVariants(result == PendingLink.Result.LINKED
-                ? NotificationVariant.LUMO_SUCCESS : NotificationVariant.LUMO_ERROR);
+        String text = getTranslation("account.signin." + result.code());
+        if (result == PendingLink.Result.LINKED) {
+            Toasts.done(text);
+        } else {
+            Toasts.problem(text);
+        }
     }
 
     private void confirm(String login, AccountDeletion deletion, AuthenticationContext authentication) {
@@ -202,8 +200,7 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
                 dialog.close();
                 authentication.logout();
             } catch (IllegalStateException refused) {
-                Notification.show(getTranslation("account.delete.refused"), 6000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                Toasts.problem(getTranslation("account.delete.refused"));
             }
         });
         confirm.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);

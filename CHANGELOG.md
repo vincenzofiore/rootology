@@ -39,6 +39,10 @@ What each version of Rootology brings, for the people who use it and run it. The
   map starts from two letters, so towns such as Ro are found, with exact names first, Italy's before the others,
   and the country only for places abroad; a button centres the map where you are. The map's credits button is
   visible in dark mode, and a map tile that fails to load no longer hides the whole map (#87).
+- Every page opens the same way: its title on the left and its main action on the right ("New garden",
+  "Add an area", "Refresh", "Mark all as read"), with a short fade as it opens (none when the device asks for
+  less motion). Short messages at the bottom carry an icon and a colour for done, a problem or information,
+  and Undo where an action can be taken back (#87).
 - A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
   confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
   answer?" (#83).

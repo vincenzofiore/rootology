@@ -6,7 +6,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
 import app.rootology.garden.GardenViews.GardenSummary;
@@ -122,7 +121,7 @@ final class GardenDialog {
                         town.setValue(p.name());
                         country.setValue(p.countryCode());
                     });
-                }, error -> Notification.show(ui.getTranslation("garden.position.none", error))));
+                }, error -> Toasts.problem(ui.getTranslation("garden.position.none", error))));
 
         here.setVisible(!fromMap);
 
