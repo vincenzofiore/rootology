@@ -45,7 +45,7 @@ class PublicSeoTest {
         assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("text/plain");
         assertThat(response.body())
                 .contains("User-agent: *", "Allow: /welcome", "Allow: /sources", "Allow: /privacy",
-                        "Disallow: /", "Sitemap: https://rootology.app/sitemap.xml");
+                        "Allow: /?v-r=", "Allow: /VAADIN/", "Allow: /lumo/", "Disallow: /", "Sitemap: https://rootology.app/sitemap.xml");
     }
 
     @Test
@@ -102,6 +102,17 @@ class PublicSeoTest {
         assertThat(response.statusCode()).isEqualTo(200);
         String canonical = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         assertThat(response.body()).contains("rel=\"canonical\"").contains("href=\"" + canonical + "/welcome\"");
+    }
+
+    /** A search result's description and a shared link's preview come from the first response (#101). */
+    @Test
+    void theWelcomePageDescribesItselfBeforeItsScriptRuns() throws Exception {
+        HttpResponse<String> response = page("/" + WelcomeView.ROUTE);
+
+        assertThat(response.body())
+                .contains("<title>Rootology, l’assistente per il tuo orto</title>")
+                .contains("<meta name=\"description\" content=\"Rootology risponde alle domande sul tuo orto")
+                .contains("<meta property=\"og:title\"", "<meta property=\"og:image\"");
     }
 
     @Test

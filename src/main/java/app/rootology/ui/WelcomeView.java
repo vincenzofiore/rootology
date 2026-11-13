@@ -95,8 +95,9 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
         return feature;
     }
 
+    /** The same title the server writes for search engines (#101): it already names the app. */
     @Override
     public String getPageTitle() {
-        return getTranslation("welcome.page") + " · Rootology";
+        return getTranslation("welcome.title");
     }
 }

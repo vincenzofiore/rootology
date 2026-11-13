@@ -118,6 +118,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 - Search engines can read the public pages: `robots.txt` and `sitemap.xml` answer without a sign-in, and the
   welcome, sources and privacy pages state their canonical address (#91).
+- Search results and shared links describe the public pages: their title, a description and a preview with the
+  sprout are in the page Rootology sends, in the browser's language (Italian for a crawler), and `robots.txt`
+  lets a crawler run the script that draws the page. The welcome page's title is now "Rootology, l’assistente
+  per il tuo orto" (#101).
 - A person can request an invitation from the welcome page after signing in with GitHub or Google; admins
   approve or reject it in Administration and are notified by email and Telegram (#65).
 - The gardens of a space are on a map, beside the table (below it on a narrow screen); the map alone is
