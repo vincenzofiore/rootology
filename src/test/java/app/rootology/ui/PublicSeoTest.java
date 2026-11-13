@@ -45,7 +45,7 @@ class PublicSeoTest {
         assertThat(response.headers().firstValue("Content-Type").orElse("")).startsWith("text/plain");
         assertThat(response.body())
                 .contains("User-agent: *", "Allow: /welcome", "Allow: /sources", "Allow: /privacy",
-                        "Allow: /?v-r=", "Allow: /VAADIN/", "Allow: /lumo/", "Disallow: /", "Sitemap: https://rootology.app/sitemap.xml");
+                        "Allow: /sitemap.xml", "Allow: /?v-r=", "Allow: /VAADIN/", "Allow: /lumo/", "Disallow: /", "Sitemap: https://rootology.app/sitemap.xml");
     }
 
     @Test

@@ -3,6 +3,8 @@ User-agent: *
 Allow: /welcome
 Allow: /sources
 Allow: /privacy
+# The sitemap itself: Disallow: / below would block it too (#101).
+Allow: /sitemap.xml
 # What Vaadin needs to render those pages: its files, and the requests its client sends to the root to draw
 # the page (/?v-r=init, then /?v-r=uidl). Without them a crawler sees an empty page (#101).
 Allow: /?v-r=
