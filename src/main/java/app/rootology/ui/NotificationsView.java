@@ -9,6 +9,7 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
@@ -155,7 +156,12 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
      * history, or the garden of a weather alert. An alert without a garden (stored before #56, or of a
      * deleted one) belongs to the space's gardens, so it opens the overview, as its email link does.
      */
-    record Target(Class<? extends Component> view, com.vaadin.flow.router.RouteParameters route) {
+    record Target(Class<? extends Component> view, com.vaadin.flow.router.RouteParameters route,
+                  QueryParameters query) {
+
+        Target(Class<? extends Component> view, com.vaadin.flow.router.RouteParameters route) {
+            this(view, route, QueryParameters.empty());
+        }
     }
 
     Target target(NotificationView n) {
@@ -171,12 +177,17 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         if (n.weather()) {
             return new Target(n.gardenId() > 0 ? GardenHomeView.class : GardensView.class, route);
         }
-        return new Target(n.answered() ? HistoryView.class : EscalationView.class, route);
+        if (n.answered()) {
+            // The answer opens on Ask, beside the history (#100).
+            return new Target(AskView.class, route, n.processId() == null ? QueryParameters.empty()
+                    : QueryParameters.simple(Map.of(AskView.RUN, n.processId())));
+        }
+        return new Target(EscalationView.class, route);
     }
 
     private void go(NotificationView n) {
         Target target = target(n);
-        getUI().ifPresent(ui -> ui.navigate(target.view(), target.route()));
+        getUI().ifPresent(ui -> ui.navigate(target.view(), target.route(), target.query()));
     }
 
     /** Its space, and its garden when it has one: a garden alone is ambiguous across spaces (#56). */

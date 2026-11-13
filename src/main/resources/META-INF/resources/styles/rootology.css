@@ -524,7 +524,8 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
 }
 .rootology-page-title {
-    flex: 1 1 auto;
+    /* From zero, so a long title wraps beside the action instead of pushing it to a line of its own. */
+    flex: 1 1 0;
     min-width: 0;
     margin: 0;
     font-size: var(--lumo-font-size-xxl);
@@ -1252,6 +1253,69 @@ rootology-garden-map { display: block; width: 100%; }
     min-width: 0;
     max-width: 100%;
 }
+/* The history beside the question (#100): a column on the right that opens and closes; on a phone the question
+   and the history take turns, and the history's floating button brings the question back. */
+.rootology-ask-split {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-l);
+    width: 100%;
+}
+.rootology-ask-main {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-m);
+}
+.rootology-history-panel {
+    flex: 0 0 22rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    max-height: calc(100dvh - 9rem);
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    padding: var(--lumo-space-xs) var(--lumo-space-xs) var(--lumo-space-m);
+}
+.rootology-ask-split[data-history="closed"] .rootology-history-panel {
+    display: none;
+}
+.rootology-history-search {
+    width: 100%;
+}
+/* A card opens its answer: the whole card is the target, the open button is the keyboard's. */
+.rootology-history-panel .rootology-history-card {
+    cursor: pointer;
+}
+.rootology-history-panel .rootology-history-card:hover {
+    background: var(--lumo-contrast-10pct);
+}
+/* The count beside the clock, in figures that do not jump as it changes. */
+.rootology-history-toggle {
+    font-variant-numeric: tabular-nums;
+}
+/* Which question a past answer is for, and when (#100). */
+.rootology-ask-asked {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-top: var(--lumo-space-m);
+    max-width: 42rem;
+}
+.rootology-ask-asked-when {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-ask-asked-question {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-ask-asked + * {
+    margin-top: var(--lumo-space-xs);
+}
 .rootology-ask-answers {
     box-sizing: border-box;
     display: flex;
@@ -1314,6 +1378,25 @@ rootology-garden-map { display: block; width: 100%; }
     .rootology-ask-field {
         flex: 1 1 100%;
     }
+    /* One at a time (#100): the history, when open, takes the whole page and hides the question's field. */
+    .rootology-ask-split[data-history="open"] .rootology-ask-main {
+        display: none;
+    }
+    .rootology-history-panel {
+        flex: 1 1 auto;
+        position: static;
+        max-height: none;
+        overflow: visible;
+        padding: 0;
+    }
+    .rootology-history-panel .rootology-view-toggle {
+        position: sticky;
+        left: auto;
+        transform: none;
+        bottom: var(--lumo-space-l);
+        align-self: center;
+        margin-top: var(--lumo-space-l);
+    }
     .rootology-ask-form vaadin-button {
         flex: 1 1 auto;
     }
@@ -1363,11 +1446,16 @@ rootology-garden-map { display: block; width: 100%; }
     max-width: 100%;
 }
 
-/* The history (#88) and the notifications (#93) as cards is only for a phone; the table is the page on a
-   computer. */
-.rootology-history-cards,
+/* The history's cards (#88, #100), on every screen, and the notifications as cards (#93), only for a phone:
+   there the table is the page on a computer. */
+.rootology-history-cards {
+    display: flex;
+}
 .rootology-notification-cards {
     display: none;
+}
+.rootology-history-cards,
+.rootology-notification-cards {
     box-sizing: border-box;
     flex-direction: column;
     gap: var(--lumo-space-s);
@@ -1517,11 +1605,9 @@ rootology-garden-map { display: block; width: 100%; }
         scroll-snap-align: start;
     }
     /* One card per row, readable at 360 px (#88, #93): a table has no room for a long text there. */
-    .rootology-history-grid,
     .rootology-notification-grid {
         display: none;
     }
-    .rootology-history-cards,
     .rootology-notification-cards {
         display: flex;
     }

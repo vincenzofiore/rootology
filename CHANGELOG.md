@@ -20,6 +20,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- The history is beside the question: Ask has a History button (a clock with the count of questions) that opens
+  the questions asked in this garden, or in the space outside a garden, as a column on the right, with a search on
+  their words; on a phone the question and the history take turns. A past question opens its answer on Ask, with
+  "ask again" and "copy". The History menu item is gone; old History links and the notifications of an answered
+  question lead to Ask (#100).
 - A visual identity of its own: the sprout's green instead of the default blue, in light and dark, titles and the
   wordmark in Fraunces, the slogan "Ask. Know. Grow." on the welcome page, and hand-drawn icons for the five kinds
   of area (#87).

@@ -39,6 +39,9 @@ import static org.mockito.Mockito.when;
 class GardenContextTest {
 
     @Autowired
+    app.rootology.history.RunHistory runHistory;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -192,7 +195,7 @@ class GardenContextTest {
         long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
         CurrentUser session = new CurrentUser(spaces, login);
         Queued queued = new Queued();
-        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, queued);
+        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, runHistory, queued);
 
         view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
         assertThat(queued.queued).isEqualTo(1);
@@ -233,7 +236,7 @@ class GardenContextTest {
     }
 
     private AskView askView(CurrentUser session) {
-        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge);
+        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, runHistory);
     }
 
     /** The map's style: nothing is fetched here, the map is inspected as data (#66). */

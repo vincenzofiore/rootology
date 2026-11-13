@@ -323,8 +323,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
                 VaadinIcon.COMMENT_ELLIPSIS_O.create()));
         nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class, new RouteParameters(here),
                 VaadinIcon.HOURGLASS.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.history"), HistoryView.class, new RouteParameters(here),
-                VaadinIcon.CLOCK.create()));
         // The proposals belong to the space, so Knowledge is offered inside and outside a garden.
         nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
                 VaadinIcon.BOOK.create()));

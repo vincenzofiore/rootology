@@ -7,6 +7,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -23,6 +24,8 @@ import app.rootology.facts.CropCatalog;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.PlotSummary;
+import app.rootology.history.PipelineRunRecord;
+import app.rootology.history.RunHistory;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.resilience.ServiceUnavailableException;
 import app.rootology.usage.UsageLimitException;
@@ -51,6 +54,11 @@ import java.util.concurrent.Executor;
  * its button stay where they are, the button is disabled meanwhile, and a card says what is being asked.
  * Answers of the visit stack below the field, the newest first, each with "ask again" and "copy". Everything
  * that belongs to the request or to the session is read here, on the UI thread, before the run starts.
+ *
+ * <p>The history is beside the question (#100): a button in the page header opens the context's past questions
+ * as a column on the right, and the browser remembers whether it was open; on a phone the question and the
+ * history take turns. A past question opens its answer on the left, in the same stack. {@code ?history} opens
+ * the column (the old History links) and {@code ?run=<process id>} opens one answer (a notification's link).
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/ask", layout = MainLayout.class)
 @RouteAlias(value = "spaces/:spaceId/ask", layout = MainLayout.class)
@@ -59,6 +67,14 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
 
     /** A question handed over by the home page (#31), answered as soon as the page opens. */
     static final String QUESTION = "q";
+    /** Opens the history column: where the History page's old links lead (#100). */
+    static final String HISTORY = "history";
+    /** Opens one past answer by the agent's process id: where an answered question's notification leads (#100). */
+    static final String RUN = "run";
+    /** Where the browser keeps whether the history column is open: a per-viewer convenience, never needed. */
+    private static final String STORED = "rootology.ask.history";
+    /** The phone's width (as in rootology.css), where the question and the history take turns. */
+    private static final String WIDE = "(min-width: 641px)";
 
     private final GardenPipeline pipeline;
     private final SourceCatalog sources;
@@ -68,6 +84,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final GardenService gardens;
     private final CropCatalog crops;
     private final KnowledgeGraph knowledge;
+    private final HistoryPanel history;
+    /** Opens and closes the history column; the count of the context's questions beside the clock (#100). */
+    private final Button historyButton = new Button(VaadinIcon.CLOCK.create());
+    /** The question and the answers on the left, the history on the right; one at a time on a phone. */
+    private final Div split = new Div();
     /** Where a question runs while the page stays usable (#82): the app's own, never the common pool. */
     private final Executor executor;
     private final Span questionsToday = new Span();
@@ -91,7 +112,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     @Autowired
     public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
                    KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens,
-                   CropCatalog crops, KnowledgeGraph knowledge,
+                   CropCatalog crops, KnowledgeGraph knowledge, RunHistory runs,
                    @Qualifier("applicationTaskExecutor") Executor executor) {
         this.gardens = gardens;
         this.crops = crops;
@@ -102,6 +123,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         this.sources = sources;
         this.currentUser = currentUser;
         this.executor = executor;
+        this.history = new HistoryPanel(runs, this::showPast);
 
         addClassName("rootology-ask");
         question.setLabel(getTranslation("ask.question"));
@@ -120,15 +142,34 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         suggested.addClassName("rootology-ask-chips");
         answers.addClassName("rootology-ask-answers");
         guest.setVisible(false);
-        add(new PageHeader(getTranslation("ask.title")), suggested, guest, form, answers);
+        historyButton.addClassName("rootology-history-toggle");
+        historyButton.setTooltipText(getTranslation("history.title"));
+        historyButton.addClickListener(e -> {
+            setHistoryOpen(!historyOpen(), true);
+            // The column comes after the question in the page: the keyboard is taken straight to it.
+            if (historyOpen()) {
+                history.focusFirst();
+            }
+        });
+        // On a phone the history covers the question: this brings it back, like the gardens page's Map / List.
+        Button backToAsk = new Button(getTranslation("ask.page"), VaadinIcon.COMMENT_ELLIPSIS_O.create(),
+                e -> setHistoryOpen(false, true));
+        backToAsk.addClassName("rootology-view-toggle");
+        history.add(backToAsk);
+        Div main = new Div(suggested, guest, form, answers);
+        main.addClassName("rootology-ask-main");
+        split.addClassName("rootology-ask-split");
+        split.add(main, history);
+        setHistoryOpen(false, false);
+        add(new PageHeader(getTranslation("ask.title"), historyButton), split);
         showQuestionsToday();
     }
 
     /** Tests build the page outside Spring (#56): the question then runs on the calling thread. */
     AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
             KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens,
-            CropCatalog crops, KnowledgeGraph knowledge) {
-        this(pipeline, sources, currentUser, enrichment, usage, gardens, crops, knowledge, Runnable::run);
+            CropCatalog crops, KnowledgeGraph knowledge, RunHistory runs) {
+        this(pipeline, sources, currentUser, enrichment, usage, gardens, crops, knowledge, runs, Runnable::run);
     }
 
     @Override
@@ -144,7 +185,88 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setVisible(contributor);
         guest.setVisible(!contributor);
         showSuggestions();
-        event.getLocation().getQueryParameters().getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(this::ask);
+        loadHistory();
+        QueryParameters query = event.getLocation().getQueryParameters();
+        if (query.getParameters().containsKey(HISTORY)) {
+            setHistoryOpen(true, false);
+        } else {
+            restoreHistoryOpen();
+        }
+        query.getSingleParameter(RUN).flatMap(history::run).ifPresent(this::showPast);
+        query.getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(this::ask);
+    }
+
+    /** The context's past questions, and their count on the button (#100). */
+    private void loadHistory() {
+        history.load(spaceId, gardenId, currentUser.login());
+        int count = history.count();
+        historyButton.setText(count == 0 ? "" : String.valueOf(count));
+        historyButton.setAriaLabel(getTranslation("ask.history", count));
+    }
+
+    /** Whether the history column is open; on a phone, whether the history is the one shown. */
+    boolean historyOpen() {
+        return "open".equals(split.getElement().getAttribute("data-history"));
+    }
+
+    /** Opens or closes the history; remembered in the browser only when chosen on a wide screen (#100). */
+    private void setHistoryOpen(boolean open, boolean remember) {
+        split.getElement().setAttribute("data-history", open ? "open" : "closed");
+        historyButton.getElement().setAttribute("aria-pressed", String.valueOf(open));
+        historyButton.getElement().getThemeList().set("primary", open);
+        if (remember) {
+            getElement().executeJs("try { if (window.matchMedia($0).matches) localStorage.setItem($1, $2); } catch (e) {}",
+                    WIDE, STORED, open ? "open" : "closed");
+        }
+    }
+
+    /** The column as the browser left it, on a wide screen only: a phone always opens on the question. */
+    private void restoreHistoryOpen() {
+        getElement().executeJs("try { return window.matchMedia($0).matches && localStorage.getItem($1) === 'open'; }"
+                        + " catch (e) { return false; }", WIDE, STORED)
+                .then(Boolean.class, open -> setHistoryOpen(Boolean.TRUE.equals(open), false));
+    }
+
+    /**
+     * A past question's answer on the left, on top of the stack (#100): with "ask again" and "copy", like the
+     * answers of the visit, and once only. On a phone the question comes back into view.
+     */
+    private void showPast(PipelineRunRecord run) {
+        String key = "past-" + run.getId();
+        answers.getChildren().filter(c -> key.equals(c.getId().orElse(null))).toList().forEach(answers::remove);
+        AnswerCard card = new AnswerCard();
+        String copyText = null;
+        if (run.isOffDomain()) {
+            card.refused(run.getAnswerText() == null ? getTranslation("ask.offdomain") : run.getAnswerText());
+        } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
+            card.waiting(ReasonText.text(run.getDecisionReason(), this));
+        } else {
+            copyText = run.getAnswerText() == null ? "" : run.getAnswerText();
+            card.answered(copyText, run.getAnswer(), run.getDecisionConfidence());
+        }
+        history.contextOf(run).ifPresent(card::context);
+        Div item = item(run.getQuestion(), contributor, copyText, card);
+        item.setId(key);
+        item.addComponentAsFirst(asked(run.getQuestion(), DateText.dateTime(run.getFinishedAt(), this)));
+        answers.addComponentAsFirst(item);
+        getElement().executeJs("return window.matchMedia($0).matches", WIDE)
+                .then(Boolean.class, wide -> {
+                    if (!Boolean.TRUE.equals(wide)) {
+                        setHistoryOpen(false, false);
+                    }
+                    item.scrollIntoView();
+                });
+    }
+
+    /** Which question an answer is for, and when it was asked, above a past answer (#100). */
+    private Div asked(String text, String when) {
+        Span date = new Span(when);
+        date.addClassName("rootology-ask-asked-when");
+        Span words = new Span(text);
+        words.addClassName("rootology-ask-asked-question");
+        Div asked = new Div(date, words);
+        asked.addClassName("rootology-ask-asked");
+        return asked;
     }
 
     /** Chips instead of a paragraph (#82): the month, what grows here now, and never for a guest (#33). */
@@ -289,6 +411,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         answers.remove(thinking);
         askButton.setEnabled(true);
         showQuestionsToday();
+        loadHistory();
     }
 
     /** One answer of this visit (#82): the card, and under it "ask again" and "copy". */

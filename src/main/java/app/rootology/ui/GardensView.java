@@ -441,7 +441,14 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                 new HorizontalLayout(
                         new RouterLink(getTranslation("nav.escalations"), EscalationView.class,
                                 new RouteParameters(here)),
-                        new RouterLink(getTranslation("nav.history"), HistoryView.class, new RouteParameters(here))));
+                        historyLink(here)));
+    }
+
+    /** The space's Ask with its history open (#100): the questions asked outside a garden. */
+    private RouterLink historyLink(Map<String, String> here) {
+        RouterLink link = new RouterLink(getTranslation("history.title"), AskView.class, new RouteParameters(here));
+        link.setQueryParameters(QueryParameters.simple(Map.of(AskView.HISTORY, "")));
+        return link;
     }
 
     /** Whether the page offers the actions that need an OWNER or MEMBER (#33), for the tests. */

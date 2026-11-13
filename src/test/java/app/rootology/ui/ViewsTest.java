@@ -151,16 +151,12 @@ class ViewsTest {
 
     @Test
     void historySpaceAndCuratorViewsBuild() {
-        HistoryView historyView = new HistoryView(history, gardens, viewer());
-        assertThat(historyView.getChildren()).isNotEmpty();
-        // The page has a title of its own (#80), like the other pages.
-        assertThat(historyView.getChildren().anyMatch(PageHeader.class::isInstance)).isTrue();
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE, "")
                 .getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
@@ -344,23 +340,38 @@ class ViewsTest {
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "QA")
-    void historyShowsTheSameColumnsToEveryone() {
-        // The quality suite's own details live only in Compare (#80): a gardener and QA see the same history.
-        List<String> forQa = historyColumns();
-        org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        List<String> forMember = historyColumns();
-
-        assertThat(forMember).hasSize(6).containsExactlyElementsOf(forQa);
+    void theHistoryIsBesideTheQuestion() {
+        // #100: a button in Ask's header opens the history; closed until the browser says otherwise.
+        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history);
+        assertThat(ask.historyOpen()).isFalse();
+        PageHeader header = ask.getChildren().filter(PageHeader.class::isInstance).map(PageHeader.class::cast)
+                .findFirst().orElseThrow();
+        assertThat(header.getChildren().flatMap(c -> c.getChildren())
+                .anyMatch(c -> c.getElement().getClassList().contains("rootology-history-toggle"))).isTrue();
+        // The old History page forwards to Ask in the same context, with the column open.
+        assertThat(HistoryView.target("3", "5")).isEqualTo("spaces/3/gardens/5/ask");
+        assertThat(HistoryView.target("3", "")).isEqualTo("spaces/3/ask");
     }
 
-    private List<String> historyColumns() {
-        return new HistoryView(history, gardens, viewer()).getChildren().filter(Grid.class::isInstance)
-                .map(Grid.class::cast)
-                .flatMap(g -> g.getColumns().stream())
-                .filter(c -> ((Grid.Column<?>) c).isVisible())
-                .map(c -> ((Grid.Column<?>) c).getHeaderText() == null ? "" : ((Grid.Column<?>) c).getHeaderText())
-                .toList();
+    @Test
+    void theHistorySearchFindsEveryWordIgnoringCaseAndAccents() {
+        assertThat(HistoryPanel.matches("Perché il pomodoro ingiallisce?", "perche POMODORO")).isTrue();
+        assertThat(HistoryPanel.matches("Quando semino il basilico?", "  ")).isTrue();
+        assertThat(HistoryPanel.matches("Quando semino il basilico?", "basilico pomodoro")).isFalse();
+        assertThat(HistoryPanel.matches(null, "x")).isFalse();
+    }
+
+    @Test
+    void anAnsweredQuestionsNotificationOpensItsAnswerInAsk() {
+        CurrentUser me = viewer();
+        long mine = personalSpace(me.login());
+        NotificationsView view = new NotificationsView(notificationService, gardens, me);
+
+        NotificationsView.Target target = view.target(new app.rootology.notifications.NotificationView(3, mine, 0,
+                "ESCALATION_ANSWERED", "p-7", "title", "body", java.time.Instant.now(), null, null, null, null, "mia"));
+
+        assertThat(target.view()).isEqualTo(AskView.class);
+        assertThat(target.query().getSingleParameter(AskView.RUN)).contains("p-7");
     }
 
     /** A person's own space, signed in so it exists. */
