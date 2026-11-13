@@ -104,6 +104,8 @@ export class GardenMap extends LitElement {
     unavailable: '', water: ''
   };
   @property({ type: String }) styleUrl = '';
+  /** The style for a dark page (#87); empty keeps the light one in both. */
+  @property({ type: String }) darkStyleUrl = '';
   /** Whether the person may add, edit and delete gardens; the server checks every such event again. */
   @property({ type: Boolean }) contributor = false;
   /** Set by the server to centre a garden and open its popup; `nonce` makes a repeated pick a change. */
@@ -120,6 +122,18 @@ export class GardenMap extends LitElement {
   private attribution?: AttributionControl;
   /** Whether the attribution now carries MET Norway's credit. */
   private credited = false;
+  /** The style the map was built or last restyled with. */
+  private appliedStyle = '';
+  /** Follows the page between light and dark: the device's setting and the navbar's choice. */
+  private schemeWatch?: MutationObserver;
+  private readonly media = window.matchMedia('(prefers-color-scheme: dark)');
+  private readonly restyle = () => {
+    const style = this.mapStyle();
+    if (this.map && style !== this.appliedStyle) {
+      this.appliedStyle = style;
+      this.map.setStyle(style);
+    }
+  };
 
   // Every style lives in rootology.css, so there is no shadow root.
   protected override createRenderRoot(): HTMLElement {
@@ -151,7 +165,7 @@ export class GardenMap extends LitElement {
     try {
       this.map = new MapLibreMap({
         container: this.container,
-        style: this.styleUrl,
+        style: (this.appliedStyle = this.mapStyle()),
         center: ITALY.center,
         zoom: ITALY.zoom,
         attributionControl: false,
@@ -175,9 +189,13 @@ export class GardenMap extends LitElement {
       this.draw();
       this.fit();
     });
-    // Before the first load an error means the style or its tiles cannot come: say so, keep the table.
-    this.map.on('error', () => {
-      if (!this.loaded) {
+    // Before the first load, an error of the style itself means there is no map: say so, the list stays. A
+    // single tile that fails (the network hiccups) is not that: MapLibre asks for it again as the map moves.
+    this.map.on('error', (event) => {
+      const tile = (event as { tile?: unknown; sourceId?: unknown }).tile !== undefined
+        || (event as { sourceId?: unknown }).sourceId !== undefined;
+      if (!this.loaded && !tile) {
+        console.warn('The gardens map could not load its style', event.error?.message);
         this.failed = true;
       }
     });
@@ -185,9 +203,25 @@ export class GardenMap extends LitElement {
     this.draw();
   }
 
+  /**
+   * The light or the dark style, as the page looks now: the page is dark when its text is light. Read from the
+   * page itself, so the device's setting and the navbar's choice (#31) are both followed.
+   */
+  private mapStyle(): string {
+    if (!this.darkStyleUrl) {
+      return this.styleUrl;
+    }
+    const rgb = getComputedStyle(this).color.match(/\d+(\.\d+)?/g)?.map(Number) ?? [0, 0, 0];
+    const light = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 > 0.5;
+    return light ? this.darkStyleUrl : this.styleUrl;
+  }
+
   protected override updated(changed: PropertyValues<this>) {
     if (changed.has('styleUrl')) {
       this.start();
+    }
+    if (changed.has('darkStyleUrl')) {
+      this.restyle();
     }
     if (changed.has('groups') || changed.has('labels')) {
       this.credit();
@@ -206,6 +240,8 @@ export class GardenMap extends LitElement {
   /** Closes the map when the element goes away, so its WebGL context does not pile up. */
   override disconnectedCallback() {
     super.disconnectedCallback();
+    this.schemeWatch?.disconnect();
+    this.media.removeEventListener('change', this.restyle);
     this.map?.remove();
     this.map = undefined;
     this.attribution = undefined;
@@ -216,6 +252,9 @@ export class GardenMap extends LitElement {
   /** Back in the page (a Vaadin re-render, a move between parents): the map is built again. */
   override connectedCallback() {
     super.connectedCallback();
+    this.schemeWatch = new MutationObserver(this.restyle);
+    this.schemeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'theme', 'class'] });
+    this.media.addEventListener('change', this.restyle);
     this.start();
   }
 
@@ -329,6 +368,22 @@ export class GardenMap extends LitElement {
     this.popup?.remove();
     this.map.once('moveend', () => this.emptyGround(latitude, longitude));
     this.map.flyTo({ center: [longitude, latitude], zoom: PLACE_ZOOM, duration: 800 });
+  }
+
+  /**
+   * Where the person is (#87): the browser's position, asked only on this button, then the same as a found
+   * place. It never leaves the browser unless a garden is added there. A refusal or no answer says so.
+   */
+  locate() {
+    if (!this.map || !navigator.geolocation) {
+      this.emit('locate-failed', {});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => this.showPlace(position.coords.latitude, position.coords.longitude),
+      () => this.emit('locate-failed', {}),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
   }
 
   /**

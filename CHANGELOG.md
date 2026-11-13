@@ -6,6 +6,120 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-13
+
+### Added
+
+- Areas instead of plots: a growing unit is now an area (open field, raised bed, planter, pot or greenhouse,
+  each with its icon), shown as one card per area with the crops growing in it and their days, harvested on the
+  day you choose with an undo while the toast is shown, a planting entered by mistake deleted after a
+  confirmation, the area's past plantings folded away under Details, and the area dialog in two steps with the
+  exposure behind Details. The page is `/spaces/{space}/gardens/{garden}/areas` and the old `plots` link
+  forwards there. Frost checks for a greenhouse or tunnel still use the outdoor minimum and say so, in answers
+  and in the morning alerts, and a question such as "cosa semino nell'aiuola Nord?" finds the area "Nord" (#85).
+- On a phone, inside a garden, a bar at the bottom (Home, Ask, Areas, Waiting questions with the count),
+  "Skip to content" as the first Tab, and the app installable from the home screen with no offline use (#88).
+- Search engines can read the public pages: `robots.txt` and `sitemap.xml` answer without a sign-in, and the
+  welcome, sources and privacy pages state their canonical address (#91).
+- Search results and shared links describe the public pages: their title, a description and a preview with the
+  sprout are in the page Rootology sends, in the browser's language (Italian for a crawler), and `robots.txt`
+  lets a crawler run the script that draws the page. The welcome page's title is now "Rootology, l’assistente
+  per il tuo orto" (#101).
+
+### Changed
+
+- Enter in Ask's field asks the question, like the Ask button (#87).
+- The welcome page says that answers come from a knowledge graph whose facts each cite a source, with a link to
+  the Sources page, and that Rootology does not extrapolate (#87).
+- The history is beside the question: Ask has a History button (a clock with the count of questions) that opens
+  the questions asked in this garden, or in the space outside a garden, as a column on the right, with a search on
+  their words; on a phone the question and the history take turns. A past question opens its answer on Ask, with
+  "ask again" and "copy". The History menu item is gone; old History links and the notifications of an answered
+  question lead to Ask (#100).
+- A visual identity of its own: the sprout's green instead of the default blue, in light and dark, titles and the
+  wordmark in Fraunces, the slogan "Ask. Know. Grow." on the welcome page, and hand-drawn icons for the five kinds
+  of area (#87).
+- Frost, pest and waiting questions keep their own colours everywhere (weather card, alerts, answers, map), the
+  gardens map turns dark with the app, and empty pages show a small drawing instead of a bare sentence (#87).
+- Knowledge is in the side menu outside a garden too, since the proposals belong to the space (#87).
+- The sprout in a circle is now the third "o" of Rootology, always with the slogan "Ask. Know. Grow." under the
+  name, and the browser and home-screen icons show it too. The welcome page draws how the app works, Ask, Know
+  and Grow in a circle, instead of the radish, and every public page has Sign in at the top right, with GitHub,
+  Google and a way to ask for an invitation (#87).
+- The welcome page shows its four features as drawings: answers with their sources, it does not guess, it sees
+  problems coming, a garden to share. Asking for an invitation starts from Sign in at the top right, which
+  says how. Signing out now lands on the welcome page, with a short notice. In dark mode the gardens map's zoom
+  buttons are dark too (#87).
+- The gardens page is simpler: the map and a list of cards side by side (on a phone one at a time, with a
+  Map / List button), "New garden" at the top right, no more map / table / both choice. The place search on the
+  map starts from two letters, so towns such as Ro are found, with exact names first, Italy's before the others,
+  and the country only for places abroad; a button centres the map where you are. The map's credits button is
+  visible in dark mode, and a map tile that fails to load no longer hides the whole map (#87).
+- Every page opens the same way: its title on the left and its main action on the right ("New garden",
+  "Add an area", "Refresh", "Mark all as read"), with a short fade as it opens (none when the device asks for
+  less motion). Short messages at the bottom carry an icon and a colour for done, a problem or information,
+  and Undo where an action can be taken back (#87).
+- A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
+  confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
+  answer?" (#83).
+- Ask empties the question field as soon as a question starts: the question stays on its card, with "ask again".
+- On a phone the notifications are one card each (unread dot, when, the whole text wrapping, space · garden
+  and the open action), so nothing is cut at 360 px (#93).
+- Asking no longer blocks the page: the question runs in the background, a card shows it with the seconds so
+  far, the button is disabled meanwhile, and the visit's answers stack below the field, the newest first, each
+  with "ask again" and "copy". The long paragraph of instructions is now a few suggested questions chosen by the
+  month and by what grows in the garden, and on a phone the question field stays at the bottom of the screen like
+  a chat (#82).
+- A waiting question is a card on Escalations and in Ask: the question, its context, why it waits, the notes,
+  who asked and when, and the answer on the card itself, with the proposed values as removable chips, a field
+  with suggestions from crops and organisms, and an explicit "none" (#86).
+- A new garden no longer shows empty grids: plots, plantings, waiting questions, escalations, history,
+  notifications, proposals and the gardens overview say what is missing and offer the next step, the answer
+  form appears only when a question waits, and the garden home shows four guided first steps until they are
+  done (#81).
+- The history speaks to gardeners: a title, the date, the question, the answer's values, who asked, the
+  outcome and the context, an empty state with a way to ask, and a click on a row opens the full answer card.
+  The quality suite's own columns (case, noise, arbiter, match, confidence) are gone from it, and live only in
+  Compare for QA; the page refreshes when it opens, without a Refresh button (#80).
+- The answer no longer repeats the notes shown below it as callouts, and calls a vegetable garden "orto"
+  (#79).
+- Dates are short and localized ("3 mag", "12 giorni fa"), the sources of an answer have short translated
+  titles, and the plots header keeps only town and country (#79).
+- The personal space is named after its owner, and an owner can rename a space from the members page (#79).
+- The question count shows only when five or fewer questions are left today (#79).
+- On a phone the weather scrolls in one row, the history shows one card per question, the drawer names the
+  current garden, and the notification preferences moved to My account, with a link from the notifications
+  page (#88).
+- Dark mode uses GitHub's dark palette (a near-black canvas, neutral greys, GitHub's blue, red, green and
+  amber) instead of Lumo's slate blue; light mode is unchanged (#75).
+- The garden home is a grid of cards: the question field with Ask and two compact actions on top, then the
+  weather, the alerts of the last three days coloured by severity, the questions waiting for a person with
+  their count, what grows as chips per plot and the climate of the site, with the AgERA5 cell as a source
+  line. The weather card now lives only there: the plots page shows at most a frost marker linking back to
+  it (#84).
+
+### Fixed
+
+- A waiting question’s notification says who asked and the question in the reader’s language, in the app and
+  in the email, instead of the service’s English sentence; the phone card shows the details again (#94).
+- Signing in from Safari no longer ends with a download of `apple-touch-icon.png`: the icons Safari asks for at the root are public images.
+- A note about a garden or plot named in the question shows the names instead of "{0}" and "{1}" (#86).
+- On a phone the space switcher moves into the side menu, the space and garden names leave the navbar and
+  the wordmark shrinks to the sprout on very narrow screens, so the account menu is no longer pushed off the
+  screen (#79).
+- The garden's pages, menu items and links use one name each: the plots are not called "the garden" and no
+  longer use a house icon, and the home page is "Home" (#79).
+- A failed action says what the person can act on, or a generic sentence with a request reference, instead
+  of the service's English message (#79).
+- A person waiting for an invitation can leave the request page: the arrow at the top signs them out and
+  goes back to the welcome page, which they can also open by its address (#76).
+- The gardens map's popups show the weather now for a garden just added or moved, and for gardens where
+  nothing grows: a new place's forecast is fetched in the background when the garden is saved, and every
+  garden's forecast is refreshed every 6 hours (#74).
+- A notification of a waiting question that someone answered no longer stays in the bell's count with no way
+  to open it: it counts as read once the question has its answer, and those left unread before are cleared
+  (#73).
+
 ## [0.3.0] - 2026-11-11
 
 ### Added
@@ -146,7 +260,8 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.3.0...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.4.0...develop
+[0.4.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.0
 [0.3.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.3.0
 [0.2.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.2.0
 [0.1.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.1.0

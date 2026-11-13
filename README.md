@@ -41,7 +41,7 @@ boundaries are explicit and verified automatically by tests, without the
 overhead of a multi-module Maven build.
 
 ```
-io.github.vincenzofiore.rootology
+app.rootology
 ├── RootologyApplication.java
 ├── ontology/       # Domain model: Plant, Pest, Soil, Season, and their
 │                   # declared relationships (companion-of, repels, etc.)

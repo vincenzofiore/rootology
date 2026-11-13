@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 170" class="rootology-draw" role="img" aria-label="{label}">
+<g class="rootology-draw-sky">
+<path d="M40 152 V36 M18 154 H62"/>
+<path d="M40 36 L22 42 M40 36 L58 42 M40 36 L40 26"/>
+<path class="rootology-draw-paper" d="M17 42 A5 5 0 0 1 27 42 Z M53 42 A5 5 0 0 1 63 42 Z M35 26 A5 5 0 0 1 45 26 Z"/>
+<path d="M26 92 L40 84 L54 92"/>
+<rect class="rootology-draw-paper" x="28" y="92" width="24" height="22" rx="1.5"/>
+<path d="M31 98 H49 M31 103 H49 M31 108 H49"/>
+<g class="rootology-draw-snow">
+<path d="M76 30 V44 M70 33.5 L82 40.5 M70 40.5 L82 33.5"/>
+<path d="M14 66 V76 M9.7 68.5 L18.3 73.5 M9.7 73.5 L18.3 68.5"/>
+<path d="M70 72 V80 M66.5 74 L73.5 78 M66.5 78 L73.5 74"/>
+</g>
+</g>
+<g class="rootology-draw-figure" transform="translate(92 60) scale(1.25)">
+<path d="M31 14 V8"/><circle cx="31" cy="5" r="2.5"/>
+<rect class="rootology-draw-paper" x="14" y="14" width="42" height="28" rx="8"/>
+<path d="M56 24 H60 V32 H56"/>
+<path d="M30 42 V47 M40 42 V47"/>
+<circle cx="22" cy="27" r="3"/><circle cx="36" cy="27" r="3"/>
+<path d="M18 19 L25 20 M33 20 L40 19"/>
+<path d="M25 35 H32"/>
+<rect class="rootology-draw-paper" x="20" y="47" width="30" height="30" rx="4"/>
+<path d="M50 55 L58 72"/>
+<path d="M20 55 L10 66 L20 47"/>
+<circle class="rootology-draw-paper" cx="21" cy="45" r="3"/>
+</g>
+<g transform="translate(92 60) scale(1.25)"><g class="rootology-draw-plant rootology-draw-mark"><circle cx="35" cy="61" r="7"/><path d="M35 66 V60"/><path d="M35 62 C32.5 62 31 60.2 31 58 C33.4 58 35 59.6 35 62 Z"/><path d="M35 60.5 C35 58 36.8 56.5 39 56.5 C39 58.8 37.4 60.5 35 60.5 Z"/></g></g>
+<g transform="translate(-114 -20) scale(1.5)">
+<g class="rootology-draw-bubble">
+<circle cx="173" cy="58" r="2.2"/><circle cx="178" cy="50" r="4.5"/>
+<path class="rootology-draw-paper" d="M186 46 C178 46 176 34 186 32 C186 20 202 16 208 24 C214 14 234 18 232 30 C244 32 244 48 232 50 C230 60 210 62 206 54 C198 62 184 58 186 46 Z"/>
+</g>
+<g class="rootology-draw-sky">
+<path d="M202 52 H232"/>
+<path d="M215 52 C215 40 217 32 223 30 C228 29 230 33 229 38"/>
+<path d="M229 38 C225 40 224 45 226 49 C229 46 230 42 229 38 Z"/>
+<path d="M229 38 C233 40 235 45 233 49 C230 46 229 42 229 38 Z"/>
+<path d="M200 26 V36 M195.7 28.5 L204.3 33.5 M195.7 33.5 L204.3 28.5"/>
+</g>
+</g>
+</svg>

@@ -8,7 +8,7 @@
 		<version>4.1.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>io.github.vincenzofiore</groupId>
+	<groupId>app.rootology</groupId>
 	<artifactId>rootology</artifactId>
 	<!-- Maven's CI-friendly version: a release tag vX.Y.Z builds with -Drevision=X.Y.Z (#12, build.yml) -->
 	<version>${revision}</version>
@@ -28,11 +28,11 @@
 		<url/>
 	</scm>
 	<properties>
-		<revision>0.3.0-SNAPSHOT</revision>
+		<revision>0.4.0-SNAPSHOT</revision>
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.2</spring-modulith.version>
 		<embabel-agent.version>1.5.4</embabel-agent.version>
-		<vaadin.version>25.3.4</vaadin.version>
+		<vaadin.version>25.3.5</vaadin.version>
 		<!-- Tests tagged live-api call Claude and Jev for real; run them with -Plive -->
 		<excluded.test.groups>live-api</excluded.test.groups>
 	</properties>

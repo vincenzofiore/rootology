@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" class="rootology-cycle" role="img" aria-label="{label}">
+<defs>
+<marker id="rootology-cycle-head" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path class="rootology-cycle-arrow" d="M1 1 L8 5 L1 9"/>
+</marker>
+</defs>
+<g class="rootology-cycle-arrow">
+<path d="M262.5 81.7 A125 125 0 0 1 324.9 185.6" marker-end="url(#rootology-cycle-head)"/>
+<path d="M258.7 300.4 A125 125 0 0 1 141.3 300.4" marker-end="url(#rootology-cycle-head)"/>
+<path d="M75.1 185.6 A125 125 0 0 1 137.5 81.7" marker-end="url(#rootology-cycle-head)"/>
+</g>
+<g class="rootology-cycle-person" transform="translate(164 29)">
+<circle cx="26" cy="22" r="9"/>
+<path d="M10 62 C10 46 18 38 26 38 C34 38 42 46 42 62"/>
+<path d="M44 4 H62 A6 6 0 0 1 68 10 V20 A6 6 0 0 1 62 26 H54 L48 32 V26 H44 A6 6 0 0 1 38 20 V10 A6 6 0 0 1 44 4 Z"/>
+<path d="M50 11 C50 7 57 7 57 11 C57 14 53 14 53 18"/>
+<path d="M53 21.5 V22"/>
+</g>
+<g class="rootology-cycle-robot" transform="translate(272 216)">
+<path d="M35 14 V8"/>
+<circle cx="35" cy="5" r="2.5"/>
+<rect x="14" y="14" width="42" height="28" rx="8"/>
+<circle cx="27" cy="27" r="3"/>
+<circle cx="43" cy="27" r="3"/>
+<path d="M29 35 H41"/>
+<path d="M14 24 H10 V32 H14 M56 24 H60 V32 H56"/>
+<path d="M30 42 V47 M40 42 V47"/>
+<rect x="20" y="47" width="30" height="18" rx="4"/>
+</g>
+<g class="rootology-draw-plant rootology-draw-mark" transform="translate(272 216) translate(35 56) scale(0.8) translate(-35 -61)"><circle cx="35" cy="61" r="7"/><path d="M35 66 V60"/><path d="M35 62 C32.5 62 31 60.2 31 58 C33.4 58 35 59.6 35 62 Z"/><path d="M35 60.5 C35 58 36.8 56.5 39 56.5 C39 58.8 37.4 60.5 35 60.5 Z"/></g>
+<g class="rootology-cycle-garden" transform="translate(56 216)">
+<path d="M4 64 C20 62 40 66 68 63"/>
+<path d="M16 64 V54"/>
+<path d="M16 57 C12 57 10 54 10 51 C13 51 16 53 16 57 Z"/>
+<path d="M16 55 C16 51 19 49 22 49 C22 52 20 55 16 55 Z"/>
+<path d="M35 64 V42"/>
+<path d="M35 50 C29 50 26 46 26 41 C31 41 35 45 35 50 Z"/>
+<path d="M35 47 C35 41 39 37 44 37 C44 42 40 47 35 47 Z"/>
+<path d="M55 64 V24"/>
+<path d="M55 46 C48 46 45 41 45 36 C51 36 55 40 55 46 Z"/>
+<path d="M55 38 C55 31 59 27 65 27 C65 33 61 38 55 38 Z"/>
+<path d="M55 26 C52 24 51 21 51 18 C54 19 56 22 55 26 Z"/>
+</g>
+<g class="rootology-cycle-label">
+<text x="200" y="124">Ask</text>
+<text x="308" y="310">Know</text>
+<text x="92" y="310">Grow</text>
+</g>
+</svg>
