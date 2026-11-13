@@ -405,16 +405,125 @@ vaadin-grid {
 
 /* The gardens map (#66): MapLibre GL JS on the OpenFreeMap tiles, beside the table in the overview. */
 rootology-garden-map { display: block; width: 100%; }
-/* Map and table side by side, the map wider; on a narrow screen they wrap, the table below the map. */
+/* Map and list side by side, the map wider (#87); on a phone one at a time, switched by a floating button. */
 .rootology-gardens-split {
     display: flex;
-    flex-wrap: wrap;
     align-items: flex-start;
     gap: var(--lumo-space-m);
     width: 100%;
 }
-.rootology-gardens-split > rootology-garden-map { flex: 3 1 28rem; min-width: 0; }
-.rootology-gardens-split > vaadin-grid { flex: 2 1 18rem; min-width: 0; }
+.rootology-map-frame { position: relative; flex: 3 1 0; min-width: 0; }
+.rootology-garden-list { flex: 2 1 0; min-width: 16rem; display: flex; flex-direction: column; }
+.rootology-garden-cards { display: flex; flex-direction: column; gap: var(--lumo-space-s); }
+.rootology-view-toggle { display: none; }
+@media (max-width: 640px) {
+    .rootology-gardens-split { flex-direction: column; align-items: stretch; }
+    .rootology-garden-list { min-width: 0; }
+    .rootology-gardens-split[data-show="map"] .rootology-garden-list,
+    .rootology-gardens-split[data-show="list"] .rootology-map-frame { display: none; }
+    /* Above the map's credits, which take two lines on a phone. */
+    .rootology-view-toggle {
+        display: inline-flex;
+        position: absolute;
+        left: 50%;
+        bottom: 4.5rem;
+        transform: translateX(-50%);
+        z-index: 3;
+        border-radius: 999px;
+        background: var(--lumo-body-text-color);
+        color: var(--lumo-base-color);
+        box-shadow: var(--lumo-box-shadow-m);
+    }
+    .rootology-garden-list .rootology-view-toggle {
+        position: sticky;
+        left: auto;
+        bottom: var(--lumo-space-l);
+        align-self: center;
+        transform: none;
+        margin-top: var(--lumo-space-l);
+    }
+}
+/* A garden's card: name (which opens it), town, the weather now and its menu; the one on the map is marked. */
+.rootology-garden-card {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-base-color);
+    cursor: pointer;
+}
+.rootology-garden-card-selected { border-color: var(--lumo-primary-color); box-shadow: 0 0 0 1px var(--lumo-primary-color); }
+.rootology-garden-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rootology-garden-card-name {
+    font-family: var(--rootology-display-font);
+    font-weight: 600;
+    font-size: var(--lumo-font-size-l);
+    color: var(--lumo-body-text-color);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rootology-garden-card-name:hover { text-decoration: underline; }
+.rootology-garden-card-town { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
+.rootology-garden-card-weather {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    white-space: nowrap;
+}
+.rootology-garden-card-weather img { width: 1.5rem; height: 1.5rem; }
+/* On the map: the place search and "where I am" at the top left, as in the map apps people know (#87). */
+.rootology-map-overlay {
+    position: absolute;
+    top: var(--lumo-space-s);
+    left: var(--lumo-space-s);
+    right: 3.25rem;
+    z-index: 2;
+    display: flex;
+    gap: var(--lumo-space-xs);
+    align-items: center;
+    pointer-events: none;
+}
+.rootology-map-overlay > * { pointer-events: auto; }
+.rootology-map-search { flex: 1; min-width: 0; max-width: 22rem; padding: 0; }
+.rootology-map-search::part(input-field),
+.rootology-map-locate {
+    background: var(--lumo-base-color);
+    box-shadow: var(--lumo-box-shadow-s);
+}
+.rootology-map-locate { color: var(--lumo-primary-text-color); margin: 0; }
+.rootology-map-hint {
+    position: absolute;
+    left: 50%;
+    bottom: var(--lumo-space-l);
+    transform: translateX(-50%);
+    z-index: 2;
+    padding: var(--lumo-space-xs) var(--lumo-space-m);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--lumo-body-text-color) 85%, transparent);
+    color: var(--lumo-base-color);
+    font-size: var(--lumo-font-size-s);
+    white-space: nowrap;
+    pointer-events: none;
+}
+@media (max-width: 640px) {
+    .rootology-map-hint { bottom: 4.5rem; }
+}
+/* The page's top (#87): the title, and the main action on the right. */
+.rootology-page-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s) var(--lumo-space-m);
+    width: 100%;
+}
+.rootology-page-title { flex: 1 1 auto; min-width: 0; margin: 0; }
+.rootology-page-actions { display: flex; gap: var(--lumo-space-s); align-items: center; }
 /* Taller than wide screens make it look: a frame where a popup fits above or below its marker. */
 .rootology-map {
     position: relative;
@@ -516,7 +625,11 @@ rootology-garden-map { display: block; width: 100%; }
     font-family: var(--lumo-font-family);
 }
 .rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib a { color: var(--lumo-primary-text-color); }
-.rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button { background-color: var(--lumo-base-color); }
+/* The attribution's "i" in the text colour, so it shows on the dark map too (#87). */
+.rootology-map .maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+    background: var(--lumo-body-text-color);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Ccircle cx='10' cy='6.5' r='1.2'/%3E%3Cpath d='M10 9.5v5' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
+}
 /* The zoom buttons take the page's colours, so they do not stay white on the dark map (#87); their signs are
    masks in the text colour instead of MapLibre's drawings (whose own dark-mode rules these selectors outweigh). */
 .rootology-map .maplibregl-ctrl-group {
@@ -547,7 +660,6 @@ rootology-garden-map { display: block; width: 100%; }
 /* A hint in a dialog that asks the person to check before saving (#66: a garden in open sea). */
 .rootology-warning { color: var(--lumo-warning-text-color); }
 /* The search that moves the map to a place, as wide as the map's frame allows. */
-.rootology-map-search { width: 100%; max-width: 24rem; }
 .rootology-map-popup-title { margin: 0 0 var(--lumo-space-xs); font-weight: 600; }
 .rootology-map-popup-garden + .rootology-map-popup-garden {
     margin-top: var(--lumo-space-s);

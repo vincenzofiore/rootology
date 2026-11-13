@@ -36,7 +36,7 @@ class GeoNamesTest {
         var again = geoNames.search(" bolo ", "IT");
 
         assertThat(first).extracting(Place::label)
-                .containsExactly("Bologna, Emilia-Romagna, Italia", "Boloña, Lima, Perù");
+                .containsExactly("Bologna, Emilia-Romagna", "Boloña, Lima, Perù");
         assertThat(first.getFirst().latitude()).isEqualTo(44.49381);
         assertThat(again).isEqualTo(first);
         server.verify();
@@ -44,10 +44,40 @@ class GeoNamesTest {
 
     @Test
     void shortTextOrNoAccountMeansNoSearch() {
-        assertThat(geoNames.search("Bo", "it")).isEmpty();
+        assertThat(geoNames.search("B", "it")).isEmpty();
         assertThat(new GeoNames(builder.build(), " ", breaker).search("Bologna", "it")).isEmpty();
         assertThat(new GeoNames(builder.build(), "", breaker).enabled()).isFalse();
         server.verify(); // no request at all
+    }
+
+    @Test
+    void twoLettersFindTheTownNamedSoFirstItalyBeforeAbroadAndEachLineOnce() {
+        // Ro (Ferrara): by its start alone, Rome and Rovigo would fill the list (#87); two villages of one
+        // Belgian region read the same, so one line is enough.
+        server.expect(ExpectedCount.once(), requestTo("https://geo.test/searchJSON?name_equals=Ro&featureClass=P"
+                + "&maxRows=8&orderby=relevance&lang=it&style=MEDIUM&username=rootology-test"))
+                .andRespond(withSuccess("""
+                        {"geonames":[
+                         {"name":"Ro","adminName1":"Vallonia","countryCode":"BE","countryName":"Belgio",
+                          "lat":"50.10","lng":"4.80"},
+                         {"name":"Ro","adminName1":"Vallonia","countryCode":"BE","countryName":"Belgio",
+                          "lat":"50.20","lng":"4.90"},
+                         {"name":"Ro","adminName1":"Emilia-Romagna","countryCode":"IT",
+                          "countryName":"Italia","lat":"44.94","lng":"11.76"}]}
+                        """, MediaType.APPLICATION_JSON));
+        server.expect(ExpectedCount.once(), requestTo("https://geo.test/searchJSON?name_startsWith=Ro"
+                + "&featureClass=P&maxRows=8&orderby=relevance&lang=it&style=MEDIUM&username=rootology-test"))
+                .andRespond(withSuccess("""
+                        {"geonames":[
+                         {"name":"Roma","adminName1":"Lazio","countryCode":"IT","countryName":"Italia",
+                          "lat":"41.89","lng":"12.48"},
+                         {"name":"Ro","adminName1":"Emilia-Romagna","countryCode":"IT","countryName":"Italia",
+                          "lat":"44.94","lng":"11.76"}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(geoNames.search("Ro", "it")).extracting(Place::label)
+                .containsExactly("Ro, Emilia-Romagna", "Ro, Vallonia, Belgio", "Roma, Lazio");
+        server.verify();
     }
 
     @Test

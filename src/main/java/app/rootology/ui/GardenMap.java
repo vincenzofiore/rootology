@@ -113,6 +113,15 @@ public final class GardenMap extends Component {
         getElement().callJsFunction("showPlace", latitude, longitude);
     }
 
+    /**
+     * Moves the map to where the person is, from the browser's position (HTTPS or localhost only), and offers to
+     * add a garden there as a found place does (#87). The position stays in the browser unless the person adds a
+     * garden; a refusal or no position comes back as {@link LocateFailedEvent}.
+     */
+    void locate() {
+        getElement().callJsFunction("locate");
+    }
+
     /** The garden a click on a marker selects, when it is one of the gardens on this page. */
     public OptionalLong select(String gardenId) {
         long id;
@@ -168,6 +177,19 @@ public final class GardenMap extends Component {
     /** "Add a garden here" was pressed; the point is checked with {@link #point} before use. */
     Registration addAddHereListener(ComponentEventListener<AddHereEvent> listener) {
         return addListener(AddHereEvent.class, listener);
+    }
+
+    /** The browser could not give the person's position: refused, unavailable or too slow. */
+    Registration addLocateFailedListener(ComponentEventListener<LocateFailedEvent> listener) {
+        return addListener(LocateFailedEvent.class, listener);
+    }
+
+    @DomEvent("locate-failed")
+    public static class LocateFailedEvent extends ComponentEvent<GardenMap> {
+
+        public LocateFailedEvent(GardenMap source, boolean fromClient) {
+            super(source, fromClient);
+        }
     }
 
     @DomEvent("garden-selected")

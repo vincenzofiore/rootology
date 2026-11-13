@@ -87,14 +87,14 @@ class GardensMapTest {
         assertThat(shared.latitude()).isEqualTo(45.07);
         assertThat(shared.longitude()).isEqualTo(9.19);
         assertThat(shared.title()).as("the marker says how many gardens are there").isNotEmpty();
-        // The coordinates are in the popup, not in the table (texts are keys here: these tests have no service).
+        // The coordinates are in the popup, not in the list (texts are keys here: these tests have no service).
         assertThat(shared.position()).contains("gardens.map.position");
 
         assertThat(groups).flatExtracting(GardenMap.Group::gardens).extracting(GardenMap.Pin::id)
                 .contains(String.valueOf(allotment)).doesNotContain(String.valueOf(nowhere));
 
-        assertThat(view.table().getListDataView().getItems().map(GardenSummary::id))
-                .as("the table keeps every garden, the one without coordinates too")
+        assertThat(view.listed().stream().map(GardenSummary::id))
+                .as("the list keeps every garden, the one without coordinates too")
                 .containsExactlyInAnyOrder(balcony, terrace, allotment, nowhere);
     }
 
@@ -168,7 +168,7 @@ class GardensMapTest {
     }
 
     @Test
-    void aMarkerClickSelectsItsRowAndAnotherSpacesIdSelectsNothing() {
+    void aMarkerClickSelectsItsCardAndAnotherSpacesIdSelectsNothing() {
         String login = login("map-event");
         String stranger = login("map-event-stranger");
         long space = personalSpace(login);
@@ -180,11 +180,11 @@ class GardensMapTest {
 
         com.vaadin.flow.component.ComponentUtil.fireEvent(view.map(),
                 new GardenMap.GardenSelectedEvent(view.map(), true, String.valueOf(theirs)));
-        assertThat(view.table().getSelectedItems()).as("another space's id is ignored").isEmpty();
+        assertThat(view.selectedGarden()).as("another space's id is ignored").isZero();
 
         com.vaadin.flow.component.ComponentUtil.fireEvent(view.map(),
                 new GardenMap.GardenSelectedEvent(view.map(), true, String.valueOf(mine)));
-        assertThat(view.table().getSelectedItems()).extracting(GardenSummary::id).containsExactly(mine);
+        assertThat(view.selectedGarden()).isEqualTo(mine);
     }
 
     @Test
@@ -214,11 +214,11 @@ class GardensMapTest {
         assertThat(asGuest.map().change(String.valueOf(balcony)))
                 .as("nor edits or deletes through the popup").isEmpty();
         assertThat(asGuest.map().select(String.valueOf(balcony))).as("but opens it").hasValue(balcony);
-        assertThat(menuItems(asGuest, balcony)).as("the row's menu only opens").hasSize(1);
+        assertThat(menuItems(asGuest, balcony)).as("the card's menu only opens").hasSize(1);
     }
 
     @Test
-    void withoutAGardenTheMapStillOpensAndTheTableStaysAway() {
+    void withoutAGardenTheMapStillOpensAndTheListStaysAway() {
         String login = login("map-empty");
         long space = personalSpace(login);
 
@@ -227,31 +227,27 @@ class GardensMapTest {
 
         assertThat(groups(view)).isEmpty();
         assertThat(view.map().isVisible()).as("a view of Italy, so the map is there").isTrue();
-        assertThat(view.table().isVisible()).isFalse();
+        assertThat(view.listShown()).isFalse();
     }
 
     @Test
-    void theMapComesFirstAndTheToggleShowsTheTableOrBoth() {
-        String login = login("map-toggle");
+    void theListIsBesideTheMapAndComesFirstOnAPhoneWhenNoGardenHasAMarker() {
+        String login = login("map-list");
         long space = personalSpace(login);
         garden(space, login, "Balcony", "45.07", "9.19");
 
         GardensView view = view(login);
         view.beforeEnter(entering(space));
         assertThat(view.map().isVisible()).isTrue();
-        assertThat(view.table().isVisible()).as("the map alone by default").isFalse();
+        assertThat(view.listShown()).as("no choice to make: both (#87)").isTrue();
+        assertThat(view.phoneShows()).as("a phone starts on the map").isEqualTo("map");
 
-        view.viewMode().setValue(GardensView.ViewMode.TABLE);
-        assertThat(view.map().isVisible()).isFalse();
-        assertThat(view.table().isVisible()).isTrue();
-
-        view.viewMode().setValue(GardensView.ViewMode.MAP);
-        assertThat(view.map().isVisible()).isTrue();
-        assertThat(view.table().isVisible()).isFalse();
-
-        view.viewMode().setValue(GardensView.ViewMode.BOTH);
-        assertThat(view.map().isVisible()).isTrue();
-        assertThat(view.table().isVisible()).isTrue();
+        String other = login("map-list-nowhere");
+        long otherSpace = personalSpace(other);
+        garden(otherSpace, other, "Nowhere", null, null);
+        GardensView nowhere = view(other);
+        nowhere.beforeEnter(entering(otherSpace));
+        assertThat(nowhere.phoneShows()).as("no marker to show: the list first").isEqualTo("list");
     }
 
     @Test
@@ -268,7 +264,7 @@ class GardensMapTest {
         view.beforeEnter(entering(space));
         view.deleteGarden(balcony);
 
-        assertThat(view.table().getListDataView().getItems().map(GardenSummary::id)).containsExactly(terrace);
+        assertThat(view.listed().stream().map(GardenSummary::id)).containsExactly(terrace);
         assertThat(groups(view)).flatExtracting(GardenMap.Group::gardens).extracting(GardenMap.Pin::id)
                 .containsExactly(String.valueOf(terrace));
         assertThat(jdbc.sql("select count(*) from plot where id = :id").param("id", pot).query(Long.class).single())
@@ -294,9 +290,9 @@ class GardensMapTest {
                 .as("the question stays in the space, without a garden").containsExactly(space, null);
     }
 
-    /** The items of a row's gear menu, as the page builds them for that garden. */
+    /** The items of a card's menu, as the page builds them for that garden. */
     private static List<?> menuItems(GardensView view, long gardenId) {
-        GardenSummary garden = view.table().getListDataView().getItems().filter(g -> g.id() == gardenId)
+        GardenSummary garden = view.listed().stream().filter(g -> g.id() == gardenId)
                 .findFirst().orElseThrow();
         return view.actions(garden).getItems();
     }

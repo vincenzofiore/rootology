@@ -1,21 +1,20 @@
 package app.rootology.ui;
 
-import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -47,19 +46,13 @@ import java.util.Optional;
  * The gardens of a space (#56): the overview a person lands on, and where a garden is chosen to work in.
  * A garden's name alone is ambiguous across spaces, so it is only ever shown under its space.
  *
- * <p>Since #66 the gardens are also on a map, above the table and linked to it: a marker selects its row,
- * a row centres the map on its marker, and a click on empty ground offers to add a garden there. The person
- * chooses map, table or both, and the browser remembers it.
+ * <p>The gardens are on a map (#66) beside a list of cards (#87): a marker selects its card, a card centres the
+ * map on its marker, and a click on empty ground offers to add a garden there. The place search and "where I
+ * am" sit on the map. On a phone the map and the list take turns, with one button to switch.
  */
 @Route(value = "spaces/:spaceId/gardens", layout = MainLayout.class)
 @PermitAll
 public class GardensView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
-
-    /** What the person wants to see; remembered in the browser like the colour scheme (#66). */
-    enum ViewMode { MAP, TABLE, BOTH }
-
-    /** The browser key of the choice; only read and written inside a guard, a refused storage keeps the default. */
-    static final String VIEW_KEY = "rootology.gardenView";
 
     private final GardenService gardens;
     private final GeoNames geoNames;
@@ -68,25 +61,35 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final ClimateCells climateCells;
     private final GardenPipeline pipeline;
     private final WeatherService weather;
-    private final H3 title = new H3(getTranslation("gardens.title"));
-    private final Grid<GardenSummary> grid = new Grid<>();
+    private final Button add = new Button(getTranslation("garden.new"), VaadinIcon.PLUS.create());
+    /** The space's name and the main action, "New garden" (#87). */
+    private final PageHeader header = new PageHeader(getTranslation("gardens.title"), add);
+    /** One card per garden, beside the map (#87). */
+    private final Div cards = new Div();
+    /** The cards with, on a phone, the button back to the map. */
+    private final Div list = new Div();
+    /** The map with its search, "where I am", the hint and, on a phone, the button to the list. */
+    private final Div frame = new Div();
+    private final Span hint = new Span(getTranslation("gardens.map.hint"));
+    private final Button showList = new Button(getTranslation("gardens.show.list"), VaadinIcon.LIST_UL.create());
+    private final Button showMap = new Button(getTranslation("gardens.show.map"), VaadinIcon.MAP_MARKER.create());
+    /** The garden picked on the map or in the list, its card marked. */
+    private long selected;
     /** What the page shows when the space has no garden yet (#81); the map stays. */
     private final EmptyState none = new EmptyState(getTranslation("gardens.none"));
-    private final Button add = new Button(getTranslation("garden.new"));
     private final GardenMap map;
-    private final RadioButtonGroup<ViewMode> viewMode = new RadioButtonGroup<>();
     /** Finds a place by name and moves the map there: the one place search of the page (#66). */
     private final ComboBox<Place> search = new ComboBox<>();
     /** General questions with no garden to work in: the space level (#56). */
     private final HorizontalLayout ask = new HorizontalLayout();
     /** The questions without a garden, rebuilt on every entry (#56). */
     private final Div ungardenedSection = new Div();
-    /** The map and the table side by side, one above the other on a narrow screen (#66). */
+    /** The map and the list side by side; on a phone one at a time (#87). */
     private final Div split = new Div();
     private boolean contributor;
     /** The page's own space (#56), read from its route. */
     private long spaceId;
-    /** The gardens on this page, in the table's order: the map and the table both read them. */
+    /** The gardens on this page, in the list's order: the map and the list both read them. */
     private List<GardenSummary> shown = List.of();
 
     public GardensView(GardenService gardens, GeoNames geoNames, Ungardened ungardened, CurrentUser currentUser,
@@ -113,7 +116,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         ask.add(question, send);
         // A guest only looks (#33): no garden is added; the role is known in beforeEnter.
         add.setVisible(false);
-        add.addThemeName("primary");
+        add.addThemeVariants(ButtonVariant.PRIMARY);
         add.addClickListener(e -> addGarden());
 
         map = new GardenMap(styleUrl, darkStyleUrl);
@@ -125,17 +128,19 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                 getTranslation("gardens.map.addhere"),
                 getTranslation("gardens.map.unavailable"), getTranslation("gardens.map.water")));
         map.setContributor(false);
-        map.setVisible(false);
-        // A marker selects its row; its popup has the row's actions, so the map alone is enough (#66).
-        map.addSelectedListener(e -> map.select(e.gardenId()).ifPresent(this::selectRow));
+        // A marker selects its card; its popup has the card's actions, so the map alone is enough (#66).
+        map.addSelectedListener(e -> map.select(e.gardenId()).ifPresent(this::selectCard));
         map.addOpenListener(e -> map.select(e.gardenId()).ifPresent(this::openGarden));
         map.addEditListener(e -> map.change(e.gardenId()).ifPresent(id -> shownGarden(id).ifPresent(this::editGarden)));
         map.addDeleteListener(e -> map.change(e.gardenId())
                 .ifPresent(id -> shownGarden(id).ifPresent(this::confirmDelete)));
         map.addAddHereListener(e -> map.point(e.latitude(), e.longitude()).ifPresent(this::addGardenAt));
+        map.addLocateFailedListener(e -> Notification.show(getTranslation("gardens.map.locate.failed")));
 
-        search.setLabel(getTranslation("gardens.map.search"));
-        search.setPlaceholder(getTranslation("garden.place.hint"));
+        // The search sits on the map, as in the map apps people know (#87): no label, a lens and a placeholder.
+        search.setPlaceholder(getTranslation("gardens.map.search"));
+        search.setAriaLabel(getTranslation("gardens.map.search"));
+        search.setPrefixComponent(VaadinIcon.SEARCH.create());
         search.addClassName("rootology-map-search");
         search.setItemLabelGenerator(Place::label);
         search.setClearButtonVisible(true);
@@ -150,35 +155,31 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
             });
         }
 
-        viewMode.setLabel(getTranslation("gardens.view"));
-        viewMode.setItems(ViewMode.values());
-        viewMode.setItemLabelGenerator(this::viewModeText);
-        viewMode.setValue(ViewMode.MAP);
-        viewMode.addValueChangeListener(e -> {
-            updateVisibility();
-            remember(e.getValue());
-        });
+        Button locate = new Button(VaadinIcon.CROSSHAIRS.create(), e -> map.locate());
+        locate.addThemeVariants(ButtonVariant.LUMO_ICON);
+        locate.setAriaLabel(getTranslation("gardens.map.locate"));
+        locate.setTooltipText(getTranslation("gardens.map.locate"));
+        locate.addClassName("rootology-map-locate");
+        Div overlay = new Div(search, locate);
+        overlay.addClassName("rootology-map-overlay");
+        hint.addClassName("rootology-map-hint");
+        hint.setVisible(false);
 
-        grid.addColumn(GardenSummary::name).setHeader(getTranslation("garden.garden"));
-        grid.addColumn(g -> g.town() == null ? "" : g.town()).setHeader(getTranslation("garden.town"));
-        // One menu per row: open for everyone, edit and delete for an OWNER or MEMBER (#33). The coordinates
-        // are in the map's popup.
-        grid.addComponentColumn(g -> actions(g).getTarget()).setHeader(getTranslation("space.actions")).setAutoWidth(true)
-                .setFlexGrow(0);
-        grid.setAllRowsVisible(true);
-        grid.setVisible(false);
-        // The other direction: a selected row centres the map on its marker and opens its popup (#66).
-        // Only a person's pick in the table moves the map: a row the map selected must not zoom it again.
-        grid.addSelectionListener(e -> {
-            if (e.isFromClient()) {
-                e.getFirstSelectedItem().ifPresent(this::focusOnMap);
-            }
-        });
+        // On a phone the map and the list take turns (#87); on a wide screen both buttons are hidden.
+        showList.addClassName("rootology-view-toggle");
+        showList.addClickListener(e -> show("list"));
+        showMap.addClassName("rootology-view-toggle");
+        showMap.addClickListener(e -> show("map"));
+        frame.addClassName("rootology-map-frame");
+        frame.add(map, overlay, hint, showList);
+        cards.addClassName("rootology-garden-cards");
+        list.addClassName("rootology-garden-list");
+        list.add(cards, showMap);
 
         split.addClassName("rootology-gardens-split");
-        split.add(map, grid);
-        add(title, new Paragraph(getTranslation("gardens.intro")), new HorizontalLayout(add, viewMode), ask, none,
-                search, split, ungardenedSection);
+        split.add(frame, list);
+        show("map");
+        add(header, ask, none, split, ungardenedSection);
     }
 
     @Override
@@ -192,41 +193,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         add.setVisible(contributor);
         map.setContributor(contributor);
         currentUser.spaces().stream().filter(sp -> sp.id() == spaceId).findFirst()
-                .ifPresent(sp -> title.setText(sp.name()));
+                .ifPresent(sp -> header.setHeading(sp.name()));
         refresh();
-    }
-
-    /** The choice of map, table or both is read from the browser as the page opens (#66). */
-    @Override
-    protected void onAttach(AttachEvent event) {
-        super.onAttach(event);
-        event.getUI().getPage()
-                .executeJs("try { return localStorage.getItem($0); } catch (e) { return null; }", VIEW_KEY)
-                .then(String.class, saved -> {
-                    if (saved == null) {
-                        return;
-                    }
-                    for (ViewMode mode : ViewMode.values()) {
-                        if (mode.name().equals(saved)) {
-                            viewMode.setValue(mode);
-                        }
-                    }
-                });
-    }
-
-    private void remember(ViewMode mode) {
-        if (mode != null) {
-            getUI().ifPresent(ui -> ui.getPage()
-                    .executeJs("try { localStorage.setItem($0, $1); } catch (e) {} ", VIEW_KEY, mode.name()));
-        }
-    }
-
-    private String viewModeText(ViewMode mode) {
-        return getTranslation(switch (mode) {
-            case MAP -> "gardens.view.map";
-            case TABLE -> "gardens.view.table";
-            case BOTH -> "gardens.view.both";
-        });
     }
 
     /** With no garden there is no garden to ask in: the question goes to the space level, without a garden. */
@@ -240,11 +208,11 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     }
 
     /**
-     * A row's actions behind one gear button, opened by a click: the table keeps few columns and fits beside
-     * the map. A plain button and its menu, not a MenuBar, whose overflow button would add a second level.
+     * A card's actions behind one "more" button, opened by a click. A plain button and its menu, not a MenuBar,
+     * whose overflow button would add a second level.
      */
     ContextMenu actions(GardenSummary garden) {
-        Button gear = new Button(VaadinIcon.COG.create());
+        Button gear = new Button(VaadinIcon.ELLIPSIS_DOTS_H.create());
         gear.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         gear.setAriaLabel(getTranslation("gardens.actions", garden.name()));
         gear.setTooltipText(getTranslation("gardens.actions", garden.name()));
@@ -314,30 +282,39 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         new GardenDialog(geoNames, climateCells, save(null)).open(null, saved -> refresh(), point.latitude(), point.longitude());
     }
 
-    /** The table's row of a garden the map selected, scrolled into view (#66). */
-    private void selectRow(long gardenId) {
-        for (int i = 0; i < shown.size(); i++) {
-            GardenSummary garden = shown.get(i);
-            if (garden.id() == gardenId) {
-                grid.select(garden);
-                grid.scrollToIndex(i);
-                return;
+    /** The card of a garden the map selected, marked and scrolled into view (#66, #87). */
+    private void selectCard(long gardenId) {
+        selected = gardenId;
+        cards.getChildren().forEach(card -> {
+            boolean mine = Long.toString(gardenId).equals(card.getElement().getAttribute("data-garden"));
+            card.getElement().getClassList().set("rootology-garden-card-selected", mine);
+            if (mine) {
+                card.scrollIntoView();
             }
+        });
+    }
+
+    /** A garden picked in the list: its card is marked and the map centres on its marker, when it has one. */
+    private void focusOnMap(GardenSummary garden) {
+        selectCard(garden.id());
+        if (garden.latitude() != null && garden.longitude() != null) {
+            map.focus(garden.id());
+            show("map");
         }
     }
 
-    /** A garden picked in the table: the map centres on its marker, when it has one. */
-    private void focusOnMap(GardenSummary garden) {
-        if (garden.latitude() != null && garden.longitude() != null) {
-            map.focus(garden.id());
-        }
+    /** On a phone, the map or the list (#87); a wide screen shows both and ignores it. */
+    private void show(String what) {
+        split.getElement().setAttribute("data-show", what);
     }
 
     private void refresh() {
         List<GardenSummary> all = spaceId == 0 ? List.of() : gardens.gardens(spaceId, currentUser.login());
         shown = all;
-        grid.setItems(all);
-        map.setGroups(groups(all));
+        Map<String, Optional<ForecastHour>> hours = new LinkedHashMap<>();
+        cards.removeAll();
+        all.forEach(garden -> cards.add(card(garden, hour(garden, hours))));
+        map.setGroups(groups(all, hours));
         none.setVisible(all.isEmpty());
         ask.setVisible(all.isEmpty() && contributor);
         updateVisibility();
@@ -345,17 +322,56 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     }
 
     /**
-     * Map, table or both (#66). The map also comes up with no garden at all, on a view of Italy; a garden
-     * with no coordinates stays in the table only, and when that is every garden the table is shown too,
-     * so a choice of "map" never hides them.
+     * The list beside the map only when there are gardens (#87). The map always comes up, on a view of Italy with
+     * no garden, so one can be added there; a garden with no coordinates is in the list only, and on a phone the
+     * list then comes first. The hint to tap the map is for a contributor with no garden yet.
      */
     private void updateVisibility() {
         boolean anyMarker = shown.stream().anyMatch(g -> g.latitude() != null && g.longitude() != null);
-        ViewMode mode = viewMode.getValue() == null ? ViewMode.MAP : viewMode.getValue();
-        map.setVisible(mode != ViewMode.TABLE && (anyMarker || shown.isEmpty()));
-        search.setVisible(map.isVisible() && geoNames != null && geoNames.enabled());
-        boolean tableWanted = mode != ViewMode.MAP || (!anyMarker && !shown.isEmpty());
-        grid.setVisible(tableWanted && !shown.isEmpty());
+        search.setVisible(geoNames != null && geoNames.enabled());
+        list.setVisible(!shown.isEmpty());
+        showList.setVisible(!shown.isEmpty());
+        hint.setVisible(contributor && shown.isEmpty());
+        show(!shown.isEmpty() && !anyMarker ? "list" : "map");
+    }
+
+    /** The weather now at a garden's point, read once per point for the cards and the markers (#67). */
+    private Optional<ForecastHour> hour(GardenSummary garden, Map<String, Optional<ForecastHour>> hours) {
+        if (garden.latitude() == null || garden.longitude() == null) {
+            return Optional.empty();
+        }
+        return hours.computeIfAbsent(garden.latitude() + "/" + garden.longitude(),
+                key -> weather.storedNow(garden.latitude(), garden.longitude()));
+    }
+
+    /**
+     * A garden's card (#87): its name, which opens it, its town, the weather now from the stored forecast and the
+     * menu of its actions. A click elsewhere on the card shows it on the map.
+     */
+    private Div card(GardenSummary garden, Optional<ForecastHour> hour) {
+        // A plain link to the garden's home (spaces/{space}/gardens/{garden}), which the router follows in place.
+        Anchor name = new Anchor("spaces/" + spaceId + "/gardens/" + garden.id(), garden.name());
+        name.addClassName("rootology-garden-card-name");
+        Span town = new Span(garden.town() == null ? getTranslation("garden.notown") : garden.town());
+        town.addClassName("rootology-garden-card-town");
+        Div text = new Div(name, town);
+        text.addClassName("rootology-garden-card-text");
+        Div card = new Div(text);
+        hour.ifPresent(h -> {
+            Span now = new Span();
+            if (h.symbol() != null) {
+                now.add(new Image("weather-icons/" + h.symbol() + ".svg", h.symbol().replace('_', ' ')));
+            }
+            now.add(new Span(weatherText(h)));
+            now.addClassName("rootology-garden-card-weather");
+            card.add(now);
+        });
+        card.add(actions(garden).getTarget());
+        card.addClassName("rootology-garden-card");
+        card.getElement().setAttribute("data-garden", Long.toString(garden.id()));
+        card.getElement().getClassList().set("rootology-garden-card-selected", garden.id() == selected);
+        card.addClickListener(e -> focusOnMap(garden));
+        return card;
     }
 
     /**
@@ -363,7 +379,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
      * Everything a popup shows is computed here, in this space and for this person only: the coordinates,
      * what grows today, the questions waiting and the weather now from the stored forecast (#67).
      */
-    private List<GardenMap.Group> groups(List<GardenSummary> all) {
+    private List<GardenMap.Group> groups(List<GardenSummary> all, Map<String, Optional<ForecastHour>> hours) {
         Map<String, List<GardenSummary>> byPoint = new LinkedHashMap<>();
         for (GardenSummary garden : all) {
             if (garden.latitude() != null && garden.longitude() != null) {
@@ -375,7 +391,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         byPoint.forEach((key, same) -> {
             GardenSummary first = same.getFirst();
             // Gardens on one rounded point share one stored position, so they share one reading (#67).
-            Optional<ForecastHour> hour = weather.storedNow(first.latitude(), first.longitude());
+            Optional<ForecastHour> hour = hour(first, hours);
             List<GardenMap.Pin> pins = same.stream().map(garden -> pin(garden, hour)).toList();
             groups.add(new GardenMap.Group(first.latitude().doubleValue(), first.longitude().doubleValue(),
                     same.size() > 1 ? getTranslation("gardens.map.point", same.size()) : first.name(),
@@ -439,14 +455,24 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         return map;
     }
 
-    /** The table of this page, for the tests (#66). */
-    Grid<GardenSummary> table() {
-        return grid;
+    /** The gardens of the list, in order, for the tests (#87). */
+    List<GardenSummary> listed() {
+        return shown;
     }
 
-    /** The map / table / both choice, for the tests (#66). */
-    RadioButtonGroup<ViewMode> viewMode() {
-        return viewMode;
+    /** Whether the list of cards is on the page, for the tests (#87). */
+    boolean listShown() {
+        return list.isVisible();
+    }
+
+    /** What a phone shows first, "map" or "list", for the tests (#87). */
+    String phoneShows() {
+        return split.getElement().getAttribute("data-show");
+    }
+
+    /** The garden whose card is marked, 0 for none, for the tests (#87). */
+    long selectedGarden() {
+        return selected;
     }
 
     @Override

@@ -34,6 +34,11 @@ What each version of Rootology brings, for the people who use it and run it. The
   problems coming, a garden to share. Asking for an invitation starts from Sign in at the top right, which
   says how. Signing out now lands on the welcome page, with a short notice. In dark mode the gardens map's zoom
   buttons are dark too (#87).
+- The gardens page is simpler: the map and a list of cards side by side (on a phone one at a time, with a
+  Map / List button), "New garden" at the top right, no more map / table / both choice. The place search on the
+  map starts from two letters, so towns such as Ro are found, with exact names first, Italy's before the others,
+  and the country only for places abroad; a button centres the map where you are. The map's credits button is
+  visible in dark mode, and a map tile that fails to load no longer hides the whole map (#87).
 - A lighter answer card: the answer and its values first, only the warnings to act on in sight, the
   confidence in words (high, good, fair) and the rest (full context, other notes, sources) under "Why this
   answer?" (#83).

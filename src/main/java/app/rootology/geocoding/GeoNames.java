@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +29,10 @@ import java.util.Optional;
 @Service
 public class GeoNames {
 
-    static final int MIN_LENGTH = 3;
+    /** Two letters: Italy has towns such as Ro, Vo, Ne and Lu (#87). */
+    static final int MIN_LENGTH = 2;
+    /** Up to this length a place named exactly as typed is also asked for, and listed first. */
+    static final int EXACT_UP_TO = 3;
     static final int MAX_ROWS = 8;
     static final int CACHE_SIZE = 500;
 
@@ -63,7 +67,10 @@ public class GeoNames {
         return !username.isEmpty();
     }
 
-    /** Populated places whose name starts with the text (at least 3 letters), most relevant first. */
+    /**
+     * Populated places whose name starts with the text (at least 2 letters), most relevant first. For a short
+     * text the places named exactly so come first, or "Ro" would only find Rome and Rovigo (#87).
+     */
     public List<Place> search(String text, String language) {
         String prefix = text == null ? "" : text.trim();
         if (!enabled() || prefix.length() < MIN_LENGTH) {
@@ -75,8 +82,42 @@ public class GeoNames {
         if (cached != null) {
             return cached;
         }
-        List<Place> places = call(() -> restClient.get()
-                .uri(u -> u.path("/searchJSON").queryParam("name_startsWith", prefix).queryParam("featureClass", "P")
+        List<Place> exact = List.of();
+        if (prefix.length() <= EXACT_UP_TO) {
+            exact = places("name_equals", prefix, lang);
+            if (exact == null) {
+                return List.of();
+            }
+        }
+        List<Place> starting = places("name_startsWith", prefix, lang);
+        if (starting == null) {
+            return List.of();
+        }
+        // The exact names first, Italy's before the others (most gardens are there), then the rest; one line
+        // per name, region and country, since two villages of one region cannot be told apart in the list.
+        List<Place> ordered = new ArrayList<>();
+        exact.stream().filter(p -> "IT".equals(p.countryCode())).forEach(ordered::add);
+        exact.stream().filter(p -> !"IT".equals(p.countryCode())).forEach(ordered::add);
+        ordered.addAll(starting);
+        List<Place> merged = new ArrayList<>();
+        java.util.Set<String> labels = new java.util.HashSet<>();
+        for (Place place : ordered) {
+            if (merged.size() >= MAX_ROWS) {
+                break;
+            }
+            if (labels.add(place.label())) {
+                merged.add(place);
+            }
+        }
+        List<Place> places = List.copyOf(merged);
+        cache.put(key, places);
+        return places;
+    }
+
+    /** One search by name; null when GeoNames failed, so nothing is cached. */
+    private List<Place> places(String parameter, String text, String lang) {
+        return call(() -> restClient.get()
+                .uri(u -> u.path("/searchJSON").queryParam(parameter, text).queryParam("featureClass", "P")
                         .queryParam("maxRows", MAX_ROWS).queryParam("orderby", "relevance").queryParam("lang", lang)
                         .queryParam("style", "MEDIUM").queryParam("username", username).build())
                 .retrieve().body(SearchResult.class))
@@ -85,11 +126,6 @@ public class GeoNames {
                                 Double.parseDouble(g.lat()), Double.parseDouble(g.lng())))
                         .toList())
                 .orElse(null);
-        if (places == null) {
-            return List.of();
-        }
-        cache.put(key, places);
-        return places;
     }
 
     /**

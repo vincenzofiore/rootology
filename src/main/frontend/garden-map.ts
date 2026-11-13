@@ -189,9 +189,13 @@ export class GardenMap extends LitElement {
       this.draw();
       this.fit();
     });
-    // Before the first load an error means the style or its tiles cannot come: say so, keep the table.
-    this.map.on('error', () => {
-      if (!this.loaded) {
+    // Before the first load, an error of the style itself means there is no map: say so, the list stays. A
+    // single tile that fails (the network hiccups) is not that: MapLibre asks for it again as the map moves.
+    this.map.on('error', (event) => {
+      const tile = (event as { tile?: unknown; sourceId?: unknown }).tile !== undefined
+        || (event as { sourceId?: unknown }).sourceId !== undefined;
+      if (!this.loaded && !tile) {
+        console.warn('The gardens map could not load its style', event.error?.message);
         this.failed = true;
       }
     });
@@ -364,6 +368,22 @@ export class GardenMap extends LitElement {
     this.popup?.remove();
     this.map.once('moveend', () => this.emptyGround(latitude, longitude));
     this.map.flyTo({ center: [longitude, latitude], zoom: PLACE_ZOOM, duration: 800 });
+  }
+
+  /**
+   * Where the person is (#87): the browser's position, asked only on this button, then the same as a found
+   * place. It never leaves the browser unless a garden is added there. A refusal or no answer says so.
+   */
+  locate() {
+    if (!this.map || !navigator.geolocation) {
+      this.emit('locate-failed', {});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => this.showPlace(position.coords.latitude, position.coords.longitude),
+      () => this.emit('locate-failed', {}),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
   }
 
   /**
