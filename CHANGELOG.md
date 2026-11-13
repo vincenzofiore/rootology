@@ -6,6 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Fixed
+
+- Search engines can read the sitemap: `robots.txt` no longer blocks the file it points to (#101).
+
 ## [0.4.0] - 2026-11-13
 
 ### Added
