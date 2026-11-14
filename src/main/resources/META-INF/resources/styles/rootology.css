@@ -1286,6 +1286,38 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-history-search {
     width: 100%;
 }
+/* The history's filters (#104): small toggle chips that wrap; the chosen ones filled, with a check. */
+.rootology-history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+}
+.rootology-filter-chip {
+    margin: 0;
+    min-width: 0;
+    min-height: 1.75rem;
+    height: auto;
+    padding: 0 var(--lumo-space-s);
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--lumo-body-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 500;
+}
+.rootology-filter-chip-on {
+    border-color: var(--lumo-primary-color);
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+}
+.rootology-filter-chip vaadin-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+/* A waiting question keeps the waiting colour on its edge, as on the garden home. */
+.rootology-history-card-waiting {
+    border-inline-start: 3px solid var(--rootology-waiting);
+}
 /* A card opens its answer: the whole card is the target, the open button is the keyboard's. */
 .rootology-history-panel .rootology-history-card {
     cursor: pointer;

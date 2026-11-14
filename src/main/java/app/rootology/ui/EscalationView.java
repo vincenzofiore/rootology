@@ -7,6 +7,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import app.rootology.enrichment.KnowledgeEnrichment;
@@ -20,11 +21,13 @@ import app.rootology.pipeline.HumanAnswer;
 import jakarta.annotation.security.PermitAll;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Escalated questions of the page's context whose agent is paused: one garden's, or the space's questions
  * without a garden (#56). One card per waiting question (#86): a member answers it on the card and the agent
- * finishes; a guest only reads the cards (#33).
+ * finishes. Only for whoever can answer (#104): a guest is sent to Ask's history, where the waiting questions are
+ * listed too.
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/escalations", layout = MainLayout.class)
 @RouteAlias(value = "spaces/:spaceId/escalations", layout = MainLayout.class)
@@ -94,7 +97,13 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
         contributor = currentUser.canContribute(spaceId);
-        intro.setText(getTranslation(contributor ? "escalations.intro" : "escalations.intro.guest"));
+        if (!contributor) {
+            // Waiting questions are for whoever can answer (#104): a guest follows them in Ask's history.
+            event.forwardTo(HistoryView.target(String.valueOf(spaceId), gardenId > 0 ? String.valueOf(gardenId) : ""),
+                    QueryParameters.simple(Map.of(AskView.HISTORY, "")));
+            return;
+        }
+        intro.setText(getTranslation("escalations.intro"));
         refresh();
     }
 

@@ -162,7 +162,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         weatherCard(garden);
         alertsCard();
-        waitingCard();
+        waitingCard(contributor);
         growingCard(growing);
         climateCard(garden);
     }
@@ -213,7 +213,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     }
 
     /** The questions of this garden waiting for a person: a big count, and up to three of them. */
-    private void waitingCard() {
+    private void waitingCard(boolean contributor) {
         var waiting = pipeline.pending(spaceId, gardenId, currentUser.login());
         if (waiting.isEmpty()) {
             // Nothing waiting is the normal case: the home stays quiet (#81).
@@ -230,7 +230,12 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         Div list = new Div();
         list.addClassName("rootology-waiting-list");
         waiting.stream().limit(WAITING_SHOWN).forEach(pending -> {
-            RouterLink link = new RouterLink("", EscalationView.class, gardenParameters());
+            // Whoever can answer goes where they answer; a guest follows them in Ask's history (#104).
+            RouterLink link = contributor ? new RouterLink("", EscalationView.class, gardenParameters())
+                    : new RouterLink("", AskView.class, gardenParameters());
+            if (!contributor) {
+                link.setQueryParameters(QueryParameters.simple(Map.of(AskView.HISTORY, "")));
+            }
             link.addClassName("rootology-home-waiting-question");
             link.add(new Span(pending.question().text()));
             list.add(link);

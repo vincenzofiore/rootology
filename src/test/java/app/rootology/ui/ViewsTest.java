@@ -362,6 +362,28 @@ class ViewsTest {
     }
 
     @Test
+    void theHistoryFiltersByOutcomeByWhoAskedAndByPeriod() {
+        // #104: one outcome, mine (logins ignoring case) and a period, combined.
+        java.time.Instant now = java.time.Instant.parse("2026-11-14T10:00:00Z");
+        HistoryPanel.Entry waiting = new HistoryPanel.Entry("Quando semino?", HistoryPanel.Outcome.WAITING, "Mia",
+                now.minus(java.time.Duration.ofDays(2)), null, null);
+        HistoryPanel.Entry old = new HistoryPanel.Entry("Cosa raccolgo?", HistoryPanel.Outcome.ANSWERED, "luca",
+                now.minus(java.time.Duration.ofDays(20)), null, null);
+
+        assertThat(HistoryPanel.passes(waiting, HistoryPanel.Filters.NONE, "mia", now)).isTrue();
+        assertThat(HistoryPanel.passes(waiting, new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, true,
+                HistoryPanel.WEEK), "mia", now)).isTrue();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, true, null), "mia", now))
+                .as("someone else's").isFalse();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, HistoryPanel.WEEK), "mia", now))
+                .as("older than a week").isFalse();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, HistoryPanel.MONTH), "mia", now))
+                .isTrue();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(HistoryPanel.Outcome.OFF_DOMAIN, false, null),
+                "mia", now)).isFalse();
+    }
+
+    @Test
     void anAnsweredQuestionsNotificationOpensItsAnswerInAsk() {
         CurrentUser me = viewer();
         long mine = personalSpace(me.login());

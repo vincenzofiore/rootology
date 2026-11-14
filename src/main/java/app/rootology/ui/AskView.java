@@ -26,6 +26,7 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.history.PipelineRunRecord;
+import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.history.RunHistory;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.resilience.ServiceUnavailableException;
@@ -124,7 +125,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         this.sources = sources;
         this.currentUser = currentUser;
         this.executor = executor;
-        this.history = new HistoryPanel(runs, this::showPast);
+        this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting);
 
         addClassName("rootology-ask");
         question.setLabel(getTranslation("ask.question"));
@@ -207,6 +208,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         historyButton.setAriaLabel(getTranslation("ask.history", count));
     }
 
+    /** The history column, for the tests. */
+    HistoryPanel historyPanel() {
+        return history;
+    }
+
     /** Whether the history column is open; on a phone, whether the history is the one shown. */
     boolean historyOpen() {
         return "open".equals(split.getElement().getAttribute("data-history"));
@@ -252,6 +258,33 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         item.setId(key);
         item.addComponentAsFirst(asked(run.getQuestion(), DateText.dateTime(run.getFinishedAt(), this)));
         answers.addComponentAsFirst(item);
+        showOnPhone(item);
+    }
+
+    /**
+     * A question still waiting for a person, from the history (#104): the same card as Escalations, on top of the
+     * stack and once only, so a contributor answers it here and the asker follows it without leaving Ask.
+     */
+    private void showWaiting(PendingReview review) {
+        String key = "waiting-" + review.processId();
+        answers.getChildren().filter(c -> key.equals(c.getId().orElse(null))).toList().forEach(answers::remove);
+        String login = currentUser.login();
+        WaitingQuestionCard card = new WaitingQuestionCard(review, contributor, contributor ? suggestions() : List.of(),
+                (values, note) -> {
+                    var answer = pipeline.respond(review.processId(), spaceId, gardenId,
+                            new HumanAnswer(values, note, login));
+                    loadHistory();
+                    return answer;
+                },
+                answer -> AnswerCards.of(answer, spaceId, login, sources, enrichment, this));
+        Div item = item(review.question().text(), contributor, null, card);
+        item.setId(key);
+        answers.addComponentAsFirst(item);
+        showOnPhone(item);
+    }
+
+    /** On a phone the question comes back into view, with the item just opened (#100). */
+    private void showOnPhone(Div item) {
         getElement().executeJs("return window.matchMedia($0).matches", WIDE)
                 .then(Boolean.class, wide -> {
                     if (!Boolean.TRUE.equals(wide)) {

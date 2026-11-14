@@ -74,6 +74,9 @@ class GardenContextTest {
     @Autowired
     app.rootology.weather.WeatherService weather;
 
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
     @Test
     void twoPagesOfOneSessionOnTwoGardensAskInTheirOwnGarden() {
         String login = "two-tabs-" + Long.toString(System.nanoTime(), 36);
@@ -185,6 +188,60 @@ class GardenContextTest {
 
         assertThat(ownAsk.suggestionCount()).as("the month's general questions").isEqualTo(3);
         assertThat(guestAsk.suggestionCount()).as("a guest asks nothing, so nothing suggests it (#33)").isZero();
+    }
+
+    @Test
+    void aWaitingQuestionIsInTheHistoryAndTheFiltersFindIt() {
+        // #104: a question waiting for a person is listed in Ask's history before it has an answer.
+        String login = "waiting-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = personalSpace(login);
+        String question = "Quando semino la rucola nel vaso grande?";
+        waitingQuestion(space, login, question);
+        AskView ask = askView(new CurrentUser(spaces, login));
+        ask.beforeEnter(entering(space));
+        HistoryPanel history = ask.historyPanel();
+
+        assertThat(history.count()).isEqualTo(1);
+        assertThat(history.shown()).isEqualTo(1);
+        history.filter(new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, true, HistoryPanel.WEEK));
+        assertThat(history.shown()).as("waiting, mine, this week").isEqualTo(1);
+        history.filter(new HistoryPanel.Filters(HistoryPanel.Outcome.ANSWERED, false, null));
+        assertThat(history.shown()).as("not answered yet").isZero();
+    }
+
+    @Test
+    void aGuestIsSentFromTheWaitingQuestionsToTheHistory() {
+        // #104: the waiting questions page is for whoever can answer; a guest follows them in Ask's history.
+        String login = "guest-waiting-" + Long.toString(System.nanoTime(), 36);
+        String host = "guest-host-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        spaces.signedIn(host);
+        long shared = personalSpace(host);
+        spaces.addMember(shared, host, login, app.rootology.spaces.Role.GUEST);
+        EscalationView view = new EscalationView(pipeline, gardens, new CurrentUser(spaces, login), crops, knowledge,
+                sources, enrichment);
+        BeforeEnterEvent event = entering(shared);
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("spaces/" + shared + "/ask", QueryParameters.simple(Map.of(AskView.HISTORY, "")));
+    }
+
+    /** A question of the space level waiting for a person, as the pipeline stores it (#36). */
+    private void waitingQuestion(long space, String login, String question) {
+        tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
+        jdbc.sql("INSERT INTO pending_escalation (process_id, space_id, garden_id, started_by, question_id, "
+                        + "question_text, decision_json, facts_json, noise_json, context_json, created_at) "
+                        + "VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?)")
+                .params(java.util.UUID.randomUUID().toString(), space, login, "ui-" + System.nanoTime(), question,
+                        json.writeValueAsString(new app.rootology.decision.Decision(java.util.List.of(), 0.4, true,
+                                "confidence below threshold")),
+                        json.writeValueAsString(new app.rootology.decision.GraphFacts(java.util.List.of(),
+                                java.util.List.of())),
+                        json.writeValueAsString(app.rootology.pipeline.NoiseProfile.NONE),
+                        java.sql.Timestamp.from(java.time.Instant.now()))
+                .update();
     }
 
     @Test

@@ -6,6 +6,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Changed
+
+- The history in Ask lists the questions still waiting for a person at the top, opens them in Ask to answer or follow, and has filters by outcome, by who asked and by period (#104).
+- The waiting questions menu is shown only to who can answer them: guests are sent to the history instead (#104).
+
 ## [0.4.1] - 2026-11-13
 
 ### Fixed

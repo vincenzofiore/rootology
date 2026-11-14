@@ -271,11 +271,14 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         }
         Map<String, String> here = Map.of(Routed.SPACE, String.valueOf(space.id()),
                 Routed.GARDEN, String.valueOf(gardenId));
-        int waiting = pipeline.pending(space.id(), gardenId, currentUser.login()).size();
         bottomBar.add(bottomItem(VaadinIcon.DASHBOARD, "nav.gardenhome", GardenHomeView.class, here, target, 0),
                 bottomItem(VaadinIcon.COMMENT_ELLIPSIS_O, "nav.ask", AskView.class, here, target, 0),
-                bottomItem(PLOTS_ICON, "nav.plots", AreasView.class, here, target, 0),
-                bottomItem(VaadinIcon.HOURGLASS, "nav.waiting", EscalationView.class, here, target, waiting));
+                bottomItem(PLOTS_ICON, "nav.plots", AreasView.class, here, target, 0));
+        // Only for whoever can answer (#104), as in the side menu.
+        if (currentUser.canContribute(space.id())) {
+            int waiting = pipeline.pending(space.id(), gardenId, currentUser.login()).size();
+            bottomBar.add(bottomItem(VaadinIcon.HOURGLASS, "nav.waiting", EscalationView.class, here, target, waiting));
+        }
     }
 
     /**
@@ -321,14 +324,18 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         }
         nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, new RouteParameters(here),
                 VaadinIcon.COMMENT_ELLIPSIS_O.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class, new RouteParameters(here),
-                VaadinIcon.HOURGLASS.create()));
+        // Waiting questions are for whoever can answer them (#104): a guest follows them in Ask's history.
+        boolean answers = currentUser.canContribute(space.id());
+        if (answers) {
+            nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class,
+                    new RouteParameters(here), VaadinIcon.HOURGLASS.create()));
+        }
         // The proposals belong to the space, so Knowledge is offered inside and outside a garden.
         nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
                 VaadinIcon.BOOK.create()));
         if (gardenId == 0) {
             // The questions the space asked outside a garden (#56): offered only when there are some.
-            if (ungardened.any(space.id(), currentUser.login())) {
+            if (answers && ungardened.any(space.id(), currentUser.login())) {
                 nav.addItem(new SideNavItem(getTranslation("nav.ungardened"), EscalationView.class,
                         new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))),
                         VaadinIcon.QUESTION.create()));
