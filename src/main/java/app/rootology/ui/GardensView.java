@@ -53,6 +53,9 @@ import java.util.Optional;
 @PermitAll
 public class GardensView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
+    /** Opens the page with its new-garden dialog already open (#107): Ask offers it when a space has no garden. */
+    static final String NEW = "new";
+
     private final GardenService gardens;
     private final GeoNames geoNames;
     private final Ungardened ungardened;
@@ -194,6 +197,9 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         currentUser.spaces().stream().filter(sp -> sp.id() == spaceId).findFirst()
                 .ifPresent(sp -> header.setHeading(sp.name()));
         refresh();
+        if (event.getLocation().getQueryParameters().getParameters().containsKey(NEW) && contributor) {
+            addGarden();
+        }
     }
 
     /** With no garden there is no garden to ask in: the question goes to the space level, without a garden. */

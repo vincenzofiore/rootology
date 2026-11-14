@@ -1365,6 +1365,39 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-xs);
     padding: 0 var(--lumo-space-xs) var(--lumo-space-s);
 }
+.rootology-ask-choice {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+    max-width: 42rem;
+}
+/* The line of the choice (#107): a short question above its chips, never a paragraph. */
+.rootology-ask-choice-question {
+    display: block;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    overflow-wrap: anywhere;
+}
+.rootology-ask-choice-line {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-ask-choice-chips {
+    display: flex;
+    flex-wrap: wrap;
+}
+/* "Another place": the search opens on demand, under the chips, and fits a 360 px screen. */
+.rootology-ask-choice-search {
+    width: 100%;
+    max-width: 22rem;
+    margin-top: var(--lumo-space-xs);
+}
+/* "Create a garden here", under the answer of a place (#107): a tertiary button that reads as a link. */
+.rootology-answer-create {
+    margin: var(--lumo-space-xs) 0 0;
+}
 /* The question while Claude and Jev work: the words, a bar that moves and the seconds so far. */
 .rootology-thinking {
     box-sizing: border-box;

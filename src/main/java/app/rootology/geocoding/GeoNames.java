@@ -72,7 +72,8 @@ public class GeoNames {
      * text the places named exactly so come first, or "Ro" would only find Rome and Rovigo (#87).
      */
     public List<Place> search(String text, String language) {
-        String prefix = text == null ? "" : text.trim();
+        // GeoNames writes the plain apostrophe: "Sant’Angelo", as a phone types it, would find nothing (#107).
+        String prefix = text == null ? "" : text.trim().replaceAll("[\\u2018\\u2019`\\u00b4]", "'");
         if (!enabled() || prefix.length() < MIN_LENGTH) {
             return List.of();
         }

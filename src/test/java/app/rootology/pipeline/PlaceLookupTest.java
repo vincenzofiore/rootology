@@ -80,6 +80,25 @@ class PlaceLookupTest {
     }
 
     @Test
+    void withoutTheExactNameThePlacesThatStartLikeItAreThePersonsChoiceItalyFirst() {
+        var lookup = ContextResolver.choose(List.of(
+                place("Sant'Angelo Lodigiano", "IT", 45.24, 9.41, 13_000),
+                place("Sant'Angelo in Vado", "IT", 43.67, 12.42, 4_000),
+                place("Sant'Angelo Town", "US", 30.00, -90.00, 90_000)), "Sant’Angelo");
+
+        assertThat(lookup.outcome()).isEqualTo(ContextResolver.PlaceLookup.Outcome.AMBIGUOUS);
+        assertThat(lookup.candidates()).extracting(QuestionContext.Choice.Place::name).containsExactly(
+                "Sant'Angelo Lodigiano", "Sant'Angelo in Vado", "Sant'Angelo Town");
+    }
+
+    @Test
+    void theTypographicApostropheIsThePlainOne() {
+        var lookup = ContextResolver.choose(List.of(place("Sant'Angelo", "IT", 42.09, 12.28, 5_000)), "Sant’Angelo");
+
+        assertThat(lookup.outcome()).isEqualTo(ContextResolver.PlaceLookup.Outcome.FOUND);
+    }
+
+    @Test
     void aNameGeoNamesDoesNotKnowIsNotFound() {
         assertThat(ContextResolver.choose(List.of(), "Xyzville").outcome())
                 .isEqualTo(ContextResolver.PlaceLookup.Outcome.NOT_FOUND);

@@ -45,6 +45,11 @@ final class Toasts {
         return open(Kind.DONE, text, undoLabel, undo);
     }
 
+    /** Done, with a button that opens what was just created, for example the new garden (#107). */
+    static Notification opening(String text, String openLabel, Runnable open) {
+        return open(Kind.DONE, text, openLabel, open);
+    }
+
     private static Notification open(Kind kind, String text, String undoLabel, Runnable undo) {
         Notification toast = new Notification();
         toast.setPosition(Notification.Position.BOTTOM_CENTER);

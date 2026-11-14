@@ -156,7 +156,7 @@ class ViewsTest {
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE, "")
                 .getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
@@ -342,7 +342,7 @@ class ViewsTest {
     @Test
     void theHistoryIsBesideTheQuestion() {
         // #100: a button in Ask's header opens the history; closed until the browser says otherwise.
-        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history);
+        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history);
         assertThat(ask.historyOpen()).isFalse();
         PageHeader header = ask.getChildren().filter(PageHeader.class::isInstance).map(PageHeader.class::cast)
                 .findFirst().orElseThrow();

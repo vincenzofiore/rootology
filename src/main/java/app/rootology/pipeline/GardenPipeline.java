@@ -63,9 +63,18 @@ public class GardenPipeline {
      * offDomain: the domain filter refused the question (#53): a fixed answer, no run, no intent.
      * choice: the person has to pick a place or a garden before the question can be answered (#107): no
      *         answer, no escalation, no history row.
+     * processId: the agent process of the run, which is also the id its history row is stored with, so the UI
+     *            can open the answer of a question continued in another garden (#107); null when no agent ran.
+     * place: the place the question used, named in it or chosen by the person (#107); null when it used none.
      */
     public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
-                      QuestionContext.Choice choice) {
+                      QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place) {
+
+        /** A run with no agent process of its own (a refusal) and no place: what the suite and the tests build. */
+        public Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
+                   QuestionContext.Choice choice) {
+            this(answer, pending, intent, offDomain, choice, null, null);
+        }
     }
 
     /** The reason of a refusal (#53); never shown as is, the UI words the fixed answer in its own language. */
@@ -253,7 +262,7 @@ public class GardenPipeline {
         events.publishEvent(new PipelineRunFinished(UUID.randomUUID().toString(), context, question,
                 NoiseProfile.NONE, decision, answer, true, Instant.now()));
         metrics.refused(timing, FactScope.KNOWLEDGE_BASE);
-        return new Run(answer, null, null, true, null);
+        return new Run(answer, null, null, true, null, null, null);
     }
 
     /** The Claude calls made since invocation number `from`, and the Jev call of the run if it reached Jev. */
@@ -366,7 +375,7 @@ public class GardenPipeline {
                             context.startedBy(), question.text(), review.decision().reason(), askedAt));
                 }
             });
-            return new Run(null, review, intentOf(process), false, null);
+            return new Run(null, review, intentOf(process), false, null, process.getId(), answeredPlace(process));
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
             if (claude.breaker.failing()) {
@@ -377,7 +386,7 @@ public class GardenPipeline {
         QuestionContext answered = process.last(QuestionContext.class);
         if (answered != null && answered.choice() != null) {
             // The run asked the person to choose a place or a garden (#107): no answer, no row, no event.
-            return new Run(null, null, answered.intent(), false, answered.choice());
+            return new Run(null, null, answered.intent(), false, answered.choice(), process.getId(), null);
         }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
         // The garden the question was answered for, which may be the one it named (#57), owns the history row.
@@ -385,7 +394,13 @@ public class GardenPipeline {
                 : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
         events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
                 process.last(Decision.class), answer, false, Instant.now()));
-        return new Run(answer, null, intentOf(process), false, null);
+        return new Run(answer, null, intentOf(process), false, null, process.getId(), answeredPlace(process));
+    }
+
+    /** The place a run used, named in the question or chosen by the person (#107); null when it used none. */
+    private static QuestionContext.Choice.Place answeredPlace(AgentProcess process) {
+        QuestionContext context = process.last(QuestionContext.class);
+        return context == null ? null : context.place();
     }
 
     /** The intent the question was answered with, zone and month included (#55); null when there is none. */

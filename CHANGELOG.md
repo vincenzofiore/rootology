@@ -11,7 +11,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 - A question can name a place ("cosa semino a Torino?"): the sowing and harvest calendars and the forecast are
   those of that place, inside a garden or not, and a calendar question outside a garden, a place not found or
   one that matches several towns, and a garden question outside a garden now ask which place or garden instead
-  of escalating (#107).
+  of escalating: the person picks it with one tap in the chips under the question, or searches another place,
+  and a place's answer offers to create a garden there (#107).
 
 ### Changed
 

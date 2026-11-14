@@ -32,7 +32,8 @@ public record QuestionContext(
         ContextSnapshot snapshot,
         String refusal,
         List<Note> notes,
-        Choice choice) {
+        Choice choice,
+        Choice.Place place) {
 
     /** What a SOW_IN_PLOT question asked for, and what the run's garden answered. */
     public record Plot(String askedName, Outcome outcome, PlotSummary found, List<String> matches) {
@@ -117,12 +118,12 @@ public record QuestionContext(
 
     /** For a run that belongs to no space: no garden, no notes, no context shown (the suite's runs). */
     static QuestionContext none(Intent intent) {
-        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null);
+        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null, null);
     }
 
     /** The context of a question whose agent was lost: only what was stored, never recomputed. */
     static QuestionContext stored(ContextSnapshot snapshot) {
-        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null);
+        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null, null);
     }
 
     boolean hasSpace() {

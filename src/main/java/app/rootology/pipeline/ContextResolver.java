@@ -235,7 +235,7 @@ class ContextResolver {
             }
         }
         if (choice != null) {
-            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice);
+            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null);
         }
         if (place != null && effective.zone() != null) {
             // The place wins over the zone the question also names: the zone plays no part (#107).
@@ -313,7 +313,7 @@ class ContextResolver {
                 place == null ? null : place.name());
         return new QuestionContext(run.spaceId(), garden == null ? 0 : garden.id(), effective, plot,
                 place != null ? new QuestionContext.Location(place.latitude(), place.longitude()) : location(garden),
-                climate, snapshot, refusal, notes, null);
+                climate, snapshot, refusal, notes, null, place);
     }
 
     /**
@@ -413,13 +413,20 @@ class ContextResolver {
     /**
      * The place rule (#107), without GeoNames: among the results, the exact name (case and accents ignored,
      * Italy first); one match is the place; several are the most populous when it has at least ten times the
-     * second's population, otherwise the person chooses among up to five of them.
+     * second's population, otherwise the person chooses among up to five of them. With no exact name, the
+     * places whose names start with it are the person's choice (Italy first, then by population); only no
+     * result at all is not found.
      */
     static PlaceLookup choose(List<Place> found, String asked) {
         String wanted = plain(asked);
         List<Place> exact = found.stream().filter(p -> plain(p.name()).equals(wanted)).toList();
         if (exact.isEmpty()) {
-            return PlaceLookup.notFound();
+            // No town has exactly that name: the places whose names start with it ("Sant'Angelo Lodigiano"
+            // for "Sant'Angelo") are the person's choice; nothing at all is not found.
+            return found.isEmpty() ? PlaceLookup.notFound() : PlaceLookup.ambiguous(found.stream()
+                    .sorted(Comparator.comparing((Place p) -> !"IT".equals(p.countryCode()))
+                            .thenComparing(Comparator.comparingLong(Place::population).reversed()))
+                    .limit(MAX_CANDIDATES).map(p -> choosable(p, null)).toList());
         }
         List<Place> italian = exact.stream().filter(p -> "IT".equals(p.countryCode())).toList();
         List<Place> pool = italian.isEmpty() ? exact : italian;
@@ -445,7 +452,9 @@ class ContextResolver {
         if (text == null) {
             return "";
         }
-        String decomposed = Normalizer.normalize(text.trim(), Normalizer.Form.NFD);
+        // The typographic apostrophe of a question is the plain one of GeoNames: "Sant’Angelo" is "Sant'Angelo".
+        String decomposed = Normalizer.normalize(text.trim().replaceAll("[\u2018\u2019`\u00b4]", "'"),
+                Normalizer.Form.NFD);
         return decomposed.replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
 
