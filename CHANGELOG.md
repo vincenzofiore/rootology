@@ -11,6 +11,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 - The history in Ask lists the questions still waiting for a person at the top, opens them in Ask to answer or follow, and has filters by outcome, by who asked and by period (#104).
 - The waiting questions menu is shown only to who can answer them: guests are sent to the history instead (#104).
 
+### Fixed
+
+- A crop or pest named in the plural ("i pomodori", "tomatoes") is found: such questions used to get no facts and wait for a person (#108).
+
 ## [0.4.1] - 2026-11-13
 
 ### Fixed

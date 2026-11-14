@@ -55,6 +55,20 @@ class KnowledgeGraphTest {
     }
 
     @Test
+    void aPluralNameFindsItsCrop() {
+        // Questions say "i pomodori": the catalog names "Pomodoro" (#108).
+        assertThat(knowledge.resolve("pomodori")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("tomato");
+        assertThat(knowledge.resolve("Fave")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("broad-bean");
+        assertThat(knowledge.resolve("lattughe")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("lettuce");
+        assertThat(knowledge.resolve("peperoni")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("sweet-pepper");
+        assertThat(knowledge.resolve("tomatoes")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("tomato");
+        assertThat(knowledge.resolve("pomodori").orElseThrow().italian()).isTrue();
+        assertThat(climate.windowFacts("pomodori", ReferenceSite.CENTRO.profile(cells), null)).isNotEmpty()
+                .allSatisfy(f -> assertThat(f.fact().subject()).isEqualTo("pomodori"));
+        assertThat(knowledge.resolve("cavalli")).isEmpty();
+    }
+
+    @Test
     void theCalendarsAreDerivedFromTheSiteProfile() {
         // Vasto, the CENTRO reference: its own curated windows, not an inference.
         assertThat(climate.windowFacts("tomato", ReferenceSite.CENTRO.profile(cells), null)).contains(
