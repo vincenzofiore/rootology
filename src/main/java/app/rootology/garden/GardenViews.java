@@ -22,9 +22,10 @@ public final class GardenViews {
 
     /**
      * The gardens of a space that answer to a name written in a question (#57), with the same rule as the
-     * plots: garden is the one meant, or null when none does; matches lists them when more than one does.
+     * plots: garden is the one meant, or null when none does; matches lists them when more than one does,
+     * with their ids so the person can choose one (#107).
      */
-    public record GardenLookup(GardenSummary garden, List<String> matches) {
+    public record GardenLookup(GardenSummary garden, List<GardenSummary> matches) {
 
         public boolean found() {
             return garden != null;
@@ -32,6 +33,11 @@ public final class GardenViews {
 
         public boolean ambiguous() {
             return !matches.isEmpty();
+        }
+
+        /** The matching gardens' names, for a note that says which ones they are. */
+        public List<String> matchNames() {
+            return matches.stream().map(GardenSummary::name).toList();
         }
     }
 

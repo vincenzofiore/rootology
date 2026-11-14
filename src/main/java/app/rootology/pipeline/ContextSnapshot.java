@@ -1,12 +1,13 @@
 package app.rootology.pipeline;
 
 /**
- * The context a run used, as it is shown and stored (#55, #62): the names as they were, the zone when the
- * question named one, the month with where it came from, the plot if the question named one, and the
- * climate profile the calendars read (the last and first frost as days of the year, null when there is
- * none, and where the profile came from). A snapshot, not the internal record, so a stored row stays
- * readable when the pipeline's types change; gardenName is null at the space level, and the whole snapshot
- * is null for a run that belongs to no space (the suite's). Rows stored before #62 have no climate fields.
+ * The context a run used, as it is shown and stored (#55, #62, #107): the names as they were, the place the
+ * question named, the zone when the question named one, the month with where it came from, the plot if the
+ * question named one, and the climate profile the calendars read (the last and first frost as days of the
+ * year, null when there is none, and where the profile came from). A snapshot, not the internal record, so a
+ * stored row stays readable when the pipeline's types change; gardenName is null at the space level, and the
+ * whole snapshot is null for a run that belongs to no space (the suite's). Rows stored before #62 have no
+ * climate fields, and rows stored before #107 no place.
  */
 public record ContextSnapshot(
         String spaceName,
@@ -18,7 +19,8 @@ public record ContextSnapshot(
         String plotName,
         Integer lastFrostDay,
         Integer firstFrostDay,
-        ClimateFrom climateFrom) {
+        ClimateFrom climateFrom,
+        String placeName) {
 
     /** Where the zone came from: the question, the run's garden, or the default (CENTRO); null when none. */
     public enum ZoneFrom {
@@ -30,19 +32,35 @@ public record ContextSnapshot(
         QUESTION, DEFAULT
     }
 
-    /** Where the climate profile came from: the run's garden, a zone named in the question, or the default. */
+    /**
+     * Where the climate profile came from: the run's garden, a zone or a place named in the question, or the
+     * default.
+     */
     public enum ClimateFrom {
-        GARDEN, QUESTION, DEFAULT
+        GARDEN, QUESTION, PLACE, DEFAULT
     }
 
     /** A snapshot without climate fields, for rows stored before #62 and for runs with no calendar. */
     public ContextSnapshot(String spaceName, String gardenName, String zone, ZoneFrom zoneFrom, String month,
                            MonthFrom monthFrom, String plotName) {
-        this(spaceName, gardenName, zone, zoneFrom, month, monthFrom, plotName, null, null, null);
+        this(spaceName, gardenName, zone, zoneFrom, month, monthFrom, plotName, null, null, null, null);
+    }
+
+    /** A snapshot with climate fields but no place named in the question (rows stored before #107). */
+    public ContextSnapshot(String spaceName, String gardenName, String zone, ZoneFrom zoneFrom, String month,
+                           MonthFrom monthFrom, String plotName, Integer lastFrostDay, Integer firstFrostDay,
+                           ClimateFrom climateFrom) {
+        this(spaceName, gardenName, zone, zoneFrom, month, monthFrom, plotName, lastFrostDay, firstFrostDay,
+                climateFrom, null);
     }
 
     public boolean hasGarden() {
         return gardenName != null;
+    }
+
+    /** True when the question named a place, which is then shown instead of the garden. */
+    public boolean hasPlace() {
+        return placeName != null;
     }
 
     /** True when the context carried a climate profile (the calendar questions do). */

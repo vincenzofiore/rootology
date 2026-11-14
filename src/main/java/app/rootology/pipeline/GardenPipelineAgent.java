@@ -137,7 +137,7 @@ public class GardenPipelineAgent {
             // Claude's fields are bounded before use (#41): whatever a question says, they stay short plain text.
             ContextResolver.Names names = contexts.names(run);
             Intent intent = context.ai().withDefaultLlm()
-                    .createObject(understandPrompt(question, names), Intent.class).bounded();
+                    .createObject(understandPrompt(question, names, run.hasSpace()), Intent.class).bounded();
             if (names.gardens().isEmpty()) {
                 // Claude was given no garden to name: whatever it put there is not one of ours (#57).
                 intent = intent.withoutGarden();
@@ -151,15 +151,22 @@ public class GardenPipelineAgent {
     }
 
     /**
-     * The prompt that reads a question. Inside a space Claude also reads the names of its gardens and of the
-     * current garden's plots (#57), as data; a run that belongs to no space (the suite's) gets exactly the
-     * prompt it always had.
+     * The prompt that reads a question. Inside a space Claude also reads the place a question names (#107) and
+     * the names of the space's gardens and of the current garden's plots (#57), as data; a run that belongs to
+     * no space (the suite's) gets exactly the prompt it always had.
      */
-    static String understandPrompt(Question question, ContextResolver.Names names) {
-        if (names.isEmpty()) {
+    static String understandPrompt(Question question, ContextResolver.Names names, boolean inSpace) {
+        if (!inSpace) {
             return UNDERSTAND_PROMPT.formatted("", question.text());
         }
-        StringBuilder block = new StringBuilder();
+        StringBuilder block = new StringBuilder("""
+                place: the town or place the question names, exactly as written in the question, otherwise \
+                null. When the question names a town or place (for example "a Torino") it goes in place and \
+                zone stays null: zone is only for "the north", "the centre" or "the south" of Italy. A part of \
+                a garden or of a home (terrazzo, balcone, davanzale, giardino, orto, aiuola, vaso, vasi, serra, \
+                terrace, balcony, pot, bed, greenhouse), a garden's or a plot's name and "here" or "qui" are \
+                not a place: place stays null for them.
+                """);
         if (!names.gardens().isEmpty()) {
             block.append("""
                     garden: if the question names a particular garden by its name (one of those listed below, \
@@ -191,8 +198,9 @@ public class GardenPipelineAgent {
      * anywhere else, and a question the context cannot answer is marked to wait for a person.
      */
     @Action(description = "Resolve the context of the question once")
-    public QuestionContext resolveContext(Intent intent, RunContext run) {
-        return contexts.resolve(intent, run);
+    public QuestionContext resolveContext(Intent intent, RunContext run, QuestionContext.Pinned pinned) {
+        // A place the person chose for a continued question is already resolved (#107).
+        return contexts.resolve(intent, run, pinned.isNone() ? null : pinned.place());
     }
 
     /**
@@ -202,6 +210,10 @@ public class GardenPipelineAgent {
      */
     @Action(description = "Load the raw declared facts from the chosen graph")
     public GraphFacts gatherFacts(QuestionContext context, NoiseProfile noise, FactScope scope, RunContext run) {
+        if (context.choice() != null) {
+            // The person still has to choose a place or a garden (#107): no fact, no external call.
+            return new GraphFacts(List.of());
+        }
         if (scope != FactScope.KNOWLEDGE_BASE) {
             return new GraphFacts(NoisyFacts.apply(factSource.allFacts(), context.intent(), noise));
         }
@@ -254,6 +266,10 @@ public class GardenPipelineAgent {
      */
     @Action(description = "Decide the answer and its confidence from the raw facts")
     public Decision decide(QuestionContext context, GraphFacts facts) {
+        if (context.choice() != null) {
+            // Nothing to decide yet (#107): the run ends with the choice, never with a value.
+            return new Decision(List.of(), 0.0, false, "");
+        }
         return context.refusal() == null ? decisionLayer.decide(context.intent(), facts)
                 : Decision.escalated(context.refusal());
     }
@@ -277,6 +293,11 @@ public class GardenPipelineAgent {
     @Action(description = "Phrase the resolution as the pipeline's answer")
     public PipelineAnswer answer(Question question, Resolution resolution, GraphFacts facts, QuestionContext questionContext,
                                  OperationContext context) {
+        if (questionContext.choice() != null) {
+            // A choice is the whole run (#107): no Claude phrasing, no answer, no history row.
+            return new PipelineAnswer(question.id(), List.of(), 0.0, false, false, null, "",
+                    List.of(), List.of(), null);
+        }
         String prompt = resolution.answeredByHuman()
                 ? HUMAN_PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.reason())
                 : PHRASE_PROMPT.formatted(question.text(), resolution.answer(), resolution.escalated(),

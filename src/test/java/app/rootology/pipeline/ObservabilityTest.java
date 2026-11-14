@@ -93,6 +93,22 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
                 .isNotNull();
     }
 
+    /** A question that needs a place before it can be answered is neither answered nor escalated (#107). */
+    @Test
+    void aQuestionThatAsksForAChoiceIsCountedAsChoice() {
+        String text = "Cosa posso seminare adesso? 7741";
+        whenCreateObject(prompt -> prompt.contains(text), Intent.class)
+                .thenReturn(new app.rootology.decision.Intent(app.rootology.decision.QueryKind.SOW_NOW,
+                        null, null, "it"));
+        double before = questions("choice");
+
+        GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text),
+                signedIn("nina", "nina@example.test"));
+
+        assertThat(run.choice()).isNotNull();
+        assertThat(questions("choice")).isEqualTo(before + 1);
+    }
+
     @Test
     void aQuestionWaitingForAPersonIsCountedAsEscalatedAndLogsNoPersonalData() {
         String text = "Which plants are companions of zzyzxberry? 9384";

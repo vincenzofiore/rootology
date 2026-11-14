@@ -34,6 +34,7 @@ import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.HumanAnswer;
+import app.rootology.pipeline.QuestionContext;
 import app.rootology.pipeline.Question;
 import app.rootology.pipeline.RunContext;
 import jakarta.annotation.security.PermitAll;
@@ -420,6 +421,15 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 card.extra(new Button(getTranslation("ask.offdomain.anyway"), e -> ask(asked, true)));
             }
             answers.addComponentAsFirst(item(asked, mayAsk, null, card));
+            return;
+        }
+        if (run.choice() != null) {
+            // The chips that let the person pick a place or a garden come in the second step of #107: for now
+            // the run says what it needs, and the question can be asked again from the right place.
+            Toasts.info(getTranslation(run.choice().kind() == QuestionContext.Choice.Kind.PLACE
+                    ? "ask.choice.place" : "ask.choice.garden"));
+            // The question goes back in the field, so nothing typed is lost while it waits for the chips.
+            question.setValue(asked);
             return;
         }
         if (run.answer() == null) {

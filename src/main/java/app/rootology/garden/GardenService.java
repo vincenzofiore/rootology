@@ -296,7 +296,7 @@ public class GardenService {
         }
         List<GardenSummary> matches = named(all, GardenSummary::name, name);
         return matches.size() == 1 ? new GardenViews.GardenLookup(matches.getFirst(), List.of())
-                : new GardenViews.GardenLookup(null, matches.stream().map(GardenSummary::name).toList());
+                : new GardenViews.GardenLookup(null, matches);
     }
 
     /** What answers to a name: those with that very name ignoring case, otherwise those with it as a whole word. */

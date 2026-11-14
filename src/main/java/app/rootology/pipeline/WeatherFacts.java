@@ -157,8 +157,8 @@ class WeatherFacts {
 
     /** The questions the forecast applies to: a real space, a garden, and the current month. */
     private boolean aboutNow(QuestionContext context) {
-        if (!context.hasSpace() || context.gardenId() == 0 || context.intent() == null
-                || context.intent().month() == null) {
+        // A place named in the question has coordinates of its own, even outside a garden (#107).
+        if (!context.hasSpace() || context.intent() == null || context.intent().month() == null) {
             return false;
         }
         return LocalDate.now(clock).getMonth().name().equals(context.intent().month());

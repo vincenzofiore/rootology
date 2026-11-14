@@ -117,6 +117,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         return new RunContext(run.spaceId(), garden.id(), login);
     }
 
+    /** A garden in Vasto (#62): the site the curated CENTRO windows belong to. */
+    private RunContext inVasto(String login) {
+        RunContext run = signedIn(login);
+        var garden = gardens.saveGarden(run.spaceId(), login, null, "Orto", "Vasto",
+                new java.math.BigDecimal("42.11"), new java.math.BigDecimal("14.71"), "IT", 144);
+        return new RunContext(run.spaceId(), garden.id(), login);
+    }
+
     /** A person with a garden of their own, working inside it (#56). */
     private RunContext inAGarden(String login) {
         spaces.signedIn(login);
@@ -553,17 +561,19 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
-    void sowingTimeDefaultsToTheCentreAndUsesInferredWindowsElsewhere() {
+    void sowingTimeUsesTheGardensOwnSiteOrTheZoneNamed() {
         whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.SOWING_TIME, "tomato"));
         whenCreateObject(prompt -> prompt.contains("Question: When do I sow tomato in the north?"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOWING_TIME, "tomato", null, "en", "NORD", null));
 
-        GardenPipeline.Run centre = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"), signedIn("rosa"));
+        GardenPipeline.Run centre = pipeline.askKnowledgeBase(new Question("ask", "When do I sow tomato?"),
+                inVasto("rosa"));
         GardenPipeline.Run north = pipeline.askKnowledgeBase(
                 new Question("ask", "When do I sow tomato in the north?"), signedIn("rosa"));
 
         assertThat(centre.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
+        assertThat(centre.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         // The NORD reference site is Milan: its own frost dates leave the tomato chain where Vasto has it.
         assertThat(north.answer().answer()).containsExactlyInAnyOrder("FEBRUARY", "MARCH", "APRIL", "MAY");
         assertThat(north.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.QUESTION);
@@ -575,7 +585,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it", null, "MARCH"));
 
         GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", "Cosa posso seminare a marzo?"),
-                signedIn("sara"));
+                inVasto("sara"));
 
         assertThat(run.answer().answer()).contains("Pomodoro", "Patata", "Basilico").doesNotContain("Zucchina");
     }
@@ -645,18 +655,29 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(answer.escalated()).isTrue();
     }
 
-    /** The suite's runs get exactly the prompt they always had; inside a space the names are added as data (#57). */
+    /**
+     * The suite's runs get exactly the prompt they always had; inside a space the place and the names are
+     * added as data (#57, #107), and the place is asked even when the space names no garden or plot.
+     */
     @Test
-    void theUnderstandPromptAddsTheNamesOnlyInsideASpace() {
+    void theUnderstandPromptAddsThePlaceAndTheNamesOnlyInsideASpace() {
         Question question = new Question("q", "Cosa semino nel davanzale?");
 
-        String suite = GardenPipelineAgent.understandPrompt(question, ContextResolver.Names.NONE);
+        String suite = GardenPipelineAgent.understandPrompt(question, ContextResolver.Names.NONE, false);
+        String emptySpace = GardenPipelineAgent.understandPrompt(question,
+                new ContextResolver.Names(java.util.List.of(), java.util.List.of()), true);
         String space = GardenPipelineAgent.understandPrompt(question,
-                new ContextResolver.Names(java.util.List.of("Balcone"), java.util.List.of("Davanzale")));
+                new ContextResolver.Names(java.util.List.of("Balcone"), java.util.List.of("Davanzale")), true);
 
-        assertThat(suite).contains("otherwise null.\nDo not answer the question.")
-                .doesNotContain("garden:").endsWith("Question: Cosa semino nel davanzale?\n");
-        assertThat(space).contains("The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
+        // The suite's prompt is the one it always had: no block at all.
+        assertThat(suite).isEqualTo(GardenPipelineAgent.UNDERSTAND_PROMPT.formatted("", question.text()))
+                .contains("otherwise null.\nDo not answer the question.")
+                .doesNotContain("place:", "garden:", "The gardens:")
+                .endsWith("Question: Cosa semino nel davanzale?\n");
+        assertThat(emptySpace).as("a place is asked even with no names to show")
+                .contains("place: the town or place the question names", "zone stays null")
+                .doesNotContain("The gardens:").endsWith("Question: Cosa semino nel davanzale?\n");
+        assertThat(space).contains("place:", "The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
                 "is not part of the name", "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
     }
 }

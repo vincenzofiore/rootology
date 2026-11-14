@@ -1,8 +1,17 @@
 package app.rootology.geocoding;
 
-/** A populated place found by name: its region, ISO country code and coordinates (WGS84). */
+/**
+ * A populated place found by name: its region, ISO country code, coordinates (WGS84) and population,
+ * which tells two places of the same name apart (#107).
+ */
 public record Place(String name, String region, String countryCode, String countryName, double latitude,
-                    double longitude) {
+                    double longitude, long population) {
+
+    /** A place whose population GeoNames did not give. */
+    public Place(String name, String region, String countryCode, String countryName, double latitude,
+                 double longitude) {
+        this(name, region, countryCode, countryName, latitude, longitude, 0);
+    }
 
     /**
      * How the place is shown in a list, for example "Bologna, Emilia-Romagna", or "Lyon, Auvergne-Rhône-Alpes,

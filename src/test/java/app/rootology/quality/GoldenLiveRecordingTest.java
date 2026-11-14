@@ -4,7 +4,9 @@ import app.rootology.experiments.GoldenQuestions;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.DecisionLayer;
 import app.rootology.decision.DomainFilter;
+import app.rootology.facts.ClimateCells;
 import app.rootology.facts.KnowledgeContributions;
+import app.rootology.geocoding.GeoNames;
 import app.rootology.garden.GardenService;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.Question;
@@ -63,6 +65,13 @@ class GoldenLiveRecordingTest {
     @MockitoBean
     WeatherService weather;
 
+    /** The fixed places of the suite (#107): a live run never calls GeoNames either. */
+    @MockitoBean
+    GeoNames geoNames;
+
+    @Autowired
+    ClimateCells cells;
+
     @Autowired
     GardenPipeline pipeline;
 
@@ -91,14 +100,15 @@ class GoldenLiveRecordingTest {
     record Result(String id, String question, String expectedIntent, String understoodIntent, boolean intentMatches,
                   GoldenVerdict verdict, List<String> expected, String expectedEscalation, List<String> answer,
                   String escalationReason, double confidence, List<String> notes, long millis, String error,
-                  Double domainProbability) {
+                  Double domainProbability, String choice) {
     }
 
     @Test
     void recordALiveRun() throws Exception {
         Instant startedAt = Instant.now();
         String prefix = "live-" + startedAt.toEpochMilli();
-        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions);
+        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions, cells);
+        fixtures.stubPlaces(geoNames);
         List<Result> results = new ArrayList<>();
         for (GoldenQuestions.Case c : GOLDEN.cases()) {
             RunContext run = fixtures.space(prefix, c);
@@ -108,7 +118,8 @@ class GoldenLiveRecordingTest {
             long start = System.nanoTime();
             try {
                 GardenPipeline.Run r = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
-                var decision = r.answer() != null ? null : r.pending().decision();
+                // A choice (#107) is neither an answer nor an escalation: it is recorded as what it asked for.
+                var decision = r.answer() != null || r.choice() != null ? null : r.pending().decision();
                 GoldenVerdict verdict = GoldenVerdict.of(c, r, false);
                 // A refused question never reaches Claude (#53): a correct refusal needs no understanding, so it
                 // does not lower the count of intents understood; a wrong one counts as not understood.
@@ -116,18 +127,20 @@ class GoldenLiveRecordingTest {
                         : GoldenVerdict.intentMatches(c.intent(), r.intent());
                 results.add(new Result(c.id(), c.question(), c.intent().toString(),
                         r.offDomain() ? "refused as off-domain" : String.valueOf(r.intent()), intentMatches, verdict, c.answer(),
-                        c.escalate(), r.answer() != null ? r.answer().answer() : decision.answer(),
+                        c.escalate(), r.answer() != null ? r.answer().answer()
+                                : decision == null ? List.of() : decision.answer(),
                         decision == null ? null : decision.reason(),
-                        r.answer() != null ? r.answer().confidence() : decision.confidence(),
-                        (r.answer() != null ? r.answer().notes() : r.pending().notes()).stream()
-                                .map(app.rootology.decision.Note::english).toList(),
+                        r.answer() != null ? r.answer().confidence() : decision == null ? 0 : decision.confidence(),
+                        (r.answer() != null ? r.answer().notes()
+                                : r.pending() != null ? r.pending().notes() : List.<app.rootology.decision.Note>of())
+                                .stream().map(app.rootology.decision.Note::english).toList(),
                         (System.nanoTime() - start) / 1_000_000,
-                        null, domain));
+                        null, domain, r.choice() == null ? null : r.choice().toString()));
             } catch (RuntimeException e) {
                 // A failing call is recorded, not hidden: the other questions still run.
                 results.add(new Result(c.id(), c.question(), c.intent().toString(), null, false, null, c.answer(),
                         c.escalate(), List.of(), null, 0, List.of(), (System.nanoTime() - start) / 1_000_000,
-                        e.getClass().getSimpleName() + ": " + e.getMessage(), domain));
+                        e.getClass().getSimpleName() + ": " + e.getMessage(), domain, null));
             }
         }
 

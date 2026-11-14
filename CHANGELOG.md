@@ -6,6 +6,13 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Added
+
+- A question can name a place ("cosa semino a Torino?"): the sowing and harvest calendars and the forecast are
+  those of that place, inside a garden or not, and a calendar question outside a garden, a place not found or
+  one that matches several towns, and a garden question outside a garden now ask which place or garden instead
+  of escalating (#107).
+
 ### Changed
 
 - The history in Ask lists the questions still waiting for a person at the top, opens them in Ask to answer or follow, and has filters by outcome, by who asked and by period (#104).

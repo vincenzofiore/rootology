@@ -133,33 +133,39 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         assertThat(south.answer().notes()).extracting(Note::kind).contains(Note.Kind.ZONE_OF_QUESTION);
     }
 
+    /** A calendar question outside a garden (#107): the run asks which place and stops there. */
     @Test
-    void aGeneralQuestionAtTheSpaceLevelUsesTheDefaultsAndSaysNoGardenWasUsed() {
+    void aCalendarQuestionAtTheSpaceLevelAsksWhichPlaceAndStopsThere() {
         long space = spaceOf("ctx-space");
         garden(space, "ctx-space", "Orto di Milano", "45.46", "9.19");
 
         var run = ask("ctx-space", space, 0, "Cosa posso seminare adesso?",
                 new Intent(QueryKind.SOW_NOW, null, null, "it"));
 
-        assertThat(run.answer()).isNotNull();
-        assertThat(run.answer().context().gardenName()).isNull();
-        assertThat(run.answer().context().zone()).isNull();
-        assertThat(run.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.DEFAULT);
-        assertThat(run.answer().notes()).extracting(Note::kind).contains(Note.Kind.NO_GARDEN_DEFAULTS);
+        assertThat(run.answer()).isNull();
+        assertThat(run.pending()).as("no escalation: the person chooses").isNull();
+        assertThat(run.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.PLACE);
+        assertThat(run.choice().why()).isEqualTo(QuestionContext.Choice.Why.MISSING);
+        assertThat(run.intent()).as("the understood intent comes back for the continuation").isNotNull();
+        assertThat(history.recent(space, 0, "ctx-space")).as("no history row").isEmpty();
         org.mockito.Mockito.verifyNoInteractions(weather);
+        verify(decisionLayer, never()).decide(any(), any());
     }
 
+    /** A garden question outside a garden (#107): the person picks one of the space's gardens. */
     @Test
-    void aQuestionAboutTheGardenAtTheSpaceLevelEscalatesWithoutTheDecisionLayer() {
-        long space = spaceOf("ctx-needsgarden");
-        plant(space, "ctx-needsgarden", garden(space, "ctx-needsgarden", "Orto", "45.46", "9.19"), "tomato");
+    void aGardenQuestionAtTheSpaceLevelAsksWhichGarden() {
+        long space = spaceOf("ctx-space-garden");
+        long garden = garden(space, "ctx-space-garden", "Orto", "45.46", "9.19");
 
-        var run = ask("ctx-needsgarden", space, 0, "Cosa cresce nel mio orto?",
+        var run = ask("ctx-space-garden", space, 0, "Cosa cresce nel mio orto?",
                 new Intent(QueryKind.GROWING_NOW, null, null, "it"));
 
         assertThat(run.answer()).isNull();
-        assertThat(run.pending().decision().reason()).isEqualTo(ContextResolver.NEEDS_GARDEN_REASON);
-        assertThat(run.pending().decision().escalate()).isTrue();
+        assertThat(run.pending()).isNull();
+        assertThat(run.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.GARDEN);
+        assertThat(run.choice().gardens()).extracting(QuestionContext.Choice.Garden::id).containsExactly(garden);
+        assertThat(history.recent(space, 0, "ctx-space-garden")).isEmpty();
         verify(decisionLayer, never()).decide(any(), any());
     }
 

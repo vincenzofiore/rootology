@@ -22,7 +22,9 @@ final class ContextText {
 
     static String line(ContextSnapshot context, NoteText.Texts in, Locale locale) {
         List<String> parts = new ArrayList<>();
-        parts.add(context.hasGarden()
+        parts.add(context.hasPlace()
+                ? in.get("context.place.place", name(context.spaceName()), context.placeName())
+                : context.hasGarden()
                 ? in.get("context.place.garden", name(context.spaceName()), context.gardenName())
                 : in.get("context.place.nogarden", name(context.spaceName())));
         if (context.plotName() != null) {
@@ -56,7 +58,8 @@ final class ContextText {
 
     static String brief(ContextSnapshot context, NoteText.Texts in, Locale locale) {
         List<String> parts = new ArrayList<>();
-        parts.add(context.hasGarden() ? context.gardenName()
+        parts.add(context.hasPlace() ? context.placeName()
+                : context.hasGarden() ? context.gardenName()
                 : in.get("context.place.nogarden", name(context.spaceName())));
         if (context.plotName() != null) {
             parts.add(context.plotName());

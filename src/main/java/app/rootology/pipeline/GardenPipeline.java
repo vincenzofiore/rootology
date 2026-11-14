@@ -56,12 +56,16 @@ public class GardenPipeline {
         }
     }
 
-    /** Outcome of a run in HUMAN review mode: an answer, or a review waiting for a person. */
+    /** Outcome of a run in HUMAN review mode: an answer, a review waiting for a person, or a choice (#107). */
     /**
-     * intent: how Claude understood the question (with defaults applied), for the quality suite (#20).
+     * intent: how Claude understood the question (with defaults applied), for the quality suite (#20) and to
+     *            continue the question with it (#107).
      * offDomain: the domain filter refused the question (#53): a fixed answer, no run, no intent.
+     * choice: the person has to pick a place or a garden before the question can be answered (#107): no
+     *         answer, no escalation, no history row.
      */
-    public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain) {
+    public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
+                      QuestionContext.Choice choice) {
     }
 
     /** The reason of a refusal (#53); never shown as is, the UI words the fixed answer in its own language. */
@@ -112,13 +116,15 @@ public class GardenPipeline {
     public PipelineAnswer ask(Question question, NoiseProfile noise) {
         requireClaude();
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE);
+                .invoke(question, noise, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE,
+                        QuestionContext.Pinned.NONE);
     }
 
     /** Skips question understanding: the given intent is used as is, on clean facts. */
     public PipelineAnswer ask(Question question, Intent intent) {
         return AgentInvocation.create(agentPlatform, PipelineAnswer.class)
-                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE);
+                .invoke(question, intent, NoiseProfile.NONE, ReviewMode.AUTOMATIC, FactScope.SUITE, RunContext.NONE,
+                        QuestionContext.Pinned.NONE);
     }
 
     /**
@@ -163,7 +169,8 @@ public class GardenPipeline {
             }
         }
         AgentProcess process = agentPlatform.createAgentProcessFrom(
-                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context);
+                agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context,
+                QuestionContext.Pinned.NONE);
         try {
             Run run = settle(process.run(), question, context);
             metrics.finished(timing, scope, run);
@@ -175,6 +182,53 @@ public class GardenPipeline {
             if (context.hasSpace()) {
                 usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
             }
+        }
+    }
+
+    /**
+     * Continues a question that asked the person to choose (#107): the same question again, with the intent
+     * Claude already understood and the place the person picked. No second understanding call, no domain
+     * filter and no daily limit: the understanding was paid for, and the question already counted once.
+     */
+    public Run continueWith(Question question, Intent intent, RunContext context,
+                            QuestionContext.Choice.Place place) {
+        return continueWith(question, intent, context, place, 0);
+    }
+
+    /** The same question again in the garden the person picked; it must be one of the space's gardens. */
+    public Run continueWith(Question question, Intent intent, RunContext context, long gardenId) {
+        return continueWith(question, intent, context, null, gardenId);
+    }
+
+    private Run continueWith(Question question, Intent intent, RunContext context,
+                             QuestionContext.Choice.Place place, long gardenId) {
+        if (!context.hasSpace()) {
+            throw new IllegalArgumentException("A question can only be continued in a shared space");
+        }
+        spaces.requireContributor(context.spaceId(), context.startedBy());
+        RunContext run = context;
+        Intent understood = intent;
+        if (gardenId != 0) {
+            gardens.garden(context.spaceId(), context.startedBy(), gardenId)
+                    .orElseThrow(() -> new IllegalArgumentException("No such garden in this space"));
+            run = new RunContext(context.spaceId(), gardenId, context.startedBy());
+            // The person chose the garden: the name the question used is not read again (#57).
+            understood = intent.withoutGarden();
+        }
+        requireClaude();
+        Timer.Sample timing = metrics.start();
+        AgentProcess process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, question,
+                understood, NoiseProfile.NONE, ReviewMode.HUMAN, FactScope.KNOWLEDGE_BASE, run,
+                new QuestionContext.Pinned(place));
+        try {
+            Run result = settle(process.run(), question, run);
+            metrics.finished(timing, FactScope.KNOWLEDGE_BASE, result);
+            return result;
+        } catch (RuntimeException e) {
+            metrics.failed(timing, FactScope.KNOWLEDGE_BASE);
+            throw e;
+        } finally {
+            usage.record(context.startedBy(), context.spaceId(), UsageKind.CONTINUATION, usageOf(process, 0));
         }
     }
 
@@ -199,7 +253,7 @@ public class GardenPipeline {
         events.publishEvent(new PipelineRunFinished(UUID.randomUUID().toString(), context, question,
                 NoiseProfile.NONE, decision, answer, true, Instant.now()));
         metrics.refused(timing, FactScope.KNOWLEDGE_BASE);
-        return new Run(answer, null, null, true);
+        return new Run(answer, null, null, true, null);
     }
 
     /** The Claude calls made since invocation number `from`, and the Jev call of the run if it reached Jev. */
@@ -212,8 +266,10 @@ public class GardenPipeline {
         double cost = since.stream().mapToDouble(LlmInvocation::cost).sum();
         QuestionContext questionContext = process.last(QuestionContext.class);
         Intent intent = questionContext == null ? null : questionContext.intent();
-        // A question the context refuses escalates before the decision layer: no Jev call to count (#55).
-        boolean refused = questionContext != null && questionContext.refusal() != null;
+        // A question the context refuses escalates before the decision layer, and one that only asks a
+        // choice never reaches it: no Jev call to count (#55, #107).
+        boolean refused = questionContext != null
+                && (questionContext.refusal() != null || questionContext.choice() != null);
         boolean jev = from == 0 && !refused && decisionLayer instanceof JevDecisionLayer
                 && process.last(Decision.class) != null && intent != null && intent.kind() != QueryKind.OTHER;
         return new RunUsage(since.size(), prompt, completion, cost, jev ? 1 : 0);
@@ -267,7 +323,8 @@ public class GardenPipeline {
             requireClaude();
             process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, review.question(),
                     review.decision(), stored.facts(), stored.noise(), Resolution.byHuman(review.decision(), human),
-                    ReviewMode.HUMAN, review.context(), QuestionContext.stored(stored.context()));
+                    ReviewMode.HUMAN, review.context(), QuestionContext.stored(stored.context()),
+                    QuestionContext.Pinned.NONE);
             before = 0;
         }
         Run run;
@@ -309,7 +366,7 @@ public class GardenPipeline {
                             context.startedBy(), question.text(), review.decision().reason(), askedAt));
                 }
             });
-            return new Run(null, review, intentOf(process), false);
+            return new Run(null, review, intentOf(process), false, null);
         }
         if (process.getStatus() != AgentProcessStatusCode.COMPLETED) {
             if (claude.breaker.failing()) {
@@ -317,14 +374,18 @@ public class GardenPipeline {
             }
             throw new IllegalStateException("Pipeline ended as " + process.getStatus());
         }
+        QuestionContext answered = process.last(QuestionContext.class);
+        if (answered != null && answered.choice() != null) {
+            // The run asked the person to choose a place or a garden (#107): no answer, no row, no event.
+            return new Run(null, null, answered.intent(), false, answered.choice());
+        }
         PipelineAnswer answer = process.resultOfType(PipelineAnswer.class);
         // The garden the question was answered for, which may be the one it named (#57), owns the history row.
-        QuestionContext answered = process.last(QuestionContext.class);
         RunContext owner = answered == null || !answered.hasSpace() ? context
                 : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
         events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
                 process.last(Decision.class), answer, false, Instant.now()));
-        return new Run(answer, null, intentOf(process), false);
+        return new Run(answer, null, intentOf(process), false, null);
     }
 
     /** The intent the question was answered with, zone and month included (#55); null when there is none. */

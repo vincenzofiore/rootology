@@ -26,11 +26,19 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
     }
 
     /**
+     * A question the person has to answer by choosing (#107): the kind of choice (PLACE or GARDEN) and the
+     * labels of the options, when the case names them.
+     */
+    public record ChoiceExpect(String kind, List<String> options) {
+    }
+
+    /**
      * answer is null when the question must escalate; escalate is then a part of the expected reason.
      * offDomain: the domain filter must refuse the question (#53), with no answer and no escalation.
+     * choice: the question can only be answered after the person picks a place or a garden (#107).
      */
     public record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
-                List<String> answer, String escalate, List<String> notes, boolean offDomain) {
+                List<String> answer, String escalate, List<String> notes, boolean offDomain, ChoiceExpect choice) {
     }
 
     @SuppressWarnings("unchecked")
@@ -53,16 +61,19 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
         Map<String, Object> i = (Map<String, Object>) c.get("intent");
         Intent intent = new Intent(QueryKind.valueOf((String) i.get("kind")), (String) i.get("subject"),
                 (String) i.get("season"), (String) i.get("language"), (String) i.get("zone"), (String) i.get("month"),
-                (String) i.get("garden"));
+                (String) i.get("garden"), (String) i.get("place"));
         Map<String, Object> expect = (Map<String, Object>) c.get("expect");
         List<SpaceAlias> facts = ((List<Map<String, Object>>) c.getOrDefault("spaceFacts", List.of())).stream()
                 .map(f -> new SpaceAlias((String) f.get("alias"), (String) f.get("name"), (String) f.get("language")))
                 .toList();
         List<String> answer = expect.containsKey("answer")
                 ? ((List<Object>) expect.get("answer")).stream().map(String::valueOf).toList() : null;
+        Map<String, Object> choice = (Map<String, Object>) expect.get("choice");
+        ChoiceExpect choiceExpect = choice == null ? null : new ChoiceExpect((String) choice.get("kind"),
+                ((List<Object>) choice.getOrDefault("options", List.of())).stream().map(String::valueOf).toList());
         return new Case((String) c.get("id"), (String) c.get("question"), intent,
                 (String) c.getOrDefault("garden", "none"), (String) c.getOrDefault("weather", "missing"), facts,
                 answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()),
-                Boolean.TRUE.equals(expect.get("offDomain")));
+                Boolean.TRUE.equals(expect.get("offDomain")), choiceExpect);
     }
 }

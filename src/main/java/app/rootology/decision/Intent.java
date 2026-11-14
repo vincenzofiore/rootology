@@ -11,13 +11,21 @@ package app.rootology.decision;
  * @param month    JANUARY to DECEMBER, for {@link QueryKind#SOW_NOW}
  * @param garden   the name of one of the space's gardens as written in the question (#57), or null; only the
  *                 context resolver reads it, never the decision layer
+ * @param place    the name of a town or place as written in the question (#107), or null; only the context
+ *                 resolver reads it, never the decision layer
  */
 public record Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
-                     String garden) {
+                     String garden, String place) {
 
-    /** Without a garden named: every intent before #57, and the suite's. */
+    /** Without a place: every intent before #107, and the suite's. */
+    public Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
+                  String garden) {
+        this(kind, subject, season, language, zone, month, garden, null);
+    }
+
+    /** Without a garden or place named: every intent before #57, and the suite's. */
     public Intent(QueryKind kind, String subject, String season, String language, String zone, String month) {
-        this(kind, subject, season, language, zone, month, null);
+        this(kind, subject, season, language, zone, month, null, null);
     }
 
     /** Without a language: the suite's fixed intents, answered in English. */
@@ -34,17 +42,17 @@ public record Intent(QueryKind kind, String subject, String season, String langu
     }
 
     public Intent withZoneAndMonth(String zone, String month) {
-        return new Intent(kind, subject, season, language, zone, month, garden);
+        return new Intent(kind, subject, season, language, zone, month, garden, place);
     }
 
     /** The same intent naming no garden: what Claude returns when it was given no garden names (#57). */
     public Intent withoutGarden() {
-        return garden == null ? this : new Intent(kind, subject, season, language, zone, month, null);
+        return garden == null ? this : new Intent(kind, subject, season, language, zone, month, null, place);
     }
 
     /** The same intent about another subject, for example the plot a question named as it is really called. */
     public Intent withSubject(String subject) {
-        return new Intent(kind, subject, season, language, zone, month, garden);
+        return new Intent(kind, subject, season, language, zone, month, garden, place);
     }
 
     /**
@@ -54,7 +62,7 @@ public record Intent(QueryKind kind, String subject, String season, String langu
      */
     public Intent bounded() {
         return new Intent(kind, bound(subject, 100), bound(season, 20), bound(language, 5), bound(zone, 20),
-                bound(month, 20), bound(garden, 100));
+                bound(month, 20), bound(garden, 100), bound(place, 100));
     }
 
     private static String bound(String text, int max) {

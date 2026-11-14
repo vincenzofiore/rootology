@@ -12,7 +12,7 @@ import java.util.Locale;
  * Domain metrics of the questions people ask (#27), with low-cardinality tags only: never a person, a space
  * or the question. {@code rootology.questions} times each question from start to answer or escalation,
  * tagged with the graph (scope) and the outcome (answered, escalated: waiting for a person, off_domain: refused
- * by the domain filter, or failed), so
+ * by the domain filter, choice: waiting for the person to pick a place or a garden, or failed), so
  * the escalation rate is escalated over answered plus escalated. {@code rootology.questions.confidence} is
  * the decision layer's confidence. Answers given later by a person are not questions and are not counted.
  */
@@ -30,6 +30,11 @@ class PipelineMetrics {
     }
 
     void finished(Timer.Sample timing, FactScope scope, GardenPipeline.Run run) {
+        if (run.choice() != null) {
+            // Not answered and not escalated: the run waits for the person's choice (#107).
+            stop(timing, scope, "choice");
+            return;
+        }
         boolean escalated = run.pending() != null || run.answer().escalated();
         stop(timing, scope, escalated ? "escalated" : "answered");
         Decision decision = run.pending() != null ? run.pending().decision() : null;

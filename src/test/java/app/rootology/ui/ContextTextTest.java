@@ -68,6 +68,18 @@ class ContextTextTest {
     }
 
     @Test
+    void aPlaceNamedInTheQuestionIsShownInsteadOfTheGarden() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null,
+                "NOVEMBER", MonthFrom.DEFAULT, null, 90, 320, ClimateFrom.PLACE, "Bergamo");
+
+        assertThat(ContextText.line(context, italian, Locale.ITALIAN))
+                .isEqualTo("Risposta per: Casa · Bergamo · ultime gelate fine marzo (dal luogo) · novembre");
+        assertThat(ContextText.line(context, english, Locale.ENGLISH))
+                .isEqualTo("Answered for: Casa · Bergamo · last frost late March (from the place) · November");
+        assertThat(ContextText.brief(context, italian, Locale.ITALIAN)).isEqualTo("Bergamo · novembre");
+    }
+
+    @Test
     void aZoneAndAMonthNamedInTheQuestionSaySoAndAMonthlessKindHasNone() {
         ContextSnapshot asked = new ContextSnapshot("Casa", "Orto", "SUD", ZoneFrom.QUESTION,
                 "MARCH", MonthFrom.QUESTION, null);
