@@ -61,6 +61,17 @@ cases:
     intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
     expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
 
+  # A crop named in the plural, as questions usually do (#108): the same answer as the singular.
+  - id: sowing-tomato-plural
+    question: Quando semino i pomodori?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it}
+    expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
+
+  - id: companions-tomato-plural-en
+    question: Which plants are companions of tomatoes?
+    intent: {kind: COMPANIONS, subject: tomatoes, language: en}
+    expect: {answer: [Basil, Onion, Parsley, Carrot]}
+
   - id: harvest-garlic
     question: Quando si raccoglie l'aglio?
     intent: {kind: HARVEST_TIME, subject: aglio, language: it}
