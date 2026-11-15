@@ -149,7 +149,7 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     void answeringAWaitingQuestionNeverAsksTheFilter() {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Lavender? 3311"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "Lavender"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("a human answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("a human answered");
         RunContext asker = signedIn("quinn");
         GardenPipeline.Run waiting = pipeline.start(
                 new Question("hard-3", "Which plants are companions of Lavender? 3311"), NoiseProfile.NONE, asker);

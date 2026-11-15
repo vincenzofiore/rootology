@@ -14,7 +14,9 @@ public record Resolution(List<String> answer, double confidence, boolean escalat
     }
 
     static Resolution byHuman(Decision decision, HumanAnswer human) {
-        String reason = human.note() == null || human.note().isBlank() ? decision.reason() : human.note();
+        // Only what the person wrote (#118): the decision layer's reason ("Jev: … p=0,10") is not their note, and
+        // Claude read it as one, calling the reviewer Jev.
+        String reason = human.note() == null ? "" : human.note().strip();
         return new Resolution(human.answer(), decision.confidence(), true, true, human.reviewer(), reason);
     }
 }

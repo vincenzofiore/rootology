@@ -218,7 +218,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void humanReviewPausesTheAgentUntilAPersonAnswers() {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Lavender?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "Lavender"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it"))
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question"))
                 .thenReturn("a human answered");
         var question = new Question("hard-3", "Which plants are companions of Lavender?");
         RunContext alice = signedIn("alice");
@@ -278,7 +278,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void spacesNeverSeeEachOthersEscalationsOrHistory() {
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Lavender?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "Lavender"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
         RunContext carol = signedIn("carol");
         RunContext dave = signedIn("dave");
 
@@ -450,7 +450,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         RunContext run = signedIn("yara");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mint?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "mint"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mint?"), run);
         pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(), new HumanAnswer(List.of(), "", "yara"));
@@ -497,7 +497,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         RunContext run = signedIn("zeno");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of thyme?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "thyme"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
                 && prompt.contains("companions of thyme")).thenReturn("a person answered after the restart");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of thyme?"), run);
@@ -525,7 +525,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         RunContext run = signedIn("xavier");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(
                 new Question("ask", "Which plants are companions of lavender?"), run);

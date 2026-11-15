@@ -205,7 +205,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
     void anEscalationKeepsTheNotesOfItsQuestionAfterARestart() {
         long space = spaceOf("ctx-notes");
         long garden = garden(space, "ctx-notes", "Orto", "45.46", "9.19");
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         var asked = ask("ctx-notes", space, garden, "Cosa posso seminare nell'aiuola Z?",
                 new Intent(QueryKind.SOW_IN_PLOT, "aiuola Z", null, "it"));
@@ -245,7 +245,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
     void anEscalationKeepsTheContextOfItsQuestionAfterARestart() {
         long space = spaceOf("ctx-restart");
         long garden = garden(space, "ctx-restart", "Orto", "45.46", "9.19");
-        whenGenerateText(prompt -> prompt.contains("Say that a human reviewer answered it")).thenReturn("answered");
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         var asked = ask("ctx-restart", space, garden, "Quando semino la lavanda?",
                 new Intent(QueryKind.SOWING_TIME, "lavanda", null, "it"));

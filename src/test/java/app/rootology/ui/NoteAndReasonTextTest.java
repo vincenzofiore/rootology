@@ -75,7 +75,7 @@ class NoteAndReasonTextTest {
     @Test
     void knownReasonsAreTranslatedAndOthersKept() {
         assertThat(ReasonText.text("lavanda is not in the dataset", italian))
-                .isEqualTo("lavanda non è nella base di conoscenza");
+                .isEqualTo("lavanda non è tra le colture e i parassiti che Rootology conosce");
         assertThat(ReasonText.text("Jev: low confidence (0,42)", italian))
                 .isEqualTo("i fatti trovati non bastano per una risposta sicura");
         assertThat(ReasonText.text("Jev: the facts do not answer this (p=0.18)", english))
