@@ -22,6 +22,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- An answer opened again from the history or a notification shows its warnings (frost, late blight, missing data) and its sources, as when it was given, with the context above the answer; answers stored before keep only their sentence and values (#110).
 - A crop or pest named in the plural ("i pomodori", "tomatoes") is found: such questions used to get no facts and wait for a person (#108).
 
 ## [0.4.1] - 2026-11-13

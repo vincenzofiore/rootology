@@ -16,6 +16,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.history.PipelineRunRecord;
 import app.rootology.history.RunHistory;
 import app.rootology.pipeline.ContextSnapshot;
+import app.rootology.pipeline.PipelineAnswer;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.GardenPipeline.PendingReview;
 
@@ -183,6 +184,11 @@ class HistoryPanel extends Div {
     Optional<PipelineRunRecord> run(String processId) {
         return entries.stream().map(Entry::run).filter(r -> r != null && processId.equals(r.getProcessId()))
                 .findFirst();
+    }
+
+    /** A past question's answer as the pipeline gave it (#110), for the same card as a fresh one. */
+    PipelineAnswer answerOf(PipelineRunRecord run) {
+        return history.answerOf(run);
     }
 
     /** The context a past question was answered in (#55), for its answer card. */

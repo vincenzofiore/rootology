@@ -40,6 +40,7 @@ import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.HumanAnswer;
+import app.rootology.pipeline.PipelineAnswer;
 import app.rootology.pipeline.ContextSnapshot;
 import app.rootology.pipeline.QuestionContext.Choice;
 import app.rootology.pipeline.Question;
@@ -289,17 +290,22 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private void showPast(PipelineRunRecord run) {
         String key = "past-" + run.getId();
         answers.getChildren().filter(c -> key.equals(c.getId().orElse(null))).toList().forEach(answers::remove);
-        AnswerCard card = new AnswerCard();
+        AnswerCard card;
         String copyText = null;
         if (run.isOffDomain()) {
+            card = new AnswerCard();
+            history.contextOf(run).ifPresent(card::context);
             card.refused(run.getAnswerText() == null ? getTranslation("ask.offdomain") : run.getAnswerText());
         } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
+            card = new AnswerCard();
+            history.contextOf(run).ifPresent(card::context);
             card.waiting(ReasonText.text(run.getDecisionReason(), this));
         } else {
-            copyText = run.getAnswerText() == null ? "" : run.getAnswerText();
-            card.answered(copyText, run.getAnswer(), run.getDecisionConfidence());
+            // The same card as a fresh answer (#110): its notes and sources too, the context in the same place.
+            PipelineAnswer answer = history.answerOf(run);
+            copyText = answer.text();
+            card = AnswerCards.of(answer, spaceId, currentUser.login(), sources, enrichment, this);
         }
-        history.contextOf(run).ifPresent(card::context);
         Div item = item(run.getQuestion(), contributor, copyText, card);
         item.setId(key);
         item.addComponentAsFirst(asked(run.getQuestion(), DateText.dateTime(run.getFinishedAt(), this)));

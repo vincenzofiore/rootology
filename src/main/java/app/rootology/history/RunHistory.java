@@ -1,6 +1,7 @@
 package app.rootology.history;
 
 import app.rootology.decision.Decision;
+import app.rootology.decision.Note;
 import app.rootology.experiments.ExperimentCase;
 import app.rootology.experiments.ExperimentRunner;
 import app.rootology.pipeline.ContextSnapshot;
@@ -9,6 +10,8 @@ import app.rootology.pipeline.PipelineAnswer;
 import app.rootology.pipeline.PipelineRunFinished;
 import app.rootology.spaces.SpaceAccessException;
 import app.rootology.spaces.SpaceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ import java.util.Optional;
 public class RunHistory {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final Logger log = LoggerFactory.getLogger(RunHistory.class);
 
     private final PipelineRunRepository repository;
     private final ExperimentRunner runner;
@@ -50,6 +54,8 @@ public class RunHistory {
                 decision.answer(), decision.confidence(), decision.escalate(), decision.reason(),
                 answer.answer(), answer.answeredByHuman(), answer.reviewer(), answer.text(),
                 answer.context() == null ? null : JSON.writeValueAsString(answer.context()),
+                answer.notes() == null ? null : JSON.writeValueAsString(answer.notes()),
+                answer.sources() == null ? null : List.copyOf(answer.sources()),
                 run.offDomain(), jena, matches, run.finishedAt()));
     }
 
@@ -71,6 +77,30 @@ public class RunHistory {
     public Optional<ContextSnapshot> contextOf(PipelineRunRecord run) {
         return run.getContextJson() == null ? Optional.empty()
                 : Optional.of(JSON.readValue(run.getContextJson(), ContextSnapshot.class));
+    }
+
+    /**
+     * The answer of a past run as the pipeline gave it (#110), so it shows the same card as a fresh one: values,
+     * confidence, notes, sources and context. A row stored before #110 has no notes and no sources, and notes
+     * that can no longer be read (a kind renamed since) are left out rather than failing the page.
+     */
+    public PipelineAnswer answerOf(PipelineRunRecord run) {
+        return new PipelineAnswer(run.getQuestionId(), run.getAnswer() == null ? List.of() : run.getAnswer(),
+                run.getDecisionConfidence(), run.isDecisionEscalated(), run.isAnsweredByHuman(), run.getReviewer(),
+                run.getAnswerText() == null ? "" : run.getAnswerText(),
+                run.getSources() == null ? List.of() : run.getSources(), notesOf(run), contextOf(run).orElse(null));
+    }
+
+    private static List<Note> notesOf(PipelineRunRecord run) {
+        if (run.getNotesJson() == null) {
+            return List.of();
+        }
+        try {
+            return List.of(JSON.readValue(run.getNotesJson(), Note[].class));
+        } catch (RuntimeException e) {
+            log.warn("Stored notes of run {} could not be read: {}", run.getId(), e.getClass().getSimpleName());
+            return List.of();
+        }
     }
 
     /**
