@@ -190,8 +190,11 @@ class GardenContextTest {
         guestAsk.beforeEnter(enteringSpace(shared));
 
         assertThat(ownAsk.suggestionCount()).as("the month's general questions").isEqualTo(3);
+        assertThat(ownAsk.suggestionTabIndexes()).as("one Tab stop for the group (#120)")
+                .containsExactly("0", "-1", "-1");
         assertThat(ownAsk.suggestionsUnderAnswer()).as("an empty page keeps them above the field (#114)").isFalse();
         assertThat(guestAsk.suggestionCount()).as("a guest asks nothing, so nothing suggests it (#33)").isZero();
+        assertThat(guestAsk.suggestionTabIndexes()).as("no chips, no Tab stop").isEmpty();
     }
 
     @Test

@@ -118,6 +118,11 @@ vaadin-grid {
     }
 }
 
+/* The word beside an icon action on a wide screen (#120): a little air, so it does not touch the icon. */
+.rootology-again-word {
+    margin-left: var(--lumo-space-xs);
+}
+
 /* Long text pages such as Privacy (#40): a centred column of readable width, full width on a phone. */
 .rootology-prose {
     box-sizing: border-box;

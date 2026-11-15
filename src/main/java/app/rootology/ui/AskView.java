@@ -224,6 +224,23 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 e -> setHistoryOpen(false, true));
         backToAsk.addClassName("rootology-view-toggle");
         history.add(backToAsk);
+        // Esc closes the history from inside it (#120): the same as the "back to the question" button on a phone,
+        // and the keyboard goes back to the toggle that opened it. The keydown stays in the browser, so a page
+        // full of history cards sends no key to the server; only Esc arrives as one event.
+        getElement().addEventListener("rootology-escape", e -> {
+            setHistoryOpen(false, true);
+            historyButton.focus();
+        });
+        history.getElement().executeJs("""
+                const history = this;
+                if (history.__escape) return;
+                history.__escape = true;
+                history.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Escape') return;
+                    event.preventDefault();
+                    history.dispatchEvent(new CustomEvent('rootology-escape', {bubbles: true}));
+                });
+                """);
         main.add(suggestions, guest, context, form, choice, answers);
         main.addClassName("rootology-ask-main");
         split.addClassName("rootology-ask-split");
@@ -459,7 +476,52 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             button.addClassName("rootology-ask-chip");
             suggested.add(button);
         }
+        roving(suggested, getTranslation("ask.suggest.more"));
         suggestions.setVisible(!chips.isEmpty());
+    }
+
+    /**
+     * One Tab stop for a group of chips (#120): the first chip (or the last one focused) carries tabindex 0,
+     * the others -1, and the arrow keys move between them. The keydown handler stays in the browser and only
+     * moves the focus; Enter and Space still click the chip, as a button always does.
+     */
+    private void roving(Component group, String label) {
+        group.getElement().setAttribute("role", "group");
+        group.getElement().setAttribute("aria-label", label);
+        List<Component> chips = group.getChildren().toList();
+        for (int i = 0; i < chips.size(); i++) {
+            chips.get(i).getElement().setAttribute("tabindex", i == 0 ? "0" : "-1");
+        }
+        group.getElement().executeJs("""
+                const group = this;
+                if (group.__roving) return;
+                group.__roving = true;
+                const chips = () => Array.from(group.querySelectorAll('.rootology-ask-chip'));
+                group.addEventListener('focusin', (event) => {
+                    const target = event.target.closest('.rootology-ask-chip');
+                    if (!target) return;
+                    chips().forEach((chip) => chip.setAttribute('tabindex', chip === target ? '0' : '-1'));
+                });
+                group.addEventListener('keydown', (event) => {
+                    const target = event.target.closest('.rootology-ask-chip');
+                    if (!target) return;
+                    const items = chips();
+                    const index = items.indexOf(target);
+                    if (index < 0) return;
+                    let next;
+                    switch (event.key) {
+                        case 'ArrowRight': case 'ArrowDown': next = index + 1; break;
+                        case 'ArrowLeft': case 'ArrowUp': next = index - 1; break;
+                        case 'Home': next = 0; break;
+                        case 'End': next = items.length - 1; break;
+                        default: return;
+                    }
+                    event.preventDefault();
+                    next = Math.max(0, Math.min(items.length - 1, next));
+                    items.forEach((chip, i) => chip.setAttribute('tabindex', i === next ? '0' : '-1'));
+                    items[next].focus();
+                });
+                """);
     }
 
     /** An item on top of the visit's stack, and the suggestions under it (#114). */
@@ -650,6 +712,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // The space has no garden yet: creating one is the only way to answer a garden question.
             choiceChips.add(chip(getTranslation("ask.choice.creategarden"), this::openNewGarden));
         }
+        roving(choiceChips, choiceQuestion.getText());
         choice.setVisible(true);
         setChipsEnabled(true);
     }
@@ -933,6 +996,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** How many suggested questions the page shows, for the tests (#82). */
     int suggestionCount() {
         return suggested.getComponentCount();
+    }
+
+    /** The tabindex of each suggested question, for the tests: one Tab stop for the group (#120). */
+    List<String> suggestionTabIndexes() {
+        return suggested.getChildren().map(c -> c.getElement().getAttribute("tabindex")).toList();
     }
 
     /** What the question field holds, for the tests: empty once a question starts. */

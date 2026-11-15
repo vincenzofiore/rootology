@@ -16,6 +16,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Ask's suggested questions are one Tab stop: the arrow keys move between the chips and Tab leaves the group, and Esc closes the history from inside it and gives the keyboard back to the toggle. The reuse action is "Riusa" with an up arrow, the word beside it on a wide screen and the icon alone on a phone (#120).
 - Inside a garden an answer card and a waiting question no longer say the garden again: it is in the breadcrumb and in the page's context line, and the card names it only when the question was about another one, always at the space level. "Dati usati:" appears only when it adds something to the line above, so it no longer repeats the last frost the page already shows; a place the question named, a zone from an older answer and a month the question named stay (#121).
 - A sowing or planting answer says how each month or crop goes into the ground: "in semenzaio febbraio–marzo, trapianto aprile–maggio" for tomatoes instead of one list of months that read as planting out in February, and "cosa semino a febbraio" marks the seedbed crops. The answer card groups the values the same way, and a past answer keeps them (#112).
 - A calendar answer starts with what it means for the month it was asked in, worked out from its months: "Non adesso · da febbraio: semina in semenzaio" or "Sì, adesso: trapianto", so a sentence about February cannot read as "now". An answer a person gave says who answered instead of showing a confidence bar (#116).

@@ -6,6 +6,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 
 /**
@@ -48,11 +49,18 @@ final class RowActions {
     }
 
     /**
-     * Reusing a question (#82): the words go back in the field, ready to change or send. A reply arrow (#114):
-     * the refresh arrow read as running the question again and spending one, and the pencil is answering's.
+     * Reusing a question (#82): the words go back in the field, ready to change or send. An up arrow (#120):
+     * the words go back up into the field, and the refresh arrow read as running the question again and
+     * spending one.
      */
     static Button again(String label, ComponentEventListener<ClickEvent<Button>> listener) {
-        return icon(VaadinIcon.REPLY, label, listener);
+        Button button = icon(VaadinIcon.ARROW_UP, label, listener);
+        // The word beside the arrow on a wide screen (#120), the icon alone on a phone, as the history toggle.
+        Span word = new Span(label);
+        word.addClassName("rootology-wide-only");
+        word.addClassName("rootology-again-word");
+        button.setSuffixComponent(word);
+        return button;
     }
 
     /** Putting a question and its answer on the clipboard (#82). */
