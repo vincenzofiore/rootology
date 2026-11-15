@@ -22,8 +22,11 @@ final class CalendarVerdict {
 
     private static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 
-    /** Whether the month of the question is one of the answer's months; the month the verdict names. */
-    record Verdict(boolean now, Month month, String words) {
+    /**
+     * Whether the month of the question is one of the answer's months; the month the verdict names; the words
+     * with how the crop goes into the ground, and the brief words without it, for a history card (#122).
+     */
+    record Verdict(boolean now, Month month, String words, String brief) {
     }
 
     /**
@@ -41,17 +44,21 @@ final class CalendarVerdict {
         String askedName = asked.getDisplayName(TextStyle.FULL, NoteText.locale(in));
         if (values.contains(asked.name())) {
             String doing = doing(asked, activities, in);
-            String key = (question ? "verdict.month.yes" : "verdict.now.yes") + (doing.isEmpty() ? "" : ".doing");
-            return Optional.of(new Verdict(true, asked, in.getTranslation(key, askedName, doing)));
+            String key = question ? "verdict.month.yes" : "verdict.now.yes";
+            return Optional.of(new Verdict(true, asked,
+                    in.getTranslation(key + (doing.isEmpty() ? "" : ".doing"), askedName, doing),
+                    in.getTranslation(key, askedName, doing)));
         }
         Month next = asked;
         do {
             next = next.plus(1);
         } while (!values.contains(next.name()));
         String doing = doing(next, activities, in);
-        String key = (question ? "verdict.month.no" : "verdict.now.no") + (doing.isEmpty() ? "" : ".doing");
-        return Optional.of(new Verdict(false, next, in.getTranslation(key, askedName,
-                next.getDisplayName(TextStyle.FULL, NoteText.locale(in)), doing)));
+        String key = question ? "verdict.month.no" : "verdict.now.no";
+        String nextName = next.getDisplayName(TextStyle.FULL, NoteText.locale(in));
+        return Optional.of(new Verdict(false, next,
+                in.getTranslation(key + (doing.isEmpty() ? "" : ".doing"), askedName, nextName, doing),
+                in.getTranslation(key, askedName, nextName, doing)));
     }
 
     /** How the month's crop goes into the ground, in words ("semina in semenzaio"), empty when unknown. */

@@ -1630,13 +1630,18 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     background: var(--lumo-contrast-5pct);
 }
 /* The garden a question belongs to, at the space level only (#109). */
+/* The garden of a card at the space level (#109), as text before the date (#122): a chip read as a value. */
 .rootology-history-card-garden {
-    align-self: flex-start;
-    padding: 0 var(--lumo-space-xs);
-    border-radius: var(--lumo-border-radius-s);
-    background: var(--lumo-contrast-10pct);
-    color: var(--lumo-secondary-text-color);
-    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+}
+.rootology-history-card-garden::after {
+    content: " ·";
+    font-weight: 400;
+}
+/* A calendar card's verdict (#122): the opened card's line, one size smaller. */
+.rootology-history-card-verdict {
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
 }
 .rootology-history-card-head,
 .rootology-notification-card-head {

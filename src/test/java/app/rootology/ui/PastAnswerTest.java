@@ -26,6 +26,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -110,6 +111,34 @@ class PastAnswerTest {
         button(ask, "ask.close").click();
         assertThat(text(ask)).doesNotContain("Oggi sì: pomodoro.");
         assertThat(ask.historyPanel().isOpen("past-" + id)).isFalse();
+    }
+
+    @Test
+    void aCalendarCardInTheHistoryShowsItsVerdictAndNoCheck() {
+        String login = "past-verdict-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = app.rootology.TestSpaces.personal(spaces, login);
+        jdbc.sql("INSERT INTO pipeline_run (process_id, space_id, started_by, question_id, question, "
+                        + "noise_dropout, noise_spurious, noise_mislabel, noise_near_subject, noise_seed, "
+                        + "decision_answer, decision_confidence, decision_escalated, decision_reason, answer, "
+                        + "answered_by_human, answer_text, notes_json, sources, off_domain, finished_at) "
+                        + "VALUES (?, ?, ?, 'ask', 'Posso piantare le fragole oggi?', 0, 0, 0, false, 0, '{}'::text[], "
+                        + "0.7, false, 'rule', '{AUGUST,SEPTEMBER}'::text[], false, 'Sì, ad agosto.', null, null, false, ?)")
+                .params(UUID.randomUUID().toString(), space, login,
+                        Timestamp.from(Instant.parse("2026-11-15T10:00:00Z")))
+                .update();
+        AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
+                crops, knowledge, geoNames, cells, runHistory);
+
+        ask.beforeEnter(opening(space, "none"));
+
+        // #122: asked in November, the card says "not now" instead of a check beside the months.
+        List<Component> nodes = all(ask.historyPanel()).toList();
+        assertThat(nodes).anyMatch(c -> c.getClassNames().contains("rootology-history-card-verdict")
+                && c.getClassNames().contains("rootology-verdict-later"));
+        assertThat(text(ask.historyPanel())).contains("verdict.now.no").doesNotContain("agosto");
+        assertThat(nodes).noneMatch(c -> "history.answered".equals(c.getElement().getAttribute("aria-label"))
+                || "!{history.answered}!".equals(c.getElement().getAttribute("aria-label")));
     }
 
     private static com.vaadin.flow.component.button.Button button(Component root, String label) {

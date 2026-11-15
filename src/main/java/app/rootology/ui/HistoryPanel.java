@@ -382,8 +382,21 @@ class HistoryPanel extends Div {
     private Component card(Entry entry) {
         Div card = new Div();
         card.addClassName("rootology-history-card");
-        Div head = new Div(DateText.dateTimeSpan(entry.at(), this), outcome(entry.outcome(), this));
+        // "Answered" is the normal state (#122): only waiting and off-domain questions get a mark, so a check
+        // beside a calendar's months no longer reads as "yes". At the space level the garden is text before the
+        // date, not a chip like the answer's values.
+        Div head = new Div();
         head.addClassName("rootology-history-card-head");
+        if (spaceLevel) {
+            Span garden = new Span(entry.garden().equals(NO_GARDEN)
+                    ? getTranslation("history.nogarden") : entry.garden());
+            garden.addClassName("rootology-history-card-garden");
+            head.add(garden);
+        }
+        head.add(DateText.dateTimeSpan(entry.at(), this));
+        if (entry.outcome() != Outcome.ANSWERED) {
+            head.add(outcome(entry.outcome(), this));
+        }
         Span question = new Span(entry.question());
         question.addClassName("rootology-history-card-question");
         Span askedBy = new Span(getTranslation("history.askedby") + " " + entry.askedBy());
@@ -391,12 +404,6 @@ class HistoryPanel extends Div {
         // Inside a garden there is no context line (the panel is already that garden's); at the space level
         // every card says which garden its question belongs to, or that it has none (#109).
         card.add(head);
-        if (spaceLevel) {
-            Span garden = new Span(entry.garden().equals(NO_GARDEN)
-                    ? getTranslation("history.nogarden") : entry.garden());
-            garden.addClassName("rootology-history-card-garden");
-            card.add(garden);
-        }
         card.add(question);
         if (entry.run() != null) {
             Div badges = values(entry.run());
@@ -441,6 +448,20 @@ class HistoryPanel extends Div {
     private Div values(PipelineRunRecord run) {
         Div badges = new Div();
         if (run.isOffDomain()) {
+            return badges;
+        }
+        // A calendar answer says what it means for the month it was asked in (#122), as its opened card does;
+        // its months are on opening.
+        var answer = history.answerOf(run);
+        var verdict = CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), run.getFinishedAt(),
+                this);
+        if (verdict.isPresent()) {
+            Icon icon = (verdict.get().now() ? VaadinIcon.CHECK_CIRCLE_O : VaadinIcon.CALENDAR_CLOCK).create();
+            icon.addClassName("rootology-verdict-icon");
+            Div line = new Div(icon, new Span(verdict.get().brief()));
+            line.addClassNames("rootology-verdict", "rootology-history-card-verdict",
+                    verdict.get().now() ? "rootology-verdict-now" : "rootology-verdict-later");
+            badges.add(line);
             return badges;
         }
         run.getAnswer().forEach(value -> {

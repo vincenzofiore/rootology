@@ -31,6 +31,7 @@ class CalendarVerdictTest {
         assertThat(verdict.now()).isFalse();
         assertThat(verdict.month()).isEqualTo(Month.FEBRUARY);
         assertThat(verdict.words()).isEqualTo("!{verdict.now.no.doing}!");
+        assertThat(verdict.brief()).as("a history card's, without the activity (#122)").isEqualTo("!{verdict.now.no}!");
     }
 
     @Test
