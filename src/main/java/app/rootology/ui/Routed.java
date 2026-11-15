@@ -18,8 +18,11 @@ final class Routed {
     static final String SPACE = "spaceId";
     static final String GARDEN = "gardenId";
 
-    /** The route's space, and its garden (0 at the space level, where the rows without a garden live). */
-    record Where(long spaceId, long gardenId) {
+    /**
+     * The route's space, and its garden (0 at the space level, where the rows without a garden live) with its
+     * name, so a card does not say the page's garden again (#121); the name is null at the space level.
+     */
+    record Where(long spaceId, long gardenId, String gardenName) {
     }
 
     /** A page about a space only: the gardens overview, members, invitations, the space-level questions. */
@@ -41,7 +44,7 @@ final class Routed {
         Optional<String> named = event.getRouteParameters().get(GARDEN);
         if (named.isEmpty()) {
             user.switchTo(space.get().spaceId());
-            return Optional.of(new Where(space.get().spaceId(), 0));
+            return Optional.of(new Where(space.get().spaceId(), 0, null));
         }
         long gardenId = named.map(Routed::parse).orElse(-1L);
         Optional<GardenSummary> garden = gardenId <= 0 ? Optional.empty()
@@ -51,7 +54,7 @@ final class Routed {
             return Optional.empty();
         }
         user.switchTo(space.get().spaceId());
-        return Optional.of(new Where(space.get().spaceId(), garden.get().id()));
+        return Optional.of(new Where(space.get().spaceId(), garden.get().id(), garden.get().name()));
     }
 
     private static Optional<Where> spaceOf(BeforeEnterEvent event, CurrentUser user) {
@@ -60,7 +63,7 @@ final class Routed {
             event.rerouteToError(NotFoundException.class);
             return Optional.empty();
         }
-        return Optional.of(new Where(spaceId, 0));
+        return Optional.of(new Where(spaceId, 0, null));
     }
 
     private static long number(BeforeEnterEvent event, String name) {

@@ -17,9 +17,13 @@ import java.util.List;
  */
 final class AnswerCards {
 
-    static AnswerCard of(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
+    /**
+     * @param pageGarden the name of the garden the page is about, so the card does not say it again (#121);
+     *                   null at the space level
+     */
+    static AnswerCard of(PipelineAnswer answer, long spaceId, String login, String pageGarden, SourceCatalog sources,
                          KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, Instant.now(), spaceId, login, sources, enrichment, in, false);
+        return build(answer, Instant.now(), spaceId, login, pageGarden, sources, enrichment, in, false);
     }
 
     /**
@@ -31,12 +35,14 @@ final class AnswerCards {
      * @param sourcesRecorded whether the row was stored with its sources (Flyway V33)
      */
     static AnswerCard ofPast(PipelineAnswer answer, Instant askedAt, boolean sourcesRecorded, long spaceId,
-                             String login, SourceCatalog sources, KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, askedAt, spaceId, login, sources, enrichment, in, !sourcesRecorded);
+                             String login, String pageGarden, SourceCatalog sources, KnowledgeEnrichment enrichment,
+                             Component in) {
+        return build(answer, askedAt, spaceId, login, pageGarden, sources, enrichment, in, !sourcesRecorded);
     }
 
-    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, String login, SourceCatalog sources,
-                                   KnowledgeEnrichment enrichment, Component in, boolean storedBeforeSources) {
+    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, String login, String pageGarden,
+                                   SourceCatalog sources, KnowledgeEnrichment enrichment, Component in,
+                                   boolean storedBeforeSources) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
         for (String id : answer.sources()) {
             if (id.equals("garden")) {
@@ -51,7 +57,7 @@ final class AnswerCards {
         }
         AnswerCard card = new AnswerCard();
         if (answer.context() != null) {
-            card.context(answer.context());
+            card.context(answer.context(), pageGarden);
         }
         CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, in)
                 .ifPresent(card::verdict);

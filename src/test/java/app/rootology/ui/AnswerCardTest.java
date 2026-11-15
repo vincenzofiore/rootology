@@ -187,4 +187,54 @@ class AnswerCardTest {
             root.getChildren().forEach(child -> collect(child, all));
         }
     }
+
+    @Test
+    void theLineAboveAnAnswerLeavesOutTheGardenOfThePageItIsShownIn() {
+        // #121: inside a garden the breadcrumb and the page's context line already say which garden it is.
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, "Aiuola B");
+
+        assertThat(contextLines(new AnswerCard().context(context, "Orto sul tetto")))
+                .containsExactly("Aiuola B · novembre");
+        assertThat(contextLines(new AnswerCard().context(context, "Altro orto")))
+                .as("a garden that differs from the page's is named")
+                .containsExactly("Orto sul tetto · Aiuola B · novembre");
+        assertThat(contextLines(new AnswerCard().context(context)))
+                .as("the space level names the garden")
+                .containsExactly("Orto sul tetto · Aiuola B · novembre");
+    }
+
+    @Test
+    void noLineAboveTheAnswerWhenTheGardenWasAllItSaid() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, null, null, null);
+
+        assertThat(contextLines(new AnswerCard().context(context, "Orto sul tetto"))).isEmpty();
+    }
+
+    @Test
+    void theFoldLeavesOutTheClimateThePagesOwnLineAlreadyShows() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, null, 90, 320, ClimateFrom.GARDEN);
+
+        AnswerCard here = new AnswerCard().context(context, "Orto sul tetto").answered("Ecco quando.", List.of(), 0.9);
+        assertThat(foldedText(here)).doesNotContain("card.why.context", "context.climate");
+
+        AnswerCard elsewhere = new AnswerCard().context(context, null).answered("Ecco quando.", List.of(), 0.9);
+        assertThat(foldedText(elsewhere)).contains("card.why.context", "context.climate.garden");
+    }
+
+    @Test
+    void theFoldKeepsAPlaceTheQuestionNamedUnderTheSameGarden() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, null, 90, 320, ClimateFrom.PLACE, "Bergamo");
+
+        AnswerCard card = new AnswerCard().context(context, "Orto sul tetto").answered("Ecco quando.", List.of(), 0.9);
+
+        assertThat(foldedText(card)).contains("card.why.context", "context.climate.place");
+    }
+
+    /** The line above an answer, from a card that carries only it. */
+    private static List<String> contextLines(AnswerCard card) {
+        return card.getChildren().filter(Span.class::isInstance).map(c -> ((Span) c).getText()).toList();
+    }
 }

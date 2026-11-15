@@ -16,6 +16,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Inside a garden an answer card and a waiting question no longer say the garden again: it is in the breadcrumb and in the page's context line, and the card names it only when the question was about another one, always at the space level. "Dati usati:" appears only when it adds something to the line above, so it no longer repeats the last frost the page already shows; a place the question named, a zone from an older answer and a month the question named stay (#121).
 - A sowing or planting answer says how each month or crop goes into the ground: "in semenzaio febbraio–marzo, trapianto aprile–maggio" for tomatoes instead of one list of months that read as planting out in February, and "cosa semino a febbraio" marks the seedbed crops. The answer card groups the values the same way, and a past answer keeps them (#112).
 - A calendar answer starts with what it means for the month it was asked in, worked out from its months: "Non adesso · da febbraio: semina in semenzaio" or "Sì, adesso: trapianto", so a sentence about February cannot read as "now". An answer a person gave says who answered instead of showing a confidence bar (#116).
 - On a phone, Ask's question field and its button sit on one line above the bottom bar, and the last suggested question is no longer hidden under them, also outside a garden. A person's "no" no longer shows a "no values" badge (#117).

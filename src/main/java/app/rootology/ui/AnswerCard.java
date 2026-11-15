@@ -73,10 +73,24 @@ class AnswerCard extends Div {
      * the question named (#111).
      */
     AnswerCard context(ContextSnapshot context) {
-        Span brief = new Span(ContextText.brief(context, this));
-        brief.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
-        add(brief);
-        String detail = ContextText.detail(context, this);
+        return context(context, null);
+    }
+
+    /**
+     * The same, for a card shown in a page whose garden is already in the breadcrumb and in its context line
+     * (#121): the garden is left out of both the line above and the fold, and the line goes when it has
+     * nothing else to say.
+     *
+     * @param pageGarden the name of the garden the page is about; null at the space level
+     */
+    AnswerCard context(ContextSnapshot context, String pageGarden) {
+        String briefText = ContextText.brief(context, pageGarden, this);
+        if (!briefText.isBlank()) {
+            Span brief = new Span(briefText);
+            brief.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+            add(brief);
+        }
+        String detail = ContextText.detail(context, pageGarden, this);
         if (!detail.isBlank()) {
             // Said for what it is (#114): alone, "ultime gelate metà febbraio (dall’orto)" read as a stray line.
             Span label = new Span(getTranslation("card.why.context"));

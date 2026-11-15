@@ -63,6 +63,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
+    /** The page's garden's name, so a card does not say it again (#121); null at the space level. */
+    private String pageGarden;
     /** An answer this page is handing to the pipeline: the update it causes must not rebuild its own card. */
     private boolean answering;
     /** What stops the bell's live updates from reaching this page (#109); null while it is not on screen. */
@@ -90,8 +92,8 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     private WaitingQuestionCard card(PendingReview review, List<String> suggestions) {
         WaitingQuestionCard card = new WaitingQuestionCard(review, contributor, suggestions,
                 (values, note) -> answer(review, values, note),
-                answer -> AnswerCards.of(answer, spaceId, currentUser.login(), sources, enrichment, this),
-                gardenId == 0);
+                answer -> AnswerCards.of(answer, spaceId, currentUser.login(), pageGarden, sources, enrichment, this),
+                gardenId == 0, false, pageGarden);
         card.getElement().setAttribute(PROCESS, review.processId());
         return card;
     }
@@ -127,6 +129,7 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
+        pageGarden = where.get().gardenName();
         contributor = currentUser.canContribute(spaceId);
         if (!contributor) {
             // Waiting questions are for whoever can answer (#104): a guest follows them in Ask's history.

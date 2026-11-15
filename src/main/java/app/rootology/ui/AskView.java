@@ -148,6 +148,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** The page's own context (#56), read from its route; 0 garden at the space level. */
     private long spaceId;
     private long gardenId;
+    /** The page's garden's name, so a card does not say it again (#121); null at the space level. */
+    private String pageGarden;
     /** Whether this page's space lets the person ask; read once, on the UI thread, and passed on (#82). */
     private boolean contributor;
     /** One question at a time: a second click, a reused link or a chip starts nothing meanwhile. */
@@ -248,6 +250,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
+        pageGarden = where.get().gardenName();
         // The person's role is the one they have in the page's space, known only now (#56).
         contributor = currentUser.canContribute(spaceId);
         form.setVisible(contributor);
@@ -354,7 +357,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser.login(), sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser.login(), pageGarden, sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
@@ -379,9 +382,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     loadHistory();
                     return answer;
                 },
-                answer -> AnswerCards.of(answer, spaceId, login, sources, enrichment, this),
+                answer -> AnswerCards.of(answer, spaceId, login, pageGarden, sources, enrichment, this),
                 // At the space level the question may be another garden's: the card says which (#109).
-                gardenId == 0, true);
+                gardenId == 0, true, pageGarden);
         if (contributor) {
             card.extra(propose(review.question().text()));
         }
@@ -601,13 +604,13 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             WaitingQuestionCard card = new WaitingQuestionCard(run.pending(), mayAsk, suggestions(),
                     (values, note) -> pipeline.respond(run.pending().processId(), context.spaceId(), context.gardenId(),
                             new HumanAnswer(values, note, login)),
-                    answer -> AnswerCards.of(answer, context.spaceId(), login, sources, enrichment, this),
-                    false, true);
+                    answer -> AnswerCards.of(answer, context.spaceId(), login, pageGarden, sources, enrichment, this),
+                    false, true, pageGarden);
             card.extra(propose(asked));
             stack(item(asked, run.pending().askedAt(), mayAsk, null, card));
             return;
         }
-        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), login, sources, enrichment, this);
+        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), login, pageGarden, sources, enrichment, this);
         if (mayAsk) {
             // A place's answer can become a garden there, with every field already filled in (#107).
             gardenHere(run).ifPresent(card::extra);

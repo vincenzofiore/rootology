@@ -46,16 +46,7 @@ class WaitingQuestionCard extends AnswerCard {
 
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished) {
-        this(review, mayAnswer, suggestions, answerer, finished, false);
-    }
-
-    /**
-     * The same card, naming its garden first when the page lists several (#109): the space level's waiting
-     * questions come from every garden and from none.
-     */
-    WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
-                        Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden) {
-        this(review, mayAnswer, suggestions, answerer, finished, namesGarden, false);
+        this(review, mayAnswer, suggestions, answerer, finished, false, false, null);
     }
 
     /**
@@ -67,6 +58,18 @@ class WaitingQuestionCard extends AnswerCard {
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden,
                         boolean forAsker) {
+        this(review, mayAnswer, suggestions, answerer, finished, namesGarden, forAsker, null);
+    }
+
+    /**
+     * The same card, in a page that already says which garden it is about (#121): the garden is named first
+     * when the page lists several (#109), and left out of the line when it is the page's own.
+     *
+     * @param pageGarden the name of the garden the page is about; null at the space level
+     */
+    WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
+                        Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden,
+                        boolean forAsker, String pageGarden) {
         this.draft = new AnswerDraft(review.decision().answer());
         this.answerer = answerer;
         this.finished = finished;
@@ -94,7 +97,14 @@ class WaitingQuestionCard extends AnswerCard {
                     context(rest);
                 }
             } else if (forAsker) {
-                context(review.snapshot());
+                // The page's own garden is in the breadcrumb and in its context line (#121).
+                context(review.snapshot(), pageGarden);
+            } else if (pageGarden != null && pageGarden.equals(review.snapshot().gardenName())) {
+                // Escalations inside that garden: only what the page's line does not say (#121).
+                String rest = ContextText.rest(review.snapshot(), this);
+                if (!rest.isBlank()) {
+                    context(rest);
+                }
             } else {
                 context(ContextText.line(review.snapshot(), this));
             }

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import app.rootology.decision.Decision;
 import app.rootology.decision.Note;
+import app.rootology.pipeline.ContextSnapshot;
 import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.pipeline.Question;
 import app.rootology.pipeline.RunContext;
@@ -74,6 +75,22 @@ class WaitingForAskerTest {
 
         assertThat(visibleText(card)).contains("card.waiting.why");
         assertThat(form(card).isVisible()).isTrue();
+    }
+
+    @Test
+    void anAskerInAGardenDoesNotReadTheGardenAgain() {
+        // #121: Ask's breadcrumb and context line already say the garden.
+        PendingReview inGarden = new PendingReview("p-2", new RunContext(1, 7, "anna"),
+                new Question("ask", "Posso piantare l’aglio a novembre?"),
+                new Decision(List.of("Aglio"), 0.08, true, "Jev: the facts do not answer this (p=0.08)"),
+                new ContextSnapshot("Casa", "Balcony", null, null, "NOVEMBER",
+                        ContextSnapshot.MonthFrom.DEFAULT, null),
+                List.of(), Instant.now());
+
+        assertThat(visibleText(new WaitingQuestionCard(inGarden, true, List.of(), (v, n) -> null, a -> new Div(),
+                false, true, "Balcony"))).doesNotContain("Balcony").contains("novembre");
+        assertThat(visibleText(new WaitingQuestionCard(inGarden, true, List.of(), (v, n) -> null, a -> new Div(),
+                false, true, "Altro orto"))).as("another garden is named").contains("Balcony");
     }
 
     private static WaitingQuestionCard card(boolean mayAnswer) {
