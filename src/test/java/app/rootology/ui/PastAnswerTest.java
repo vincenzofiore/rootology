@@ -99,8 +99,10 @@ class PastAnswerTest {
 
         ask.beforeEnter(opening(space, processId));
 
-        // A row stored before notes and sources were kept (#111): the fold says so instead of staying silent.
-        assertThat(text(ask)).contains("ask.sources", "ask.sources.none");
+        // A row stored before notes and sources were kept (#111): the fold says it was saved before them (#114).
+        assertThat(text(ask)).contains("ask.sources", "ask.sources.before");
+        // The answer is the first thing read (#114): the suggestions go under it.
+        assertThat(ask.suggestionsUnderAnswer()).isTrue();
     }
 
     private static BeforeEnterEvent opening(long spaceId, String processId) {

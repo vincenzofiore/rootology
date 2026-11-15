@@ -1261,6 +1261,16 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
     max-width: 42rem;
 }
+/* The suggestions (#114): above the field on an empty page; under the newest answer once there is one, with a
+   label and three chips at most, so the answer is the first thing read. */
+.rootology-ask-suggestions-label { display: none; }
+.rootology-ask-suggestions-later .rootology-ask-suggestions-label {
+    display: block;
+    margin-bottom: var(--lumo-space-xs);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-ask-suggestions-later .rootology-ask-chip:nth-child(n+4) { display: none; }
 /* A chip is a button that asks: a pill, the words readable in light and dark. */
 .rootology-ask-chip {
     max-width: 100%;

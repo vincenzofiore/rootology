@@ -78,9 +78,10 @@ class AnswerCard extends Div {
         add(brief);
         String detail = ContextText.detail(context, this);
         if (!detail.isBlank()) {
-            Span rest = new Span(detail);
-            rest.addClassName("rootology-why-line");
-            why().add(rest);
+            // Said for what it is (#114): alone, "ultime gelate metà febbraio (dall’orto)" read as a stray line.
+            Span label = new Span(getTranslation("card.why.context"));
+            label.addClassName(FontWeight.SEMIBOLD);
+            why().add(line(VaadinIcon.CALENDAR_O, new Span(label, new Span(" " + detail))));
         }
         return whyLast();
     }
@@ -125,22 +126,27 @@ class AnswerCard extends Div {
 
     /**
      * A waiting question as the person who asked it reads it (#110): a promise rather than a verdict. The
-     * decision layer's reason, with its number, goes under "Why it waits?" (#111).
+     * decision layer's reason goes under "Why it waits?" (#111), in words, its number as a tooltip (#114).
+     *
+     * @param reason the reason as the pipeline recorded it, worded here by {@link ReasonText}
      */
     AnswerCard promise(String reason) {
         whyCalled("card.why.waiting");
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
         add(new Paragraph(getTranslation("card.waiting.promise")));
         if (reason != null && !reason.isBlank()) {
-            why().add(line(VaadinIcon.INFO_CIRCLE_O, getTranslation("card.waiting.reason", reason)));
+            Span words = new Span(getTranslation("card.waiting.reason", ReasonText.text(reason, this)));
+            why().add(line(VaadinIcon.INFO_CIRCLE_O, ReasonText.withNumber(words, reason, this)));
         }
         return whyLast();
     }
 
+    /** A waiting question as whoever answers it reads it: the reason in words, its number as a tooltip (#114). */
     AnswerCard waiting(String reason) {
         whyCalled("card.why.waiting");
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
-        add(new Paragraph(getTranslation("card.waiting.why", reason)));
+        add(ReasonText.withNumber(new Paragraph(getTranslation("card.waiting.why", ReasonText.text(reason, this))),
+                reason, this));
         return whyLast();
     }
 
@@ -201,11 +207,12 @@ class AnswerCard extends Div {
 
     /**
      * A past answer stored before notes and sources were kept (#110): rather than leaving the fold silent about
-     * its sources, it says that none was recorded (#111). A fresh answer with no source stays silent.
+     * its sources, it says it was saved before Rootology recorded them (#111, #114). A fresh answer with no
+     * source stays silent.
      */
     AnswerCard noSources() {
         why().add(sourcesTitle());
-        why().add(line(VaadinIcon.BOOK, getTranslation("ask.sources.none")));
+        why().add(line(VaadinIcon.BOOK, getTranslation("ask.sources.before")));
         return whyLast();
     }
 

@@ -120,6 +120,12 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final Div answers = new Div();
     /** The suggested questions of the visit: they replace the long paragraph of instructions (#82). */
     private final Div suggested = new Div();
+    /**
+     * The suggestions and their label (#114): above the field on an empty page, under the newest item once there
+     * is one, so the answer is the first thing read; there at most three, under "Altre domande".
+     */
+    private final Div suggestions = new Div();
+    private final Div main = new Div();
     /** What the answer will assume, before the question (#110): the garden, its last frost, the month. */
     private final Span context = new Span();
     /** The choice a question needs before it can be answered (#107): one line and a chip per option. */
@@ -181,6 +187,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setWrap(true);
 
         suggested.addClassName("rootology-ask-chips");
+        Span suggestionsLabel = new Span(getTranslation("ask.suggest.more"));
+        suggestionsLabel.addClassName("rootology-ask-suggestions-label");
+        suggestions.addClassName("rootology-ask-suggestions");
+        suggestions.add(suggestionsLabel, suggested);
         context.addClassName("rootology-ask-context");
         answers.addClassName("rootology-ask-answers");
         choice.addClassName("rootology-ask-choice");
@@ -210,7 +220,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 e -> setHistoryOpen(false, true));
         backToAsk.addClassName("rootology-view-toggle");
         history.add(backToAsk);
-        Div main = new Div(suggested, guest, context, form, choice, answers);
+        main.add(suggestions, guest, context, form, choice, answers);
         main.addClassName("rootology-ask-main");
         split.addClassName("rootology-ask-split");
         split.add(main, history);
@@ -336,17 +346,17 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
             card = new AnswerCard();
             history.contextOf(run).ifPresent(card::context);
-            card.promise(ReasonText.text(run.getDecisionReason(), this));
+            card.promise(run.getDecisionReason());
         } else {
             // The same card as a fresh answer (#110): its notes and sources too, the context in the same place.
             // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.ofPast(answer, spaceId, currentUser.login(), sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, run.getSources() != null, spaceId, currentUser.login(), sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
-        answers.addComponentAsFirst(item);
+        stack(item);
         showOnPhone(item);
     }
 
@@ -374,7 +384,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         }
         Div item = item(review.question().text(), review.askedAt(), contributor, null, card);
         item.setId(key);
-        answers.addComponentAsFirst(item);
+        stack(item);
         showOnPhone(item);
     }
 
@@ -442,7 +452,34 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             button.addClassName("rootology-ask-chip");
             suggested.add(button);
         }
-        suggested.setVisible(!chips.isEmpty());
+        suggestions.setVisible(!chips.isEmpty());
+    }
+
+    /** An item on top of the visit's stack, and the suggestions under it (#114). */
+    private void stack(Component item) {
+        answers.addComponentAsFirst(item);
+        placeSuggestions();
+    }
+
+    /**
+     * The suggestions above the field while the page is empty, and under the newest item as soon as there is
+     * one (#114): the answer is what the person came for, and on a phone five chips pushed it out of view.
+     */
+    private void placeSuggestions() {
+        boolean anyItem = answers.getChildren().anyMatch(c -> c != suggestions);
+        suggestions.removeFromParent();
+        if (anyItem) {
+            answers.addComponentAtIndex(1, suggestions);
+        } else {
+            main.addComponentAsFirst(suggestions);
+        }
+        suggestions.getElement().getClassList().set("rootology-ask-suggestions-later", anyItem);
+    }
+
+    /** Whether the suggestions sit under the newest item, for the tests (#114). */
+    boolean suggestionsUnderAnswer() {
+        return suggestions.getParent().filter(answers::equals).isPresent()
+                && answers.getChildren().toList().indexOf(suggestions) == 1;
     }
 
     /** What grows in this garden now, named in the page's language, each crop once (#82). */
@@ -512,7 +549,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         // has "ask again" to bring the text back.
         question.clear();
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
-        answers.addComponentAsFirst(thinking);
+        stack(thinking);
         executor.execute(() -> {
             try {
                 GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", asked), context, askAnyway);
@@ -545,7 +582,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             if (mayAsk) {
                 card.extra(new Button(getTranslation("ask.offdomain.anyway"), e -> ask(asked, true)));
             }
-            answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, null, card));
+            stack(item(asked, Instant.now(), mayAsk, null, card));
             return;
         }
         if (run.choice() != null) {
@@ -561,7 +598,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     answer -> AnswerCards.of(answer, context.spaceId(), login, sources, enrichment, this),
                     false, true);
             card.extra(propose(asked));
-            answers.addComponentAsFirst(item(asked, run.pending().askedAt(), mayAsk, null, card));
+            stack(item(asked, run.pending().askedAt(), mayAsk, null, card));
             return;
         }
         AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), login, sources, enrichment, this);
@@ -569,7 +606,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A place's answer can become a garden there, with every field already filled in (#107).
             gardenHere(run).ifPresent(card::extra);
         }
-        answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
+        stack(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
     }
 
     /**
@@ -672,7 +709,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         setChipsEnabled(false);
         hideChoice();
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
-        answers.addComponentAsFirst(thinking);
+        stack(thinking);
         executor.execute(() -> {
             try {
                 GardenPipeline.Run run = gardenId > 0
@@ -801,12 +838,13 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** The question could not be answered (#82): what to say instead of the answer, in the same stack. */
     private void failed(ThinkingCard thinking, String asked, String text, boolean mayAsk) {
         clear(thinking);
-        answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
+        stack(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
     }
 
     /** The page is usable again: the thinking card goes, the button comes back and the count is re-read. */
     private void clear(ThinkingCard thinking) {
         answers.remove(thinking);
+        placeSuggestions();
         askButton.setEnabled(true);
         showQuestionsToday();
         loadHistory();

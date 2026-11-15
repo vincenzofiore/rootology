@@ -77,7 +77,7 @@ class AnswerCardTest {
 
         assertThat(foldedText(card))
                 .as("only the climate and its source, which the line above does not say")
-                .contains("context.climate.garden")
+                .contains("card.why.context", "context.climate.garden")
                 .doesNotContain("context.for", "context.place", "context.month", "Aiuola B");
     }
 
@@ -102,11 +102,11 @@ class AnswerCardTest {
     }
 
     @Test
-    void aPastAnswerSaysNoSourceWasRecordedAndAFreshOneStaysSilent() {
+    void aPastAnswerSavedBeforeSourcesSaysSoAndAFreshOneStaysSilent() {
         AnswerCard past = new AnswerCard().noSources();
         AnswerCard fresh = new AnswerCard().sources(List.of());
 
-        assertThat(foldedText(past)).contains("ask.sources", "ask.sources.none");
+        assertThat(foldedText(past)).contains("ask.sources", "ask.sources.before");
         assertThat(foldLabels(fresh)).isEmpty();
     }
 

@@ -99,7 +99,7 @@ class WaitingQuestionCard extends AnswerCard {
                 context(ContextText.line(review.snapshot(), this));
             }
         }
-        String reason = ReasonText.text(review.decision().reason(), this);
+        String reason = review.decision().reason();
         if (forAsker) {
             promise(reason);
             notes(review.notes());

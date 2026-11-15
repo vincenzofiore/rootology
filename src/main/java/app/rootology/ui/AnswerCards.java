@@ -22,16 +22,19 @@ final class AnswerCards {
     }
 
     /**
-     * The same card for an answer rebuilt from the history (#111): answers stored before notes and sources were
-     * kept have none, and say so rather than leaving the fold silent. A fresh answer with no source stays silent.
+     * The same card for an answer rebuilt from the history (#111): an answer stored before sources were kept
+     * says so (#114) rather than "no source", which read as an answer with nothing behind it. One stored since,
+     * with no source, stays silent like a fresh one.
+     *
+     * @param sourcesRecorded whether the row was stored with its sources (Flyway V33)
      */
-    static AnswerCard ofPast(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
-                             KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, spaceId, login, sources, enrichment, in, true);
+    static AnswerCard ofPast(PipelineAnswer answer, boolean sourcesRecorded, long spaceId, String login,
+                             SourceCatalog sources, KnowledgeEnrichment enrichment, Component in) {
+        return build(answer, spaceId, login, sources, enrichment, in, !sourcesRecorded);
     }
 
     private static AnswerCard build(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
-                                   KnowledgeEnrichment enrichment, Component in, boolean fromHistory) {
+                                   KnowledgeEnrichment enrichment, Component in, boolean storedBeforeSources) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
         for (String id : answer.sources()) {
             if (id.equals("garden")) {
@@ -50,7 +53,7 @@ final class AnswerCards {
         }
         card.answered(answer.text(), answer.answer(), answer.confidence())
                 .notes(answer.notes());
-        if (lines.isEmpty() && fromHistory) {
+        if (lines.isEmpty() && storedBeforeSources) {
             return card.noSources();
         }
         return card.sources(lines);

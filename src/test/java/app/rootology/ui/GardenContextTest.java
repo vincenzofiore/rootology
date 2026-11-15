@@ -190,6 +190,7 @@ class GardenContextTest {
         guestAsk.beforeEnter(enteringSpace(shared));
 
         assertThat(ownAsk.suggestionCount()).as("the month's general questions").isEqualTo(3);
+        assertThat(ownAsk.suggestionsUnderAnswer()).as("an empty page keeps them above the field (#114)").isFalse();
         assertThat(guestAsk.suggestionCount()).as("a guest asks nothing, so nothing suggests it (#33)").isZero();
     }
 
