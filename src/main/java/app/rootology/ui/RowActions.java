@@ -47,9 +47,12 @@ final class RowActions {
         return icon(VaadinIcon.CLOSE_SMALL, label, listener);
     }
 
-    /** Asking the same question again (#82): the words go back in the field, ready to send. */
+    /**
+     * Reusing a question (#82): the words go back in the field, ready to change or send. A reply arrow (#114):
+     * the refresh arrow read as running the question again and spending one, and the pencil is answering's.
+     */
     static Button again(String label, ComponentEventListener<ClickEvent<Button>> listener) {
-        return icon(VaadinIcon.REFRESH, label, listener);
+        return icon(VaadinIcon.REPLY, label, listener);
     }
 
     /** Putting a question and its answer on the clipboard (#82). */

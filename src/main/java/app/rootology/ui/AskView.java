@@ -860,7 +860,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         if (mayAsk) {
             HorizontalLayout actions = new HorizontalLayout();
             actions.addClassName("rootology-ask-actions");
-            actions.add(RowActions.again(getTranslation("ask.again"), e -> question.setValue(asked)));
+            actions.add(RowActions.again(getTranslation("ask.again"), e -> {
+                question.setValue(asked);
+                question.focus();
+            }));
             if (copyText != null) {
                 actions.add(RowActions.copy(getTranslation("ask.copy"), e -> copy(asked, copyText)));
             }
