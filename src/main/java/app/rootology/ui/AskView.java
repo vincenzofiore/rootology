@@ -51,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -252,6 +253,31 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         }
         query.getSingleParameter(RUN).flatMap(history::run).ifPresent(this::showPast);
         query.getSingleParameter(QUESTION).filter(q -> !q.isBlank()).ifPresent(this::ask);
+        if (contributor && focusFieldOnOpen(query)) {
+            focusQuestion();
+        }
+    }
+
+    /**
+     * Whether the question field takes the keyboard when the page opens (#113): with nothing else to show, so
+     * not with an answer opened by {@code ?run=}, the history by {@code ?history} or a question by {@code ?q=}.
+     * The browser decides the rest: the field is focused on a wide screen only, since on a phone it would
+     * open the keyboard over the page.
+     */
+    static boolean focusFieldOnOpen(QueryParameters query) {
+        return !query.getParameters().containsKey(HISTORY)
+                && !query.getParameters().containsKey(RUN)
+                && !query.getParameters().containsKey(QUESTION);
+    }
+
+    /**
+     * Puts the keyboard in the field, where the person's first Tab would land anyway (#113). On a first load
+     * the field is not yet a text field when this runs, so it waits for the element and the next frame.
+     */
+    private void focusQuestion() {
+        question.getElement().executeJs("const field = this; customElements.whenDefined(field.localName)"
+                + ".then(() => requestAnimationFrame(() => { if (window.matchMedia($0).matches) { field.focus(); } }))",
+                WIDE);
     }
 
     /** The context's past questions, and their count on the button (#100). */
@@ -281,7 +307,6 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private void setHistoryOpen(boolean open, boolean remember) {
         split.getElement().setAttribute("data-history", open ? "open" : "closed");
         historyButton.getElement().setAttribute("aria-pressed", String.valueOf(open));
-        historyButton.getElement().getThemeList().set("primary", open);
         if (remember) {
             getElement().executeJs("try { if (window.matchMedia($0).matches) localStorage.setItem($1, $2); } catch (e) {}",
                     WIDE, STORED, open ? "open" : "closed");
@@ -319,9 +344,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             copyText = answer.text();
             card = AnswerCards.ofPast(answer, spaceId, currentUser.login(), sources, enrichment, this);
         }
-        Div item = item(run.getQuestion(), contributor, copyText, card);
+        Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
-        item.addComponentAsFirst(asked(run.getQuestion(), DateText.dateTime(run.getFinishedAt(), this)));
         answers.addComponentAsFirst(item);
         showOnPhone(item);
     }
@@ -348,7 +372,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         if (contributor) {
             card.extra(propose(review.question().text()));
         }
-        Div item = item(review.question().text(), contributor, null, card);
+        Div item = item(review.question().text(), review.askedAt(), contributor, null, card);
         item.setId(key);
         answers.addComponentAsFirst(item);
         showOnPhone(item);
@@ -521,7 +545,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             if (mayAsk) {
                 card.extra(new Button(getTranslation("ask.offdomain.anyway"), e -> ask(asked, true)));
             }
-            answers.addComponentAsFirst(item(asked, mayAsk, null, card));
+            answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, null, card));
             return;
         }
         if (run.choice() != null) {
@@ -537,7 +561,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     answer -> AnswerCards.of(answer, context.spaceId(), login, sources, enrichment, this),
                     false, true);
             card.extra(propose(asked));
-            answers.addComponentAsFirst(item(asked, mayAsk, null, card));
+            answers.addComponentAsFirst(item(asked, run.pending().askedAt(), mayAsk, null, card));
             return;
         }
         AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), login, sources, enrichment, this);
@@ -545,7 +569,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A place's answer can become a garden there, with every field already filled in (#107).
             gardenHere(run).ifPresent(card::extra);
         }
-        answers.addComponentAsFirst(item(asked, mayAsk, run.answer().text(), card));
+        answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
     }
 
     /**
@@ -777,7 +801,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** The question could not be answered (#82): what to say instead of the answer, in the same stack. */
     private void failed(ThinkingCard thinking, String asked, String text, boolean mayAsk) {
         clear(thinking);
-        answers.addComponentAsFirst(item(asked, mayAsk, null, new Paragraph(text)));
+        answers.addComponentAsFirst(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
     }
 
     /** The page is usable again: the thinking card goes, the button comes back and the count is re-read. */
@@ -788,9 +812,12 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         loadHistory();
     }
 
-    /** One answer of this visit (#82): the card, and under it "ask again" and "copy". */
-    private Div item(String asked, boolean mayAsk, String copyText, Component content) {
-        Div item = new Div(content);
+    /**
+     * One item of the stack (#82), the same in every state (#113): when it was asked and the question, the card,
+     * and under it "ask again" and "copy".
+     */
+    private Div item(String asked, Instant at, boolean mayAsk, String copyText, Component content) {
+        Div item = new Div(asked(asked, DateText.dateTime(at == null ? Instant.now() : at, this)), content);
         item.addClassName("rootology-ask-item");
         if (mayAsk) {
             HorizontalLayout actions = new HorizontalLayout();

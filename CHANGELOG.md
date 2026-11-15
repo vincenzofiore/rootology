@@ -16,6 +16,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Ask keeps one accent and one shape for every question: the open history button and the history's badges are neutral, the values under an answer too, so green marks only where to act; an answer, a past answer and a waiting question all start with the question and when it was asked, and a waiting question carries its violet edge in Ask as in Escalations (#113).
+- Ask is easier from the keyboard and with a screen reader: on a wide screen the question field takes the keyboard when the page opens with nothing else to show, the history cards' open buttons say which question they open, the suggestion, choice and filter chips have a clear focus ring and 8 px beside their words, the page title is an h2 under the wordmark, and the slogan stays at 11 px on a phone (#113).
 - The suggested questions name a crop as Italian does, with its article: "Quali parassiti minacciano la fragola questo mese?", "Quando raccogliere la lattuga?" (#111).
 - The fold under an answer says what it holds: "Perché aspetta?" on a waiting question, one plain line on what the reliability means, only what the line above the answer does not say (the climate and its source), and "Nessuna fonte registrata" on a past answer stored without sources; "senza orto" has the same capital where it starts a line or a chip, and the space-level line no longer speaks in the first person (#111).
 - Ask says what the answer will assume before the question: inside a garden its name, the last frost of its site and the month; at the space level the month, and that the place is asked for when a question needs one (#110).

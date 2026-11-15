@@ -354,6 +354,33 @@ class ViewsTest {
     }
 
     @Test
+    void aHistoryCardsOpenButtonNamesTheQuestionItOpens() {
+        // #113: a screen reader hears which answer each button leads to, not "Apri la risposta" eleven times.
+        Translations translations = new Translations();
+        NoteText.Texts italian = (key, args) -> translations.getTranslation(key, java.util.Locale.ITALIAN, args);
+        NoteText.Texts english = (key, args) -> translations.getTranslation(key, java.util.Locale.ENGLISH, args);
+
+        assertThat(HistoryPanel.openLabel(false, "Quando semino la rucola?", italian))
+                .isEqualTo("Apri la risposta: «Quando semino la rucola?»");
+        assertThat(HistoryPanel.openLabel(true, "Quando semino la rucola?", italian))
+                .isEqualTo("Apri la domanda in attesa: «Quando semino la rucola?»");
+        assertThat(HistoryPanel.openLabel(false, "When do I sow rocket?", english))
+                .isEqualTo("Open the answer: “When do I sow rocket?”");
+        assertThat(HistoryPanel.openLabel(true, "When do I sow rocket?", english))
+                .isEqualTo("Open the waiting question: “When do I sow rocket?”");
+    }
+
+    @Test
+    void theFieldTakesTheKeyboardOnlyWhenNothingElseIsShown() {
+        // #113: nothing opened by the address (?run=, ?history, ?q=) leaves the field as the first thing to do.
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.empty())).isTrue();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of("space", "3"))).isTrue();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.RUN, "abc"))).isFalse();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.HISTORY, ""))).isFalse();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.QUESTION, "Cosa semino?"))).isFalse();
+    }
+
+    @Test
     void theHistorySearchFindsEveryWordIgnoringCaseAndAccents() {
         assertThat(HistoryPanel.matches("Perché il pomodoro ingiallisce?", "perche POMODORO")).isTrue();
         assertThat(HistoryPanel.matches("Quando semino il basilico?", "  ")).isTrue();

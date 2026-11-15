@@ -371,8 +371,9 @@ class HistoryPanel extends Div {
             card.add(badges);
         }
         card.add(askedBy);
-        // The button is the keyboard's way in; its click bubbles to the card, which opens it once.
-        Button openButton = RowActions.open(getTranslation(entry.run() != null ? "history.open" : "history.openwaiting"),
+        // The button is the keyboard's way in; its click bubbles to the card, which opens it once. Its label
+        // names the question, so a screen reader's list of buttons says which answer each one opens (#113).
+        Button openButton = RowActions.open(openLabel(entry.run() == null, entry.question(), this::getTranslation),
                 e -> { });
         openButton.addClassName("rootology-history-card-open");
         card.add(openButton);
@@ -386,6 +387,14 @@ class HistoryPanel extends Div {
     }
 
     /**
+     * The open button's label (#113): the word, then the question it opens, so a screen reader's list of the
+     * card's buttons says which answer each one leads to.
+     */
+    static String openLabel(boolean waiting, String question, NoteText.Texts texts) {
+        return texts.get(waiting ? "history.openwaiting" : "history.open", question);
+    }
+
+    /**
      * The answer's values as small badges (#110: in the page's language, all of them, since a card is the
      * scannable summary of a question), and nothing when the question was refused (#53).
      */
@@ -396,7 +405,8 @@ class HistoryPanel extends Div {
         }
         run.getAnswer().forEach(value -> {
             Badge badge = new Badge(ValueText.of(value, this));
-            badge.addThemeVariants(BadgeVariant.SMALL);
+            // Values are read, not acted on: neutral, so green stays where the person acts (#113).
+            badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);
             badges.add(badge);
         });
         return badges;

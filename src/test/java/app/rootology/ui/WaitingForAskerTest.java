@@ -61,6 +61,14 @@ class WaitingForAskerTest {
     }
 
     @Test
+    void onAskTheQuestionIsAboveTheCardNotInsideIt() {
+        // Ask's item says when and what was asked above every card, answered or waiting (#113).
+        assertThat(nodes(card(true))).noneMatch(c -> c.getClassNames().contains("rootology-waiting-question"));
+        assertThat(nodes(new WaitingQuestionCard(REVIEW, true, List.of(), (v, n) -> null, a -> new Div())))
+                .anyMatch(c -> c.getClassNames().contains("rootology-waiting-question"));
+    }
+
+    @Test
     void escalationsKeepsTheReviewersCardWithEverythingInView() {
         WaitingQuestionCard card = new WaitingQuestionCard(REVIEW, true, List.of(), (v, n) -> null, a -> new Div());
 

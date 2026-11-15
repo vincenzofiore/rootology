@@ -133,7 +133,7 @@ vaadin-grid {
     margin: var(--lumo-space-l) 0 var(--lumo-space-xs);
     font-size: var(--lumo-font-size-l);
 }
-.rootology-prose h3.rootology-page-title { margin: 0; font-size: var(--lumo-font-size-xxl); }
+.rootology-prose h2.rootology-page-title { margin: 0; font-size: var(--lumo-font-size-xxl); }
 .rootology-prose p { margin: 0 0 var(--lumo-space-s); }
 .rootology-prose ul { margin: 0 0 var(--lumo-space-s); padding-inline-start: 1.25em; }
 .rootology-prose li { margin-bottom: var(--lumo-space-xs); }
@@ -230,7 +230,8 @@ vaadin-grid {
 @media (max-width: 640px) {
     /* On a phone the navbar also holds the space, the bell and the person menu. */
     .rootology-app-title, .rootology-public-title { font-size: 1.5rem; }
-    .rootology-brand-slogan { font-size: 0.65rem; }
+    /* 11 px at least on a phone (#113): below that the slogan is no longer read comfortably. */
+    .rootology-brand-slogan { font-size: 0.6875rem; }
 }
 @media (max-width: 340px) {
     /* A very narrow phone keeps only the sprout (#79): the name is still read by screen readers. */
@@ -528,7 +529,11 @@ rootology-garden-map { display: block; width: 100%; }
     flex: 1 1 0;
     min-width: 0;
     margin: 0;
+    /* The page's second level under the wordmark's h1, now an h2 and with the look it had as an h3 (#113): the
+       title size, Lumo's heading weight and line height, no margin. */
     font-size: var(--lumo-font-size-xxl);
+    font-weight: 600;
+    line-height: var(--lumo-line-height-xs);
     overflow-wrap: anywhere;
 }
 .rootology-page-header { margin-bottom: var(--lumo-space-s); }
@@ -836,7 +841,12 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-m);
     width: 100%;
 }
-.rootology-waiting-card { box-sizing: border-box; width: 100%; }
+.rootology-waiting-card {
+    box-sizing: border-box;
+    width: 100%;
+    /* The waiting violet edge (#113), as on the waiting question's history card: one look wherever it waits. */
+    border-inline-start: 3px solid var(--rootology-waiting);
+}
 /* A long question wraps instead of being cut, at 360 px too. */
 .rootology-waiting-question {
     margin: 0;
@@ -1255,6 +1265,8 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-ask-chip {
     max-width: 100%;
     min-height: 2rem;
+    /* At least 8 px beside the words: 5 px made a chip read as a cut-off label (#113). */
+    padding-inline: var(--lumo-space-s);
     border: 1px solid var(--lumo-primary-color-50pct);
     border-radius: 999px;
     background: var(--lumo-primary-color-10pct);
@@ -1269,6 +1281,15 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-ask-chip:hover {
     background: var(--lumo-primary-color-10pct);
     border-color: var(--lumo-primary-color);
+}
+/* The keyboard's place, on the suggestion and choice chips and on the history's filters (#113): one clear ring
+   in the accent, instead of the faint halo Lumo draws. Vaadin marks a button reached from the keyboard with
+   `focus-ring`, so a tap shows nothing. */
+vaadin-button.rootology-ask-chip[focus-ring],
+vaadin-button.rootology-filter-chip[focus-ring] {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 .rootology-ask-form {
     box-sizing: border-box;
@@ -1357,6 +1378,15 @@ rootology-garden-map { display: block; width: 100%; }
    screen (#109), where the button has room to say what it opens. */
 .rootology-history-toggle {
     font-variant-numeric: tabular-nums;
+}
+/* Open is a state, not an action (#113): a neutral pressed fill, the clock in the accent; "Ask" stays the one
+   filled green. */
+.rootology-history-toggle[aria-pressed="true"] {
+    background-color: var(--lumo-contrast-20pct);
+    color: var(--lumo-body-text-color);
+}
+.rootology-history-toggle[aria-pressed="true"]::part(prefix) {
+    color: var(--lumo-primary-text-color);
 }
 .rootology-history-label {
     display: inline-flex;
@@ -1735,8 +1765,9 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-answer-value {
     padding: var(--lumo-space-xs) var(--lumo-space-m);
     border-radius: 999px;
-    background: var(--lumo-primary-color-10pct);
-    color: var(--lumo-primary-text-color);
+    /* Values are read, not acted on: neutral, so green stays where the person acts (#113). */
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-body-text-color);
     font-size: var(--lumo-font-size-m);
     font-weight: 600;
 }

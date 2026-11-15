@@ -83,7 +83,10 @@ class WaitingQuestionCard extends AnswerCard {
             where.addClassName("rootology-waiting-garden");
             add(where);
         }
-        add(question);
+        // On Ask the item says the question above the card, like an answer's (#113); Escalations keeps it inside.
+        if (!forAsker) {
+            add(question);
+        }
         if (review.snapshot() != null) {
             if (namesGarden) {
                 String rest = ContextText.rest(review.snapshot(), this);
@@ -105,7 +108,7 @@ class WaitingQuestionCard extends AnswerCard {
             // Whoever answers needs every note at hand (#60): none is folded away here.
             addNotes(review.notes(), this, this);
         }
-        add(meta(review));
+        add(meta(review, !forAsker));
         if (forAsker) {
             // Who asked and when belong to the question; "Why this answer?" stays at the end of what it says.
             whyLast();
@@ -138,13 +141,14 @@ class WaitingQuestionCard extends AnswerCard {
     }
 
     /** Who asked and when, and how sure the decision layer was: the number, clearly labelled. */
-    private Div meta(PendingReview review) {
+    private Div meta(PendingReview review, boolean withDate) {
         Div meta = new Div();
         meta.addClassName("rootology-waiting-meta");
         if (review.context().startedBy() != null) {
             meta.add(new Span(getTranslation("escalations.asked", review.context().startedBy())));
         }
-        if (review.askedAt() != null) {
+        // On Ask the date is already on the item's line above the card (#113).
+        if (withDate && review.askedAt() != null) {
             meta.add(DateText.dateTimeSpan(review.askedAt(), this));
         }
         return meta;
