@@ -299,7 +299,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
             card = new AnswerCard();
             history.contextOf(run).ifPresent(card::context);
-            card.waiting(ReasonText.text(run.getDecisionReason(), this));
+            card.promise(ReasonText.text(run.getDecisionReason(), this));
         } else {
             // The same card as a fresh answer (#110): its notes and sources too, the context in the same place.
             PipelineAnswer answer = history.answerOf(run);
@@ -331,7 +331,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 },
                 answer -> AnswerCards.of(answer, spaceId, login, sources, enrichment, this),
                 // At the space level the question may be another garden's: the card says which (#109).
-                gardenId == 0);
+                gardenId == 0, true);
+        if (contributor) {
+            card.extra(propose(review.question().text()));
+        }
         Div item = item(review.question().text(), contributor, null, card);
         item.setId(key);
         answers.addComponentAsFirst(item);
@@ -489,7 +492,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             WaitingQuestionCard card = new WaitingQuestionCard(run.pending(), mayAsk, suggestions(),
                     (values, note) -> pipeline.respond(run.pending().processId(), context.spaceId(), context.gardenId(),
                             new HumanAnswer(values, note, login)),
-                    answer -> AnswerCards.of(answer, context.spaceId(), login, sources, enrichment, this));
+                    answer -> AnswerCards.of(answer, context.spaceId(), login, sources, enrichment, this),
+                    false, true);
             card.extra(propose(asked));
             answers.addComponentAsFirst(item(asked, mayAsk, null, card));
             return;

@@ -114,6 +114,19 @@ class AnswerCard extends Div {
         return whyLast();
     }
 
+    /**
+     * A waiting question as the person who asked it reads it (#110): a promise rather than a verdict. The
+     * decision layer's reason, with its number, goes under "Why this answer?".
+     */
+    AnswerCard promise(String reason) {
+        add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
+        add(new Paragraph(getTranslation("card.waiting.promise")));
+        if (reason != null && !reason.isBlank()) {
+            why().add(line(VaadinIcon.INFO_CIRCLE_O, getTranslation("card.waiting.reason", reason)));
+        }
+        return whyLast();
+    }
+
     AnswerCard waiting(String reason) {
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
         add(new Paragraph(getTranslation("card.waiting.why", reason)));
@@ -189,7 +202,7 @@ class AnswerCard extends Div {
     }
 
     /** "Why this answer?" stays the last part of the card, whatever was added after it. */
-    private AnswerCard whyLast() {
+    AnswerCard whyLast() {
         if (why != null) {
             add(why);
         }
