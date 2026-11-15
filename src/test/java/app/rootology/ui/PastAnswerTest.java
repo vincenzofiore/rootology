@@ -80,6 +80,29 @@ class PastAnswerTest {
         assertThat(shown).as("the source behind it").containsAnyOf("source.agera5", "AgERA5");
     }
 
+    @Test
+    void aPastAnswerStoredWithoutSourcesSaysNoneWasRecorded() {
+        String login = "past-nosource-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = app.rootology.TestSpaces.personal(spaces, login);
+        String processId = UUID.randomUUID().toString();
+        jdbc.sql("INSERT INTO pipeline_run (process_id, space_id, started_by, question_id, question, "
+                        + "noise_dropout, noise_spurious, noise_mislabel, noise_near_subject, noise_seed, "
+                        + "decision_answer, decision_confidence, decision_escalated, decision_reason, answer, "
+                        + "answered_by_human, answer_text, notes_json, sources, off_domain, finished_at) "
+                        + "VALUES (?, ?, ?, 'ask', 'Cosa semino?', 0, 0, 0, false, 0, '{}'::text[], 0.9, false, "
+                        + "'rule', '{tomato}'::text[], false, 'Oggi sì: pomodoro.', null, null, false, ?)")
+                .params(processId, space, login, Timestamp.from(Instant.now()))
+                .update();
+        AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
+                crops, knowledge, geoNames, cells, runHistory);
+
+        ask.beforeEnter(opening(space, processId));
+
+        // A row stored before notes and sources were kept (#111): the fold says so instead of staying silent.
+        assertThat(text(ask)).contains("ask.sources", "ask.sources.none");
+    }
+
     private static BeforeEnterEvent opening(long spaceId, String processId) {
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
         when(event.getRouteParameters()).thenReturn(new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId))));

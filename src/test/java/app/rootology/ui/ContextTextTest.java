@@ -91,6 +91,32 @@ class ContextTextTest {
     }
 
     @Test
+    void theFoldOfAnAnswerKeepsOnlyWhatTheBriefLineDoesNotSay() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, "Aiuola B", 90, 320, ClimateFrom.GARDEN);
+
+        assertThat(ContextText.detail(context, italian, Locale.ITALIAN))
+                .as("the garden and the area are in the line above")
+                .isEqualTo("ultime gelate fine marzo (dall’orto)");
+        assertThat(ContextText.detail(context, english, Locale.ENGLISH))
+                .isEqualTo("last frost late March (from the garden)");
+
+        ContextSnapshot question = new ContextSnapshot("Casa", "Orto", null, null, "MARCH", MonthFrom.QUESTION,
+                null, 96, 320, ClimateFrom.QUESTION);
+        assertThat(ContextText.detail(question, italian, Locale.ITALIAN))
+                .isEqualTo("ultime gelate inizio aprile (dalla domanda) · marzo (dalla domanda)");
+    }
+
+    @Test
+    void theFoldOfAnAnsweredQuestionSaysNothingWhenTheBriefLineSaysItAll() {
+        ContextSnapshot plain = new ContextSnapshot("Casa", "Orto", null, null, "NOVEMBER", MonthFrom.DEFAULT, null);
+        ContextSnapshot companion = new ContextSnapshot("Casa", "Orto", null, null, null, null, null);
+
+        assertThat(ContextText.detail(plain, italian, Locale.ITALIAN)).isEmpty();
+        assertThat(ContextText.detail(companion, italian, Locale.ITALIAN)).isEmpty();
+    }
+
+    @Test
     void theBriefLineAboveAnAnswerSaysOnlyTheGardenTheAreaAndTheMonth() {
         ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", "NORD", ZoneFrom.GARDEN,
                 "NOVEMBER", MonthFrom.QUESTION, "Aiuola B");

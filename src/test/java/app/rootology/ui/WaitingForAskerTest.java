@@ -36,6 +36,7 @@ class WaitingForAskerTest {
 
         assertThat(visibleText(card)).contains("card.waiting.promise").doesNotContain("reason.noanswer");
         assertThat(foldedText(card)).contains("card.waiting.reason");
+        assertThat(foldLabels(card)).as("a waiting question asks why it waits (#111)").containsExactly("card.why.waiting");
     }
 
     @Test
@@ -85,6 +86,12 @@ class WaitingForAskerTest {
         StringBuilder all = new StringBuilder();
         collect(root, all, false);
         return all.toString();
+    }
+
+    /** The labels of the card's folds, without Vaadin's marker for a key the test has no translation of. */
+    private static List<String> foldLabels(Component root) {
+        return nodes(root).stream().filter(Details.class::isInstance).map(d -> ((Details) d).getSummaryText())
+                .map(label -> label.replaceFirst("^!\\{", "").replaceFirst("}!$", "")).toList();
     }
 
     private static String foldedText(Component root) {

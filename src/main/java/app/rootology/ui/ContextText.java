@@ -30,19 +30,7 @@ final class ContextText {
         if (context.plotName() != null) {
             parts.add(context.plotName());
         }
-        if (context.hasClimate()) {
-            // The calendar's own context (#62): the last frost the windows were derived from.
-            parts.add(context.lastFrostDay() == null ? in.get("context.climate.none")
-                    : in.get("context.climate." + context.climateFrom().name().toLowerCase(Locale.ROOT),
-                    ClimateText.frost(context.lastFrostDay(), in, locale)));
-        } else if (context.zone() != null) {
-            // Rows stored before #62 still show the zone they used.
-            parts.add(in.get(switch (context.zoneFrom()) {
-                case QUESTION -> "context.zone.question";
-                case GARDEN -> "context.zone.garden";
-                case DEFAULT -> "context.zone.default";
-            }, context.zone()));
-        }
+        parts.addAll(climate(context, in, locale));
         if (context.month() != null) {
             String month = Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale);
             parts.add(context.monthFrom() == ContextSnapshot.MonthFrom.QUESTION
@@ -64,21 +52,29 @@ final class ContextText {
         if (context.plotName() != null) {
             parts.add(context.plotName());
         }
-        if (context.hasClimate()) {
-            parts.add(context.lastFrostDay() == null ? in.get("context.climate.none")
-                    : in.get("context.climate." + context.climateFrom().name().toLowerCase(Locale.ROOT),
-                    ClimateText.frost(context.lastFrostDay(), in, locale)));
-        } else if (context.zone() != null) {
-            parts.add(in.get(switch (context.zoneFrom()) {
-                case QUESTION -> "context.zone.question";
-                case GARDEN -> "context.zone.garden";
-                case DEFAULT -> "context.zone.default";
-            }, context.zone()));
-        }
+        parts.addAll(climate(context, in, locale));
         if (context.month() != null) {
             String month = Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale);
             parts.add(context.monthFrom() == ContextSnapshot.MonthFrom.QUESTION
                     ? in.get("context.month.question", month) : month);
+        }
+        return String.join(" · ", parts);
+    }
+
+    /**
+     * What the short line above an answer does not say (#111), for the fold of an answer card: the climate the
+     * calendars were read from with its source, a zone from a row stored before #62, and a month the question
+     * named. Empty when the brief line says everything.
+     */
+    static String detail(ContextSnapshot context, Component in) {
+        return detail(context, in::getTranslation, NoteText.locale(in));
+    }
+
+    static String detail(ContextSnapshot context, NoteText.Texts in, Locale locale) {
+        List<String> parts = new ArrayList<>(climate(context, in, locale));
+        if (context.month() != null && context.monthFrom() == ContextSnapshot.MonthFrom.QUESTION) {
+            parts.add(in.get("context.month.question",
+                    Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale)));
         }
         return String.join(" · ", parts);
     }
@@ -100,6 +96,26 @@ final class ContextText {
             parts.add(Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale));
         }
         return String.join(" · ", parts);
+    }
+
+    /**
+     * The climate of the question's site with its source (#62), or else the zone of a row stored before it;
+     * nothing at all when the context knows neither.
+     */
+    private static List<String> climate(ContextSnapshot context, NoteText.Texts in, Locale locale) {
+        if (context.hasClimate()) {
+            return List.of(context.lastFrostDay() == null ? in.get("context.climate.none")
+                    : in.get("context.climate." + context.climateFrom().name().toLowerCase(Locale.ROOT),
+                    ClimateText.frost(context.lastFrostDay(), in, locale)));
+        }
+        if (context.zone() != null) {
+            return List.of(in.get(switch (context.zoneFrom()) {
+                case QUESTION -> "context.zone.question";
+                case GARDEN -> "context.zone.garden";
+                case DEFAULT -> "context.zone.default";
+            }, context.zone()));
+        }
+        return List.of();
     }
 
     private static String name(String spaceName) {

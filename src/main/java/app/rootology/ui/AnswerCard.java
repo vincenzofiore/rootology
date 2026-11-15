@@ -28,8 +28,9 @@ import java.util.List;
 
 /**
  * An answer as a card (#31, lighter in #83): Claude's sentence and the values first, then only the warnings the
- * person should act on, the confidence in words with a bar, and everything else (the full context, the other
- * notes, the sources) under a closed "Why this answer?". Also the card of a question that waits.
+ * person should act on, the confidence in words with a bar and what it means, and everything else (the part of
+ * the context the line above does not say, the other notes, the sources) under a closed "Why this answer?" —
+ * "Why it waits?" on a waiting question (#111). Also the card of a question that waits.
  */
 class AnswerCard extends Div {
 
@@ -46,6 +47,8 @@ class AnswerCard extends Div {
     /** "Why this answer?", added at the end of the card the first time something goes in it. */
     private Details why;
     private Div whyContent;
+    /** What the fold is called: an answer asks why it answers, a waiting question why it waits (#111). */
+    private String whyLabel = "card.why";
 
     /** One source line: an icon, a text, and a link when there is one (url may be null). */
     record SourceLine(VaadinIcon icon, String text, String url) {
@@ -65,16 +68,20 @@ class AnswerCard extends Div {
     }
 
     /**
-     * The context of an answer (#83): a short line above it (garden, area, month), the full line under
-     * "Why this answer?".
+     * The context of an answer (#83): a short line above it (garden, area, month), and under "Why this
+     * answer?" only what that line does not say — the climate and its source, a zone from an older row, a month
+     * the question named (#111).
      */
     AnswerCard context(ContextSnapshot context) {
         Span brief = new Span(ContextText.brief(context, this));
         brief.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
         add(brief);
-        Span full = new Span(ContextText.line(context, this));
-        full.addClassName("rootology-why-line");
-        why().add(full);
+        String detail = ContextText.detail(context, this);
+        if (!detail.isBlank()) {
+            Span rest = new Span(detail);
+            rest.addClassName("rootology-why-line");
+            why().add(rest);
+        }
         return whyLast();
     }
 
@@ -111,14 +118,17 @@ class AnswerCard extends Div {
         row.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.MEDIUM);
         row.getElement().setAttribute("title", getTranslation("card.confidence", confidence));
         add(row);
+        // What the number means (#111): "Affidabilità media" alone says nothing to a gardener.
+        why().add(line(VaadinIcon.QUESTION_CIRCLE_O, getTranslation("card.confidence.meaning")));
         return whyLast();
     }
 
     /**
      * A waiting question as the person who asked it reads it (#110): a promise rather than a verdict. The
-     * decision layer's reason, with its number, goes under "Why this answer?".
+     * decision layer's reason, with its number, goes under "Why it waits?" (#111).
      */
     AnswerCard promise(String reason) {
+        whyCalled("card.why.waiting");
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
         add(new Paragraph(getTranslation("card.waiting.promise")));
         if (reason != null && !reason.isBlank()) {
@@ -128,6 +138,7 @@ class AnswerCard extends Div {
     }
 
     AnswerCard waiting(String reason) {
+        whyCalled("card.why.waiting");
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
         add(new Paragraph(getTranslation("card.waiting.why", reason)));
         return whyLast();
@@ -180,9 +191,7 @@ class AnswerCard extends Div {
         if (lines.isEmpty()) {
             return this;
         }
-        Span title = new Span(getTranslation("ask.sources"));
-        title.addClassNames(FontSize.SMALL, FontWeight.SEMIBOLD, TextColor.SECONDARY, Margin.Top.SMALL);
-        why().add(title);
+        why().add(sourcesTitle());
         for (SourceLine line : lines) {
             Component text = line.url() == null ? new Span(line.text()) : link(line.text(), line.url());
             why().add(line(line.icon(), text));
@@ -190,15 +199,39 @@ class AnswerCard extends Div {
         return whyLast();
     }
 
+    /**
+     * A past answer stored before notes and sources were kept (#110): rather than leaving the fold silent about
+     * its sources, it says that none was recorded (#111). A fresh answer with no source stays silent.
+     */
+    AnswerCard noSources() {
+        why().add(sourcesTitle());
+        why().add(line(VaadinIcon.BOOK, getTranslation("ask.sources.none")));
+        return whyLast();
+    }
+
+    private Span sourcesTitle() {
+        Span title = new Span(getTranslation("ask.sources"));
+        title.addClassNames(FontSize.SMALL, FontWeight.SEMIBOLD, TextColor.SECONDARY, Margin.Top.SMALL);
+        return title;
+    }
+
     /** "Why this answer?", created closed at the end of the card when the first line goes in it. */
     private Div why() {
         if (why == null) {
             whyContent = new Div();
             whyContent.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
-            why = new Details(getTranslation("card.why"), whyContent);
+            why = new Details(getTranslation(whyLabel), whyContent);
             why.addClassName("rootology-answer-why");
         }
         return whyContent;
+    }
+
+    /** The fold's own words: an answer asks why it answers, a waiting question why it waits (#111). */
+    private void whyCalled(String key) {
+        whyLabel = key;
+        if (why != null) {
+            why.setSummaryText(getTranslation(key));
+        }
     }
 
     /** "Why this answer?" stays the last part of the card, whatever was added after it. */

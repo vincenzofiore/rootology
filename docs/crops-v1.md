@@ -92,3 +92,9 @@ uses that zone's reference site (NORD = Milan, CENTRO = Vasto, SUD = Palermo). T
 - 39 crops in 9 families.
 - Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
+
+## Italian articles (#111)
+
+Every crop has an `italian_article` in `crops-v1.csv` (il, lo, la, l’, i, gli, le), so a sentence of the app names
+the crop as Italian does: "Quali parassiti minacciano la fragola questo mese?", "Quando raccogliere le cime di
+rapa?". `KnowledgeValidator` refuses any other value. English names take no article.

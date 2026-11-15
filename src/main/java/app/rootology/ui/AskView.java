@@ -314,9 +314,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             card.promise(ReasonText.text(run.getDecisionReason(), this));
         } else {
             // The same card as a fresh answer (#110): its notes and sources too, the context in the same place.
+            // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.of(answer, spaceId, currentUser.login(), sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, spaceId, currentUser.login(), sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), contributor, copyText, card);
         item.setId(key);
@@ -431,7 +432,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(GardenHomeView.ITALY))
                     .forEach(p -> {
                         String name = crops.byId(p.cropId())
-                                .map(c -> english ? c.englishName() : c.italianName())
+                                // A sentence names the crop with its article (#111): "la fragola", "l’aglio".
+                                .map(c -> english ? c.englishName() : c.italianInSentence())
                                 .orElse(p.cropName());
                         if (!names.contains(name) && names.size() < SuggestedQuestions.MAX_CROPS) {
                             names.add(name);

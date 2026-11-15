@@ -18,6 +18,20 @@ final class AnswerCards {
 
     static AnswerCard of(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
                          KnowledgeEnrichment enrichment, Component in) {
+        return build(answer, spaceId, login, sources, enrichment, in, false);
+    }
+
+    /**
+     * The same card for an answer rebuilt from the history (#111): answers stored before notes and sources were
+     * kept have none, and say so rather than leaving the fold silent. A fresh answer with no source stays silent.
+     */
+    static AnswerCard ofPast(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
+                             KnowledgeEnrichment enrichment, Component in) {
+        return build(answer, spaceId, login, sources, enrichment, in, true);
+    }
+
+    private static AnswerCard build(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
+                                   KnowledgeEnrichment enrichment, Component in, boolean fromHistory) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
         for (String id : answer.sources()) {
             if (id.equals("garden")) {
@@ -34,8 +48,12 @@ final class AnswerCards {
         if (answer.context() != null) {
             card.context(answer.context());
         }
-        return card.answered(answer.text(), answer.answer(), answer.confidence())
-                .notes(answer.notes()).sources(lines);
+        card.answered(answer.text(), answer.answer(), answer.confidence())
+                .notes(answer.notes());
+        if (lines.isEmpty() && fromHistory) {
+            return card.noSources();
+        }
+        return card.sources(lines);
     }
 
     /** A short title of a source in the page's language (#79), the catalogue's own title when there is none. */

@@ -2,7 +2,11 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Span;
+import app.rootology.pipeline.ContextSnapshot;
+import app.rootology.pipeline.ContextSnapshot.ClimateFrom;
+import app.rootology.pipeline.ContextSnapshot.MonthFrom;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -10,7 +14,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** The answer card's values (#110): in the page's language, and never a badge for a word just read. */
+/**
+ * The answer card's values (#110): in the page's language, and never a badge for a word just read. And its
+ * fold (#111): what it is called on an answer and on a waiting question, what it says about the reliability,
+ * and that it never repeats the line above the answer.
+ */
 class AnswerCardTest {
 
     @Test
@@ -42,6 +50,88 @@ class AnswerCardTest {
         AnswerCard card = new AnswerCard().answered("Nessuna compagna dichiarata.", List.of(), 0.9);
 
         assertThat(nodes(card)).anyMatch(c -> c.getClassNames().contains("rootology-answer-value-none"));
+    }
+
+    @Test
+    void anAnswersFoldAsksWhyItAnswersAWaitingQuestionsWhyItWaits() {
+        AnswerCard answer = new AnswerCard().answered("Ecco quando.", List.of(), 0.9);
+        AnswerCard waiting = new AnswerCard().promise("Jev: the facts do not answer this (p=0.08)");
+
+        assertThat(foldLabels(answer)).containsExactly("card.why");
+        assertThat(foldLabels(waiting)).containsExactly("card.why.waiting");
+    }
+
+    @Test
+    void theFoldSaysWhatTheReliabilityMeans() {
+        AnswerCard card = new AnswerCard().answered("Ecco quando.", List.of(), 0.9);
+
+        assertThat(foldedText(card)).contains("card.confidence.meaning");
+    }
+
+    @Test
+    void theFoldDoesNotRepeatTheGardenTheAreaAndTheMonthAboveAnAnswer() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, "Aiuola B", 90, 320, ClimateFrom.GARDEN);
+
+        AnswerCard card = new AnswerCard().context(context).answered("Ecco quando.", List.of(), 0.9);
+
+        assertThat(foldedText(card))
+                .as("only the climate and its source, which the line above does not say")
+                .contains("context.climate.garden")
+                .doesNotContain("context.for", "context.place", "context.month", "Aiuola B");
+    }
+
+    @Test
+    void theFoldSaysNothingAboutTheContextWhenTheLineAboveSaysItAll() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "NOVEMBER",
+                MonthFrom.DEFAULT, null);
+
+        AnswerCard card = new AnswerCard().context(context).answered("Ecco quando.", List.of(), 0.9);
+
+        assertThat(foldedText(card)).doesNotContain("context.for", "context.climate", "context.zone", "context.month");
+    }
+
+    @Test
+    void aMonthTheQuestionNamedIsSaidInTheFold() {
+        ContextSnapshot context = new ContextSnapshot("Casa", "Orto sul tetto", null, null, "MARCH",
+                MonthFrom.QUESTION, null);
+
+        AnswerCard card = new AnswerCard().context(context).answered("Ecco quando.", List.of(), 0.9);
+
+        assertThat(foldedText(card)).contains("context.month.question");
+    }
+
+    @Test
+    void aPastAnswerSaysNoSourceWasRecordedAndAFreshOneStaysSilent() {
+        AnswerCard past = new AnswerCard().noSources();
+        AnswerCard fresh = new AnswerCard().sources(List.of());
+
+        assertThat(foldedText(past)).contains("ask.sources", "ask.sources.none");
+        assertThat(foldLabels(fresh)).isEmpty();
+    }
+
+    /** The labels of the card's folds, without Vaadin's marker for a key the test has no translation of. */
+    private static List<String> foldLabels(Component root) {
+        return nodes(root).stream().filter(Details.class::isInstance).map(c -> ((Details) c).getSummaryText())
+                .map(label -> label.replaceFirst("^!\\{", "").replaceFirst("}!$", "")).toList();
+    }
+
+    /** The text inside the card's folds, and nothing else. */
+    private static String foldedText(Component root) {
+        StringBuilder all = new StringBuilder();
+        nodes(root).stream().filter(Details.class::isInstance).forEach(d -> {
+            StringBuilder inside = new StringBuilder();
+            appendText(d, inside);
+            all.append(' ').append(inside);
+        });
+        return all.toString();
+    }
+
+    private static void appendText(Component root, StringBuilder all) {
+        if (root instanceof HasText hasText) {
+            all.append(' ').append(hasText.getText());
+        }
+        root.getChildren().forEach(child -> appendText(child, all));
     }
 
     /** The words of the values row. */

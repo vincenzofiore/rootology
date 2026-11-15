@@ -38,12 +38,13 @@ class SuggestedQuestionsTest {
     @Test
     void inAGardenTheCropsGrowingAndAPlotAddTheirQuestionsUpToFive() {
         List<SuggestedQuestions.Suggestion> chips = SuggestedQuestions.of(6, true,
-                List.of("Pomodoro", "Zucchina", "Basilico"), "Nord");
+                List.of("il pomodoro", "la zucchina", "il basilico"), "Nord");
 
         assertThat(keys(chips)).containsExactly("ask.suggest.sow", "ask.suggest.crop.pests",
                 "ask.suggest.crop.harvest", "ask.suggest.plot", "ask.suggest.companions.summer");
-        assertThat(chips.get(1).text(italian)).isEqualTo("Quali parassiti minacciano Pomodoro questo mese?");
-        assertThat(chips.get(2).text(italian)).contains("Zucchina");
+        // Ask names the crops as a sentence does, with their article (#111).
+        assertThat(chips.get(1).text(italian)).isEqualTo("Quali parassiti minacciano il pomodoro questo mese?");
+        assertThat(chips.get(2).text(italian)).isEqualTo("Quando raccogliere la zucchina?");
         assertThat(chips.get(3).text(italian)).isEqualTo("Cosa posso seminare nell’area Nord?");
     }
 
