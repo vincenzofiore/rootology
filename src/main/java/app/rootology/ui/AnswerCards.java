@@ -7,6 +7,7 @@ import app.rootology.enrichment.ProposalScope;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.pipeline.PipelineAnswer;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +19,7 @@ final class AnswerCards {
 
     static AnswerCard of(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
                          KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, spaceId, login, sources, enrichment, in, false);
+        return build(answer, Instant.now(), spaceId, login, sources, enrichment, in, false);
     }
 
     /**
@@ -26,14 +27,15 @@ final class AnswerCards {
      * says so (#114) rather than "no source", which read as an answer with nothing behind it. One stored since,
      * with no source, stays silent like a fresh one.
      *
+     * @param askedAt         when the question was asked, for the verdict of a calendar answer (#116)
      * @param sourcesRecorded whether the row was stored with its sources (Flyway V33)
      */
-    static AnswerCard ofPast(PipelineAnswer answer, boolean sourcesRecorded, long spaceId, String login,
-                             SourceCatalog sources, KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, spaceId, login, sources, enrichment, in, !sourcesRecorded);
+    static AnswerCard ofPast(PipelineAnswer answer, Instant askedAt, boolean sourcesRecorded, long spaceId,
+                             String login, SourceCatalog sources, KnowledgeEnrichment enrichment, Component in) {
+        return build(answer, askedAt, spaceId, login, sources, enrichment, in, !sourcesRecorded);
     }
 
-    private static AnswerCard build(PipelineAnswer answer, long spaceId, String login, SourceCatalog sources,
+    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, String login, SourceCatalog sources,
                                    KnowledgeEnrichment enrichment, Component in, boolean storedBeforeSources) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
         for (String id : answer.sources()) {
@@ -51,8 +53,14 @@ final class AnswerCards {
         if (answer.context() != null) {
             card.context(answer.context());
         }
-        card.answered(answer.text(), answer.answer(), answer.confidence(), answer.activities())
-                .notes(answer.notes());
+        CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, in)
+                .ifPresent(card::verdict);
+        if (answer.answeredByHuman()) {
+            card.answeredBy(answer.text(), answer.answer(), answer.reviewer(), answer.activities());
+        } else {
+            card.answered(answer.text(), answer.answer(), answer.confidence(), answer.activities());
+        }
+        card.notes(answer.notes());
         if (lines.isEmpty() && storedBeforeSources) {
             return card.noSources();
         }

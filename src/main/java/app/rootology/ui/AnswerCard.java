@@ -97,12 +97,53 @@ class AnswerCard extends Div {
      */
     AnswerCard answered(String text, List<String> values, double confidence,
                         java.util.Map<String, List<String>> activities) {
+        sentenceAndValues(text, values, activities);
+        return confidence(confidence);
+    }
+
+    /**
+     * An answer a person of the space gave (#116): who answered instead of a confidence bar, which would only
+     * measure the decision layer that did not answer.
+     *
+     * @param reviewer the login of who answered, null when it was not recorded
+     */
+    AnswerCard answeredBy(String text, List<String> values, String reviewer,
+                          java.util.Map<String, List<String>> activities) {
+        sentenceAndValues(text, values, activities);
+        warnings();
+        Span who = new Span(reviewer == null ? getTranslation("card.byperson.someone")
+                : getTranslation("card.byperson", reviewer));
+        who.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+        Icon icon = VaadinIcon.USER.create();
+        icon.addClassName("rootology-answer-person-icon");
+        Div row = new Div(icon, who);
+        row.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.SMALL, "rootology-answer-person");
+        add(row);
+        return this;
+    }
+
+    /**
+     * What a calendar answer means for the month it was asked in (#116), above the sentence: worked out from
+     * the values, so a sentence that says "yes" for a month months away cannot be read as "now".
+     */
+    AnswerCard verdict(CalendarVerdict.Verdict verdict) {
+        Icon icon = (verdict.now() ? VaadinIcon.CHECK_CIRCLE_O : VaadinIcon.CALENDAR_CLOCK).create();
+        icon.addClassName("rootology-verdict-icon");
+        Span words = new Span(verdict.words());
+        Div row = new Div(icon, words);
+        row.addClassName("rootology-verdict");
+        row.addClassName(verdict.now() ? "rootology-verdict-now" : "rootology-verdict-later");
+        add(row);
+        return this;
+    }
+
+    private void sentenceAndValues(String text, List<String> values, java.util.Map<String, List<String>> activities) {
         Paragraph sentence = new Paragraph(text);
         sentence.addClassName("rootology-answer-text");
         add(sentence);
         if (!activities.isEmpty()) {
             add(activityGroups(values, activities));
-            return confidence(confidence);
+            return;
         }
         // The values in the page's language (#110), without those the sentence already says: a badge repeating
         // a word just read adds nothing. An answer with no value keeps its "no values" badge.
@@ -117,7 +158,6 @@ class AnswerCard extends Div {
             words.forEach(v -> chips.add(chip(v, null)));
             add(chips);
         }
-        return confidence(confidence);
     }
 
     /** One row per activity, in the activities' order, with its values; a value with none goes in a plain row. */
@@ -153,11 +193,15 @@ class AnswerCard extends Div {
         return row;
     }
 
-    private AnswerCard confidence(double confidence) {
+    private void warnings() {
         warnings = new Div();
         warnings.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
         warnings.setVisible(false);
         add(warnings);
+    }
+
+    private AnswerCard confidence(double confidence) {
+        warnings();
         double value = Math.max(0, Math.min(1, confidence));
         ProgressBar bar = new ProgressBar(0, 1, value);
         bar.addClassName("rootology-confidence-bar");

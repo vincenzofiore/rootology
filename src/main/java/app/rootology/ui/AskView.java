@@ -352,7 +352,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.ofPast(answer, run.getSources() != null, spaceId, currentUser.login(), sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser.login(), sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);

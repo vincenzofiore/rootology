@@ -1785,6 +1785,22 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     font-weight: 600;
     color: var(--lumo-secondary-text-color);
 }
+/* What a calendar answer means for the month it was asked in (#116), worked out from the values. */
+.rootology-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    font-weight: 600;
+    font-size: var(--lumo-font-size-m);
+}
+.rootology-verdict-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); flex: none; }
+.rootology-verdict-now .rootology-verdict-icon { color: var(--lumo-success-text-color); }
+.rootology-verdict-later .rootology-verdict-icon { color: var(--lumo-secondary-text-color); }
+.rootology-answer-person-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--lumo-secondary-text-color);
+}
 .rootology-answer-value {
     padding: var(--lumo-space-xs) var(--lumo-space-m);
     border-radius: 999px;

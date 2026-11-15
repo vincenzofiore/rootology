@@ -69,6 +69,16 @@ class AnswerCardTest {
     }
 
     @Test
+    void anAnswerAPersonGaveSaysWhoAndHasNoConfidenceBar() {
+        // #116: the bar measures the decision layer, which did not answer.
+        AnswerCard card = new AnswerCard().answeredBy("Sì, a maggio.", List.of("MAY"), "vincenzo", java.util.Map.of());
+
+        assertThat(nodes(card)).noneMatch(c -> c instanceof com.vaadin.flow.component.progressbar.ProgressBar);
+        assertThat(nodes(card)).anyMatch(c -> c.getClassNames().contains("rootology-answer-person"));
+        assertThat(foldLabels(card)).isEmpty();
+    }
+
+    @Test
     void anAnswersFoldAsksWhyItAnswersAWaitingQuestionsWhyItWaits() {
         AnswerCard answer = new AnswerCard().answered("Ecco quando.", List.of(), 0.9);
         AnswerCard waiting = new AnswerCard().promise("Jev: the facts do not answer this (p=0.08)");

@@ -75,6 +75,7 @@ class TranslationsTest {
                         .map(v -> "directsun." + v.name()),
                 Stream.of(app.rootology.garden.Wind.values()).map(v -> "wind." + v.name()),
                 Stream.of(app.rootology.facts.SowingActivity.values()).map(v -> "activity." + v.name()),
+                Stream.of(app.rootology.facts.SowingActivity.values()).map(v -> "verdict.activity." + v.name()),
                 Stream.of(app.rootology.enrichment.ProposalStatus.values())
                         .map(v -> "proposal." + v.name()),
                 Stream.of(app.rootology.spaces.IdentityProvider.values())
