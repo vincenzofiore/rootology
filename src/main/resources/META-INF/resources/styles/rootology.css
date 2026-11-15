@@ -844,6 +844,15 @@ rootology-garden-map { display: block; width: 100%; }
     font-weight: 600;
     overflow-wrap: anywhere;
 }
+/* The garden a waiting question belongs to, at the space level only (#109). */
+.rootology-waiting-garden {
+    align-self: flex-start;
+    padding: 0 var(--lumo-space-xs);
+    border-radius: var(--lumo-border-radius-s);
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
 .rootology-waiting-meta {
     display: flex;
     flex-wrap: wrap;
@@ -1325,9 +1334,15 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-history-panel .rootology-history-card:hover {
     background: var(--lumo-contrast-10pct);
 }
-/* The count beside the clock, in figures that do not jump as it changes. */
+/* The count beside the clock, in figures that do not jump as it changes; the word beside it on a wide
+   screen (#109), where the button has room to say what it opens. */
 .rootology-history-toggle {
     font-variant-numeric: tabular-nums;
+}
+.rootology-history-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
 }
 /* Which question a past answer is for, and when (#100). */
 .rootology-ask-asked {
@@ -1538,6 +1553,15 @@ rootology-garden-map { display: block; width: 100%; }
     padding: var(--lumo-space-s) var(--lumo-space-m);
     border-radius: var(--lumo-border-radius-l);
     background: var(--lumo-contrast-5pct);
+}
+/* The garden a question belongs to, at the space level only (#109). */
+.rootology-history-card-garden {
+    align-self: flex-start;
+    padding: 0 var(--lumo-space-xs);
+    border-radius: var(--lumo-border-radius-s);
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
 }
 .rootology-history-card-head,
 .rootology-notification-card-head {

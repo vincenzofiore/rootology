@@ -73,13 +73,16 @@ public class RunHistory {
                 : Optional.of(JSON.readValue(run.getContextJson(), ContextSnapshot.class));
     }
 
-    /** True when the space has questions without a garden (#56): the overview offers them only then. */
+    /**
+     * Every question of a space, in any garden and without one (#109), newest first; only the space's members
+     * may read them (#41).
+     */
     @Transactional(readOnly = true)
-    public boolean hasUngardened(long spaceId, String login) {
+    public List<PipelineRunRecord> recentInSpace(long spaceId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
         }
-        return !repository.findTop100BySpaceIdAndGardenIdIsNullOrderByFinishedAtDesc(spaceId).isEmpty();
+        return repository.findTop100BySpaceIdOrderByFinishedAtDesc(spaceId);
     }
 
     private static Optional<ExperimentCase> experimentCase(String questionId) {

@@ -51,6 +51,38 @@ final class ContextText {
         return in.get("context.for", String.join(" · ", parts));
     }
 
+    /**
+     * The same line without the space and the garden, for a card that already says which garden it belongs
+     * to (#109); empty when there is nothing else to say.
+     */
+    static String rest(ContextSnapshot context, Component in) {
+        return rest(context, in::getTranslation, NoteText.locale(in));
+    }
+
+    static String rest(ContextSnapshot context, NoteText.Texts in, Locale locale) {
+        List<String> parts = new ArrayList<>();
+        if (context.plotName() != null) {
+            parts.add(context.plotName());
+        }
+        if (context.hasClimate()) {
+            parts.add(context.lastFrostDay() == null ? in.get("context.climate.none")
+                    : in.get("context.climate." + context.climateFrom().name().toLowerCase(Locale.ROOT),
+                    ClimateText.frost(context.lastFrostDay(), in, locale)));
+        } else if (context.zone() != null) {
+            parts.add(in.get(switch (context.zoneFrom()) {
+                case QUESTION -> "context.zone.question";
+                case GARDEN -> "context.zone.garden";
+                case DEFAULT -> "context.zone.default";
+            }, context.zone()));
+        }
+        if (context.month() != null) {
+            String month = Month.valueOf(context.month()).getDisplayName(TextStyle.FULL, locale);
+            parts.add(context.monthFrom() == ContextSnapshot.MonthFrom.QUESTION
+                    ? in.get("context.month.question", month) : month);
+        }
+        return String.join(" · ", parts);
+    }
+
     /** The short line above an answer (#83): the garden (or the space without one), the area, the month. */
     static String brief(ContextSnapshot context, Component in) {
         return brief(context, in::getTranslation, NoteText.locale(in));

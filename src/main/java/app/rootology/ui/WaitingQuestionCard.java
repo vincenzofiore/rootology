@@ -45,6 +45,15 @@ class WaitingQuestionCard extends AnswerCard {
 
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished) {
+        this(review, mayAnswer, suggestions, answerer, finished, false);
+    }
+
+    /**
+     * The same card, naming its garden first when the page lists several (#109): the space level's waiting
+     * questions come from every garden and from none.
+     */
+    WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
+                        Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden) {
         this.draft = new AnswerDraft(review.decision().answer());
         this.answerer = answerer;
         this.finished = finished;
@@ -52,9 +61,25 @@ class WaitingQuestionCard extends AnswerCard {
 
         H4 question = new H4(review.question().text());
         question.addClassName("rootology-waiting-question");
+        if (namesGarden) {
+            // The garden this question belongs to, before the question itself: the card replaces the line
+            // that would say it again with only what the garden does not (#109).
+            String garden = HistoryPanel.gardenOf(review);
+            Span where = new Span(garden.equals(HistoryPanel.NO_GARDEN)
+                    ? getTranslation("history.nogarden") : garden);
+            where.addClassName("rootology-waiting-garden");
+            add(where);
+        }
         add(question);
         if (review.snapshot() != null) {
-            context(ContextText.line(review.snapshot(), this));
+            if (namesGarden) {
+                String rest = ContextText.rest(review.snapshot(), this);
+                if (!rest.isBlank()) {
+                    context(rest);
+                }
+            } else {
+                context(ContextText.line(review.snapshot(), this));
+            }
         }
         waiting(ReasonText.text(review.decision().reason(), this));
         // Whoever answers needs every note at hand (#60): none is folded away here.

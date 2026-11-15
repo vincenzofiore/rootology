@@ -295,12 +295,15 @@ public class GardenPipeline {
         return pending.waitingIn(spaceId, gardenId);
     }
 
-    /** True when the space has questions without a garden waiting for a person (#56). */
-    public boolean hasUngardened(long spaceId, String login) {
+    /**
+     * Every waiting question of a space, of its gardens and of the space level (#109), newest first, for the
+     * space's members only (#41): the one page of waiting questions.
+     */
+    public List<PendingReview> pendingInSpace(long spaceId, String login) {
         if (!spaces.isMember(spaceId, login)) {
             throw new SpaceAccessException(login + " is not a member of space " + spaceId);
         }
-        return !pending.waitingIn(spaceId, 0).isEmpty();
+        return pending.waitingInSpace(spaceId);
     }
 
     /**

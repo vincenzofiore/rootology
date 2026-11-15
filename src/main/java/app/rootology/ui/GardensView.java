@@ -3,10 +3,8 @@ package app.rootology.ui;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -21,7 +19,6 @@ import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
@@ -58,7 +55,6 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     private final GardenService gardens;
     private final GeoNames geoNames;
-    private final Ungardened ungardened;
     private final CurrentUser currentUser;
     private final ClimateCells climateCells;
     private final GardenPipeline pipeline;
@@ -84,8 +80,6 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final ComboBox<Place> search = new ComboBox<>();
     /** General questions with no garden to work in: the space level (#56). */
     private final HorizontalLayout ask = new HorizontalLayout();
-    /** The questions without a garden, rebuilt on every entry (#56). */
-    private final Div ungardenedSection = new Div();
     /** The map and the list side by side; on a phone one at a time (#87). */
     private final Div split = new Div();
     private boolean contributor;
@@ -94,13 +88,12 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     /** The gardens on this page, in the list's order: the map and the list both read them. */
     private List<GardenSummary> shown = List.of();
 
-    public GardensView(GardenService gardens, GeoNames geoNames, Ungardened ungardened, CurrentUser currentUser,
+    public GardensView(GardenService gardens, GeoNames geoNames, CurrentUser currentUser,
                        ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
                        @Value("${rootology.map.style-url}") String styleUrl,
                        @Value("${rootology.map.dark-style-url:}") String darkStyleUrl) {
         this.gardens = gardens;
         this.geoNames = geoNames;
-        this.ungardened = ungardened;
         this.currentUser = currentUser;
         this.climateCells = climateCells;
         this.pipeline = pipeline;
@@ -181,7 +174,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         split.addClassName("rootology-gardens-split");
         split.add(frame, list);
         show("map");
-        add(header, ask, none, split, ungardenedSection);
+        add(header, ask, none, split);
     }
 
     @Override
@@ -323,7 +316,6 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         none.setVisible(all.isEmpty());
         ask.setVisible(all.isEmpty() && contributor);
         updateVisibility();
-        showUngardened();
     }
 
     /**
@@ -430,31 +422,6 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
             return getTranslation("gardens.map.weather", temperature, hour.precipitation());
         }
         return getTranslation("gardens.map.weather.temperature", temperature);
-    }
-
-    /**
-     * The questions the space asked outside a garden (#56), only when it has some: the ones of a space
-     * that never had a garden, the ones stored before #56, and those of a deleted garden.
-     */
-    private void showUngardened() {
-        ungardenedSection.removeAll();
-        if (spaceId == 0 || !ungardened.any(spaceId, currentUser.login())) {
-            return;
-        }
-        Map<String, String> here = Map.of(Routed.SPACE, String.valueOf(spaceId));
-        ungardenedSection.add(new H4(getTranslation("gardens.ungardened")),
-                new Paragraph(getTranslation("gardens.ungardened.intro")),
-                new HorizontalLayout(
-                        new RouterLink(getTranslation("nav.escalations"), EscalationView.class,
-                                new RouteParameters(here)),
-                        historyLink(here)));
-    }
-
-    /** The space's Ask with its history open (#100): the questions asked outside a garden. */
-    private RouterLink historyLink(Map<String, String> here) {
-        RouterLink link = new RouterLink(getTranslation("history.title"), AskView.class, new RouteParameters(here));
-        link.setQueryParameters(QueryParameters.simple(Map.of(AskView.HISTORY, "")));
-        return link;
     }
 
     /** Whether the page offers the actions that need an OWNER or MEMBER (#33), for the tests. */

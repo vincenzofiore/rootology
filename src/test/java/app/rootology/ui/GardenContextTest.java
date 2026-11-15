@@ -60,9 +60,6 @@ class GardenContextTest {
     UsageService usage;
 
     @Autowired
-    Ungardened ungardened;
-
-    @Autowired
     CropCatalog crops;
 
     @Autowired
@@ -79,6 +76,9 @@ class GardenContextTest {
 
     @Autowired
     org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
+    @Autowired
+    NotificationBroadcaster broadcaster;
 
     @Test
     void twoPagesOfOneSessionOnTwoGardensAskInTheirOwnGarden() {
@@ -156,10 +156,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE, "");
+        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, STYLE, "");
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE, "");
+        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, STYLE, "");
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();
@@ -223,7 +223,7 @@ class GardenContextTest {
         long shared = personalSpace(host);
         spaces.addMember(shared, host, login, app.rootology.spaces.Role.GUEST);
         EscalationView view = new EscalationView(pipeline, gardens, new CurrentUser(spaces, login), crops, knowledge,
-                sources, enrichment);
+                sources, enrichment, broadcaster);
         BeforeEnterEvent event = entering(shared);
 
         view.beforeEnter(event);

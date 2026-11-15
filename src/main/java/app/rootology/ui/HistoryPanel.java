@@ -35,7 +35,8 @@ import java.util.stream.Stream;
  * first, one card each (when, the outcome, the question, the answer's values and who asked), and a search on the
  * question's words. The questions still waiting for a person come first, with the hourglass (#104), and filters
  * narrow the list by outcome, by who asked and by period. A card opens its answer, or the waiting question, on
- * Ask's left; nothing here asks or changes anything.
+ * Ask's left; nothing here asks or changes anything. At the space level it holds every garden's questions and
+ * those without one, says which garden each belongs to, and adds a garden filter (#109).
  */
 class HistoryPanel extends Div {
 
@@ -46,27 +47,42 @@ class HistoryPanel extends Div {
     static final int WEEK = 7;
     static final int MONTH = 30;
 
-    /** One card: a finished question (run) or one still waiting for a person (waiting), never both. */
-    record Entry(String question, Outcome outcome, String askedBy, Instant at, PipelineRunRecord run,
-                 PendingReview waiting) {
+    /** The garden of a question with none, in the filter and on the cards (#109): no garden's name is empty. */
+    static final String NO_GARDEN = "";
 
-        static Entry of(PipelineRunRecord run) {
-            return new Entry(run.getQuestion(), HistoryPanel.outcome(run), run.getStartedBy(), run.getFinishedAt(), run, null);
+    /**
+     * One card: a finished question (run) or one still waiting for a person (waiting), never both, and the
+     * name of its garden (NO_GARDEN at the space level when it has none, #109).
+     */
+    record Entry(String question, Outcome outcome, String askedBy, Instant at, PipelineRunRecord run,
+                 PendingReview waiting, String garden) {
+
+        static Entry of(PipelineRunRecord run, String garden) {
+            return new Entry(run.getQuestion(), HistoryPanel.outcome(run), run.getStartedBy(), run.getFinishedAt(),
+                    run, null, garden);
         }
 
         static Entry of(PendingReview review) {
             return new Entry(review.question().text(), Outcome.WAITING, review.context().startedBy(),
-                    review.askedAt(), null, review);
+                    review.askedAt(), null, review, HistoryPanel.gardenOf(review));
         }
     }
 
-    /** The filters chosen: an outcome or any (null), only the person's own questions, a period in days or any (null). */
-    record Filters(Outcome outcome, boolean mine, Integer days) {
+    /**
+     * The filters chosen: an outcome or any (null), only the person's own questions, a period in days or any
+     * (null), and one garden of the space at the space level, or any (null, #109).
+     */
+    record Filters(Outcome outcome, boolean mine, Integer days, String garden) {
 
-        static final Filters NONE = new Filters(null, false, null);
+        static final Filters NONE = new Filters(null, false, null, null);
+
+        /** The filters without a garden (#104): inside a garden there is nothing to choose. */
+        Filters(Outcome outcome, boolean mine, Integer days) {
+            this(outcome, mine, days, null);
+        }
 
         boolean any() {
-            return outcome != null || mine || days != null;
+            return outcome != null || mine || days != null || garden != null;
         }
     }
 
@@ -76,12 +92,16 @@ class HistoryPanel extends Div {
     private final Consumer<PendingReview> openWaiting;
     private final TextField search = new TextField();
     private final Div filterRow = new Div();
+    /** The gardens of the space, at the space level only (#109): one chip each, or none. */
+    private final Div gardenRow = new Div();
     private final Div cards = new Div();
     private final Paragraph noMatch = new Paragraph();
     private final EmptyState empty;
     private List<Entry> entries = List.of();
     private Filters filters = Filters.NONE;
     private String login = "";
+    /** Whether the panel lists every garden of the space (#109): true only at the space level. */
+    private boolean spaceLevel;
 
     HistoryPanel(RunHistory history, GardenPipeline pipeline, Consumer<PipelineRunRecord> open,
                  Consumer<PendingReview> openWaiting) {
@@ -103,28 +123,55 @@ class HistoryPanel extends Div {
         filterRow.addClassName("rootology-history-filters");
         filterRow.getElement().setAttribute("role", "group");
         filterRow.getElement().setAttribute("aria-label", getTranslation("history.filters"));
+        gardenRow.addClassName("rootology-history-filters");
+        gardenRow.addClassName("rootology-history-gardens");
+        gardenRow.getElement().setAttribute("role", "group");
+        gardenRow.getElement().setAttribute("aria-label", getTranslation("history.gardens"));
         cards.addClassName("rootology-history-cards");
         noMatch.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
         // Ask is beside it: the empty panel needs no button of its own.
         empty = new EmptyState(getTranslation("history.empty")).drawing(EmptyState.Drawing.NOTEBOOK);
-        add(search, filterRow, cards, noMatch, empty);
+        add(search, filterRow, gardenRow, cards, noMatch, empty);
     }
 
     /** Reads the context's questions again: when the page opens, and after each question of the visit. */
     void load(long spaceId, long gardenId, String login) {
         this.login = login;
+        this.spaceLevel = gardenId == 0;
         if (spaceId == 0) {
             entries = List.of();
+        } else if (spaceLevel) {
+            // Every question of the space, every garden's and those without one (#109).
+            List<Entry> all = new ArrayList<>();
+            pipeline.pendingInSpace(spaceId, login).stream().map(Entry::of)
+                    .sorted(Comparator.comparing(Entry::at, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .forEach(all::add);
+            history.recentInSpace(spaceId, login).stream()
+                    .map(run -> Entry.of(run, gardenName(run))).forEach(all::add);
+            entries = List.copyOf(all);
         } else {
             // Waiting first, then the finished ones, each newest first.
             List<Entry> all = new ArrayList<>();
             pipeline.pending(spaceId, gardenId, login).stream().map(Entry::of)
                     .sorted(Comparator.comparing(Entry::at, Comparator.nullsLast(Comparator.reverseOrder())))
                     .forEach(all::add);
-            history.recent(spaceId, gardenId, login).stream().map(Entry::of).forEach(all::add);
+            history.recent(spaceId, gardenId, login).stream().map(run -> Entry.of(run, NO_GARDEN))
+                    .forEach(all::add);
             entries = List.copyOf(all);
         }
         show();
+    }
+
+    /** The garden a stored question was answered in, kept in its context snapshot so a deleted garden keeps its name. */
+    private String gardenName(PipelineRunRecord run) {
+        return history.contextOf(run).map(ContextSnapshot::gardenName).filter(name -> name != null)
+                .orElse(NO_GARDEN);
+    }
+
+    /** The garden a waiting question was asked in, from its context snapshot (#109). */
+    static String gardenOf(PendingReview review) {
+        return review.snapshot() == null || review.snapshot().gardenName() == null
+                ? NO_GARDEN : review.snapshot().gardenName();
     }
 
     /** How many questions the context has, waiting ones included, for the count on the History button. */
@@ -171,6 +218,7 @@ class HistoryPanel extends Div {
         entries.stream().filter(e -> matches(e.question(), words) && passes(e, filters, login, now))
                 .forEach(e -> cards.add(card(e)));
         renderFilters();
+        renderGardenFilters();
         search.setVisible(!entries.isEmpty());
         filterRow.setVisible(!entries.isEmpty());
         empty.setVisible(entries.isEmpty());
@@ -197,9 +245,15 @@ class HistoryPanel extends Div {
         return true;
     }
 
-    /** Whether a question passes the filters: its outcome, who asked (logins compared ignoring case), when. */
+    /**
+     * Whether a question passes the filters: its outcome, who asked (logins compared ignoring case), when, and
+     * its garden at the space level (#109).
+     */
     static boolean passes(Entry entry, Filters filters, String login, Instant now) {
         if (filters.outcome() != null && entry.outcome() != filters.outcome()) {
+            return false;
+        }
+        if (filters.garden() != null && !filters.garden().equals(entry.garden())) {
             return false;
         }
         if (filters.mine() && (entry.askedBy() == null || !entry.askedBy().equalsIgnoreCase(login))) {
@@ -228,6 +282,39 @@ class HistoryPanel extends Div {
             filterRow.add(chip(days == WEEK ? "history.filter.week" : "history.filter.month", on,
                     () -> filter(new Filters(filters.outcome(), filters.mine(), on ? null : days))));
         }
+    }
+
+    /**
+     * The garden filter of the space level (#109): one chip per garden the list holds, plus "no garden" when
+     * some question has none; one at a time, and a chip chosen again goes back to any (#104).
+     */
+    private void renderGardenFilters() {
+        gardenRow.removeAll();
+        if (!spaceLevel) {
+            gardenRow.setVisible(false);
+            return;
+        }
+        List<String> gardens = entries.stream().map(Entry::garden).distinct()
+                .sorted(Comparator.comparing(name -> name.equals(NO_GARDEN) ? "\uFFFF" : name))
+                .toList();
+        if (gardens.size() < 2) {
+            // One garden only (or none at all): every card already says it, and there is nothing to choose.
+            gardenRow.setVisible(false);
+            return;
+        }
+        for (String garden : gardens) {
+            boolean on = garden.equals(filters.garden());
+            Button chip = new Button(garden.equals(NO_GARDEN) ? getTranslation("history.nogarden") : garden,
+                    e -> filter(new Filters(filters.outcome(), filters.mine(), filters.days(), on ? null : garden)));
+            chip.addClassName("rootology-filter-chip");
+            chip.getElement().setAttribute("aria-pressed", String.valueOf(on));
+            if (on) {
+                chip.addClassName("rootology-filter-chip-on");
+                chip.setIcon(VaadinIcon.CHECK.create());
+            }
+            gardenRow.add(chip);
+        }
+        gardenRow.setVisible(true);
     }
 
     private Button chip(String key, boolean on, Runnable toggle) {
@@ -262,8 +349,16 @@ class HistoryPanel extends Div {
         question.addClassName("rootology-history-card-question");
         Span askedBy = new Span(getTranslation("history.askedby") + " " + entry.askedBy());
         askedBy.addClassNames(FontSize.XSMALL, TextColor.SECONDARY);
-        // No context line: the panel is already one garden's, or the space's; the answer shows its context.
-        card.add(head, question);
+        // Inside a garden there is no context line (the panel is already that garden's); at the space level
+        // every card says which garden its question belongs to, or that it has none (#109).
+        card.add(head);
+        if (spaceLevel) {
+            Span garden = new Span(entry.garden().equals(NO_GARDEN)
+                    ? getTranslation("history.nogarden") : entry.garden());
+            garden.addClassName("rootology-history-card-garden");
+            card.add(garden);
+        }
+        card.add(question);
         if (entry.run() != null) {
             Div badges = values(entry.run());
             badges.addClassName("rootology-history-card-values");

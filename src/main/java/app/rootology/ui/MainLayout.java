@@ -47,7 +47,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private final NotificationService notifications;
     private final NotificationBroadcaster broadcaster;
     private final GardenService gardens;
-    private final Ungardened ungardened;
     private final GardenPipeline pipeline;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
@@ -72,13 +71,11 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private long contextGarden;
 
     public MainLayout(AuthenticationContext authentication, CurrentUser currentUser, NotificationService notifications,
-                      NotificationBroadcaster broadcaster, GardenService gardens, Ungardened ungardened,
-                      GardenPipeline pipeline) {
+                      NotificationBroadcaster broadcaster, GardenService gardens, GardenPipeline pipeline) {
         this.notifications = notifications;
         this.broadcaster = broadcaster;
         this.currentUser = currentUser;
         this.gardens = gardens;
-        this.ungardened = ungardened;
         this.pipeline = pipeline;
         H1 title = new H1(new Wordmark());
         title.addClassName("rootology-app-title");
@@ -334,12 +331,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
                 VaadinIcon.BOOK.create()));
         if (gardenId == 0) {
-            // The questions the space asked outside a garden (#56): offered only when there are some.
-            if (answers && ungardened.any(space.id(), currentUser.login())) {
-                nav.addItem(new SideNavItem(getTranslation("nav.ungardened"), EscalationView.class,
-                        new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))),
-                        VaadinIcon.QUESTION.create()));
-            }
             nav.addItem(new SideNavItem(getTranslation("nav.members"), MembersView.class, new RouteParameters(
                     Map.of(Routed.SPACE, String.valueOf(space.id()))), VaadinIcon.USERS.create()));
             nav.addItem(new SideNavItem(getTranslation("nav.invitations"), InvitationsView.class,

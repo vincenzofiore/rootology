@@ -16,6 +16,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- At the space level one waiting questions page lists every waiting question of the space, of every garden and without one, each card naming its garden and answering in it, and it updates by itself when a question starts waiting or is answered (no refresh button); "Questions without a garden" is gone from the menu. The history at the space level lists every question of the space with the garden's name on each card and a garden filter, and the history button says "History" next to the count on a wide screen (#109).
 - The history in Ask lists the questions still waiting for a person at the top, opens them in Ask to answer or follow, and has filters by outcome, by who asked and by period (#104).
 - The waiting questions menu is shown only to who can answer them: guests are sent to the history instead (#104).
 

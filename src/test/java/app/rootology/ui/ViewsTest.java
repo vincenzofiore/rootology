@@ -46,6 +46,9 @@ class ViewsTest {
     GardenPipeline pipeline;
 
     @Autowired
+    NotificationBroadcaster broadcaster;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -154,7 +157,7 @@ class ViewsTest {
         assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
         assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE, "")
+        assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, STYLE, "")
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
@@ -171,9 +174,6 @@ class ViewsTest {
 
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
-
-    @Autowired
-    Ungardened ungardened;
 
     @Test
     void openingANotificationOfAnotherContextAsksFirst() {
@@ -366,9 +366,9 @@ class ViewsTest {
         // #104: one outcome, mine (logins ignoring case) and a period, combined.
         java.time.Instant now = java.time.Instant.parse("2026-11-14T10:00:00Z");
         HistoryPanel.Entry waiting = new HistoryPanel.Entry("Quando semino?", HistoryPanel.Outcome.WAITING, "Mia",
-                now.minus(java.time.Duration.ofDays(2)), null, null);
+                now.minus(java.time.Duration.ofDays(2)), null, null, "Balcony");
         HistoryPanel.Entry old = new HistoryPanel.Entry("Cosa raccolgo?", HistoryPanel.Outcome.ANSWERED, "luca",
-                now.minus(java.time.Duration.ofDays(20)), null, null);
+                now.minus(java.time.Duration.ofDays(20)), null, null, HistoryPanel.NO_GARDEN);
 
         assertThat(HistoryPanel.passes(waiting, HistoryPanel.Filters.NONE, "mia", now)).isTrue();
         assertThat(HistoryPanel.passes(waiting, new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, true,
@@ -405,7 +405,7 @@ class ViewsTest {
     @Test
     void escalationViewShowsOneCardPerWaitingQuestion() {
         EscalationView view = new EscalationView(pipeline, gardens, viewer(), crops, knowledge, sourceCatalog,
-                enrichment);
+                enrichment, broadcaster);
 
         // One card per waiting question, never a grid with a form below it (#86).
         assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isFalse();

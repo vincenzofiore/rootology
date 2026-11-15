@@ -37,23 +37,24 @@ final class LegacyRoutes {
             case ASK -> only == null ? base + "/ask" : base + "/gardens/" + only + "/ask";
             case GARDEN -> only == null ? base + "/gardens" : base + "/gardens/" + only + "/areas";
             case KNOWLEDGE -> only == null ? base + "/gardens" : base + "/gardens/" + only + "/knowledge";
+            // Any waiting question, of any garden or of none: the space level lists them all (#109).
             case ESCALATIONS -> questions(base, ESCALATIONS, only,
-                    !pipeline.pending(spaceId, 0, user.login()).isEmpty());
-            case HISTORY -> questions(base, HISTORY, only, !history.recent(spaceId, 0, user.login()).isEmpty());
+                    !pipeline.pendingInSpace(spaceId, user.login()).isEmpty());
+            case HISTORY -> questions(base, HISTORY, only, !history.recentInSpace(spaceId, user.login()).isEmpty());
             case SPACE -> base + "/members";
             default -> base + "/gardens";
         };
     }
 
     /**
-     * The garden's page when the space has one garden; the space level when it has questions without a
-     * garden (waiting, or stored before #56 in a space with several gardens); the overview otherwise.
+     * The garden's page when the space has one garden; the space level when the space has questions (the
+     * page there now lists every garden's, #109); the overview otherwise.
      */
-    private static String questions(String base, String kind, String only, boolean ungardened) {
+    private static String questions(String base, String kind, String only, boolean anyQuestion) {
         if (only != null) {
             return base + "/gardens/" + only + "/" + kind;
         }
-        return ungardened ? base + "/" + kind : base + "/gardens";
+        return anyQuestion ? base + "/" + kind : base + "/gardens";
     }
 
     private static long space(QueryParameters query, CurrentUser user) {

@@ -69,8 +69,10 @@ import java.util.concurrent.Executor;
  *
  * <p>The history is beside the question (#100): a button in the page header opens the context's past questions
  * as a column on the right, and the browser remembers whether it was open; on a phone the question and the
- * history take turns. A past question opens its answer on the left, in the same stack. {@code ?history} opens
- * the column (the old History links) and {@code ?run=<process id>} opens one answer (a notification's link).
+ * history take turns. At the space level the column holds every garden's questions, with a garden filter, and
+ * the button says "History" next to the count where there is room (#109). A past question opens its answer
+ * on the left, in the same stack. {@code ?history} opens the column (the old History links) and
+ * {@code ?run=<process id>} opens one answer (a notification's link).
  */
 @Route(value = "spaces/:spaceId/gardens/:gardenId/ask", layout = MainLayout.class)
 @RouteAlias(value = "spaces/:spaceId/ask", layout = MainLayout.class)
@@ -99,8 +101,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final GeoNames geoNames;
     private final ClimateCells cells;
     private final HistoryPanel history;
-    /** Opens and closes the history column; the count of the context's questions beside the clock (#100). */
+    /** Opens and closes the history column: the count of the context's questions beside the clock (#100). */
     private final Button historyButton = new Button(VaadinIcon.CLOCK.create());
+    /** The count on the history button, and the word beside it on a wide screen (#109). */
+    private final Span historyCount = new Span();
+    private final Span historyWord = new Span(getTranslation("history.title"));
     /** The question and the answers on the left, the history on the right; one at a time on a phone. */
     private final Div split = new Div();
     /** Where a question runs while the page stays usable (#82): the app's own, never the common pool. */
@@ -179,6 +184,12 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         guest.setVisible(false);
         historyButton.addClassName("rootology-history-toggle");
         historyButton.setTooltipText(getTranslation("history.title"));
+        // The word says what the clock is on a wide screen; on a phone the icon keeps the room (#109). Its
+        // tooltip and aria label are the word everywhere, so nothing is lost for a screen reader.
+        historyWord.addClassName("rootology-wide-only");
+        Div historyLabel = new Div(historyWord, historyCount);
+        historyLabel.addClassName("rootology-history-label");
+        historyButton.setSuffixComponent(historyLabel);
         historyButton.addClickListener(e -> {
             setHistoryOpen(!historyOpen(), true);
             // The column comes after the question in the page: the keyboard is taken straight to it.
@@ -239,7 +250,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private void loadHistory() {
         history.load(spaceId, gardenId, currentUser.login());
         int count = history.count();
-        historyButton.setText(count == 0 ? "" : String.valueOf(count));
+        historyCount.setText(count == 0 ? "" : String.valueOf(count));
         historyButton.setAriaLabel(getTranslation("ask.history", count));
     }
 
@@ -306,12 +317,15 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         String login = currentUser.login();
         WaitingQuestionCard card = new WaitingQuestionCard(review, contributor, contributor ? suggestions() : List.of(),
                 (values, note) -> {
-                    var answer = pipeline.respond(review.processId(), spaceId, gardenId,
+                    // The question's own garden (#109): at the space level the history holds every garden's.
+                    var answer = pipeline.respond(review.processId(), spaceId, review.context().gardenId(),
                             new HumanAnswer(values, note, login));
                     loadHistory();
                     return answer;
                 },
-                answer -> AnswerCards.of(answer, spaceId, login, sources, enrichment, this));
+                answer -> AnswerCards.of(answer, spaceId, login, sources, enrichment, this),
+                // At the space level the question may be another garden's: the card says which (#109).
+                gardenId == 0);
         Div item = item(review.question().text(), contributor, null, card);
         item.setId(key);
         answers.addComponentAsFirst(item);

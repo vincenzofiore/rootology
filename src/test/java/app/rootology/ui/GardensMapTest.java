@@ -58,9 +58,6 @@ class GardensMapTest {
     GeoNames geoNames;
 
     @Autowired
-    Ungardened ungardened;
-
-    @Autowired
     app.rootology.weather.WeatherService weather;
 
     @Autowired
@@ -305,7 +302,7 @@ class GardensMapTest {
     }
 
     private GardensView view(String login) {
-        return new GardensView(gardens, geoNames, ungardened, new CurrentUser(spaces, login), cells, pipeline,
+        return new GardensView(gardens, geoNames, new CurrentUser(spaces, login), cells, pipeline,
                 weather, STYLE, "");
     }
 
