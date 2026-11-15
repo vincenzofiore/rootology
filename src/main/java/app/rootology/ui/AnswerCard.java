@@ -87,9 +87,23 @@ class AnswerCard extends Div {
     }
 
     AnswerCard answered(String text, List<String> values, double confidence) {
+        return answered(text, values, confidence, java.util.Map.of());
+    }
+
+    /**
+     * An answer whose values carry how they go into the ground (#112): the values grouped by activity, "In
+     * semenzaio: febbraio, marzo · Trapianto: aprile, maggio", always shown, since the groups are what keeps a
+     * seedbed month from reading as a month to plant out.
+     */
+    AnswerCard answered(String text, List<String> values, double confidence,
+                        java.util.Map<String, List<String>> activities) {
         Paragraph sentence = new Paragraph(text);
         sentence.addClassName("rootology-answer-text");
         add(sentence);
+        if (!activities.isEmpty()) {
+            add(activityGroups(values, activities));
+            return confidence(confidence);
+        }
         // The values in the page's language (#110), without those the sentence already says: a badge repeating
         // a word just read adds nothing. An answer with no value keeps its "no values" badge.
         List<String> words = values.stream().map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
@@ -103,6 +117,43 @@ class AnswerCard extends Div {
             words.forEach(v -> chips.add(chip(v, null)));
             add(chips);
         }
+        return confidence(confidence);
+    }
+
+    /** One row per activity, in the activities' order, with its values; a value with none goes in a plain row. */
+    private Div activityGroups(List<String> values, java.util.Map<String, List<String>> activities) {
+        Div groups = new Div();
+        groups.addClassName("rootology-answer-activities");
+        java.util.Map<String, List<String>> byActivity = new java.util.TreeMap<>(java.util.Comparator.comparingInt(
+                (String a) -> app.rootology.facts.SowingActivity.valueOf(a).ordinal()));
+        List<String> plain = new java.util.ArrayList<>();
+        for (String value : values) {
+            List<String> ways = activities.getOrDefault(value, List.of());
+            if (ways.isEmpty()) {
+                plain.add(value);
+            }
+            ways.forEach(a -> byActivity.computeIfAbsent(a, k -> new java.util.ArrayList<>()).add(value));
+        }
+        byActivity.forEach((activity, group) -> groups.add(activityRow(getTranslation("activity." + activity), group)));
+        if (!plain.isEmpty()) {
+            groups.add(activityRow(null, plain));
+        }
+        return groups;
+    }
+
+    private Div activityRow(String label, List<String> group) {
+        Div row = new Div();
+        row.addClassName("rootology-answer-values");
+        if (label != null) {
+            Span name = new Span(label);
+            name.addClassName("rootology-answer-activity");
+            row.add(name);
+        }
+        group.forEach(v -> row.add(chip(ValueText.of(v, this), null)));
+        return row;
+    }
+
+    private AnswerCard confidence(double confidence) {
         warnings = new Div();
         warnings.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
         warnings.setVisible(false);

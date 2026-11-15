@@ -26,6 +26,9 @@
 #   see why it was not answered; choice: the kind of choice the question needs ({kind: PLACE|GARDEN}) and
 #   the options the person must be offered (#107), when the case names them
 # intent.place: the town or place the question names (#107), found among the fixed places of the fixtures
+# expect.activities: for each value of a sowing or planting answer, how it goes into the ground (#112): SOW,
+#   SOW_SEEDBED (in a protected seedbed), TRANSPLANT or PLANT, from the curated windows; when present, every
+#   value is listed and a different activity is a silent wrong answer
 
 today: 2026-11-04
 
@@ -61,13 +64,40 @@ cases:
   - id: sowing-tomato
     question: Quando si semina il pomodoro a Vasto?
     intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Vasto}
-    expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
 
   # A crop named in the plural, as questions usually do (#108): the same answer as the singular.
   - id: sowing-tomato-plural
     question: Quando semino i pomodori a Vasto?
     intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
     expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
+
+  # "Piantare" is ambiguous: each activity with its own months, never one list (#112).
+  - id: planting-tomato-it
+    question: Quando pianto i pomodori a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # "Trapiantare" names one activity, but the answer still says both, each with its months (owner's choice
+  # 2026-11-15: every activity with its months, the verb does not filter).
+  - id: transplanting-tomato-it
+    question: Quando trapianto il pomodoro a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # The case of the third critique of Ask: "posso piantare … oggi?" in November is a calendar question.
+  - id: planting-tomato-today-it
+    question: Posso piantare i pomodori a Vasto oggi?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
 
   - id: companions-tomato-plural-en
     question: Which plants are companions of tomatoes?
@@ -90,6 +120,49 @@ cases:
     expect:
       answer: [Basil, Cabbage, Carrot, Celery, Chard, Chili pepper, Eggplant, Leek, Lettuce, Onion, Parsley,
                Pea, Potato, Radish, Rocket, Rosemary, Sage, Spinach, Sweet pepper, Tomato]
+      activities:
+        Basil: [SOW]
+        Cabbage: [SOW_SEEDBED]
+        Carrot: [SOW]
+        Celery: [SOW_SEEDBED]
+        Chard: [SOW]
+        Chili pepper: [SOW_SEEDBED]
+        Eggplant: [SOW_SEEDBED]
+        Leek: [SOW_SEEDBED]
+        Lettuce: [SOW]
+        Onion: [SOW]
+        Parsley: [SOW]
+        Pea: [SOW]
+        Potato: [PLANT]
+        Radish: [SOW]
+        Rocket: [SOW]
+        Rosemary: [PLANT]
+        Sage: [PLANT]
+        Spinach: [SOW]
+        Sweet pepper: [SOW_SEEDBED]
+        Tomato: [SOW_SEEDBED]
+
+  # What to sow in a month: seedbed crops stay in the list, marked as such (owner's choice 2026-11-15, #112).
+  - id: sow-in-february-it
+    question: Cosa posso seminare a febbraio a Vasto?
+    intent: {kind: SOW_NOW, language: it, month: FEBRUARY, place: Vasto}
+    expect:
+      answer: [Carota, Cipolla, Lattuga, Melanzana, Peperoncino, Peperone, Pisello, Pomodoro, Porro,
+               Prezzemolo, Ravanello, Sedano, Spinacio]
+      activities:
+        Carota: [SOW]
+        Cipolla: [SOW]
+        Lattuga: [SOW]
+        Melanzana: [SOW_SEEDBED]
+        Peperoncino: [SOW_SEEDBED]
+        Peperone: [SOW_SEEDBED]
+        Pisello: [SOW]
+        Pomodoro: [SOW_SEEDBED]
+        Porro: [SOW_SEEDBED]
+        Prezzemolo: [SOW]
+        Ravanello: [SOW]
+        Sedano: [SOW_SEEDBED]
+        Spinacio: [SOW]
 
   # Pests and diseases.
   - id: relevant-pests-tomato-summer

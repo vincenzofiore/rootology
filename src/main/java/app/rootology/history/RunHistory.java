@@ -20,6 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Stores every finished run with the arbiter's answer, when the question is an experiment case. */
@@ -56,6 +57,7 @@ public class RunHistory {
                 answer.context() == null ? null : JSON.writeValueAsString(answer.context()),
                 answer.notes() == null ? null : JSON.writeValueAsString(answer.notes()),
                 answer.sources() == null ? null : List.copyOf(answer.sources()),
+                answer.activities().isEmpty() ? null : JSON.writeValueAsString(answer.activities()),
                 run.offDomain(), jena, matches, run.finishedAt()));
     }
 
@@ -82,13 +84,28 @@ public class RunHistory {
     /**
      * The answer of a past run as the pipeline gave it (#110), so it shows the same card as a fresh one: values,
      * confidence, notes, sources and context. A row stored before #110 has no notes and no sources, and notes
-     * that can no longer be read (a kind renamed since) are left out rather than failing the page.
+     * that can no longer be read (a kind renamed since) are left out rather than failing the page. The
+     * activities of a sowing or planting answer come back too (#112), none for a row stored before.
      */
     public PipelineAnswer answerOf(PipelineRunRecord run) {
         return new PipelineAnswer(run.getQuestionId(), run.getAnswer() == null ? List.of() : run.getAnswer(),
                 run.getDecisionConfidence(), run.isDecisionEscalated(), run.isAnsweredByHuman(), run.getReviewer(),
                 run.getAnswerText() == null ? "" : run.getAnswerText(),
-                run.getSources() == null ? List.of() : run.getSources(), notesOf(run), contextOf(run).orElse(null));
+                run.getSources() == null ? List.of() : run.getSources(), notesOf(run), contextOf(run).orElse(null),
+                activitiesOf(run));
+    }
+
+    private static Map<String, List<String>> activitiesOf(PipelineRunRecord run) {
+        if (run.getActivitiesJson() == null) {
+            return Map.of();
+        }
+        try {
+            return JSON.readValue(run.getActivitiesJson(), new tools.jackson.core.type.TypeReference<
+                    java.util.LinkedHashMap<String, List<String>>>() { });
+        } catch (RuntimeException e) {
+            log.warn("Stored activities of run {} could not be read: {}", run.getId(), e.getClass().getSimpleName());
+            return Map.of();
+        }
     }
 
     private static List<Note> notesOf(PipelineRunRecord run) {

@@ -220,13 +220,9 @@ public class KnowledgeGraph {
     static final List<String> MONTHS = List.of("JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY",
             "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER");
 
-    /** The predicate a window activity becomes in the facts. */
+    /** The predicate a window activity becomes in the facts: one per activity (#112), harvestIn otherwise. */
     static String predicate(String activity) {
-        return switch (activity) {
-            case "SOW", "SOW_SEEDBED" -> "sowIn";
-            case "PLANT", "TRANSPLANT" -> "plantIn";
-            default -> "harvestIn";
-        };
+        return "HARVEST".equals(activity) ? "harvestIn" : SowingActivity.valueOf(activity).predicate();
     }
 
     /** The months of a window (1-12, wrapping over the year), in order. */

@@ -1,5 +1,6 @@
 package app.rootology.pipeline;
 
+import app.rootology.facts.SowingActivity;
 import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.Agent;
@@ -10,6 +11,7 @@ import app.rootology.decision.Decision;
 import app.rootology.decision.DecisionLayer;
 import app.rootology.decision.GraphFacts;
 import app.rootology.decision.Intent;
+import app.rootology.decision.QueryKind;
 import app.rootology.decision.Reading;
 import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.FactSource;
@@ -21,6 +23,7 @@ import io.micrometer.core.instrument.Timer;
 import app.rootology.weather.Forecast;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -84,6 +87,15 @@ public class GardenPipelineAgent {
             The person sees these notes separately, under your answer, so do not repeat them: say nothing
             about them and add nothing to them.
             In Italian a vegetable garden is "orto", never "giardino".
+            """;
+
+    /** Only when a calendar's values carry their activities (#112), so every other prompt stays as recorded. */
+    static final String ACTIVITIES_PROMPT = """
+            Activities: %s
+            Each value goes into the ground in the way named after it: SOW is sowing where it grows,
+            SOW_SEEDBED sowing in a protected seedbed to transplant later, TRANSPLANT moving the seedlings to
+            where they grow, PLANT planting bulbs, tubers, cloves or young plants. Name each way with its own
+            values and never join them into one list, whatever verb the question uses.
             """;
 
     static final String HUMAN_PHRASE_PROMPT = """
@@ -235,7 +247,7 @@ public class GardenPipelineAgent {
         // The local forecast (#18) for questions about now: frost for sowing, blight for pest risk.
         WeatherFacts.Result local = switch (full.kind()) {
             case SOW_NOW, SOW_IN_PLOT -> weather.frost(context, facts.stream()
-                    .filter(f -> Set.of("sowIn", "plantIn").contains(f.fact().predicate())).toList());
+                    .filter(f -> app.rootology.facts.SowingActivity.PREDICATES.contains(f.fact().predicate())).toList());
             case PEST_RISK -> weather.blight(context, run, full.languageOrDefault());
             default -> WeatherFacts.Result.NONE;
         };
@@ -308,14 +320,50 @@ public class GardenPipelineAgent {
                     .map(app.rootology.decision.Note::english)
                     .collect(java.util.stream.Collectors.joining(" ")));
         }
-        String text = phrase(prompt, resolution, facts, context);
+        Map<String, List<String>> activities = resolution.escalated() ? Map.of()
+                : activitiesOf(questionContext.intent(), resolution.answer(), facts);
+        if (!activities.isEmpty()) {
+            prompt += ACTIVITIES_PROMPT.formatted(activities.entrySet().stream()
+                    .map(e -> e.getKey() + ": " + String.join(", ", e.getValue()))
+                    .collect(java.util.stream.Collectors.joining("; ")));
+        }
+        String text = phrase(prompt, resolution, facts, activities, context);
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
                 resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text,
-                sourcesOf(resolution.answer(), facts), facts.notes(), questionContext.snapshot());
+                sourcesOf(resolution.answer(), facts), facts.notes(), questionContext.snapshot(), activities);
+    }
+
+    /**
+     * How each value of a sowing or planting answer goes into the ground (#112), read from the facts behind
+     * it, never chosen: the months of a crop's calendar, or the crops of a month. Empty for every other kind.
+     */
+    static Map<String, List<String>> activitiesOf(Intent intent, List<String> answer, GraphFacts facts) {
+        if (intent == null || intent.kind() == null) {
+            return Map.of();
+        }
+        boolean months = intent.kind() == QueryKind.SOWING_TIME;
+        boolean crops = Set.of(QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT).contains(intent.kind());
+        if (!months && !crops) {
+            return Map.of();
+        }
+        Map<String, List<String>> activities = new java.util.LinkedHashMap<>();
+        for (String value : answer) {
+            List<String> ways = facts.facts()
+                    .filter(f -> months ? f.object().equals(value)
+                            : f.subject().equals(value) && f.object().equals(intent.month()))
+                    .map(f -> SowingActivity.ofPredicate(f.predicate()))
+                    .flatMap(java.util.Optional::stream)
+                    .distinct().sorted().map(Enum::name).toList();
+            if (!ways.isEmpty()) {
+                activities.put(value, ways);
+            }
+        }
+        return activities;
     }
 
     /** Claude's phrasing, or a plain sentence from the values when Claude is not available (#29). */
-    private String phrase(String prompt, Resolution resolution, GraphFacts facts, OperationContext context) {
+    private String phrase(String prompt, Resolution resolution, GraphFacts facts,
+                          Map<String, List<String>> activities, OperationContext context) {
         if (claude.breaker.allowsCall()) {
             Timer.Sample call = claude.breaker.startCall();
             try {
@@ -327,12 +375,19 @@ public class GardenPipelineAgent {
                 log.warn("Claude could not phrase the answer: {}", e.getClass().getSimpleName());
             }
         }
-        return plainText(resolution, facts);
+        return plainText(resolution, facts, activities);
     }
 
     static String plainText(Resolution resolution, GraphFacts facts) {
+        return plainText(resolution, facts, Map.of());
+    }
+
+    /** The values as they are, each with its activity when it has one (#112): "FEBRUARY (SOW_SEEDBED)". */
+    static String plainText(Resolution resolution, GraphFacts facts, Map<String, List<String>> activities) {
         String main = resolution.escalated() ? "Not sure enough to answer: " + resolution.reason() + "."
-                : resolution.answer().isEmpty() ? "No values found." : "Answer: " + String.join(", ", resolution.answer()) + ".";
+                : resolution.answer().isEmpty() ? "No values found." : "Answer: " + resolution.answer().stream()
+                        .map(v -> activities.containsKey(v) ? v + " (" + String.join(", ", activities.get(v)) + ")" : v)
+                        .collect(java.util.stream.Collectors.joining(", ")) + ".";
         return String.join(" ", java.util.stream.Stream.concat(java.util.stream.Stream.of(main),
                 facts.notes().stream().map(app.rootology.decision.Note::english)).toList());
     }

@@ -75,7 +75,18 @@ enum GoldenVerdict {
                 || !new HashSet<>(answer.answer()).equals(new HashSet<>(c.answer()))) {
             return SILENT_WRONG;
         }
+        if (!c.activities().isEmpty() && !sameActivities(c.activities(), answer.activities())) {
+            // A seedbed month told as a month to plant out is the error #112 is about: as wrong as a wrong value.
+            return SILENT_WRONG;
+        }
         return hasNotes(c, notesOf(answer.notes())) ? CORRECT : MISSING_NOTE;
+    }
+
+    /** The same values with the same activities, ignoring the order of each value's activities (#112). */
+    private static boolean sameActivities(java.util.Map<String, List<String>> expected,
+                                          java.util.Map<String, List<String>> produced) {
+        return expected.keySet().equals(produced.keySet()) && expected.entrySet().stream()
+                .allMatch(e -> new HashSet<>(e.getValue()).equals(new HashSet<>(produced.get(e.getKey()))));
     }
 
     /** The places' labels or the gardens' names the choice offers. */

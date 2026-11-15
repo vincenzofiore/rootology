@@ -57,6 +57,9 @@ public class PipelineRunRecord {
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> sources;
 
+    /** How each value of a sowing or planting answer goes into the ground (#112), as JSON; null before. */
+    private String activitiesJson;
+
     /** The domain filter refused the question (#53): it has no values and no reviewer. */
     private boolean offDomain;
 
@@ -76,7 +79,7 @@ public class PipelineRunRecord {
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
                       boolean answeredByHuman, String reviewer, String answerText, String contextJson,
-                      String notesJson, List<String> sources, boolean offDomain, List<String> jenaAnswer,
+                      String notesJson, List<String> sources, String activitiesJson, boolean offDomain, List<String> jenaAnswer,
                       Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
         this.spaceId = spaceId;
@@ -100,6 +103,7 @@ public class PipelineRunRecord {
         this.contextJson = contextJson;
         this.notesJson = notesJson;
         this.sources = sources;
+        this.activitiesJson = activitiesJson;
         this.offDomain = offDomain;
         this.jenaAnswer = jenaAnswer;
         this.matchesJena = matchesJena;
@@ -129,6 +133,7 @@ public class PipelineRunRecord {
     public String getContextJson() { return contextJson; }
     public String getNotesJson() { return notesJson; }
     public List<String> getSources() { return sources; }
+    public String getActivitiesJson() { return activitiesJson; }
     public boolean isOffDomain() { return offDomain; }
     public List<String> getJenaAnswer() { return jenaAnswer; }
     public Boolean getMatchesJena() { return matchesJena; }

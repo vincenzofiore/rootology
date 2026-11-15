@@ -72,18 +72,18 @@ class KnowledgeGraphTest {
     void theCalendarsAreDerivedFromTheSiteProfile() {
         // Vasto, the CENTRO reference: its own curated windows, not an inference.
         assertThat(climate.windowFacts("tomato", ReferenceSite.CENTRO.profile(cells), null)).contains(
-                new SourcedFact(new Fact("tomato", "sowIn", "FEBRUARY"), java.util.List.of("rootology-editorial")),
-                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "seedbedIn", "FEBRUARY"), java.util.List.of("rootology-editorial")),
+                new SourcedFact(new Fact("tomato", "transplantIn", "APRIL"), java.util.List.of("rootology-editorial")),
                 new SourcedFact(new Fact("tomato", "harvestIn", "AUGUST"), java.util.List.of("rootology-editorial")));
         // Milan derives tomato with the rule and the site's sources.
         assertThat(climate.windowFacts("tomato", ReferenceSite.NORD.profile(cells), null)).contains(
-                new SourcedFact(new Fact("tomato", "plantIn", "APRIL"),
+                new SourcedFact(new Fact("tomato", "transplantIn", "APRIL"),
                         java.util.List.of("rootology-editorial", "agera5", "copernicus-dem-90m"),
                         FrostShiftRule.ID));
         // Milan's own cell: the tomato transplant does not move (first safe month April, field starts April).
         assertThat(climate.windowFacts("tomato", ReferenceSite.NORD.profile(cells), null))
-                .filteredOn(f -> f.fact().predicate().equals("plantIn"))
-                .extracting(SourcedFact::fact).contains(new Fact("tomato", "plantIn", "APRIL"));
+                .filteredOn(f -> f.fact().predicate().equals("transplantIn"))
+                .extracting(SourcedFact::fact).contains(new Fact("tomato", "transplantIn", "APRIL"));
         // A zone named in the question keeps its curated rows: broad bean's NORD February sowing.
         assertThat(climate.windowFacts("Fava", ReferenceSite.NORD.profile(cells), null))
                 .filteredOn(f -> f.fact().predicate().equals("sowIn"))
@@ -125,7 +125,7 @@ class KnowledgeGraphTest {
     void sowingFactsListWhatCanBeSownInAMonth() {
         assertThat(climate.sowingFacts("MARCH", ReferenceSite.CENTRO.profile(cells), "it"))
                 .extracting(SourcedFact::fact).contains(
-                        new Fact("Pomodoro", "sowIn", "MARCH"), new Fact("Patata", "plantIn", "MARCH"))
+                        new Fact("Pomodoro", "seedbedIn", "MARCH"), new Fact("Patata", "plantIn", "MARCH"))
                 .doesNotContain(new Fact("Zucchina", "sowIn", "MARCH"));
         assertThat(climate.sowingFacts("NOT-A-MONTH", ReferenceSite.CENTRO.profile(cells), "en")).isEmpty();
     }

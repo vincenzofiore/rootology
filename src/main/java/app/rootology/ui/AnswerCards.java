@@ -51,7 +51,7 @@ final class AnswerCards {
         if (answer.context() != null) {
             card.context(answer.context());
         }
-        card.answered(answer.text(), answer.answer(), answer.confidence())
+        card.answered(answer.text(), answer.answer(), answer.confidence(), answer.activities())
                 .notes(answer.notes());
         if (lines.isEmpty() && storedBeforeSources) {
             return card.noSources();

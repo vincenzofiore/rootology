@@ -64,6 +64,24 @@ class StoredAnswerTest {
     }
 
     @Test
+    void theActivitiesOfACalendarComeBackInTheirOrder() {
+        // #112: a past answer still says which months are in a seedbed and which are for transplanting.
+        long space = spaceOf("stored-activities");
+        java.util.Map<String, List<String>> activities = new java.util.LinkedHashMap<>();
+        activities.put("FEBRUARY", List.of("SOW_SEEDBED"));
+        activities.put("APRIL", List.of("TRANSPLANT"));
+        PipelineAnswer given = new PipelineAnswer("ask", List.of("FEBRUARY", "APRIL"), 0.9, false, false, null,
+                "In semenzaio a febbraio, trapianto ad aprile.", List.of(), List.of(), null, activities);
+        history.on(new PipelineRunFinished("stored-activities-1", new RunContext(space, 0, "stored-activities"),
+                new Question("ask", "Quando pianto i pomodori?"), NoiseProfile.NONE,
+                new Decision(List.of("FEBRUARY", "APRIL"), 0.9, false, "certain"), given, false, Instant.now()));
+
+        PipelineAnswer read = history.answerOf(history.recent(space, 0, "stored-activities").getFirst());
+
+        assertThat(read.activities()).containsExactlyEntriesOf(activities);
+    }
+
+    @Test
     void aRowStoredBeforeHasNoNotesAndNoSources() {
         long space = spaceOf("stored-answer-old");
         store("stored-answer-2", space, "stored-answer-old", null);
@@ -72,6 +90,7 @@ class StoredAnswerTest {
 
         assertThat(read.notes()).isEmpty();
         assertThat(read.sources()).isEmpty();
+        assertThat(read.activities()).isEmpty();
         assertThat(read.text()).isEqualTo("an answer");
     }
 

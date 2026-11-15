@@ -36,9 +36,23 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
      * answer is null when the question must escalate; escalate is then a part of the expected reason.
      * offDomain: the domain filter must refuse the question (#53), with no answer and no escalation.
      * choice: the question can only be answered after the person picks a place or a garden (#107).
+     * activities: for each value of a sowing or planting answer, how it goes into the ground (#112); empty when
+     * the case does not check them.
      */
     public record Case(String id, String question, Intent intent, String garden, String weather, List<SpaceAlias> spaceFacts,
-                List<String> answer, String escalate, List<String> notes, boolean offDomain, ChoiceExpect choice) {
+                List<String> answer, String escalate, List<String> notes, boolean offDomain, ChoiceExpect choice,
+                Map<String, List<String>> activities) {
+
+        public Case {
+            activities = activities == null ? Map.of() : Map.copyOf(activities);
+        }
+
+        public Case(String id, String question, Intent intent, String garden, String weather,
+                    List<SpaceAlias> spaceFacts, List<String> answer, String escalate, List<String> notes,
+                    boolean offDomain, ChoiceExpect choice) {
+            this(id, question, intent, garden, weather, spaceFacts, answer, escalate, notes, offDomain, choice,
+                    Map.of());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -74,6 +88,15 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
         return new Case((String) c.get("id"), (String) c.get("question"), intent,
                 (String) c.getOrDefault("garden", "none"), (String) c.getOrDefault("weather", "missing"), facts,
                 answer, (String) expect.get("escalate"), (List<String>) expect.getOrDefault("notes", List.of()),
-                Boolean.TRUE.equals(expect.get("offDomain")), choiceExpect);
+                Boolean.TRUE.equals(expect.get("offDomain")), choiceExpect, activities(expect));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, List<String>> activities(Map<String, Object> expect) {
+        Map<String, Object> raw = (Map<String, Object>) expect.getOrDefault("activities", Map.of());
+        Map<String, List<String>> activities = new java.util.LinkedHashMap<>();
+        raw.forEach((value, ways) -> activities.put(value,
+                ((List<Object>) ways).stream().map(String::valueOf).toList()));
+        return activities;
     }
 }

@@ -53,6 +53,22 @@ class AnswerCardTest {
     }
 
     @Test
+    void aCalendarGroupsItsMonthsByHowTheyGoIntoTheGround() {
+        // #112: a seedbed month never reads as a month to plant out, even when the sentence names it.
+        java.util.Map<String, List<String>> activities = new java.util.LinkedHashMap<>();
+        activities.put("FEBRUARY", List.of("SOW_SEEDBED"));
+        activities.put("MARCH", List.of("SOW_SEEDBED"));
+        activities.put("APRIL", List.of("TRANSPLANT"));
+        AnswerCard card = new AnswerCard().answered("In semenzaio a febbraio e marzo, trapianto ad aprile.",
+                List.of("FEBRUARY", "MARCH", "APRIL"), 0.9, activities);
+
+        List<String> rows = nodes(card).stream().filter(c -> c.getClassNames().contains("rootology-answer-values"))
+                .map(row -> String.join(" ", row.getChildren().map(c -> ((HasText) c).getText()).toList()))
+                .toList();
+        assertThat(rows).containsExactly("!{activity.SOW_SEEDBED}! febbraio marzo", "!{activity.TRANSPLANT}! aprile");
+    }
+
+    @Test
     void anAnswersFoldAsksWhyItAnswersAWaitingQuestionsWhyItWaits() {
         AnswerCard answer = new AnswerCard().answered("Ecco quando.", List.of(), 0.9);
         AnswerCard waiting = new AnswerCard().promise("Jev: the facts do not answer this (p=0.08)");

@@ -120,7 +120,7 @@ class LightFacts {
     }
 
     private static List<String> subjects(List<SourcedFact> sowable) {
-        return sowable.stream().filter(f -> java.util.Set.of("sowIn", "plantIn")
+        return sowable.stream().filter(f -> app.rootology.facts.SowingActivity.PREDICATES
                         .contains(f.fact().predicate()))
                 .map(f -> f.fact().subject()).distinct().toList();
     }
