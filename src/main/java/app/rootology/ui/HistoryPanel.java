@@ -385,14 +385,17 @@ class HistoryPanel extends Div {
         return card;
     }
 
-    /** The answer's values as small badges, and nothing when the question was refused (#53). */
-    private static Div values(PipelineRunRecord run) {
+    /**
+     * The answer's values as small badges (#110: in the page's language, all of them, since a card is the
+     * scannable summary of a question), and nothing when the question was refused (#53).
+     */
+    private Div values(PipelineRunRecord run) {
         Div badges = new Div();
         if (run.isOffDomain()) {
             return badges;
         }
         run.getAnswer().forEach(value -> {
-            Badge badge = new Badge(value);
+            Badge badge = new Badge(ValueText.of(value, this));
             badge.addThemeVariants(BadgeVariant.SMALL);
             badges.add(badge);
         });

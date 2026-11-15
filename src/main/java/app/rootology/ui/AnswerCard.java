@@ -82,13 +82,19 @@ class AnswerCard extends Div {
         Paragraph sentence = new Paragraph(text);
         sentence.addClassName("rootology-answer-text");
         add(sentence);
-        Div chips = new Div();
-        chips.addClassName("rootology-answer-values");
-        if (values.isEmpty()) {
-            chips.add(chip(getTranslation("ask.novalues"), "rootology-answer-value-none"));
+        // The values in the page's language (#110), without those the sentence already says: a badge repeating
+        // a word just read adds nothing. An answer with no value keeps its "no values" badge.
+        List<String> words = values.stream().map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
+                .toList();
+        if (values.isEmpty() || !words.isEmpty()) {
+            Div chips = new Div();
+            chips.addClassName("rootology-answer-values");
+            if (values.isEmpty()) {
+                chips.add(chip(getTranslation("ask.novalues"), "rootology-answer-value-none"));
+            }
+            words.forEach(v -> chips.add(chip(v, null)));
+            add(chips);
         }
-        values.forEach(v -> chips.add(chip(v, null)));
-        add(chips);
         warnings = new Div();
         warnings.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
         warnings.setVisible(false);
