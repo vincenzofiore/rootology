@@ -101,8 +101,27 @@ class PastAnswerTest {
 
         // A row stored before notes and sources were kept (#111): the fold says it was saved before them (#114).
         assertThat(text(ask)).contains("ask.sources", "ask.sources.before");
-        // The answer is the first thing read (#114): the suggestions go under it.
+        // The answer is the first thing read (#114): the suggestions go after the stack (#119).
         assertThat(ask.suggestionsUnderAnswer()).isTrue();
+        long id = jdbc.sql("SELECT id FROM pipeline_run WHERE process_id = ?").param(processId).query(Long.class).single();
+        assertThat(ask.historyPanel().isOpen("past-" + id)).as("its history card says it is open (#119)").isTrue();
+
+        // Closing it takes it off the page, and the history no longer marks it (#119).
+        button(ask, "ask.close").click();
+        assertThat(text(ask)).doesNotContain("Oggi sì: pomodoro.");
+        assertThat(ask.historyPanel().isOpen("past-" + id)).isFalse();
+    }
+
+    private static com.vaadin.flow.component.button.Button button(Component root, String label) {
+        return all(root).filter(com.vaadin.flow.component.button.Button.class::isInstance)
+                .map(com.vaadin.flow.component.button.Button.class::cast)
+                .filter(b -> String.valueOf(b.getElement().getAttribute("aria-label")).contains(label))
+                .findFirst().orElseThrow();
+    }
+
+    private static java.util.stream.Stream<Component> all(Component root) {
+        return java.util.stream.Stream.concat(java.util.stream.Stream.of(root),
+                root.getChildren().flatMap(PastAnswerTest::all));
     }
 
     private static BeforeEnterEvent opening(long spaceId, String processId) {

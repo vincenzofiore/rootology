@@ -382,6 +382,13 @@ class ViewsTest {
 
     @Test
     void theHistorySearchFindsEveryWordIgnoringCaseAndAccents() {
+        // In a space of one, "asked by" and "mine" say nothing (#119).
+        HistoryPanel.Entry mine = new HistoryPanel.Entry("Quando?", HistoryPanel.Outcome.ANSWERED, "Ada", null, null,
+                null, HistoryPanel.NO_GARDEN);
+        HistoryPanel.Entry theirs = new HistoryPanel.Entry("Dove?", HistoryPanel.Outcome.ANSWERED, "bob", null, null,
+                null, HistoryPanel.NO_GARDEN);
+        assertThat(HistoryPanel.othersAsk(List.of(mine), "ada")).isFalse();
+        assertThat(HistoryPanel.othersAsk(List.of(mine, theirs), "ada")).isTrue();
         assertThat(HistoryPanel.matches("Perché il pomodoro ingiallisce?", "perche POMODORO")).isTrue();
         assertThat(HistoryPanel.matches("Quando semino il basilico?", "  ")).isTrue();
         assertThat(HistoryPanel.matches("Quando semino il basilico?", "basilico pomodoro")).isFalse();
@@ -404,7 +411,7 @@ class ViewsTest {
                 .as("someone else's").isFalse();
         assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, HistoryPanel.WEEK), "mia", now))
                 .as("older than a week").isFalse();
-        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, HistoryPanel.MONTH), "mia", now))
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, 30), "mia", now))
                 .isTrue();
         assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(HistoryPanel.Outcome.OFF_DOMAIN, false, null),
                 "mia", now)).isFalse();

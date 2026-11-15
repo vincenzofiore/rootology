@@ -60,6 +60,11 @@ final class RowActions {
         return icon(VaadinIcon.COPY, label, listener);
     }
 
+    /** Closing what is open (#119): it goes from the page, nothing is deleted. */
+    static Button close(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.CLOSE_SMALL, label, listener);
+    }
+
     static Button delete(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         Button button = icon(VaadinIcon.TRASH, label, listener);
         button.addThemeVariants(ButtonVariant.LUMO_ERROR);

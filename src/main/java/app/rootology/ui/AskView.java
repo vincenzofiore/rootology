@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -187,7 +188,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setWrap(true);
 
         suggested.addClassName("rootology-ask-chips");
-        Span suggestionsLabel = new Span(getTranslation("ask.suggest.more"));
+        // A heading (#119): what follows is a list of its own, not part of the answer above it.
+        H2 suggestionsLabel = new H2(getTranslation("ask.suggest.more"));
         suggestionsLabel.addClassName("rootology-ask-suggestions-label");
         suggestions.addClassName("rootology-ask-suggestions");
         suggestions.add(suggestionsLabel, suggested);
@@ -357,6 +359,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
         stack(item);
+        history.opened(key);
         showOnPhone(item);
     }
 
@@ -385,6 +388,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         Div item = item(review.question().text(), review.askedAt(), contributor, null, card);
         item.setId(key);
         stack(item);
+        history.opened(key);
         showOnPhone(item);
     }
 
@@ -462,24 +466,26 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     }
 
     /**
-     * The suggestions above the field while the page is empty, and under the newest item as soon as there is
-     * one (#114): the answer is what the person came for, and on a phone five chips pushed it out of view.
+     * The suggestions above the field while the page is empty, and after the stack as soon as there is an item
+     * (#114, #119): the answer is what the person came for, on a phone five chips pushed it out of view, and
+     * between the newest item and the older ones they split the stack in two.
      */
     private void placeSuggestions() {
         boolean anyItem = answers.getChildren().anyMatch(c -> c != suggestions);
         suggestions.removeFromParent();
         if (anyItem) {
-            answers.addComponentAtIndex(1, suggestions);
+            answers.add(suggestions);
         } else {
             main.addComponentAsFirst(suggestions);
         }
         suggestions.getElement().getClassList().set("rootology-ask-suggestions-later", anyItem);
     }
 
-    /** Whether the suggestions sit under the newest item, for the tests (#114). */
+    /** Whether the suggestions sit after the stack's items, for the tests (#114, #119). */
     boolean suggestionsUnderAnswer() {
-        return suggestions.getParent().filter(answers::equals).isPresent()
-                && answers.getChildren().toList().indexOf(suggestions) == 1;
+        List<Component> items = answers.getChildren().toList();
+        return suggestions.getParent().filter(answers::equals).isPresent() && items.size() > 1
+                && items.indexOf(suggestions) == items.size() - 1;
     }
 
     /** What grows in this garden now, named in the page's language, each crop once (#82). */
@@ -857,9 +863,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private Div item(String asked, Instant at, boolean mayAsk, String copyText, Component content) {
         Div item = new Div(asked(asked, DateText.dateTime(at == null ? Instant.now() : at, this)), content);
         item.addClassName("rootology-ask-item");
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.addClassName("rootology-ask-actions");
         if (mayAsk) {
-            HorizontalLayout actions = new HorizontalLayout();
-            actions.addClassName("rootology-ask-actions");
             actions.add(RowActions.again(getTranslation("ask.again"), e -> {
                 question.setValue(asked);
                 question.focus();
@@ -867,9 +873,19 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             if (copyText != null) {
                 actions.add(RowActions.copy(getTranslation("ask.copy"), e -> copy(asked, copyText)));
             }
-            item.add(actions);
         }
+        // Closing an item takes it off the page, nothing else (#119): the question stays in the history.
+        actions.add(RowActions.close(getTranslation("ask.close"), e -> close(item)));
+        item.add(actions);
         return item;
+    }
+
+    /** An item off the stack (#119); the history no longer marks it as the one open. */
+    private void close(Div item) {
+        item.getId().ifPresent(history::closed);
+        answers.remove(item);
+        placeSuggestions();
+        question.focus();
     }
 
     /** The question and the answer's sentence, on the clipboard; the browser may refuse, so nothing depends on it. */

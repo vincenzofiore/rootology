@@ -1266,7 +1266,11 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-ask-suggestions-label { display: none; }
 .rootology-ask-suggestions-later .rootology-ask-suggestions-label {
     display: block;
-    margin-bottom: var(--lumo-space-xs);
+    /* A heading for screen readers (#119), the same small line to the eye. */
+    margin: 0 0 var(--lumo-space-xs);
+    font-family: inherit;
+    font-weight: 400;
+    line-height: inherit;
     font-size: var(--lumo-font-size-s);
     color: var(--lumo-secondary-text-color);
 }
@@ -1886,4 +1890,11 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
 .rootology-page-header ~ * { animation: rootology-page-in 220ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
     .rootology-page-header, .rootology-page-header ~ * { animation: none; }
+}
+
+/* The questions open on Ask's left (#119): a light green fill, as a selected row, so the edge keeps saying
+   only the state (waiting) and a waiting card open shows one colour each, never two lines. */
+.rootology-history-panel .rootology-history-card-current,
+.rootology-history-panel .rootology-history-card-current:hover {
+    background: var(--lumo-primary-color-10pct);
 }

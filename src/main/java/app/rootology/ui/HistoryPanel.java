@@ -46,7 +46,6 @@ class HistoryPanel extends Div {
 
     /** The period filter's choices, in days. */
     static final int WEEK = 7;
-    static final int MONTH = 30;
 
     /** The garden of a question with none, in the filter and on the cards (#109): no garden's name is empty. */
     static final String NO_GARDEN = "";
@@ -100,6 +99,10 @@ class HistoryPanel extends Div {
     private final EmptyState empty;
     private List<Entry> entries = List.of();
     private Filters filters = Filters.NONE;
+    /** Whether someone else asked a question of the list (#119), set on every render. */
+    private boolean othersAsk;
+    /** The keys of the questions open on Ask's left ("past-<id>", "waiting-<process id>"), marked here (#119). */
+    private final java.util.Set<String> openKeys = new java.util.HashSet<>();
     private String login = "";
     /** Whether the panel lists every garden of the space (#109): true only at the space level. */
     private boolean spaceLevel;
@@ -206,6 +209,25 @@ class HistoryPanel extends Div {
         search.setValue(words);
     }
 
+    /** A question now open on Ask's left (#119): its card says so (aria-current). */
+    void opened(String key) {
+        if (openKeys.add(key)) {
+            show();
+        }
+    }
+
+    /** A question closed on Ask's left (#119). */
+    void closed(String key) {
+        if (openKeys.remove(key)) {
+            show();
+        }
+    }
+
+    /** Whether a question's card is marked as open, for the tests. */
+    boolean isOpen(String key) {
+        return openKeys.contains(key);
+    }
+
     /** The filters, for the chips and the tests. */
     void filter(Filters chosen) {
         filters = chosen;
@@ -221,12 +243,13 @@ class HistoryPanel extends Div {
         cards.removeAll();
         String words = search.getValue();
         Instant now = Instant.now();
+        othersAsk = othersAsk(entries, login);
         entries.stream().filter(e -> matches(e.question(), words) && passes(e, filters, login, now))
                 .forEach(e -> cards.add(card(e)));
         renderFilters();
         renderGardenFilters();
         search.setVisible(!entries.isEmpty());
-        filterRow.setVisible(!entries.isEmpty());
+        filterRow.setVisible(filterRow.getComponentCount() > 0);
         empty.setVisible(entries.isEmpty());
         boolean none = !entries.isEmpty() && cards.getComponentCount() == 0;
         noMatch.setText(none ? (words.isBlank() ? getTranslation("history.nofilter")
@@ -274,19 +297,29 @@ class HistoryPanel extends Div {
     }
 
     /**
-     * The filters as toggle chips (#104): one outcome at a time, mine, one period at a time; a chip chosen again
-     * goes back to any. Each says whether it is on (aria-pressed).
+     * Whether someone other than the person asked a question of the list (#119): in a space of one, "asked by"
+     * and "mine" say nothing.
+     */
+    static boolean othersAsk(List<Entry> entries, String login) {
+        return entries.stream().anyMatch(e -> e.askedBy() != null && !e.askedBy().equalsIgnoreCase(login));
+    }
+
+    /**
+     * The filters as toggle chips (#104), only those that help (#119): the waiting questions when some wait,
+     * and mine when others ask too; the search and the newest-first order do the rest. A chip chosen again goes
+     * back to any, and each says whether it is on (aria-pressed).
      */
     private void renderFilters() {
         filterRow.removeAll();
-        Stream.of(Outcome.values()).forEach(o -> filterRow.add(chip(outcomeKey(o), filters.outcome() == o,
-                () -> filter(new Filters(filters.outcome() == o ? null : o, filters.mine(), filters.days())))));
-        filterRow.add(chip("history.filter.mine", filters.mine(),
-                () -> filter(new Filters(filters.outcome(), !filters.mine(), filters.days()))));
-        for (int days : new int[] {WEEK, MONTH}) {
-            boolean on = Integer.valueOf(days).equals(filters.days());
-            filterRow.add(chip(days == WEEK ? "history.filter.week" : "history.filter.month", on,
-                    () -> filter(new Filters(filters.outcome(), filters.mine(), on ? null : days))));
+        if (filters.outcome() == Outcome.WAITING || entries.stream().anyMatch(e -> e.outcome() == Outcome.WAITING)) {
+            boolean on = filters.outcome() == Outcome.WAITING;
+            filterRow.add(chip(outcomeKey(Outcome.WAITING), on,
+                    () -> filter(new Filters(on ? null : Outcome.WAITING, filters.mine(), filters.days(),
+                            filters.garden()))));
+        }
+        if (othersAsk || filters.mine()) {
+            filterRow.add(chip("history.filter.mine", filters.mine(),
+                    () -> filter(new Filters(filters.outcome(), !filters.mine(), filters.days(), filters.garden()))));
         }
     }
 
@@ -370,13 +403,20 @@ class HistoryPanel extends Div {
             badges.addClassName("rootology-history-card-values");
             card.add(badges);
         }
-        card.add(askedBy);
+        if (othersAsk) {
+            card.add(askedBy);
+        }
         // The button is the keyboard's way in; its click bubbles to the card, which opens it once. Its label
         // names the question, so a screen reader's list of buttons says which answer each one opens (#113).
         Button openButton = RowActions.open(openLabel(entry.run() == null, entry.question(), this::getTranslation),
                 e -> { });
         openButton.addClassName("rootology-history-card-open");
         card.add(openButton);
+        String key = entry.run() != null ? "past-" + entry.run().getId() : "waiting-" + entry.waiting().processId();
+        if (openKeys.contains(key)) {
+            card.addClassName("rootology-history-card-current");
+            card.getElement().setAttribute("aria-current", "true");
+        }
         if (entry.run() != null) {
             card.addClickListener(e -> open.accept(entry.run()));
         } else {
