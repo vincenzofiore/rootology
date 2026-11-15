@@ -97,7 +97,7 @@ class AnswerCard extends Div {
      */
     AnswerCard answered(String text, List<String> values, double confidence,
                         java.util.Map<String, List<String>> activities) {
-        sentenceAndValues(text, values, activities);
+        sentenceAndValues(text, values, activities, true);
         return confidence(confidence);
     }
 
@@ -109,7 +109,8 @@ class AnswerCard extends Div {
      */
     AnswerCard answeredBy(String text, List<String> values, String reviewer,
                           java.util.Map<String, List<String>> activities) {
-        sentenceAndValues(text, values, activities);
+        // A person's "no" is said by their sentence (#117): a "no values" badge under it only repeats it.
+        sentenceAndValues(text, values, activities, false);
         warnings();
         Span who = new Span(reviewer == null ? getTranslation("card.byperson.someone")
                 : getTranslation("card.byperson", reviewer));
@@ -137,7 +138,8 @@ class AnswerCard extends Div {
         return this;
     }
 
-    private void sentenceAndValues(String text, List<String> values, java.util.Map<String, List<String>> activities) {
+    private void sentenceAndValues(String text, List<String> values, java.util.Map<String, List<String>> activities,
+                                   boolean sayNoValues) {
         Paragraph sentence = new Paragraph(text);
         sentence.addClassName("rootology-answer-text");
         add(sentence);
@@ -149,7 +151,7 @@ class AnswerCard extends Div {
         // a word just read adds nothing. An answer with no value keeps its "no values" badge.
         List<String> words = values.stream().map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
                 .toList();
-        if (values.isEmpty() || !words.isEmpty()) {
+        if ((values.isEmpty() && sayNoValues) || !words.isEmpty()) {
             Div chips = new Div();
             chips.addClassName("rootology-answer-values");
             if (values.isEmpty()) {

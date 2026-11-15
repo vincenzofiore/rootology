@@ -79,6 +79,14 @@ class AnswerCardTest {
     }
 
     @Test
+    void aPersonsNoHasNoNoValuesBadge() {
+        AnswerCard card = new AnswerCard().answeredBy("No, oggi non puoi seminare.", List.of(), "vincenzo",
+                java.util.Map.of());
+
+        assertThat(chips(card)).isEmpty();
+    }
+
+    @Test
     void anAnswersFoldAsksWhyItAnswersAWaitingQuestionsWhyItWaits() {
         AnswerCard answer = new AnswerCard().answered("Ecco quando.", List.of(), 0.9);
         AnswerCard waiting = new AnswerCard().promise("Jev: the facts do not answer this (p=0.08)");

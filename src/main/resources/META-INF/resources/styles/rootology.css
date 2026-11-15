@@ -1499,9 +1499,10 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     font-size: var(--lumo-font-size-s);
 }
 @media (max-width: 640px) {
-    /* The field stays where the thumb is: the page scrolls above it, and its last card is never covered. */
-    .rootology-ask {
-        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    /* The field stays where the thumb is: the page scrolls above it, and its last card is never covered. As
+       specific as the narrow screens' padding rule, which otherwise wins outside a garden (#117). */
+    vaadin-vertical-layout.rootology-ask {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     }
     .rootology-ask-form {
         position: fixed;
@@ -1514,8 +1515,17 @@ vaadin-button.rootology-filter-chip[focus-ring] {
         background: var(--lumo-base-color);
         border-top: 1px solid var(--lumo-contrast-10pct);
     }
-    .rootology-ask-field {
-        flex: 1 1 100%;
+    /* One line above the bar (#117): the field and the button side by side, the label read by screen readers
+       only, since the field and its placeholder already say what it is for. */
+    .rootology-ask-form .rootology-ask-field {
+        flex: 1 1 0;
+        padding-top: 0;
+    }
+    .rootology-ask-form .rootology-ask-field > label[slot="label"] {
+        display: none;
+    }
+    .rootology-ask-form .rootology-count-badge {
+        flex-basis: 100%;
     }
     /* One at a time (#100): the history, when open, takes the whole page and hides the question's field. */
     .rootology-ask-split[data-history="open"] .rootology-ask-main {
@@ -1535,9 +1545,6 @@ vaadin-button.rootology-filter-chip[focus-ring] {
         bottom: var(--lumo-space-l);
         align-self: center;
         margin-top: var(--lumo-space-l);
-    }
-    .rootology-ask-form vaadin-button {
-        flex: 1 1 auto;
     }
 }
 
@@ -1737,8 +1744,9 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     .rootology-with-bottom-nav .rootology-ask-form {
         bottom: calc(var(--rootology-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
     }
+    /* The layout's content already keeps the bar's room: Ask adds only the field's line (#117). */
     .rootology-with-bottom-nav .rootology-ask {
-        padding-bottom: calc(var(--rootology-bottom-nav-height) + 5rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 5.5rem;
     }
     /* The weather row scrolls itself, never the page (#88). */
     .rootology-weather-days {
