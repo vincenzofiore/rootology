@@ -25,6 +25,7 @@ import com.vaadin.flow.router.RouterLink;
 import app.rootology.decision.Intent;
 import app.rootology.enrichment.KnowledgeEnrichment;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
@@ -51,8 +52,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
@@ -116,6 +119,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final Div answers = new Div();
     /** The suggested questions of the visit: they replace the long paragraph of instructions (#82). */
     private final Div suggested = new Div();
+    /** What the answer will assume, before the question (#110): the garden, its last frost, the month. */
+    private final Span context = new Span();
     /** The choice a question needs before it can be answered (#107): one line and a chip per option. */
     private final Div choice = new Div();
     private final Span choiceLine = new Span();
@@ -175,6 +180,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setWrap(true);
 
         suggested.addClassName("rootology-ask-chips");
+        context.addClassName("rootology-ask-context");
         answers.addClassName("rootology-ask-answers");
         choice.addClassName("rootology-ask-choice");
         choiceLine.addClassName("rootology-ask-choice-line");
@@ -203,7 +209,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 e -> setHistoryOpen(false, true));
         backToAsk.addClassName("rootology-view-toggle");
         history.add(backToAsk);
-        Div main = new Div(suggested, guest, form, choice, answers);
+        Div main = new Div(suggested, guest, context, form, choice, answers);
         main.addClassName("rootology-ask-main");
         split.addClassName("rootology-ask-split");
         split.add(main, history);
@@ -235,6 +241,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         guest.setVisible(!contributor);
         // A choice belongs to the question that asked it: a page that opens again starts without one (#107).
         hideChoice();
+        showContext();
         showSuggestions();
         loadHistory();
         QueryParameters query = event.getLocation().getQueryParameters();
@@ -256,6 +263,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     }
 
     /** The history column, for the tests. */
+    /** The context line above the question, for the tests (#110). */
+    String contextLine() {
+        return context.getText();
+    }
+
     HistoryPanel historyPanel() {
         return history;
     }
@@ -361,6 +373,34 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         Div asked = new Div(date, words);
         asked.addClassName("rootology-ask-asked");
         return asked;
+    }
+
+    /**
+     * The context the answer will use, said before the question (#110), in the words of the answer card's line:
+     * the garden, the last frost of its site when it has one, and the month. At the space level the month, and
+     * that a place is asked for when a question needs one.
+     */
+    private void showContext() {
+        Locale locale = NoteText.locale(this);
+        String month = LocalDate.now(GardenHomeView.ITALY).getMonth().getDisplayName(TextStyle.FULL, locale);
+        if (gardenId == 0) {
+            context.setText(getTranslation("ask.context.nogarden", month));
+            return;
+        }
+        List<String> parts = new ArrayList<>();
+        gardens.garden(spaceId, currentUser.login(), gardenId).ifPresent(garden -> {
+            parts.add(garden.name());
+            if (garden.latitude() != null && garden.longitude() != null) {
+                cells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
+                        .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null))
+                        .ifPresent(profile -> parts.add(profile.lastFrostDay() == null
+                                ? getTranslation("context.climate.none")
+                                : getTranslation("ask.context.lastfrost",
+                                ClimateText.frost(profile.lastFrostDay(), this::getTranslation, locale))));
+            }
+        });
+        parts.add(month);
+        context.setText(String.join(" · ", parts));
     }
 
     /** Chips instead of a paragraph (#82): the month, what grows here now, and never for a guest (#33). */

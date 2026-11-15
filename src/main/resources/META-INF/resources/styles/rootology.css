@@ -887,6 +887,14 @@ rootology-garden-map { display: block; width: 100%; }
     overflow-wrap: anywhere;
 }
 .rootology-chip > span { min-width: 0; }
+/* What the answer will assume, before the question (#110): quiet, like the context line of an answer. */
+.rootology-ask-context {
+    display: block;
+    margin-top: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
 /* The answer form of a waiting question (#110): in view on Escalations, behind "Answer it yourself" on Ask. */
 .rootology-answer-form {
     display: flex;

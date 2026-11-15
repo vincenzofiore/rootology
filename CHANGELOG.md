@@ -16,6 +16,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Ask says what the answer will assume before the question: inside a garden its name, the last frost of its site and the month; at the space level the month, and that the place is asked for when a question needs it (#110).
 - In Ask a question waiting for a person reads as a promise: a person of the space will answer and you will be told; the decision layer's reason and number are under "Why this answer?", and the answer form opens with "Answer it yourself" for who may answer. The waiting questions page keeps the full form (#110).
 - Answer values are shown in the person's language (months as words, crops and pests by their name) and the answer card no longer repeats the values its sentence already says; the history cards keep them all (#110).
 - At the space level one waiting questions page lists every waiting question of the space, of every garden and without one, each card naming its garden and answering in it, and it updates by itself when a question starts waiting or is answered (no refresh button); "Questions without a garden" is gone from the menu. The history at the space level lists every question of the space with the garden's name on each card and a garden filter, and the history button says "History" next to the count on a wide screen (#109).
