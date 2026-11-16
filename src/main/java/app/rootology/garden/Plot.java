@@ -50,6 +50,16 @@ class Plot {
 
     private Integer floor;
 
+    /** Where the area sits on the garden's plan (#90): its top-left corner and size in metres, or all null. */
+    @jakarta.persistence.Column(name = "plan_x_m")
+    private BigDecimal planXM;
+    @jakarta.persistence.Column(name = "plan_y_m")
+    private BigDecimal planYM;
+    @jakarta.persistence.Column(name = "plan_width_m")
+    private BigDecimal planWidthM;
+    @jakarta.persistence.Column(name = "plan_depth_m")
+    private BigDecimal planDepthM;
+
     protected Plot() {
     }
 
@@ -80,4 +90,23 @@ class Plot {
     DirectSun getDirectSun() { return directSun; }
     Wind getWind() { return wind; }
     Integer getFloor() { return floor; }
+    BigDecimal getPlanXM() { return planXM; }
+    BigDecimal getPlanYM() { return planYM; }
+    BigDecimal getPlanWidthM() { return planWidthM; }
+    BigDecimal getPlanDepthM() { return planDepthM; }
+
+    boolean isPlaced() {
+        return planXM != null;
+    }
+
+    void place(BigDecimal x, BigDecimal y, BigDecimal width, BigDecimal depth) {
+        this.planXM = x;
+        this.planYM = y;
+        this.planWidthM = width;
+        this.planDepthM = depth;
+    }
+
+    void unplace() {
+        place(null, null, null, null);
+    }
 }

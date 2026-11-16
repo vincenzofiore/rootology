@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- The Areas page draws the garden's plan, in metres: the garden's size once, then each area as a box with its name, its kind's drawing and its size, moved and resized by dragging it or with the arrow keys (a decimetre at a time, a metre with Shift, Alt resizes); the areas still to place sit under it as chips that put them at the first free spot. A box and its area card mark each other, an area can come off the plan and go back with the toast's undo, and an area with no declared surface shows its box's width × depth. Guests see the plan and change nothing. On a phone a page title no longer breaks letter by letter beside its actions: the actions move to the next line (#90).
 - A question can name a place ("cosa semino a Torino?"): the sowing and harvest calendars and the forecast are
   those of that place, inside a garden or not, and a calendar question outside a garden, a place not found or
   one that matches several towns, and a garden question outside a garden now ask which place or garden instead

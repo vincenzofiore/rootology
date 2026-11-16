@@ -15,6 +15,30 @@ public final class GardenViews {
                                 String countryCode, Integer elevationM) {
     }
 
+    /**
+     * A garden's plan (#90): its size in metres, null until drawn, and every area of the garden, placed or not,
+     * in the order of the area list.
+     */
+    public record GardenPlan(long gardenId, BigDecimal width, BigDecimal depth, List<PlanArea> areas) {
+
+        public GardenPlan {
+            areas = List.copyOf(areas);
+        }
+
+        public boolean drawn() {
+            return width != null;
+        }
+    }
+
+    /** An area on the plan (#90): its top-left corner and size in metres, all null when it is not placed yet. */
+    public record PlanArea(long plotId, String name, PlotKind kind, BigDecimal x, BigDecimal y, BigDecimal width,
+                           BigDecimal depth) {
+
+        public boolean placed() {
+            return x != null;
+        }
+    }
+
     /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */
     public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
                               Orientation orientation, DirectSun directSun, Wind wind, Integer floor) {

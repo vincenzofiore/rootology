@@ -13,6 +13,7 @@ import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -30,7 +31,9 @@ import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenViews.GardenPlan;
 import app.rootology.garden.GardenViews.GardenSummary;
+import app.rootology.garden.GardenViews.PlanArea;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.Orientation;
@@ -43,6 +46,7 @@ import app.rootology.weather.DailyForecast;
 import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
@@ -82,6 +86,27 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private final EmptyState noAreas = new EmptyState(getTranslation("empty.plots"),
             getTranslation("empty.plots.add"), () -> areaDialog(null));
 
+    /** The garden's plan (#90), above the areas: the invitation when it has none, the plan and its size once drawn. */
+    private final Div planSection = new Div();
+    private final Div planInvite = new Div();
+    private final Div planHead = new Div();
+    private final Span planSize = new Span();
+    /** Changes the plan's size; only a contributor sees it, and the dialog keeps the same fields as the invitation. */
+    private final Button changePlanSize = RowActions.edit(getTranslation("plan.sizes.change"),
+            e -> planSizeDialog());
+    /** The areas drawn on the plan, moved and resized on the page (#90). */
+    private final GardenPlanBoard board = new GardenPlanBoard();
+    /** The areas of the garden that are not on the plan yet, offered to place. */
+    private final Div unplaced = new Div();
+    private final BigDecimalField planWidth = planField(getTranslation("plan.width"));
+    private final BigDecimalField planDepth = planField(getTranslation("plan.depth"));
+    /** The plan as last read, null when the page shows no garden; the cards and the board read it. */
+    private GardenPlan plan;
+    /** The areas of the garden, in the cards' order (#85); the plan's chips read their kind and surface. */
+    private List<PlotSummary> areas = List.of();
+    /** The area whose card or box is marked, 0 for none (#90). */
+    private long selectedArea;
+
     public AreasView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
                      ClimateCells climateCells,
                      CurrentUser currentUser) {
@@ -107,7 +132,44 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         noAreas.setVisible(false);
         frostMark.addClassName("rootology-areas-frost");
         frostMark.setVisible(false);
-        add(new PageHeader(getTranslation("garden.plots"), top), gardenInfo, frostMark, areaCards, noAreas);
+        buildPlan();
+        add(new PageHeader(getTranslation("garden.plots"), top), gardenInfo, frostMark, planSection, areaCards,
+                noAreas);
+    }
+
+    /**
+     * The plan section (#90) is built once and only filled in as the garden is read: the invitation with its two
+     * fields, the plan's line and its action, the board the areas are drawn on, and the areas still to place.
+     */
+    private void buildPlan() {
+        planSection.addClassName("rootology-plan-section");
+        planSection.setVisible(false);
+
+        Paragraph hint = new Paragraph(getTranslation("plan.hint"));
+        hint.addClassName("rootology-plan-hint");
+        Button create = new Button(getTranslation("plan.create"),
+                e -> savePlanSize(planWidth.getValue(), planDepth.getValue()));
+        create.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        HorizontalLayout fields = new HorizontalLayout(planWidth, planDepth, create);
+        fields.addClassName("rootology-plan-fields");
+        fields.setDefaultVerticalComponentAlignment(Alignment.END);
+        fields.setWrap(true);
+        planInvite.addClassName("rootology-plan-invite");
+        planInvite.add(hint, fields);
+
+        planHead.addClassName("rootology-plan-head");
+        planSize.addClassName("rootology-plan-size");
+        planHead.add(new H4(getTranslation("plan.title")), planSize, changePlanSize);
+
+        unplaced.addClassName("rootology-plan-unplaced");
+        unplaced.setVisible(false);
+
+        // A box on the plan and its card mark each other; a move or a resize is stored and read back (#90).
+        board.addAreaSelectedListener(e -> board.selected(e.areaId()).ifPresent(this::selectFromPlan));
+        board.addAreaMovedListener(e -> board.move(e.areaId(), e.x(), e.y(), e.width(), e.depth())
+                .ifPresent(this::saveMove));
+
+        planSection.add(planInvite, planHead, board, unplaced);
     }
 
     /** The page works in its route's garden; a space or garden the person cannot see is not found. */
@@ -139,6 +201,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             areaCards.removeAll();
             areaCards.setVisible(false);
             noAreas.setVisible(false);
+            planSection.setVisible(false);
             addArea.setVisible(false);
             return;
         }
@@ -147,12 +210,209 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry);
         showFrost(garden);
+        refreshAreas();
+    }
+
+    /** Reads the areas and the plan again (#90): what the cards and the board show both come from them. */
+    private void refreshAreas() {
+        // The plan first: the cards read it for their take-off action and their surface.
+        plan = garden == null ? null : gardens.plan(spaceId, login, garden.id());
         showAreas();
+        showPlan();
+    }
+
+    /**
+     * The plan section (#90): the invitation with two fields when the garden has none, the plan with its size
+     * once drawn, the areas still to place under it. A guest only sees a plan that exists, never the invitation.
+     */
+    private void showPlan() {
+        boolean drawn = plan != null && plan.drawn();
+        planInvite.setVisible(contributor && plan != null && !drawn);
+        planHead.setVisible(drawn);
+        board.setVisible(drawn);
+        if (!drawn) {
+            unplaced.setVisible(false);
+            planSection.setVisible(drawn || (plan != null && contributor));
+            return;
+        }
+        planSize.setText(getTranslation("plan.dimensions", metres(plan.width()), metres(plan.depth())));
+        changePlanSize.setVisible(contributor);
+        board.setContributor(contributor);
+        board.setPlanLabel(getTranslation("plan.title"));
+        board.setPlan(plan.width().doubleValue(), plan.depth().doubleValue());
+        board.setBoxes(boxes(plan));
+        showUnplaced(plan);
+        planSection.setVisible(true);
+    }
+
+    /** The areas on the plan as the element draws them: their name, the drawing and the word of their kind. */
+    private List<GardenPlanBoard.Box> boxes(GardenPlan plan) {
+        return plan.areas().stream().filter(PlanArea::placed)
+                .map(area -> new GardenPlanBoard.Box(Long.toString(area.plotId()), area.name(),
+                        AreaKindIcons.of(area.kind()),
+                        getTranslation("plan.dimensions", metres(area.width()), metres(area.depth())),
+                        getTranslation("plan.box.label", area.name(), AreaKindIcons.word(area.kind(), this),
+                                metres(area.width()), metres(area.depth()), metres(area.x()), metres(area.y())),
+                        area.x().doubleValue(), area.y().doubleValue(), area.width().doubleValue(),
+                        area.depth().doubleValue()))
+                .toList();
+    }
+
+    /** The areas not on the plan yet, as chips that place one at the first free spot (#90). */
+    private void showUnplaced(GardenPlan plan) {
+        unplaced.removeAll();
+        List<PlanArea> free = plan.areas().stream().filter(area -> !area.placed()).toList();
+        if (!contributor || free.isEmpty()) {
+            unplaced.setVisible(false);
+            return;
+        }
+        Span label = new Span(getTranslation("plan.unplaced"));
+        label.addClassName("rootology-plan-unplaced-label");
+        unplaced.add(label);
+        for (PlanArea area : free) {
+            Button chip = new Button(area.name(), new SvgIcon(AreaKindIcons.of(area.kind())),
+                    e -> placeOnPlan(area));
+            chip.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+            chip.addClassName("rootology-plan-chip");
+            chip.getElement().setAttribute("data-area", Long.toString(area.plotId()));
+            String word = getTranslation("plan.place", area.name());
+            chip.setAriaLabel(word);
+            chip.setTooltipText(word);
+            unplaced.add(chip);
+        }
+        unplaced.setVisible(true);
+    }
+
+    /** Puts an area on the plan where it first fits, at the size its surface or its kind gives it (#90). */
+    private void placeOnPlan(PlanArea area) {
+        if (plan == null || !plan.drawn()) {
+            return;
+        }
+        PlotSummary summary = areas.stream().filter(shown -> shown.id() == area.plotId()).findFirst().orElse(null);
+        PlotKind kind = summary == null ? area.kind() : summary.kind();
+        BigDecimal declared = summary == null ? null : summary.areaM2();
+        double width = plan.width().doubleValue();
+        double depth = plan.depth().doubleValue();
+        PlanPlacement.Box size = PlanPlacement.defaultSize(kind, declared, width, depth);
+        List<PlanPlacement.Box> taken = plan.areas().stream().filter(PlanArea::placed)
+                .map(placed -> new PlanPlacement.Box(placed.x().doubleValue(), placed.y().doubleValue(),
+                        placed.width().doubleValue(), placed.depth().doubleValue()))
+                .toList();
+        PlanPlacement.Box spot = PlanPlacement.firstFree(size, taken, width, depth);
+        try {
+            gardens.placeArea(spaceId, login, area.plotId(), BigDecimal.valueOf(spot.x()),
+                    BigDecimal.valueOf(spot.y()), BigDecimal.valueOf(spot.width()),
+                    BigDecimal.valueOf(spot.depth()));
+            refreshAreas();
+            selectFromPlan(area.plotId());
+        } catch (RuntimeException ex) {
+            UiErrors.show(this, ex);
+        }
+    }
+
+    /** A box was dragged, resized or moved with the keys: the service checks it, then the page reads it back. */
+    private void saveMove(GardenPlanBoard.Move move) {
+        try {
+            gardens.placeArea(spaceId, login, move.areaId(), move.x(), move.y(), move.width(), move.depth());
+        } catch (RuntimeException ex) {
+            UiErrors.show(this, ex);
+        }
+        refreshAreas();
+    }
+
+    /** A box on the plan was tapped: its card is marked and scrolled to (#90). */
+    private void selectFromPlan(long areaId) {
+        markCard(areaId);
+        areaCards.getChildren().forEach(card -> {
+            if (Long.toString(areaId).equals(card.getElement().getAttribute("data-area"))) {
+                card.scrollIntoView();
+            }
+        });
+    }
+
+    /** A card was tapped: its box on the plan is marked, and readable with the keys (#90). */
+    private void selectFromCard(long areaId) {
+        if (plan != null && plan.drawn()) {
+            board.select(areaId);
+        }
+        markCard(areaId);
+    }
+
+    private void markCard(long areaId) {
+        selectedArea = areaId;
+        areaCards.getChildren().forEach(card -> card.getElement().getClassList()
+                .set("rootology-area-card-selected",
+                        Long.toString(areaId).equals(card.getElement().getAttribute("data-area"))));
+    }
+
+    /** The plan's size, or a first one: the same two fields as the invitation, in a small dialog (#90). */
+    private void planSizeDialog() {
+        BigDecimalField width = planField(getTranslation("plan.width"));
+        BigDecimalField depth = planField(getTranslation("plan.depth"));
+        if (plan != null) {
+            width.setValue(plan.width());
+            depth.setValue(plan.depth());
+        }
+        Dialog dialog = new Dialog(getTranslation("plan.sizes"));
+        dialog.add(new FormLayout(width, depth));
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
+                new Button(getTranslation("common.save"), e -> {
+                    if (savePlanSize(width.getValue(), depth.getValue())) {
+                        dialog.close();
+                    }
+                }));
+        dialog.open();
+    }
+
+    /**
+     * Draws the plan or gives it a new size (#90). A size the service refuses, because an area would be left
+     * outside, is said in the page's language: the person moves the area first.
+     */
+    private boolean savePlanSize(BigDecimal width, BigDecimal depth) {
+        BigDecimal min = GardenService.MIN_AREA_SIDE;
+        BigDecimal max = GardenService.MAX_PLAN_SIDE;
+        if (width == null || depth == null || width.compareTo(min) < 0 || depth.compareTo(min) < 0
+                || width.compareTo(max) > 0 || depth.compareTo(max) > 0) {
+            Toasts.problem(getTranslation("plan.sizes.range"));
+            return false;
+        }
+        try {
+            gardens.resizePlan(spaceId, login, garden.id(), width, depth);
+        } catch (IllegalArgumentException refused) {
+            Toasts.problem(getTranslation("plan.sizes.refused"));
+            return false;
+        } catch (RuntimeException ex) {
+            UiErrors.show(this, ex);
+            return false;
+        }
+        refreshAreas();
+        return true;
+    }
+
+    /** Two fields and a step of a decimetre, as the plan's size is given (#90). */
+    private static BigDecimalField planField(String label) {
+        BigDecimalField field = new BigDecimalField(label);
+        field.addClassName("rootology-plan-field");
+        return field;
+    }
+
+    /** A length in metres in the page's language, without trailing zeros ("8", "0,4"). */
+    private String metres(Number value) {
+        java.text.NumberFormat format = java.text.NumberFormat.getNumberInstance(NoteText.locale(this));
+        format.setMaximumFractionDigits(2);
+        return format.format(value);
     }
 
     /** One card per area (#85): its kind, soil and sun as icons, what grows there, and the actions. */
     private void showAreas() {
-        List<PlotSummary> areas = gardens.plots(spaceId, login, garden.id());
+        if (garden == null) {
+            areas = List.of();
+            areaCards.removeAll();
+            areaCards.setVisible(false);
+            noAreas.setVisible(false);
+            return;
+        }
+        areas = gardens.plots(spaceId, login, garden.id());
         areaCards.removeAll();
         areas.forEach(area -> areaCards.add(areaCard(area)));
         areaCards.setVisible(!areas.isEmpty());
@@ -164,6 +424,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private Div areaCard(PlotSummary area) {
         Div card = new Div();
         card.addClassName("rootology-area-card");
+        card.getElement().setAttribute("data-area", Long.toString(area.id()));
+        PlanArea placed = placedArea(area.id());
+        card.getElement().getClassList().set("rootology-area-card-selected", area.id() == selectedArea);
 
         H4 name = new H4(AreaKindIcons.labelled(area.kind(), this), new Span(area.name()));
         name.addClassName("rootology-area-name");
@@ -177,6 +440,10 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                             getTranslation("garden.plot.delete.text", area.name()),
                             null, getTranslation("garden.plot.delete.button"), getTranslation("common.cancel"),
                             () -> act(() -> gardens.deletePlot(spaceId, login, area.id())))));
+            if (placed != null) {
+                // Back off the plan, with the toast that puts it where it was (#90).
+                actions.add(RowActions.remove(getTranslation("plan.take.off"), e -> takeOffPlan(area, placed)));
+            }
             actions.addClassName("rootology-area-actions");
             head.add(actions);
         }
@@ -188,10 +455,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         if (area.directSun() != null) {
             facts.add(fact(sunIcon(area.directSun()), getTranslation("directsun." + area.directSun().name()), null));
         }
-        if (area.areaM2() != null) {
-            facts.add(fact(VaadinIcon.RESIZE_H, getTranslation("garden.area"), squareMetres(area.areaM2()) + " m²"));
+        BigDecimal surface = surface(area, placed);
+        if (surface != null) {
+            facts.add(fact(VaadinIcon.RESIZE_H, getTranslation("garden.area"), squareMetres(surface) + " m²"));
         }
         card.add(facts);
+        if (placed != null) {
+            // A tap on the card marks its box on the plan (#90).
+            card.addClickListener(e -> selectFromCard(area.id()));
+        }
 
         List<PlantingSummary> all = gardens.plantings(spaceId, login, area.id());
         Div chips = new Div();
@@ -414,7 +686,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                         name.getValue(), kind.getValue(), soil.getValue(), area.getValue(),
                         orientation.getValue(), sun.getValue(), wind.getValue(), floor.getValue());
                 dialog.close();
-                showAreas();
+                refreshAreas();
             } catch (RuntimeException ex) {
                 UiErrors.show(this, ex);
             }
@@ -447,7 +719,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             try {
                 gardens.endPlanting(spaceId, login, planting.id(), date.getValue());
                 dialog.close();
-                showAreas();
+                refreshAreas();
                 toastHarvested(planting);
             } catch (RuntimeException ex) {
                 UiErrors.show(this, ex);
@@ -461,7 +733,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                 getTranslation("common.undo"), () -> {
                     try {
                         gardens.undoEndPlanting(spaceId, login, planting.id());
-                        showAreas();
+                        refreshAreas();
                     } catch (RuntimeException ex) {
                         UiErrors.show(this, ex);
                     }
@@ -494,7 +766,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                 gardens.plant(spaceId, login, area.id(), crop.getValue() == null ? null : crop.getValue().id(),
                         method.getValue(), date.getValue(), notes.getValue());
                 dialog.close();
-                showAreas();
+                refreshAreas();
             } catch (RuntimeException ex) {
                 UiErrors.show(this, ex);
             }
@@ -509,7 +781,74 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         } catch (RuntimeException ex) {
             UiErrors.show(this, ex);
         }
-        showAreas();
+        refreshAreas();
+    }
+
+    /** Where an area sits on the plan, or null when it is not placed (#90). */
+    private PlanArea placedArea(long plotId) {
+        return plan == null ? null : plan.areas().stream()
+                .filter(area -> area.plotId() == plotId && area.placed()).findFirst().orElse(null);
+    }
+
+    /**
+     * An area's surface (#90): the one the person declared, or, on the plan, the box's width × depth, since the
+     * plan's size is the one they drew. Null when neither is known.
+     */
+    private static BigDecimal surface(PlotSummary area, PlanArea placed) {
+        if (area.areaM2() != null) {
+            return area.areaM2();
+        }
+        return placed == null ? null : placed.width().multiply(placed.depth());
+    }
+
+    /** Takes an area off the plan and keeps the area (#90), with a toast that puts it back where it was. */
+    private void takeOffPlan(PlotSummary area, PlanArea placed) {
+        try {
+            gardens.unplaceArea(spaceId, login, area.id());
+        } catch (RuntimeException ex) {
+            UiErrors.show(this, ex);
+            return;
+        }
+        refreshAreas();
+        Toasts.withUndo(getTranslation("plan.taken.off", area.name()), getTranslation("common.undo"), () -> {
+            try {
+                gardens.placeArea(spaceId, login, area.id(), placed.x(), placed.y(), placed.width(),
+                        placed.depth());
+            } catch (RuntimeException ex) {
+                UiErrors.show(this, ex);
+            }
+            refreshAreas();
+        });
+    }
+
+    /** The plan's size line, for the tests (#90). */
+    String planSizeText() {
+        return planSize.getText();
+    }
+
+    /** The plan on the page, for the tests (#90). */
+    GardenPlanBoard board() {
+        return board;
+    }
+
+    /** The area whose card is marked, 0 for none, for the tests (#90). */
+    long selectedArea() {
+        return selectedArea;
+    }
+
+    /** Whether the invitation to draw the plan is on the page, for the tests (#90). */
+    boolean planInvited() {
+        return planInvite.isVisible();
+    }
+
+    /** Whether the plan itself is on the page, for the tests (#90). */
+    boolean planShown() {
+        return planHead.isVisible();
+    }    /** The areas still to place, by id, for the tests (#90). */
+    List<Long> unplacedOnPage() {
+        return unplaced.getChildren().filter(child -> child instanceof Button)
+                .map(button -> Long.parseLong(button.getElement().getAttribute("data-area")))
+                .toList();
     }
 
     /** A crop's name in the page's language: Italian, or English for an English page. */

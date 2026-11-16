@@ -33,6 +33,9 @@ class GardenServiceTest {
     @Autowired
     SpaceService spaces;
 
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
     private long spaceOf(String login) {
         spaces.signedIn(login);
         return app.rootology.TestSpaces.personal(spaces, login);
@@ -276,6 +279,160 @@ class GardenServiceTest {
                 LocalDate.of(2026, 3, 1), null);
         assertThatThrownBy(() -> gardens.endPlanting(space, "kara", carrots.id(), LocalDate.of(2026, 2, 1)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void aGardenHasNoPlanUntilOneIsDrawnAndThenListsEveryArea() {
+        String login = "gplan-ada";
+        long space = spaceOf(login);
+        GardenSummary garden = gardens.saveGarden(space, login, null, "Orto", null, null, null);
+        gardens.savePlot(space, login, garden.id(), null, "Bed B", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.savePlot(space, login, garden.id(), null, "Bed A", PlotKind.GROUND, Soil.LOAMY, null);
+
+        GardenViews.GardenPlan undrawn = gardens.plan(space, login, garden.id());
+        assertThat(undrawn.gardenId()).isEqualTo(garden.id());
+        assertThat(undrawn.drawn()).isFalse();
+        assertThat(undrawn.width()).as("no plan until someone draws one").isNull();
+        assertThat(undrawn.areas()).as("every area, in the order of the area list")
+                .extracting(GardenViews.PlanArea::name).containsExactly("Bed A", "Bed B");
+        assertThat(undrawn.areas()).allSatisfy(area -> assertThat(area.placed()).isFalse());
+
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("6"), new BigDecimal("4"));
+
+        GardenViews.GardenPlan plan = gardens.plan(space, login, garden.id());
+        assertThat(plan.drawn()).isTrue();
+        assertThat(plan.width()).isEqualByComparingTo("6");
+        assertThat(plan.depth()).isEqualByComparingTo("4");
+        assertThat(plan.areas()).extracting(GardenViews.PlanArea::name).containsExactly("Bed A", "Bed B");
+    }
+
+    @Test
+    void anAreaSitsWhollyInsideThePlanRoundedToTheCentimetre() {
+        String login = "gplan-bruno";
+        long space = spaceOf(login);
+        GardenSummary garden = gardens.saveGarden(space, login, null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
+        PlotSummary other = gardens.savePlot(space, login, garden.id(), null, "Other", PlotKind.POT, Soil.POTTING_MIX, null);
+
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ONE, BigDecimal.ONE)).as("a garden needs a plan first")
+                .isInstanceOf(IllegalArgumentException.class);
+
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("5"), new BigDecimal("4"));
+        gardens.placeArea(space, login, bed.id(), new BigDecimal("1.234"), new BigDecimal("0.505"),
+                new BigDecimal("2.345"), new BigDecimal("1.5"));
+
+        GardenViews.PlanArea placed = gardens.plan(space, login, garden.id()).areas().stream()
+                .filter(a -> a.plotId() == bed.id()).findFirst().orElseThrow();
+        assertThat(placed.placed()).isTrue();
+        assertThat(placed.x()).isEqualByComparingTo("1.23");
+        assertThat(placed.y()).isEqualByComparingTo("0.51");
+        assertThat(placed.width()).isEqualByComparingTo("2.35");
+        assertThat(placed.depth()).isEqualByComparingTo("1.50");
+        assertThat(placed.x().scale()).as("rounded to the centimetre").isEqualTo(2);
+
+        gardens.placeArea(space, login, other.id(), new BigDecimal("3"), new BigDecimal("3"),
+                new BigDecimal("2"), BigDecimal.ONE);
+        assertThat(gardens.plan(space, login, garden.id()).areas().stream()
+                .filter(a -> a.plotId() == other.id()).findFirst().orElseThrow().placed())
+                .as("an area may touch the far edge").isTrue();
+
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), new BigDecimal("4"), BigDecimal.ZERO,
+                new BigDecimal("2"), BigDecimal.ONE)).as("past the right edge").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, new BigDecimal("3.5"),
+                BigDecimal.ONE, BigDecimal.ONE)).as("past the bottom edge").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), new BigDecimal("-1"), BigDecimal.ZERO,
+                BigDecimal.ONE, BigDecimal.ONE)).as("never left of the plan").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, BigDecimal.ZERO,
+                new BigDecimal("0.05"), BigDecimal.ONE)).as("below the smallest area").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ONE, new BigDecimal("0.05"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.resizePlan(space, login, garden.id(),
+                GardenService.MAX_PLAN_SIDE.add(BigDecimal.ONE), BigDecimal.TEN))
+                .as("a plan larger than a vegetable garden").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, BigDecimal.ZERO,
+                GardenService.MAX_PLAN_SIDE.add(BigDecimal.ONE), BigDecimal.ONE))
+                .as("an area larger than the plan").isInstanceOf(IllegalArgumentException.class);
+
+        gardens.unplaceArea(space, login, bed.id());
+        assertThat(gardens.plan(space, login, garden.id()).areas().stream()
+                .filter(a -> a.plotId() == bed.id()).findFirst().orElseThrow().placed()).isFalse();
+        assertThat(gardens.plots(space, login, garden.id())).as("the area itself stays").hasSize(2);
+    }
+
+    @Test
+    void aPlanIsOnlyResizedWhenEveryPlacedAreaStillFits() {
+        String login = "gplan-carla";
+        long space = spaceOf(login);
+        GardenSummary garden = gardens.saveGarden(space, login, null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("5"), new BigDecimal("4"));
+        gardens.placeArea(space, login, bed.id(), new BigDecimal("4"), new BigDecimal("3"), BigDecimal.ONE, BigDecimal.ONE);
+
+        assertThatThrownBy(() -> gardens.resizePlan(space, login, garden.id(),
+                new BigDecimal("4.5"), new BigDecimal("4"))).as("the area would be outside").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.resizePlan(space, login, garden.id(),
+                new BigDecimal("5"), new BigDecimal("3.5"))).isInstanceOf(IllegalArgumentException.class);
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("5"), new BigDecimal("4"));
+
+        gardens.placeArea(space, login, bed.id(), new BigDecimal("0.5"), new BigDecimal("0.5"),
+                BigDecimal.ONE, BigDecimal.ONE);
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("2"), new BigDecimal("2"));
+
+        gardens.placeArea(space, login, bed.id(), BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE);
+        assertThatThrownBy(() -> gardens.resizePlan(space, login, garden.id(),
+                new BigDecimal("1.5"), new BigDecimal("2"))).isInstanceOf(IllegalArgumentException.class);
+        gardens.unplaceArea(space, login, bed.id());
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("1.5"), new BigDecimal("1.5"));
+
+        assertThat(gardens.plan(space, login, garden.id()).width()).isEqualByComparingTo("1.5");
+    }
+
+    @Test
+    void aGuestReadsThePlanButChangesNothingOnIt() {
+        String login = "gplan-dino";
+        String guest = "gplan-elena";
+        long space = spaceOf(login);
+        spaces.signedIn(guest);
+        spaces.addMember(space, login, guest, app.rootology.spaces.Role.GUEST);
+        GardenSummary garden = gardens.saveGarden(space, login, null, "Orto", null, null, null);
+        PlotSummary bed = gardens.savePlot(space, login, garden.id(), null, "Bed", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("3"), new BigDecimal("3"));
+        gardens.placeArea(space, login, bed.id(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE);
+
+        assertThat(gardens.plan(space, guest, garden.id()).areas()).singleElement()
+                .satisfies(area -> assertThat(area.width()).isEqualByComparingTo("1"));
+        assertThatThrownBy(() -> gardens.resizePlan(space, guest, garden.id(), BigDecimal.ONE, BigDecimal.ONE))
+                .isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> gardens.placeArea(space, guest, bed.id(), BigDecimal.ONE, BigDecimal.ONE,
+                BigDecimal.ONE, BigDecimal.ONE)).isInstanceOf(SpaceAccessException.class);
+        assertThatThrownBy(() -> gardens.unplaceArea(space, guest, bed.id())).isInstanceOf(SpaceAccessException.class);
+    }
+
+    @Test
+    void deletingAGardenOrAnAreaLeavesTheRestOfThePlanIntact() {
+        String login = "gplan-fabio";
+        long space = spaceOf(login);
+        GardenSummary garden = gardens.saveGarden(space, login, null, "Orto", null, null, null);
+        PlotSummary kept = gardens.savePlot(space, login, garden.id(), null, "Bed A", PlotKind.GROUND, Soil.LOAMY, null);
+        PlotSummary removed = gardens.savePlot(space, login, garden.id(), null, "Bed B", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.resizePlan(space, login, garden.id(), new BigDecimal("4"), new BigDecimal("4"));
+        gardens.placeArea(space, login, kept.id(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE);
+        gardens.placeArea(space, login, removed.id(), BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE);
+
+        gardens.deletePlot(space, login, removed.id());
+
+        assertThat(gardens.plan(space, login, garden.id()).areas()).singleElement()
+                .satisfies(area -> {
+                    assertThat(area.plotId()).isEqualTo(kept.id());
+                    assertThat(area.placed()).isTrue();
+                });
+
+        gardens.deleteGarden(space, login, garden.id());
+
+        assertThat(gardens.gardens(space, login)).isEmpty();
+        assertThat(jdbc.sql("select count(*) from plot where garden_id = :g").param("g", garden.id())
+                .query(Long.class).single()).as("the areas go with the garden").isZero();
     }
 
     /** A new place is announced so its forecast can be fetched (#67); a save that keeps the place is not. */

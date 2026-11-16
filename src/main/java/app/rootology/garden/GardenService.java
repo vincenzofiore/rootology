@@ -152,6 +152,81 @@ public class GardenService {
         return summary(plots.save(plot));
     }
 
+    /** The largest side of a plan (#90): a big vegetable garden, not a farm. */
+    public static final BigDecimal MAX_PLAN_SIDE = new BigDecimal("500");
+    /** The smallest side of an area on the plan (#90): a small pot. */
+    public static final BigDecimal MIN_AREA_SIDE = new BigDecimal("0.1");
+
+    /** The garden's plan (#90): its size and every area, placed or not. Members look, guests too. */
+    @Transactional(readOnly = true)
+    public GardenViews.GardenPlan plan(long spaceId, String login, long gardenId) {
+        requireMember(spaceId, login);
+        Garden garden = garden(spaceId, gardenId);
+        return new GardenViews.GardenPlan(garden.getId(), garden.getPlanWidthM(), garden.getPlanDepthM(),
+                plots.findByGardenIdOrderByName(garden.getId()).stream()
+                        .map(p -> new GardenViews.PlanArea(p.getId(), p.getName(), p.getKind(), p.getPlanXM(),
+                                p.getPlanYM(), p.getPlanWidthM(), p.getPlanDepthM()))
+                        .toList());
+    }
+
+    /**
+     * Draws the plan or changes its size (#90), in metres. A size that would leave a placed area outside is
+     * refused: the person moves the area first.
+     */
+    @Transactional
+    public void resizePlan(long spaceId, String login, long gardenId, BigDecimal width, BigDecimal depth) {
+        requireContributor(spaceId, login);
+        BigDecimal w = side(width, MIN_AREA_SIDE, MAX_PLAN_SIDE);
+        BigDecimal d = side(depth, MIN_AREA_SIDE, MAX_PLAN_SIDE);
+        Garden garden = garden(spaceId, gardenId);
+        boolean outside = plots.findByGardenIdOrderByName(garden.getId()).stream().filter(Plot::isPlaced)
+                .anyMatch(p -> p.getPlanXM().add(p.getPlanWidthM()).compareTo(w) > 0
+                        || p.getPlanYM().add(p.getPlanDepthM()).compareTo(d) > 0);
+        if (outside) {
+            throw new IllegalArgumentException("An area would be outside the plan");
+        }
+        garden.resizePlan(w, d);
+    }
+
+    /**
+     * Places an area on its garden's plan, or moves or resizes it (#90): its top-left corner and size in metres,
+     * rounded to the centimetre, wholly inside the plan. The garden needs a plan first.
+     */
+    @Transactional
+    public void placeArea(long spaceId, String login, long plotId, BigDecimal x, BigDecimal y, BigDecimal width,
+                          BigDecimal depth) {
+        requireContributor(spaceId, login);
+        Plot plot = plot(spaceId, plotId);
+        Garden garden = plot.getGarden();
+        if (garden.getPlanWidthM() == null) {
+            throw new IllegalArgumentException("The garden has no plan yet");
+        }
+        BigDecimal w = side(width, MIN_AREA_SIDE, garden.getPlanWidthM());
+        BigDecimal d = side(depth, MIN_AREA_SIDE, garden.getPlanDepthM());
+        BigDecimal left = side(x, BigDecimal.ZERO, garden.getPlanWidthM().subtract(w));
+        BigDecimal top = side(y, BigDecimal.ZERO, garden.getPlanDepthM().subtract(d));
+        plot.place(left, top, w, d);
+    }
+
+    /** Takes an area off the plan (#90); the area itself stays. */
+    @Transactional
+    public void unplaceArea(long spaceId, String login, long plotId) {
+        requireContributor(spaceId, login);
+        plot(spaceId, plotId).unplace();
+    }
+
+    /** A length in metres rounded to the centimetre, between min and max included. */
+    private static BigDecimal side(BigDecimal value, BigDecimal min, BigDecimal max) {
+        if (value == null) {
+            throw new IllegalArgumentException("A length is required");
+        }
+        BigDecimal rounded = value.setScale(2, java.math.RoundingMode.HALF_UP);
+        if (rounded.compareTo(min) < 0 || rounded.compareTo(max) > 0) {
+            throw new IllegalArgumentException("A length is out of the plan");
+        }
+        return rounded;
+    }
+
     @Transactional
     public void deletePlot(long spaceId, String login, long plotId) {
         requireContributor(spaceId, login);

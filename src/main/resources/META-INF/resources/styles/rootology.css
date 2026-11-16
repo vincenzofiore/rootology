@@ -532,7 +532,9 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-page-title {
     /* From zero, so a long title wraps beside the action instead of pushing it to a line of its own. */
     flex: 1 1 0;
-    min-width: 0;
+    /* Never narrower than a short word (#90): on a phone, two actions beside "Aree" broke it letter by letter;
+       now the actions wrap to the next line instead. */
+    min-width: min(100%, 9ch);
     margin: 0;
     /* The page's second level under the wordmark's h1, now an h2 and with the look it had as an h3 (#113): the
        title size, Lumo's heading weight and line height, no margin. */
@@ -1252,6 +1254,118 @@ rootology-garden-map { display: block; width: 100%; }
 }
 @media (max-width: 640px) {
     .rootology-area-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The garden plan (#90): the rectangle of the garden in metres above the areas, its areas as boxes that can be
+   moved and resized, and the areas still to place as chips. Colours come from the tokens above, so the plan
+   reads the same in light and dark. */
+.rootology-plan-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    width: 100%;
+}
+.rootology-plan-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+}
+.rootology-plan-head h4 { margin: 0; }
+.rootology-plan-size {
+    color: var(--lumo-secondary-text-color);
+    font-variant-numeric: tabular-nums;
+}
+.rootology-plan-invite {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    max-width: 36rem;
+    padding: var(--lumo-space-m);
+    border: 1px dashed var(--lumo-contrast-30pct);
+    border-radius: var(--lumo-border-radius-l);
+}
+.rootology-plan-hint {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-plan-fields { gap: var(--lumo-space-s); }
+.rootology-plan-field { width: 8rem; }
+.rootology-plan { width: 100%; }
+.rootology-plan-svg {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--rootology-plan-ratio, 2);
+    max-height: 60vh;
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-plan-grid-line {
+    stroke: var(--lumo-contrast-20pct);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+.rootology-plan-box { cursor: grab; outline: none; touch-action: none; }
+.rootology-plan-box:active { cursor: grabbing; }
+.rootology-plan-box-rect {
+    fill: var(--lumo-base-color);
+    stroke: var(--lumo-contrast-30pct);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+.rootology-plan-box-name {
+    fill: var(--lumo-body-text-color);
+    font-family: var(--lumo-font-family);
+    pointer-events: none;
+}
+.rootology-plan-box-size {
+    fill: var(--lumo-secondary-text-color);
+    font-family: var(--lumo-font-family);
+    pointer-events: none;
+}
+/* The kind's drawing is inline and stroked in currentColor: the text's colour, light or dark. */
+.rootology-plan-box-icon { pointer-events: none; color: var(--lumo-secondary-text-color); }
+.rootology-plan-box:focus-visible .rootology-plan-box-rect {
+    stroke: var(--lumo-primary-color);
+    stroke-width: 3;
+}
+.rootology-plan-box-selected .rootology-plan-box-rect {
+    fill: var(--lumo-primary-color-10pct);
+    stroke: var(--lumo-primary-color);
+    stroke-width: 2;
+}
+.rootology-plan-handle {
+    fill: var(--lumo-primary-color);
+    opacity: 0.5;
+    cursor: nwse-resize;
+}
+.rootology-plan-box:hover .rootology-plan-handle { opacity: 1; }
+.rootology-plan-unplaced {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+}
+.rootology-plan-unplaced-label {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-plan-chip { margin: 0; }
+.rootology-plan-chip svg {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+/* A card whose box was chosen on the plan (#90), the same mark the gardens overview gives its cards. */
+.rootology-area-card-selected {
+    border-color: var(--lumo-primary-color);
+    box-shadow: 0 0 0 1px var(--lumo-primary-color);
+}
+@media (max-width: 640px) {
+    .rootology-plan-field { width: 6rem; }
 }
 
 /* The Ask page (#82): chips instead of a paragraph, answers of the visit below the field, a card while the

@@ -26,12 +26,14 @@ public class GardenPersonalData {
             return data;
         }
         data.put("gardens", jdbc.sql("""
-                        select id, space_id, name, town, country_code, latitude, longitude, elevation_m, created_at
+                        select id, space_id, name, town, country_code, latitude, longitude, elevation_m,
+                               plan_width_m, plan_depth_m, created_at
                         from garden where space_id in (:spaces) order by id""")
                 .param("spaces", spaces).query().listOfRows());
         data.put("plots", jdbc.sql("""
                         select p.id, p.garden_id, p.name, p.kind, p.soil, p.area_m2,
-                               p.orientation, p.direct_sun, p.wind, p.floor
+                               p.orientation, p.direct_sun, p.wind, p.floor,
+                               p.plan_x_m, p.plan_y_m, p.plan_width_m, p.plan_depth_m
                         from plot p join garden g on g.id = p.garden_id where g.space_id in (:spaces) order by p.id""")
                 .param("spaces", spaces).query().listOfRows());
         data.put("plantings", jdbc.sql("""

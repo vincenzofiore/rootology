@@ -102,6 +102,13 @@ class CrossSpaceAccessTest {
         assertThatThrownBy(() -> gardens.endPlanting(intruderSpace, intruder, planting, LocalDate.of(2026, 8, 1)))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> gardens.deletePlanting(intruderSpace, intruder, planting)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.plan(intruderSpace, intruder, garden)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.resizePlan(intruderSpace, intruder, garden,
+                new java.math.BigDecimal("3"), new java.math.BigDecimal("3"))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.placeArea(intruderSpace, intruder, plot, java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE, java.math.BigDecimal.ONE))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.unplaceArea(intruderSpace, intruder, plot)).isInstanceOf(IllegalArgumentException.class);
 
         long proposal = enrichment.propose(victimSpace, victim, ProposalScope.SPACE,
                 new Contribution.Alias("tomato", "pomodorino di casa", "it"), null).id();

@@ -152,11 +152,14 @@ class PrivacyTest {
         spaces.addMember(gusSpace, "exp-gus", "exp-fay", app.rootology.spaces.Role.MEMBER);
         run(gusSpace, "exp-fay", "fay asks about basil", Instant.now());
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
-        jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
-                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor)
+                insert into garden (space_id, name, plan_width_m, plan_depth_m, created_at)
+                values (:s, 'Gus garden', 6, 4, now())""").param("s", gusSpace).update();
+        jdbc.sql("""
+                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor,
+                    plan_x_m, plan_y_m, plan_width_m, plan_depth_m)
                 values ((select id from garden where space_id = :s), 'Gus pot', 'POT', 'POTTING_MIX',
-                        'N', 'SHADE', 'EXPOSED', 3)""").param("s", gusSpace).update();
+                        'N', 'SHADE', 'EXPOSED', 3, 1.25, 0.5, 0.6, 0.6)""").param("s", gusSpace).update();
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
@@ -172,6 +175,9 @@ class PrivacyTest {
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
                         "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
                         "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3",
+                        // #90: the garden's plan and where its areas sit on it.
+                        "\"plan_width_m\"", "\"plan_depth_m\"", "\"plan_x_m\" : 1.25", "\"plan_y_m\" : 0.50",
+                        "\"plan_width_m\" : 0.60", "\"plan_depth_m\" : 0.60",
                         // #56: the garden a question belongs to is part of the export, like its space.
                         "\"garden_id\"",
                         // #38: the Telegram chat the person linked.

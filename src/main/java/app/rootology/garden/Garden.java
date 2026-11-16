@@ -28,6 +28,11 @@ class Garden {
     @jakarta.persistence.Column(name = "elevation_m")
     private Integer elevationM;
     private Instant createdAt;
+    /** The plan's size in metres (#90), both null until someone draws the plan. */
+    @jakarta.persistence.Column(name = "plan_width_m")
+    private BigDecimal planWidthM;
+    @jakarta.persistence.Column(name = "plan_depth_m")
+    private BigDecimal planDepthM;
 
     protected Garden() {
     }
@@ -57,4 +62,17 @@ class Garden {
     BigDecimal getLongitude() { return longitude; }
     String getCountryCode() { return countryCode; }
     Integer getElevationM() { return elevationM; }
+
+    BigDecimal getPlanWidthM() {
+        return planWidthM;
+    }
+
+    BigDecimal getPlanDepthM() {
+        return planDepthM;
+    }
+
+    void resizePlan(BigDecimal width, BigDecimal depth) {
+        this.planWidthM = width;
+        this.planDepthM = depth;
+    }
 }
