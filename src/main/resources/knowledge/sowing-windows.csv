@@ -39,10 +39,13 @@ broccoli,CENTRO,SOW_SEEDBED,6,7,,rootology-editorial,no
 broccoli,CENTRO,TRANSPLANT,8,8,,rootology-editorial,no
 broccoli,CENTRO,HARVEST,10,12,,rootology-editorial,no
 tuscan-kale,CENTRO,SOW_SEEDBED,5,7,,rootology-editorial,no
+tuscan-kale,CENTRO,TRANSPLANT,6,8,,rootology-editorial,no
 tuscan-kale,CENTRO,HARVEST,10,3,,rootology-editorial,no
 savoy-cabbage,CENTRO,SOW_SEEDBED,5,7,,rootology-editorial,no
+savoy-cabbage,CENTRO,TRANSPLANT,6,8,,rootology-editorial,no
 savoy-cabbage,CENTRO,HARVEST,10,2,,rootology-editorial,no
 cabbage,CENTRO,SOW_SEEDBED,3,7,spring and autumn types,rootology-editorial,no
+cabbage,CENTRO,TRANSPLANT,4,8,,rootology-editorial,no
 cabbage,CENTRO,HARVEST,6,12,,rootology-editorial,no
 turnip-tops,CENTRO,SOW,8,9,,rootology-editorial,no
 turnip-tops,CENTRO,HARVEST,10,1,,rootology-editorial,no

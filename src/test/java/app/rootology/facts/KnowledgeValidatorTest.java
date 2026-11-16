@@ -30,7 +30,7 @@ class KnowledgeValidatorTest {
         assertThat(real.needs()).hasSize(38);
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
-        assertThat(real.windows()).hasSize(93);
+        assertThat(real.windows()).hasSize(96);
     }
 
     @Test

@@ -99,6 +99,20 @@ cases:
       answer: [FEBRUARY, MARCH, APRIL, MAY]
       activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
 
+  # A seedbed crop transplanted later (#115): the months overlap, so a month can carry both activities.
+  - id: planting-cabbage-it
+    question: Quando pianto il cavolo cappuccio a Vasto?
+    intent: {kind: SOWING_TIME, subject: cavolo cappuccio, language: it, place: Vasto}
+    expect:
+      answer: [MARCH, APRIL, MAY, JUNE, JULY, AUGUST]
+      activities:
+        MARCH: [SOW_SEEDBED]
+        APRIL: [SOW_SEEDBED, TRANSPLANT]
+        MAY: [SOW_SEEDBED, TRANSPLANT]
+        JUNE: [SOW_SEEDBED, TRANSPLANT]
+        JULY: [SOW_SEEDBED, TRANSPLANT]
+        AUGUST: [TRANSPLANT]
+
   - id: companions-tomato-plural-en
     question: Which plants are companions of tomatoes?
     intent: {kind: COMPANIONS, subject: tomatoes, language: en}

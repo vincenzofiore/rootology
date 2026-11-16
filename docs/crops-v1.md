@@ -27,9 +27,9 @@ Months are Vasto's (central Italy, open field) and are the base of the derivatio
 |---|---|---|---|---|---|
 | Cavolfiore | Cauliflower | *Brassica oleracea* var. *botrytis* | Brassicaceae | Seedbed May-Jul, transplant Jul-Aug | Oct-Feb |
 | Broccolo | Broccoli | *Brassica oleracea* var. *italica* | Brassicaceae | Seedbed Jun-Jul, transplant Aug | Oct-Dec |
-| Cavolo nero | Tuscan kale | *Brassica oleracea* var. *palmifolia* | Brassicaceae | Seedbed May-Jul | Oct-Mar |
-| Cavolo verza | Savoy cabbage | *Brassica oleracea* var. *sabauda* | Brassicaceae | Seedbed May-Jul | Oct-Feb |
-| Cavolo cappuccio | Cabbage | *Brassica oleracea* var. *capitata* | Brassicaceae | Seedbed Mar-Jul (spring and autumn types) | Jun-Dec |
+| Cavolo nero | Tuscan kale | *Brassica oleracea* var. *palmifolia* | Brassicaceae | Seedbed May-Jul, transplant Jun-Aug | Oct-Mar |
+| Cavolo verza | Savoy cabbage | *Brassica oleracea* var. *sabauda* | Brassicaceae | Seedbed May-Jul, transplant Jun-Aug | Oct-Feb |
+| Cavolo cappuccio | Cabbage | *Brassica oleracea* var. *capitata* | Brassicaceae | Seedbed Mar-Jul (spring and autumn types), transplant Apr-Aug | Jun-Dec |
 | Cime di rapa | Turnip tops | *Brassica rapa* (cime di rapa group) | Brassicaceae | Sow Aug-Sep | Oct-Jan |
 | Finocchio | Florence fennel | *Foeniculum vulgare* var. *azoricum* | Apiaceae | Sow Jun-Aug | Oct-Jan |
 | Radicchio | Radicchio | *Cichorium intybus* | Asteraceae | Sow Jun-Jul | Oct-Feb |
