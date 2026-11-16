@@ -363,11 +363,12 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         String copyText = null;
         if (run.isOffDomain()) {
             card = new AnswerCard();
-            history.contextOf(run).ifPresent(card::context);
+            // The page's garden is already in the breadcrumb and in its context line (#121, #123).
+            history.contextOf(run).ifPresent(snapshot -> card.context(snapshot, pageGarden));
             card.refused(run.getAnswerText() == null ? getTranslation("ask.offdomain") : run.getAnswerText());
         } else if (run.isDecisionEscalated() && !run.isAnsweredByHuman()) {
             card = new AnswerCard();
-            history.contextOf(run).ifPresent(card::context);
+            history.contextOf(run).ifPresent(snapshot -> card.context(snapshot, pageGarden));
             card.promise(run.getDecisionReason());
         } else {
             // The same card as a fresh answer (#110): its notes and sources too, the context in the same place.

@@ -141,6 +141,69 @@ class PastAnswerTest {
                 || "!{history.answered}!".equals(c.getElement().getAttribute("aria-label")));
     }
 
+    @Test
+    void aPastOffDomainOrEscalatedCardLeavesOutTheGardenOfThePageItIsShownIn() {
+        // #123: the same rule as #121 for the two cards that are not answers.
+        String login = "past-refused-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = app.rootology.TestSpaces.personal(spaces, login);
+        long garden = gardens.saveGarden(space, login, null, "Orto sul tetto", null, null, null).id();
+        String offDomain = insertRun(space, garden, login, "Cosa pensi del calcio?", "Orto sul tetto", true, false);
+        String escalated = insertRun(space, garden, login, "Quando semino la rucola?", "Orto sul tetto", false, true);
+        // The space level: a run whose garden is gone keeps the space and its context (#56).
+        String goneGarden = insertRun(space, null, login, "Cosa pensi del calcio?", "Orto sul tetto", true, false);
+
+        AskView inGarden = askView(login);
+        inGarden.beforeEnter(opening(space, garden, offDomain));
+        assertThat(contextLines(card(inGarden))).as("the page already names its garden").containsExactly("novembre");
+
+        AskView otherInGarden = askView(login);
+        otherInGarden.beforeEnter(opening(space, garden, escalated));
+        assertThat(contextLines(card(otherInGarden))).as("the page already names its garden").containsExactly("novembre");
+        assertThat(text(card(otherInGarden))).doesNotContain("Orto sul tetto");
+
+        AskView spaceLevel = askView(login);
+        spaceLevel.beforeEnter(opening(space, goneGarden));
+        assertThat(contextLines(card(spaceLevel))).as("at the space level the garden is named")
+                .containsExactly("Orto sul tetto · novembre");
+    }
+
+    private AskView askView(String login) {
+        return new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
+                crops, knowledge, geoNames, cells, runHistory);
+    }
+
+    /** A finished run as the pipeline stores it, with the garden's name in its stored context (#55). */
+    private String insertRun(long space, Long garden, String login, String question, String gardenName,
+                             boolean offDomain, boolean escalated) {
+        String processId = UUID.randomUUID().toString();
+        String context = tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(
+                new app.rootology.pipeline.ContextSnapshot("Casa", gardenName, null, null, "NOVEMBER",
+                        app.rootology.pipeline.ContextSnapshot.MonthFrom.DEFAULT, null));
+        jdbc.sql("INSERT INTO pipeline_run (process_id, space_id, garden_id, started_by, question_id, question, "
+                        + "noise_dropout, noise_spurious, noise_mislabel, noise_near_subject, noise_seed, "
+                        + "decision_answer, decision_confidence, decision_escalated, decision_reason, answer, "
+                        + "answered_by_human, answer_text, context_json, off_domain, finished_at) "
+                        + "VALUES (?, ?, ?, ?, 'ask', ?, 0, 0, 0, false, 0, '{}'::text[], 0.4, ?, "
+                        + "'confidence below threshold', '{}'::text[], false, null, ?, ?, ?)")
+                .params(processId, space, garden, login, question, escalated, context, offDomain,
+                        Timestamp.from(Instant.now()))
+                .update();
+        return processId;
+    }
+
+    /** The card of the answer on Ask's left. */
+    private static AnswerCard card(AskView ask) {
+        return all(ask.answersShown()).filter(AnswerCard.class::isInstance).map(AnswerCard.class::cast)
+                .findFirst().orElseThrow();
+    }
+
+    /** The line above a card: its own spans, not the page's. */
+    private static List<String> contextLines(AnswerCard card) {
+        return card.getChildren().filter(com.vaadin.flow.component.html.Span.class::isInstance)
+                .map(c -> ((com.vaadin.flow.component.html.Span) c).getText()).toList();
+    }
+
     private static com.vaadin.flow.component.button.Button button(Component root, String label) {
         return all(root).filter(com.vaadin.flow.component.button.Button.class::isInstance)
                 .map(com.vaadin.flow.component.button.Button.class::cast)
@@ -157,6 +220,15 @@ class PastAnswerTest {
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
         when(event.getRouteParameters()).thenReturn(new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId))));
         when(event.getLocation()).thenReturn(new Location("spaces/" + spaceId + "/ask",
+                QueryParameters.of(AskView.RUN, processId)));
+        return event;
+    }
+
+    private static BeforeEnterEvent opening(long spaceId, long gardenId, String processId) {
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters(Map.of(
+                Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId))));
+        when(event.getLocation()).thenReturn(new Location("spaces/" + spaceId + "/gardens/" + gardenId + "/ask",
                 QueryParameters.of(AskView.RUN, processId)));
         return event;
     }
