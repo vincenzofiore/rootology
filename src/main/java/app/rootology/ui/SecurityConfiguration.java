@@ -114,6 +114,10 @@ class SecurityConfiguration {
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
         loggedOut.setDefaultTargetUrl("/" + WelcomeView.ROUTE + "?" + WelcomeView.SIGNED_OUT);
         loggedOut.setRedirectStrategy(new UidlRedirectStrategy()); // also redirects Vaadin's own requests
+        // "/" without a sign-in is the welcome page for good (#124): a permanent redirect, so search engines take
+        // /welcome as the page and not as a duplicate of "/".
+        http.addFilterAfter(new WelcomeRedirectFilter(),
+                org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class);
         // A visitor who is not signed in lands on the welcome page, not straight on GitHub (#47).
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin
                 .oauth2LoginPage("/" + WelcomeView.ROUTE)
