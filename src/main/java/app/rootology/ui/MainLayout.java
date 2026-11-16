@@ -333,9 +333,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         if (gardenId == 0) {
             nav.addItem(new SideNavItem(getTranslation("nav.members"), MembersView.class, new RouteParameters(
                     Map.of(Routed.SPACE, String.valueOf(space.id()))), VaadinIcon.USERS.create()));
-            nav.addItem(new SideNavItem(getTranslation("nav.invitations"), InvitationsView.class,
-                    new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))),
-                    VaadinIcon.ENVELOPE.create()));
             if (currentUser.hasRole(AppRole.CURATOR)) {
                 nav.addItem(new SideNavItem(getTranslation("nav.curator"), CuratorView.class, VaadinIcon.CHECK.create()));
             }

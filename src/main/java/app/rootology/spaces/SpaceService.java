@@ -1,5 +1,6 @@
 package app.rootology.spaces;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -7,6 +8,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Who belongs to which space. Every check that a person may see a space goes through here. */
 @Service
@@ -15,11 +18,29 @@ public class SpaceService {
     private final AppUserRepository users;
     private final SpaceRepository spaces;
     private final SpaceMemberRepository members;
+    private final ApplicationEventPublisher events;
 
-    SpaceService(AppUserRepository users, SpaceRepository spaces, SpaceMemberRepository members) {
+    SpaceService(AppUserRepository users, SpaceRepository spaces, SpaceMemberRepository members,
+                 ApplicationEventPublisher events) {
         this.users = users;
         this.spaces = spaces;
         this.members = members;
+        this.events = events;
+    }
+
+    /** How long the message of a change of membership may be (#105). */
+    public static final int MAX_MESSAGE = 500;
+
+    /**
+     * The optional message of a change of membership (#105): trimmed, no control characters but line breaks,
+     * at most {@link #MAX_MESSAGE} characters; empty when there is none.
+     */
+    static String checkedMessage(String message) {
+        String clean = message == null ? "" : message.replaceAll("[\\p{Cntrl}&&[^\\n]]", "").trim();
+        if (clean.length() > MAX_MESSAGE) {
+            throw new IllegalArgumentException("A message is at most " + MAX_MESSAGE + " characters");
+        }
+        return clean;
     }
 
     /** GitHub logins are case-insensitive; everything here uses them in lower case. */
@@ -49,7 +70,7 @@ public class SpaceService {
     @Transactional(readOnly = true)
     public List<SpaceSummary> spacesOf(String githubLogin) {
         return users.findByLogin(normalizeLogin(githubLogin))
-                .map(user -> members.findByUserOrderBySpaceId(user).stream()
+                .map(user -> members.findByUserAndBlockedAtIsNullOrderBySpaceId(user).stream()
                         .map(m -> new SpaceSummary(m.getSpace().getId(), m.getSpace().getName(), m.getRole(),
                                 m.getSpace().isPersonalSpaceOf(user)))
                         .toList())
@@ -77,16 +98,16 @@ public class SpaceService {
         requireOwner(spaceId, requester).getSpace().rename(checkedName(name));
     }
 
-    /** True if this person is a member of the space. */
+    /** True if this person is a member of the space, and not blocked there (#105). */
     @Transactional(readOnly = true)
     public boolean isMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin)).isPresent();
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin)).isPresent();
     }
 
-    /** True for an OWNER or MEMBER of the space; a GUEST only looks (#33). */
+    /** True for an OWNER or MEMBER of the space; a GUEST only looks (#33), a blocked member does nothing (#105). */
     @Transactional(readOnly = true)
     public boolean canContribute(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
                 .map(m -> m.getRole().contributes()).orElse(false);
     }
 
@@ -107,12 +128,12 @@ public class SpaceService {
         return spaces.findById(spaceId).map(Space::getName);
     }
 
-    /** The members of a space; only its members may list them. */
+    /** The members of a space, blocked ones too (#105); only its members may list them. */
     @Transactional(readOnly = true)
     public List<Member> membersOf(long spaceId, String requester) {
         requireMember(spaceId, requester);
         return members.findBySpaceIdOrderById(spaceId).stream()
-                .map(m -> new Member(m.getUser().getLogin(), m.getRole()))
+                .map(m -> new Member(m.getUser().getLogin(), m.getRole(), m.isBlocked()))
                 .toList();
     }
 
@@ -131,6 +152,7 @@ public class SpaceService {
             throw new IllegalArgumentException("A GitHub login is required");
         }
         if (members.findBySpaceIdAndUserLogin(spaceId, login).isPresent()) {
+            // Already listed, blocked or not: unblocking is the owner's explicit choice (#105).
             return;
         }
         AppUser user = users.findByLogin(login)
@@ -138,10 +160,10 @@ public class SpaceService {
         members.save(new SpaceMember(owner.getSpace(), user, role, Instant.now()));
     }
 
-    /** For system jobs, not for people (weather alerts, #37): every member of a space with their role. */
+    /** For system jobs, not for people (weather alerts, #37): every member of a space with their role, not blocked. */
     @Transactional(readOnly = true)
     public List<Member> membersForSystem(long spaceId) {
-        return members.findBySpaceIdOrderById(spaceId).stream()
+        return members.findBySpaceIdAndBlockedAtIsNullOrderById(spaceId).stream()
                 .map(m -> new Member(m.getUser().getLogin(), m.getRole())).toList();
     }
 
@@ -151,46 +173,91 @@ public class SpaceService {
         return users.findAll().stream().map(AppUser::getLogin).sorted().toList();
     }
 
-    /** True if this person belongs to at least one space, which lets them sign in. */
+    /** True if this person belongs to at least one space, not blocked there, which lets them sign in. */
     @Transactional(readOnly = true)
     public boolean belongsToAnySpace(String githubLogin) {
-        return members.existsByUserLogin(normalizeLogin(githubLogin));
+        return members.existsByUserLoginAndBlockedAtIsNull(normalizeLogin(githubLogin));
     }
 
     /**
-     * Removes a member. An OWNER may remove anyone; a member may remove themselves (leave).
-     * A personal space cannot be left, and a space always keeps at least one OWNER.
-     * What the space holds stays with the space.
+     * A member leaves a space (#105: the member's own choice; owners block instead of removing). A personal space
+     * cannot be left, and a space always keeps at least one OWNER. What the space holds stays with the space. The
+     * owners hear about it, with the member's message when they wrote one.
      */
     @Transactional
-    public void removeMember(long spaceId, String requester, String githubLogin) {
-        String login = normalizeLogin(githubLogin);
-        SpaceMember actor = requireMember(spaceId, requester);
-        boolean leaving = actor.getUser().getLogin().equals(login);
-        if (!leaving && actor.getRole() != Role.OWNER) {
-            throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
+    public void leave(long spaceId, String githubLogin, String message) {
+        String text = checkedMessage(message);
+        SpaceMember member = requireMember(spaceId, githubLogin);
+        if (member.getSpace().isPersonalSpaceOf(member.getUser())) {
+            throw new SpaceAccessException("Nobody can leave their own personal space");
         }
-        SpaceMember target = requireMember(spaceId, login);
-        if (target.getSpace().isPersonalSpaceOf(target.getUser())) {
-            throw new SpaceAccessException("Nobody can be removed from their own personal space");
-        }
-        requireAnotherOwnerIfOwner(spaceId, target);
-        members.delete(target);
+        requireAnotherOwnerIfOwner(spaceId, member);
+        members.delete(member);
+        Set<String> owners = members.findBySpaceIdAndBlockedAtIsNullOrderById(spaceId).stream()
+                .filter(m -> m.getRole() == Role.OWNER).map(m -> m.getUser().getLogin()).collect(Collectors.toSet());
+        events.publishEvent(new MembershipChanged(spaceId, member.getSpace().getName(), member.getUser().getLogin(),
+                owners, MembershipChanged.Event.LEFT, member.getRole(), text));
     }
 
-    /** An OWNER changes a member's role; the last OWNER cannot be demoted. */
+    /**
+     * An OWNER changes a member's role; the last OWNER cannot be demoted. The member hears about it (#105), with
+     * the owner's message when they wrote one; an owner changing their own role tells nobody.
+     */
     @Transactional
-    public void changeRole(long spaceId, String requester, String githubLogin, Role role) {
-        SpaceMember owner = requireMember(spaceId, requester);
-        if (owner.getRole() != Role.OWNER) {
-            throw new SpaceAccessException(requester + " is not an owner of space " + spaceId);
-        }
+    public void changeRole(long spaceId, String requester, String githubLogin, Role role, String message) {
+        String text = checkedMessage(message);
+        SpaceMember owner = requireOwner(spaceId, requester);
         SpaceMember target = requireMember(spaceId, githubLogin);
+        if (target.getRole() == role) {
+            return;
+        }
         if (role != Role.OWNER) {
             // Also when an owner becomes a guest: a space keeps at least one owner.
             requireAnotherOwnerIfOwner(spaceId, target);
         }
         target.changeRole(role);
+        tell(owner, target, MembershipChanged.Event.ROLE_CHANGED, text);
+    }
+
+    /**
+     * An OWNER blocks a member (#105): they stay listed as blocked, no longer see or use the space, and keep
+     * their past questions attributed. An owner is never blocked (their role changes first, so the space keeps
+     * an owner), nor anyone in their own personal space.
+     */
+    @Transactional
+    public void block(long spaceId, String requester, String githubLogin, String message) {
+        String text = checkedMessage(message);
+        SpaceMember owner = requireOwner(spaceId, requester);
+        SpaceMember target = requireMember(spaceId, githubLogin);
+        if (target.getRole() == Role.OWNER) {
+            throw new SpaceAccessException("An owner is not blocked: change their role first");
+        }
+        if (target.getSpace().isPersonalSpaceOf(target.getUser())) {
+            throw new SpaceAccessException("Nobody is blocked in their own personal space");
+        }
+        target.block(owner.getUser().getLogin(), Instant.now());
+        tell(owner, target, MembershipChanged.Event.BLOCKED, text);
+    }
+
+    /** An OWNER unblocks a blocked member (#105): they are a member again, with the role they had. */
+    @Transactional
+    public void unblock(long spaceId, String requester, String githubLogin) {
+        SpaceMember owner = requireOwner(spaceId, requester);
+        SpaceMember target = members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin))
+                .filter(SpaceMember::isBlocked)
+                .orElseThrow(() -> new SpaceAccessException(githubLogin + " is not blocked in space " + spaceId));
+        target.unblock();
+        tell(owner, target, MembershipChanged.Event.UNBLOCKED, "");
+    }
+
+    /** Tells a member what an owner did to their membership (#105), unless the owner did it to themselves. */
+    private void tell(SpaceMember owner, SpaceMember target, MembershipChanged.Event event, String message) {
+        String to = target.getUser().getLogin();
+        if (to.equals(owner.getUser().getLogin())) {
+            return;
+        }
+        events.publishEvent(new MembershipChanged(target.getSpace().getId(), target.getSpace().getName(),
+                owner.getUser().getLogin(), Set.of(to), event, target.getRole(), message));
     }
 
     /** Adds someone who accepted an invitation; does nothing if they are already a member. */
@@ -219,11 +286,12 @@ public class SpaceService {
     }
 
     private long countOwners(long spaceId) {
-        return members.countBySpaceIdAndRole(spaceId, Role.OWNER);
+        return members.countBySpaceIdAndRoleAndBlockedAtIsNull(spaceId, Role.OWNER);
     }
 
+    /** An active member: a blocked one is a member for nothing (#105). */
     private SpaceMember requireMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLogin(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
                 .orElseThrow(() -> new SpaceAccessException(githubLogin + " is not a member of space " + spaceId));
     }
 }

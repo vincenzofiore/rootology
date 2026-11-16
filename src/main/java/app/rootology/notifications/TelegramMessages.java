@@ -48,6 +48,11 @@ final class TelegramMessages {
         return new Item("una richiesta di invito aspetta una decisione", link);
     }
 
+    /** A change of membership (#105): what changed and where, never who wrote what. */
+    static Item membership(String event, String spaceName, String link) {
+        return new Item(MembershipText.subject(event, spaceName), link);
+    }
+
     /** One message for everything that happened since the last tick, or nothing when there is nothing. */
     static String digest(List<Item> items) {
         if (items.isEmpty()) {

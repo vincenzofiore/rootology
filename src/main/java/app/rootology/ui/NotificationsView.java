@@ -118,6 +118,15 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
      */
     private void open(NotificationView n) {
         notifications.markRead(currentUser.login(), n.id());
+        if (n.membership()) {
+            // #105: it says everything itself; a member who left leads an owner to the members page.
+            if ("LEFT".equals(n.event()) && currentUser.memberOf(n.spaceId())) {
+                getUI().ifPresent(ui -> ui.navigate(MembersView.class, new com.vaadin.flow.router.RouteParameters(
+                        Routed.SPACE, String.valueOf(n.spaceId()))));
+            }
+            refresh();
+            return;
+        }
         if (n.accessRequest()) {
             // #65: it is about the app, not about a space, and only an admin can decide.
             getUI().ifPresent(ui -> ui.navigate(AdminView.class));
@@ -195,6 +204,10 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         if (n.accessRequest()) {
             return getTranslation("notifications.where.admin");
         }
+        if (n.membership() && n.spaceName() != null) {
+            // The name then (#105): a blocked member no longer sees the space.
+            return n.spaceName();
+        }
         String space = currentUser.spaces().stream().filter(s -> s.id() == n.spaceId()).map(s -> s.name())
                 .findFirst().orElse("");
         if (n.gardenId() <= 0) {
@@ -207,6 +220,13 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** What happened, in a word or in the alert's own title: the table's "What" and the card's main line. */
     String what(NotificationView n) {
+        if (n.membership()) {
+            String event = n.event() == null ? "" : n.event();
+            return event.startsWith("ROLE:")
+                    ? getTranslation("notifications.membership.role", n.askedBy(),
+                            getTranslation("role." + event.substring(5)))
+                    : getTranslation("notifications.membership." + event.toLowerCase(java.util.Locale.ROOT), n.askedBy());
+        }
         return n.weather() ? n.title()
                 : n.accessRequest() ? getTranslation("notifications.accessrequest")
                 : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting");
@@ -219,7 +239,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** Waiting for a person or answered by one; the other kinds carry their news in the title (#93). */
     String status(NotificationView n) {
-        if (n.weather() || n.answered() || n.accessRequest()) {
+        if (n.weather() || n.answered() || n.accessRequest() || n.membership()) {
             return "";
         }
         return n.resolvedAt() == null ? getTranslation("notifications.status.waiting")
@@ -228,7 +248,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     private Button openButton(NotificationView n) {
         Button open = RowActions.open(getTranslation("notifications.open"), e -> open(n));
-        open.setVisible(n.resolvedAt() == null);
+        // A change of membership opens nothing but the members page a member left (#105).
+        open.setVisible(n.resolvedAt() == null && (!n.membership() || "LEFT".equals(n.event())));
         return open;
     }
 

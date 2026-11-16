@@ -63,6 +63,18 @@ final class RowActions {
         return button;
     }
 
+    /** Blocking a member of a space (#105): a no-entry sign, red like every action that takes something away. */
+    static Button block(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        Button button = icon(VaadinIcon.BAN, label, listener);
+        button.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        return button;
+    }
+
+    /** Unblocking a member (#105): an open lock. */
+    static Button unblock(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.UNLOCK, label, listener);
+    }
+
     /** Putting a question and its answer on the clipboard (#82). */
     static Button copy(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         return icon(VaadinIcon.COPY, label, listener);

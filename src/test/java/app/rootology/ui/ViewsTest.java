@@ -154,8 +154,7 @@ class ViewsTest {
 
     @Test
     void historySpaceAndCuratorViewsBuild() {
-        assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
-        assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
+        assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, STYLE, "")
                 .getChildren()).isNotEmpty();

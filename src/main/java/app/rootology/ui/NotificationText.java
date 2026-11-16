@@ -15,6 +15,10 @@ final class NotificationText {
             // A row stored before #94 has the sentence written then; a new one has no body at all.
             return n.body() != null ? n.body() : in.get("notifications.details.answered", n.resolvedBy());
         }
+        if (n.membership()) {
+            // The message of who acted (#105), quoted, or nothing.
+            return n.body() == null ? "" : "«" + n.body() + "»";
+        }
         if (n.askedBy() == null) {
             // A weather alert, an invitation request, or a waiting question stored before #94.
             return n.body() == null ? "" : n.body();

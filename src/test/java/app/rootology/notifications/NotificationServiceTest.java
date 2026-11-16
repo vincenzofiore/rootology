@@ -229,6 +229,42 @@ class NotificationServiceTest {
     }
 
     @Test
+    void aChangeOfMembershipTellsTheMemberWithTheOwnersMessageAndALeaveTellsTheOwners() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        long space = space("m-oriana", "m-piero", "m-quinto");
+        notifications.save("m-piero", new NotificationPreferences("m-piero@example.org", true, true, true, true, null, null));
+
+        spaces.block(space, "m-oriana", "m-piero", "Ci rivediamo in primavera");
+
+        assertThat(notifications.of("m-piero", 10)).singleElement().satisfies(n -> {
+            assertThat(n.membership()).isTrue();
+            assertThat(n.event()).isEqualTo("BLOCKED");
+            assertThat(n.askedBy()).as("who acted").isEqualTo("m-oriana");
+            assertThat(n.body()).isEqualTo("Ci rivediamo in primavera");
+            assertThat(n.spaceName()).isEqualTo("m-oriana");
+        });
+        now = now.plus(Duration.ofMinutes(3));
+        assertThat(notifications.digest()).isEqualTo(1);
+        JsonNode mail = messageTo("m-piero@example.org");
+        assertThat(mail.path("Subject").asString()).isEqualTo("Rootology: il tuo accesso a m-oriana è bloccato");
+        assertThat(mail.path("Text").asString()).contains("m-oriana ti ha bloccato in m-oriana")
+                .contains("«Ci rivediamo in primavera»");
+
+        spaces.changeRole(space, "m-oriana", "m-quinto", Role.MEMBER, "");
+        assertThat(notifications.of("m-quinto", 10)).singleElement().satisfies(n -> {
+            assertThat(n.event()).isEqualTo("ROLE:MEMBER");
+            assertThat(n.body()).as("no message, no body").isNull();
+        });
+
+        spaces.leave(space, "m-quinto", "Grazie di tutto");
+        assertThat(notifications.of("m-oriana", 10)).singleElement().satisfies(n -> {
+            assertThat(n.event()).isEqualTo("LEFT");
+            assertThat(n.askedBy()).isEqualTo("m-quinto");
+            assertThat(n.body()).isEqualTo("Grazie di tutto");
+        });
+    }
+
+    @Test
     void anAskerWhoLeftTheSpaceIsNotNotified() {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("n-nina", "n-otto", "n-pia");
@@ -236,7 +272,7 @@ class NotificationServiceTest {
 
         waiting("p-9", space, "n-otto", "Domanda?");
         notifications.markRead("n-otto", null);
-        spaces.removeMember(space, "n-otto", "n-otto"); // he leaves while his question waits
+        spaces.leave(space, "n-otto", ""); // he leaves while his question waits
 
         events.publishEvent(new EscalationResolved("p-9", space, 0, "n-otto", "n-nina", now));
         now = now.plus(Duration.ofMinutes(3));
