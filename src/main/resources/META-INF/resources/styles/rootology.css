@@ -532,7 +532,9 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-page-title {
     /* From zero, so a long title wraps beside the action instead of pushing it to a line of its own. */
     flex: 1 1 0;
-    min-width: 0;
+    /* Never narrower than a short word (#126): on a phone, two actions beside "Aree" broke it letter by letter;
+       now the actions wrap to the next line instead. */
+    min-width: min(100%, 9ch);
     margin: 0;
     /* The page's second level under the wordmark's h1, now an h2 and with the look it had as an h3 (#113): the
        title size, Lumo's heading weight and line height, no margin. */
