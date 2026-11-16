@@ -64,6 +64,20 @@ public class AccountView extends Div implements HasDynamicTitle, BeforeEnterObse
         String login = currentUser.login();
         add(new PageHeader(getTranslation("account.title")), new Paragraph(getTranslation("account.signedin", login)));
 
+        // The name other people see (#106): changed freely, the login stays the key.
+        add(new H3(getTranslation("name.title")), new Paragraph(getTranslation("name.text")));
+        DisplayNameField name = new DisplayNameField(currentUser);
+        Button saveName = new Button(getTranslation("name.save"), e -> {
+            if (name.save()) {
+                Toasts.done(getTranslation("name.saved", name.getValue()));
+                java.util.Optional.ofNullable(findAncestor(MainLayout.class)).ifPresent(MainLayout::showName);
+            }
+        });
+        HorizontalLayout nameRow = new HorizontalLayout(name, saveName);
+        nameRow.addClassName("rootology-name-row");
+        nameRow.setAlignItems(FlexComponent.Alignment.BASELINE);
+        add(nameRow);
+
         add(new H3(getTranslation("account.signin.title")), new Paragraph(getTranslation("account.signin.text")));
         add(signInAccounts(login, identities));
 

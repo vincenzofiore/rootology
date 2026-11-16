@@ -21,9 +21,9 @@ final class AnswerCards {
      * @param pageGarden the name of the garden the page is about, so the card does not say it again (#121);
      *                   null at the space level
      */
-    static AnswerCard of(PipelineAnswer answer, long spaceId, String login, String pageGarden, SourceCatalog sources,
+    static AnswerCard of(PipelineAnswer answer, long spaceId, CurrentUser user, String pageGarden, SourceCatalog sources,
                          KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, Instant.now(), spaceId, login, pageGarden, sources, enrichment, in, false);
+        return build(answer, Instant.now(), spaceId, user, pageGarden, sources, enrichment, in, false);
     }
 
     /**
@@ -35,12 +35,12 @@ final class AnswerCards {
      * @param sourcesRecorded whether the row was stored with its sources (Flyway V33)
      */
     static AnswerCard ofPast(PipelineAnswer answer, Instant askedAt, boolean sourcesRecorded, long spaceId,
-                             String login, String pageGarden, SourceCatalog sources, KnowledgeEnrichment enrichment,
+                             CurrentUser user, String pageGarden, SourceCatalog sources, KnowledgeEnrichment enrichment,
                              Component in) {
-        return build(answer, askedAt, spaceId, login, pageGarden, sources, enrichment, in, !sourcesRecorded);
+        return build(answer, askedAt, spaceId, user, pageGarden, sources, enrichment, in, !sourcesRecorded);
     }
 
-    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, String login, String pageGarden,
+    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, CurrentUser user, String pageGarden,
                                    SourceCatalog sources, KnowledgeEnrichment enrichment, Component in,
                                    boolean storedBeforeSources) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
@@ -48,10 +48,10 @@ final class AnswerCards {
             if (id.equals("garden")) {
                 lines.add(new AnswerCard.SourceLine(VaadinIcon.HOME_O, in.getTranslation("ask.source.garden"), null));
             }
-            enrichment.source(spaceId, login, id).ifPresent(p -> lines.add(
+            enrichment.source(spaceId, user.login(), id).ifPresent(p -> lines.add(
                     new AnswerCard.SourceLine(VaadinIcon.USER_STAR, p.scope() == ProposalScope.GLOBAL
                             ? in.getTranslation("ask.source.global", String.valueOf(p.id()), p.citation())
-                            : in.getTranslation("ask.source.space", p.proposedBy(), String.valueOf(p.id())), null)));
+                            : in.getTranslation("ask.source.space", user.nameOf(p.proposedBy()), String.valueOf(p.id())), null)));
             sources.byId(id).ifPresent(s -> lines.add(
                     new AnswerCard.SourceLine(VaadinIcon.BOOK, sourceTitle(id, s.title(), in), s.url())));
         }
@@ -62,7 +62,8 @@ final class AnswerCards {
         CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, in)
                 .ifPresent(card::verdict);
         if (answer.answeredByHuman()) {
-            card.answeredBy(answer.text(), answer.answer(), answer.reviewer(), answer.activities());
+            // The reviewer is stored by login; people read their display name (#106).
+            card.answeredBy(answer.text(), answer.answer(), user.nameOf(answer.reviewer()), answer.activities());
         } else {
             card.answered(answer.text(), answer.answer(), answer.confidence(), answer.activities());
         }

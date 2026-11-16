@@ -233,6 +233,9 @@ class NotificationServiceTest {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("m-oriana", "m-piero", "m-quinto");
         notifications.save("m-piero", new NotificationPreferences("m-piero@example.org", true, true, true, true, null, null));
+        // The email names people by their display name (#106); the row keeps the login. Her personal space
+        // was still called after her login, so it takes the name too.
+        spaces.chooseName("m-oriana", "Oriana B.");
 
         spaces.block(space, "m-oriana", "m-piero", "Ci rivediamo in primavera");
 
@@ -241,13 +244,13 @@ class NotificationServiceTest {
             assertThat(n.event()).isEqualTo("BLOCKED");
             assertThat(n.askedBy()).as("who acted").isEqualTo("m-oriana");
             assertThat(n.body()).isEqualTo("Ci rivediamo in primavera");
-            assertThat(n.spaceName()).isEqualTo("m-oriana");
+            assertThat(n.spaceName()).isEqualTo("Oriana B.");
         });
         now = now.plus(Duration.ofMinutes(3));
         assertThat(notifications.digest()).isEqualTo(1);
         JsonNode mail = messageTo("m-piero@example.org");
-        assertThat(mail.path("Subject").asString()).isEqualTo("Rootology: il tuo accesso a m-oriana è bloccato");
-        assertThat(mail.path("Text").asString()).contains("m-oriana ti ha bloccato in m-oriana")
+        assertThat(mail.path("Subject").asString()).isEqualTo("Rootology: il tuo accesso a Oriana B. è bloccato");
+        assertThat(mail.path("Text").asString()).contains("Oriana B. ti ha bloccato in Oriana B.")
                 .contains("«Ci rivediamo in primavera»");
 
         spaces.changeRole(space, "m-oriana", "m-quinto", Role.MEMBER, "");

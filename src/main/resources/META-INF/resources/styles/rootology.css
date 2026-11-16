@@ -1970,3 +1970,17 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
     width: var(--rootology-dialog-width);
     box-sizing: border-box;
 }
+/* The display name (#106): the prompt is as wide as the members' dialogs, the account row keeps the field
+   and Save together and wraps on a phone. */
+.rootology-name-prompt::part(content) {
+    width: min(28rem, calc(100vw - 2 * var(--lumo-space-m)));
+    box-sizing: border-box;
+}
+.rootology-name-row {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 32rem;
+}
+.rootology-name-row vaadin-text-field {
+    flex: 1 1 14rem;
+}

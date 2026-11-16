@@ -37,7 +37,7 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
         note.setWidth("36rem");
         queue.addColumn(p -> text.describe(this, p)).setHeader(getTranslation("knowledge.fact")).setFlexGrow(3);
         queue.addColumn(ProposalSummary::citation).setHeader(getTranslation("knowledge.source")).setFlexGrow(2);
-        queue.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
+        queue.addColumn(p -> currentUser.nameOf(p.proposedBy())).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
         queue.addComponentColumn(p -> new HorizontalLayout(
                 new Button(getTranslation("knowledge.approve"), e -> act(() ->
                         enrichment.approve(currentUser.login(), p.id(), note.getValue()))),

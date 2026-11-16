@@ -99,7 +99,7 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         refresh();
     }
 
-    /** One member: avatar, login, role, blocked, and the owner's actions on someone else. */
+    /** One member: avatar, display name (#106), role, blocked, and the owner's actions on someone else. */
     private Component card(Member member) {
         boolean self = member.githubLogin().equals(currentUser.login());
         Div card = new Div();
@@ -107,11 +107,11 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         if (member.blocked()) {
             card.addClassName("rootology-member-card-blocked");
         }
-        Avatar avatar = new Avatar(member.githubLogin());
+        Avatar avatar = new Avatar(member.displayName());
         avatar.addClassName("rootology-member-card-avatar");
         Div text = new Div();
         text.addClassName("rootology-member-card-text");
-        Span login = new Span(self ? getTranslation("members.you", member.githubLogin()) : member.githubLogin());
+        Span login = new Span(self ? getTranslation("members.you", member.displayName()) : member.displayName());
         login.addClassName("rootology-member-card-name");
         Span role = new Span(getTranslation("role." + member.role().name()));
         role.addClassName("rootology-member-card-role");
@@ -149,7 +149,7 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
                 : getTranslation("space.invite.anyone"));
         forWhom.addClassName("rootology-member-card-name");
         Span details = new Span(getTranslation("members.invitation.details",
-                getTranslation("role." + invitation.role().name()), invitation.createdBy()));
+                getTranslation("role." + invitation.role().name()), currentUser.nameOf(invitation.createdBy())));
         details.addClassName("rootology-member-card-role");
         Span expires = new Span(new Span(getTranslation("space.invite.expires") + " "),
                 DateText.dateSpan(invitation.expiresAt().atZone(DateText.ITALY).toLocalDate(), this));
@@ -170,20 +170,20 @@ public class MembersView extends VerticalLayout implements HasDynamicTitle, Befo
         role.setItemLabelGenerator(r -> getTranslation("role." + r.name()));
         role.setValue(member.role());
         role.setWidthFull();
-        messageDialog(getTranslation("members.role.title", member.githubLogin()), null, role,
+        messageDialog(getTranslation("members.role.title", member.displayName()), null, role,
                 getTranslation("common.save"), false,
                 message -> spaces.changeRole(spaceId, currentUser.login(), member.githubLogin(), role.getValue(),
                         message));
     }
 
     private void blockDialog(Member member) {
-        messageDialog(getTranslation("members.block.title", member.githubLogin()),
+        messageDialog(getTranslation("members.block.title", member.displayName()),
                 getTranslation("members.block.text"), null, getTranslation("members.block"), true,
                 message -> spaces.block(spaceId, currentUser.login(), member.githubLogin(), message));
     }
 
     private void unblockDialog(Member member) {
-        Dialog dialog = new Dialog(getTranslation("members.unblock.title", member.githubLogin()));
+        Dialog dialog = new Dialog(getTranslation("members.unblock.title", member.displayName()));
         dialog.add(new Paragraph(getTranslation("members.unblock.text")));
         Button confirm = new Button(getTranslation("members.unblock"), e -> {
             dialog.close();

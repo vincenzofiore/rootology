@@ -20,6 +20,10 @@ class AppUser {
     private String login;
     private Instant createdAt;
     private Instant firstLoginAt;
+    /** Chosen by the person (#106); null until then, and then shown as the login. */
+    private String displayName;
+    /** When the person saw the first-sign-in prompt for a name, chose or skipped it (#106). */
+    private Instant nameAskedAt;
 
     protected AppUser() {
     }
@@ -44,5 +48,29 @@ class AppUser {
 
     void markFirstLogin(Instant now) {
         this.firstLoginAt = now;
+    }
+
+    /** The name other people see (#106): the chosen one, otherwise the login. */
+    String shownName() {
+        return displayName != null ? displayName : login;
+    }
+
+    String getDisplayName() {
+        return displayName;
+    }
+
+    void chooseName(String name, Instant now) {
+        this.displayName = name;
+        askedForName(now);
+    }
+
+    boolean wasAskedForName() {
+        return nameAskedAt != null;
+    }
+
+    void askedForName(Instant now) {
+        if (nameAskedAt == null) {
+            nameAskedAt = now;
+        }
     }
 }

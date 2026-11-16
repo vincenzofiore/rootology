@@ -105,7 +105,7 @@ class SpaceServiceTest {
         assertThat(spaces.isMember(garden, "bea")).isFalse();
         assertThat(spaces.canContribute(garden, "bea")).isFalse();
         assertThat(spaces.spacesOf("bea")).extracting(SpaceSummary::id).doesNotContain(garden);
-        assertThat(spaces.membersOf(garden, "ada")).contains(new Member("bea", Role.MEMBER, true));
+        assertThat(spaces.membersOf(garden, "ada")).contains(new Member("bea", "bea", Role.MEMBER, true));
         assertThat(spaces.membersForSystem(garden)).extracting(Member::githubLogin).doesNotContain("bea");
         assertThatThrownBy(() -> spaces.membersOf(garden, "bea")).isInstanceOf(SpaceAccessException.class);
         assertThatThrownBy(() -> spaces.block(garden, "cid", "ada", "")).isInstanceOf(SpaceAccessException.class);
@@ -183,5 +183,53 @@ class SpaceServiceTest {
         assertThatThrownBy(() -> spaces.membersOf(garden, "ivan"))
                 .isInstanceOf(SpaceAccessException.class);
         assertThat(spaces.isMember(garden, "ivan")).isFalse();
+    }
+
+    @Test
+    void aPersonChoosesTheNameOthersSeeAndThePromptIsAskedOnce() {
+        spaces.signedIn("dn-ugo");
+        assertThat(spaces.asksForName("dn-ugo")).isTrue();
+        assertThat(spaces.displayName("dn-ugo")).as("the login until a name is chosen").isEqualTo("dn-ugo");
+
+        assertThat(spaces.chooseName("DN-UGO", "  Ugo \t  Rossi ")).isEqualTo("Ugo Rossi");
+
+        assertThat(spaces.asksForName("dn-ugo")).isFalse();
+        assertThat(spaces.displayName("dn-ugo")).isEqualTo("Ugo Rossi");
+        assertThat(spaces.chosenName("dn-ugo")).contains("Ugo Rossi");
+        assertThat(spaces.spacesOf("dn-ugo")).singleElement().extracting(SpaceSummary::name)
+                .as("the personal space, still called after the login, takes the name").isEqualTo("Ugo Rossi");
+        long space = app.rootology.TestSpaces.personal(spaces, "dn-ugo");
+        assertThat(spaces.membersOf(space, "dn-ugo")).singleElement()
+                .extracting(Member::githubLogin, Member::displayName).containsExactly("dn-ugo", "Ugo Rossi");
+
+        // A second change leaves a personal space the person renamed themselves alone.
+        spaces.rename(space, "dn-ugo", "Orto di casa");
+        spaces.chooseName("dn-ugo", "Ugo R.");
+        assertThat(spaces.spacesOf("dn-ugo")).singleElement().extracting(SpaceSummary::name).isEqualTo("Orto di casa");
+        assertThat(spaces.displayNames(java.util.List.of("dn-ugo", "DN-UGO", "nobody-known")))
+                .containsEntry("dn-ugo", "Ugo R.").containsEntry("DN-UGO", "Ugo R.")
+                .containsEntry("nobody-known", "nobody-known");
+    }
+
+    @Test
+    void skippingKeepsTheLoginAndNobodyShowsAnotherPersonsName() {
+        spaces.signedIn("dn-vera");
+        spaces.signedIn("dn-walt");
+        spaces.skipName("dn-walt");
+        assertThat(spaces.asksForName("dn-walt")).isFalse();
+        assertThat(spaces.displayName("dn-walt")).isEqualTo("dn-walt");
+
+        spaces.chooseName("dn-vera", "Vera Dn");
+        assertThatThrownBy(() -> spaces.chooseName("dn-walt", "VERA DN"))
+                .as("another person's chosen name, ignoring case").isInstanceOf(DisplayNameTakenException.class);
+        assertThatThrownBy(() -> spaces.chooseName("dn-vera", "DN-Walt"))
+                .as("another person's login while they keep it").isInstanceOf(DisplayNameTakenException.class);
+        assertThatThrownBy(() -> spaces.chooseName("dn-walt", "x")).isInstanceOf(IllegalArgumentException.class)
+                .isNotInstanceOf(DisplayNameTakenException.class);
+        assertThatThrownBy(() -> spaces.chooseName("dn-walt", "x".repeat(SpaceService.MAX_DISPLAY_NAME + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(spaces.chooseName("dn-vera", "vera dn")).as("one's own name in another case").isEqualTo("vera dn");
+        assertThat(spaces.chooseName("dn-walt", "dn-walt")).as("one's own login").isEqualTo("dn-walt");
     }
 }

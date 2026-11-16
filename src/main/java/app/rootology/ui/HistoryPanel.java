@@ -104,11 +104,16 @@ class HistoryPanel extends Div {
     /** The keys of the questions open on Ask's left ("past-<id>", "waiting-<process id>"), marked here (#119). */
     private final java.util.Set<String> openKeys = new java.util.HashSet<>();
     private String login = "";
+    /** The display names of the askers (#106), read once per load; the entries keep the logins. */
+    private final java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf;
+    private java.util.Map<String, String> names = java.util.Map.of();
     /** Whether the panel lists every garden of the space (#109): true only at the space level. */
     private boolean spaceLevel;
 
     HistoryPanel(RunHistory history, GardenPipeline pipeline, Consumer<PipelineRunRecord> open,
-                 Consumer<PendingReview> openWaiting) {
+                 Consumer<PendingReview> openWaiting,
+                 java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf) {
+        this.namesOf = namesOf;
         this.history = history;
         this.pipeline = pipeline;
         this.open = open;
@@ -163,6 +168,7 @@ class HistoryPanel extends Div {
                     .forEach(all::add);
             entries = List.copyOf(all);
         }
+        names = namesOf.apply(entries.stream().map(Entry::askedBy).filter(java.util.Objects::nonNull).toList());
         show();
     }
 
@@ -399,7 +405,8 @@ class HistoryPanel extends Div {
         }
         Span question = new Span(entry.question());
         question.addClassName("rootology-history-card-question");
-        Span askedBy = new Span(getTranslation("history.askedby") + " " + entry.askedBy());
+        Span askedBy = new Span(getTranslation("history.askedby") + " "
+                + names.getOrDefault(entry.askedBy(), entry.askedBy()));
         askedBy.addClassNames(FontSize.XSMALL, TextColor.SECONDARY);
         // Inside a garden there is no context line (the panel is already that garden's); at the space level
         // every card says which garden its question belongs to, or that it has none (#109).

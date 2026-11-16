@@ -62,6 +62,40 @@ public class CurrentUser {
         return login;
     }
 
+    /** The name other people see for the signed-in person (#106), re-read so a change shows at once. */
+    public String name() {
+        return pending ? login : spaces.displayName(login);
+    }
+
+    /** The name a page shows for a person known by login (#106); null stays null. */
+    public String nameOf(String someone) {
+        return someone == null ? null : spaces.displayName(someone);
+    }
+
+    /** The name the person chose (#106), empty when they keep the login. */
+    public java.util.Optional<String> chosenName() {
+        return pending ? java.util.Optional.empty() : spaces.chosenName(login);
+    }
+
+    /** True until the person saw the prompt for a name once (#106). */
+    public boolean asksForName() {
+        return !pending && spaces.asksForName(login);
+    }
+
+    /** See {@link SpaceService#chooseName}. */
+    public String chooseName(String name) {
+        return spaces.chooseName(login, name);
+    }
+
+    public void skipName() {
+        spaces.skipName(login);
+    }
+
+    /** The names for the logins of a list (#106), in one query; a login not known stays as it is. */
+    public java.util.Map<String, String> namesOf(java.util.Collection<String> logins) {
+        return spaces.displayNames(logins);
+    }
+
     /** An app role (#32) of the signed-in person, from the authorities given at sign-in. */
     public boolean hasRole(AppRole role) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();

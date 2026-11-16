@@ -5,7 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -64,6 +68,87 @@ public class SpaceService {
         // The personal space is called after its owner (#79): no English "garden" in an Italian UI.
         Space personal = spaces.save(new Space(login, now, user));
         members.save(new SpaceMember(personal, user, Role.OWNER, now));
+    }
+
+    /** How long a display name may be (#106): enough for a first and last name, short enough for a card. */
+    public static final int MAX_DISPLAY_NAME = 40;
+
+    /**
+     * A display name as people read it (#106): no control characters, spaces collapsed and trimmed, two to
+     * {@link #MAX_DISPLAY_NAME} characters.
+     */
+    static String checkedDisplayName(String name) {
+        String clean = name == null ? "" : name.replaceAll("\\p{Cntrl}", " ").replaceAll("\\s+", " ").trim();
+        if (clean.length() < 2) {
+            throw new IllegalArgumentException("A display name has at least 2 characters");
+        }
+        if (clean.length() > MAX_DISPLAY_NAME) {
+            throw new IllegalArgumentException("A display name is at most " + MAX_DISPLAY_NAME + " characters");
+        }
+        return clean;
+    }
+
+    /** The name other people see for this login (#106); the login itself for someone the app does not know. */
+    @Transactional(readOnly = true)
+    public String displayName(String login) {
+        if (login == null) {
+            return null;
+        }
+        return users.findByLogin(normalizeLogin(login)).map(AppUser::shownName).orElse(login);
+    }
+
+    /** The names for several logins at once (#106), for a list; a login the app does not know stays as it is. */
+    @Transactional(readOnly = true)
+    public Map<String, String> displayNames(Collection<String> logins) {
+        Set<String> wanted = logins.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, String> names = new HashMap<>();
+        wanted.forEach(login -> names.put(login, login));
+        if (!wanted.isEmpty()) {
+            Map<String, String> byNormal = users.findByLoginIn(wanted.stream().map(SpaceService::normalizeLogin)
+                    .collect(Collectors.toSet())).stream().collect(Collectors.toMap(AppUser::getLogin, AppUser::shownName));
+            wanted.forEach(login -> names.put(login, byNormal.getOrDefault(normalizeLogin(login), login)));
+        }
+        return names;
+    }
+
+    /** The name the person chose (#106), empty when they chose none. */
+    @Transactional(readOnly = true)
+    public Optional<String> chosenName(String login) {
+        return users.findByLogin(normalizeLogin(login)).map(AppUser::getDisplayName);
+    }
+
+    /** True until the person has seen the prompt for a name once, choosing or skipping (#106). */
+    @Transactional(readOnly = true)
+    public boolean asksForName(String login) {
+        return users.findByLogin(normalizeLogin(login)).map(u -> !u.wasAskedForName()).orElse(false);
+    }
+
+    /** The person skipped the prompt for a name (#106): they keep the login, and choose later in My account. */
+    @Transactional
+    public void skipName(String login) {
+        users.findByLogin(normalizeLogin(login)).ifPresent(u -> u.askedForName(Instant.now()));
+    }
+
+    /**
+     * The person chooses the name other people see (#106), freely and as often as they like. No one else may
+     * show the same name, ignoring case: neither as a chosen name nor as a login. Their personal space, still
+     * called after their login, takes the new name.
+     *
+     * @throws DisplayNameTakenException when someone else shows that name
+     */
+    @Transactional
+    public String chooseName(String login, String name) {
+        AppUser user = users.findByLogin(normalizeLogin(login))
+                .orElseThrow(() -> new SpaceAccessException(login + " is not known"));
+        String checked = checkedDisplayName(name);
+        if (users.nameShownByAnother(user.getLogin(), checked)) {
+            throw new DisplayNameTakenException(checked);
+        }
+        String before = user.shownName();
+        user.chooseName(checked, Instant.now());
+        spaces.findByPersonalOf(user).filter(s -> s.getName().equals(before) || s.getName().equals(user.getLogin()))
+                .ifPresent(s -> s.rename(checked));
+        return checked;
     }
 
     /** The spaces this person belongs to, oldest first (their personal space comes first). */
@@ -133,7 +218,7 @@ public class SpaceService {
     public List<Member> membersOf(long spaceId, String requester) {
         requireMember(spaceId, requester);
         return members.findBySpaceIdOrderById(spaceId).stream()
-                .map(m -> new Member(m.getUser().getLogin(), m.getRole(), m.isBlocked()))
+                .map(m -> new Member(m.getUser().getLogin(), m.getUser().shownName(), m.getRole(), m.isBlocked()))
                 .toList();
     }
 
@@ -164,7 +249,7 @@ public class SpaceService {
     @Transactional(readOnly = true)
     public List<Member> membersForSystem(long spaceId) {
         return members.findBySpaceIdAndBlockedAtIsNullOrderById(spaceId).stream()
-                .map(m -> new Member(m.getUser().getLogin(), m.getRole())).toList();
+                .map(m -> new Member(m.getUser().getLogin(), m.getUser().shownName(), m.getRole(), false)).toList();
     }
 
     /** Every person the app knows (signed in, or added to a space), by login. */

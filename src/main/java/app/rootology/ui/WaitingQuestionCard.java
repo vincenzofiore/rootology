@@ -43,6 +43,8 @@ class WaitingQuestionCard extends AnswerCard {
     private final Checkbox none;
     private final TextField note = new TextField();
     private final Button answer = new Button();
+    /** Who asked: the login until the page gives the display name (#106) through {@link #askedBy}. */
+    private final Span asker = new Span();
 
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished) {
@@ -150,12 +152,21 @@ class WaitingQuestionCard extends AnswerCard {
         }
     }
 
+    /** The name other people see for whoever asked (#106); the card knows only the login. */
+    WaitingQuestionCard askedBy(String name) {
+        if (name != null && !asker.getText().isEmpty()) {
+            asker.setText(getTranslation("escalations.asked", name));
+        }
+        return this;
+    }
+
     /** Who asked and when, and how sure the decision layer was: the number, clearly labelled. */
     private Div meta(PendingReview review, boolean withDate) {
         Div meta = new Div();
         meta.addClassName("rootology-waiting-meta");
         if (review.context().startedBy() != null) {
-            meta.add(new Span(getTranslation("escalations.asked", review.context().startedBy())));
+            asker.setText(getTranslation("escalations.asked", review.context().startedBy()));
+            meta.add(asker);
         }
         // On Ask the date is already on the item's line above the card (#113).
         if (withDate && review.askedAt() != null) {

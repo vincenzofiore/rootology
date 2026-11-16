@@ -50,6 +50,8 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private final GardenPipeline pipeline;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
+    private final Avatar avatar = new Avatar();
+    private final Span who = new Span();
     /** The space of the page being shown; choosing another one opens its gardens (#56). */
     private final ComboBox<SpaceSummary> space = new ComboBox<>();
     /** On a phone the navbar is full (#79): the same switcher lives in the side menu, below the name. */
@@ -96,11 +98,11 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
 
         switcher(space, "rootology-space-switcher");
         switcher(drawerSpace, "rootology-space-switcher-narrow");
-        // The person's menu, top right (#40): their account and signing out. The login hides on a phone.
-        Avatar avatar = new Avatar(currentUser.login());
+        // The person's menu, top right (#40): their account and signing out. The name hides on a phone; it is
+        // the display name the person chose (#106), never the login.
+        showName();
         avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
         avatar.getElement().setAttribute("aria-hidden", "true");
-        Span who = new Span(currentUser.login());
         who.addClassName("rootology-wide-only");
         Div person = new Div(avatar, who);
         person.addClassName("rootology-person");
@@ -386,6 +388,17 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             }
         });
         showScheme();
+        // The name other people see (#106), asked once: at the first sign-in after it, and for every new person.
+        if (currentUser.asksForName()) {
+            new NamePrompt(currentUser, this::showName).open();
+        }
+    }
+
+    /** The person's own name in the menu (#106), again after they choose one. */
+    void showName() {
+        String name = currentUser.name();
+        avatar.setName(name);
+        who.setText(name);
     }
 
     @Override

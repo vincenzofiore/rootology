@@ -171,7 +171,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         this.sources = sources;
         this.currentUser = currentUser;
         this.executor = executor;
-        this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting);
+        this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting, currentUser::namesOf);
 
         addClassName("rootology-ask");
         question.setLabel(getTranslation("ask.question"));
@@ -374,7 +374,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser.login(), pageGarden, sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser, pageGarden, sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
@@ -399,9 +399,10 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     loadHistory();
                     return answer;
                 },
-                answer -> AnswerCards.of(answer, spaceId, login, pageGarden, sources, enrichment, this),
+                answer -> AnswerCards.of(answer, spaceId, currentUser, pageGarden, sources, enrichment, this),
                 // At the space level the question may be another garden's: the card says which (#109).
                 gardenId == 0, true, pageGarden);
+        card.askedBy(currentUser.nameOf(review.context().startedBy()));
         if (contributor) {
             card.extra(propose(review.question().text()));
         }
@@ -666,13 +667,14 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             WaitingQuestionCard card = new WaitingQuestionCard(run.pending(), mayAsk, suggestions(),
                     (values, note) -> pipeline.respond(run.pending().processId(), context.spaceId(), context.gardenId(),
                             new HumanAnswer(values, note, login)),
-                    answer -> AnswerCards.of(answer, context.spaceId(), login, pageGarden, sources, enrichment, this),
+                    answer -> AnswerCards.of(answer, context.spaceId(), currentUser, pageGarden, sources, enrichment, this),
                     false, true, pageGarden);
+            card.askedBy(currentUser.nameOf(run.pending().context().startedBy()));
             card.extra(propose(asked));
             stack(item(asked, run.pending().askedAt(), mayAsk, null, card));
             return;
         }
-        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), login, pageGarden, sources, enrichment, this);
+        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), currentUser, pageGarden, sources, enrichment, this);
         if (mayAsk) {
             // A place's answer can become a garden there, with every field already filled in (#107).
             gardenHere(run).ifPresent(card::extra);

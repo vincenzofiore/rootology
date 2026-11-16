@@ -388,10 +388,15 @@ public class NotificationService {
     private Map<String, List<Pending>> pending(String mark, Instant notAfter) {
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
         // An access request (#65) belongs to no space: the join must not drop it.
-        var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, "
-                        + "n.garden_id, COALESCE(n.space_name, s.name), g.name, n.asked_by, n.event FROM notification n "
+        // People by the name they chose (#106): the rows keep the logins, the email and Telegram read the names.
+        var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, "
+                        + "COALESCE(ur.display_name, n.resolved_by), n.space_id, "
+                        + "n.garden_id, COALESCE(n.space_name, s.name), g.name, COALESCE(ua.display_name, n.asked_by), "
+                        + "n.event FROM notification n "
                         + "LEFT JOIN space s ON s.id = n.space_id "
                         + "LEFT JOIN garden g ON g.id = n.garden_id "
+                        + "LEFT JOIN app_user ua ON ua.login = n.asked_by "
+                        + "LEFT JOIN app_user ur ON ur.login = n.resolved_by "
                         + "WHERE n." + mark + " IS NULL AND n.resolved_at IS NULL"
                         + (notAfter == null ? "" : " AND n.created_at <= :notAfter")
                         + " ORDER BY n.created_at");

@@ -11,7 +11,7 @@ The controller is the owner of the deployment, named on the privacy page through
 
 | Data | Where | Purpose | Legal basis | Kept |
 |---|---|---|---|---|
-| Login (the internal user name), first sign-in | `app_user` | sign-in, membership, who did what | contract (the service the person asked for) | until the account is deleted |
+| Login (the internal user name), display name chosen by the person (#106) and when they were asked for it, first sign-in | `app_user` | sign-in, membership, who did what; the display name is shown to the other members of the person's spaces | contract (the service the person asked for) | until the account is deleted |
 | GitHub or Google account: the numeric id GitHub gives, or Google's `sub`, and the verified email address the provider gives as primary | `user_identity` | recognise the person at sign-in, even when their name or address there changes | contract | until the account is deleted |
 | Verified email addresses | session only (`verified_emails`), not stored, except the primary one, kept in `user_identity` | accept an invitation bound to an address; suggest a notification address | contract | the session |
 | Notification address, email on/off, quiet hours, and the Telegram and weather switches | `notification_preference` | send the notifications the person chose | contract | until changed or the account is deleted |

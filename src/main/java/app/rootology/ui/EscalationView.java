@@ -92,8 +92,9 @@ public class EscalationView extends VerticalLayout implements HasDynamicTitle, B
     private WaitingQuestionCard card(PendingReview review, List<String> suggestions) {
         WaitingQuestionCard card = new WaitingQuestionCard(review, contributor, suggestions,
                 (values, note) -> answer(review, values, note),
-                answer -> AnswerCards.of(answer, spaceId, currentUser.login(), pageGarden, sources, enrichment, this),
+                answer -> AnswerCards.of(answer, spaceId, currentUser, pageGarden, sources, enrichment, this),
                 gardenId == 0, false, pageGarden);
+        card.askedBy(currentUser.nameOf(review.context().startedBy()));
         card.getElement().setAttribute(PROCESS, review.processId());
         return card;
     }

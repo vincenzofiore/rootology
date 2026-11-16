@@ -223,9 +223,9 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         if (n.membership()) {
             String event = n.event() == null ? "" : n.event();
             return event.startsWith("ROLE:")
-                    ? getTranslation("notifications.membership.role", n.askedBy(),
+                    ? getTranslation("notifications.membership.role", name(n.askedBy()),
                             getTranslation("role." + event.substring(5)))
-                    : getTranslation("notifications.membership." + event.toLowerCase(java.util.Locale.ROOT), n.askedBy());
+                    : getTranslation("notifications.membership." + event.toLowerCase(java.util.Locale.ROOT), name(n.askedBy()));
         }
         return n.weather() ? n.title()
                 : n.accessRequest() ? getTranslation("notifications.accessrequest")
@@ -234,7 +234,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** What the notification says beyond its title, in the page's language (#94). */
     String details(NotificationView n) {
-        return NotificationText.details(n, this::getTranslation);
+        return NotificationText.details(n, this::getTranslation, this::name);
     }
 
     /** Waiting for a person or answered by one; the other kinds carry their news in the title (#93). */
@@ -300,8 +300,17 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         return card;
     }
 
+    /** The display name for a login of the rows shown (#106); null stays null. */
+    private String name(String login) {
+        return login == null ? null : names.getOrDefault(login, login);
+    }
+
+    private java.util.Map<String, String> names = java.util.Map.of();
+
     private void refresh() {
         List<NotificationView> rows = notifications.of(currentUser.login(), 50);
+        names = currentUser.namesOf(rows.stream().flatMap(n -> java.util.stream.Stream.of(n.askedBy(), n.resolvedBy()))
+                .filter(java.util.Objects::nonNull).toList());
         grid.setItems(rows);
         grid.setVisible(!rows.isEmpty());
         cards.removeAll();

@@ -69,7 +69,7 @@ public class SpacePersonalData {
 
     public Map<String, Object> export(String login) {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("account", jdbc.sql("select login, created_at, first_login_at from app_user where login = :login")
+        data.put("account", jdbc.sql("select login, display_name, name_asked_at, created_at, first_login_at from app_user where login = :login")
                 .param("login", login).query().listOfRows());
         // The GitHub account behind this person, by its id and the address GitHub verified (#28).
         data.put("identities", jdbc.sql("""
