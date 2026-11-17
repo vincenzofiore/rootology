@@ -1,6 +1,6 @@
 # ADR 0002: navigation by levels, dashboards as the hub
 
-- Status: accepted, on trial on `feature/132-navigation`
+- Status: accepted (tried by the owner on `feature/132-navigation`, merged into `develop` on 2026-11-17)
 - Date: 2026-11-17
 - Issue: #132 (and #133 for the garden's home)
 
