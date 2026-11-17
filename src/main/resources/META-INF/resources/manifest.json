@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Rootology",
   "short_name": "Rootology",
   "description": "A personal assistant for vegetable gardens.",
@@ -21,10 +22,23 @@
       "purpose": "any"
     },
     {
+      "src": "icons/icon-192.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "icons/rootology-touch.svg?v=2",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ]
+  ],
+  "lang": "it"
 }
