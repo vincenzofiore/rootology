@@ -266,8 +266,6 @@ vaadin-grid {
     width: 12rem;
     min-width: 6rem;
 }
-/* Below 640 px the switcher moves into the side menu (#79): the drawer's copy is hidden on a wide screen. */
-.rootology-drawer-space { display: none; }
 .rootology-where {
     display: flex;
     align-items: center;
@@ -295,15 +293,12 @@ vaadin-grid {
     gap: var(--lumo-space-s);
 }
 @media (max-width: 640px) {
-    /* On a phone the navbar is full (#79): the switcher goes in the side menu, so the avatar stays visible. */
+    /* On a phone the navbar is full (#79): the switcher is in the person's menu and the actions at the
+       bottom (#132), so the avatar stays visible. */
     .rootology-navbar-end { gap: var(--lumo-space-xs); }
     .rootology-space-switcher { display: none !important; }
-    .rootology-drawer-space {
-        display: block;
-        padding: var(--lumo-space-m) var(--lumo-space-m) 0;
-    }
-    .rootology-space-switcher-narrow { width: 100%; }
-    /* The drawer already shows the space (#79): the navbar keeps only the actions. */
+    .rootology-navbar-end .rootology-level-actions { display: none; }
+    /* The arrow says the way back (#132): the path would not fit. */
     .rootology-where { display: none; }
     .rootology-user-menu { margin-right: 0; }
 }
@@ -394,8 +389,6 @@ vaadin-grid {
 }
 
 /* Sources and Privacy (ServiceLinks): a small line at the bottom of the side menu and of the public pages. */
-.rootology-drawer { display: flex; flex-direction: column; min-height: 100%; }
-.rootology-drawer > vaadin-side-nav { flex: 1; }
 .rootology-service-links {
     display: flex;
     flex-wrap: wrap;
@@ -1689,15 +1682,61 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     outline: none;
 }
 
-/* Home, Ask, Plots and Waiting questions at the bottom of a phone (#88): never above 640 px. */
+/* The level's home and its sections at the bottom of a phone (#88, #132): never above 640 px. */
 .rootology-bottom-nav {
     display: none;
 }
 
-/* The space and garden at the top of the drawer (#88), where the navbar hides them on a phone (#79). */
-.rootology-drawer-where {
-    display: none;
+/* The way to the level above (#132): an arrow before the name, none on the gardens themselves. */
+.rootology-back:empty { display: none; }
+.rootology-back a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    margin-inline-start: var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    color: var(--lumo-primary-text-color);
 }
+.rootology-back a:hover { background: var(--lumo-contrast-5pct); }
+
+/* The level's sections in the top bar (#132, ADR 0002): an icon and a count, the word on a wide screen. */
+.rootology-level-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-inline-end: var(--lumo-space-s);
+    padding-inline-end: var(--lumo-space-s);
+    border-inline-end: 1px solid var(--lumo-contrast-10pct);
+}
+.rootology-level-action {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    min-height: 2.25rem;
+    padding: 0 var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    color: var(--lumo-secondary-text-color);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.rootology-level-action:hover { background: var(--lumo-contrast-5pct); color: var(--lumo-body-text-color); }
+.rootology-level-action vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+.rootology-level-action.rootology-action-current {
+    color: var(--lumo-primary-text-color);
+    background: var(--lumo-primary-color-10pct);
+}
+.rootology-level-action .rootology-action-word { display: none; font-size: var(--lumo-font-size-s); }
+@media (min-width: 1280px) {
+    .rootology-level-action .rootology-action-word { display: inline; }
+}
+.rootology-action-count {
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.rootology-action-count-waiting { color: var(--rootology-waiting); }
 
 /* Seven days of weather in one row that scrolls sideways (#88), not in columns with the last day alone. */
 .rootology-weather-days {
@@ -1791,13 +1830,6 @@ vaadin-button.rootology-filter-chip[focus-ring] {
 }
 
 @media (max-width: 640px) {
-    .rootology-drawer-where {
-        display: block;
-        padding: var(--lumo-space-xs) var(--lumo-space-m) var(--lumo-space-s);
-        color: var(--lumo-secondary-text-color);
-        font-size: var(--lumo-font-size-s);
-        overflow-wrap: anywhere;
-    }
     .rootology-bottom-nav {
         position: fixed;
         inset-inline: 0;
@@ -1836,11 +1868,13 @@ vaadin-button.rootology-filter-chip[focus-ring] {
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .rootology-bottom-nav-current {
+    .rootology-bottom-nav-item.rootology-action-current {
         color: var(--lumo-primary-text-color);
         font-weight: 600;
     }
-    .rootology-bottom-nav-badge {
+    /* The bar shows only the waiting questions' count, as a badge: the others are for the wide bar. */
+    .rootology-bottom-nav-item .rootology-action-count { display: none; }
+    .rootology-bottom-nav-item .rootology-action-count-waiting {
         position: absolute;
         top: 0;
         inset-inline-start: 50%;
@@ -1848,8 +1882,9 @@ vaadin-button.rootology-filter-chip[focus-ring] {
         min-width: 1.15rem;
         padding: 0 0.3em;
         border-radius: 999px;
-        background: var(--lumo-error-color);
-        color: #fff;
+        display: block;
+        background: var(--rootology-waiting);
+        color: var(--lumo-base-color);
         font-size: 0.7rem;
         line-height: 1.3;
         text-align: center;

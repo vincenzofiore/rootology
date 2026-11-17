@@ -17,6 +17,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Navigation by levels, with no side menu: the app opens on the space's gardens, a garden opens its home, and each level's sections (areas, Ask, waiting questions, knowledge, members) are icons with a count in the top bar, or in the bottom bar on a phone; a back arrow leads to the level above and the breadcrumb is clickable; the spaces, the pages for a role, Sources and Privacy move to the person menu (#132).
 - The garden home is clearer: the climate sits beside the weather (closed under a one-line summary on a phone), with an ice crystal for frosts, a mountain for the altitude and the AgERA5 cell said as the source; the weather says when it was updated; what grows has a sprout, each area's sun this month, how and when each crop went into the ground, and a link to the areas; the waiting questions show the three newest with "See all" (#130).
 - The two cards of Ask's history that are not answers, a question refused as off-topic and one escalated and never answered by a person, follow the same rule as an answer: inside a garden they no longer say the page's garden again, and at the space level they still name it (#123).
 - The site's root, for a visitor who is not signed in, redirects permanently (301, never cached) to the welcome page instead of temporarily, so search engines index /welcome as the page itself and not as a duplicate of "/" (#124).

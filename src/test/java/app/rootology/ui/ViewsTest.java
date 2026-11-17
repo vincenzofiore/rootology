@@ -162,7 +162,7 @@ class ViewsTest {
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
-        assertThat(new StartView(gardens, viewer()).getChildren()).isEmpty();
+        assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
                 .getChildren()).isNotEmpty();
