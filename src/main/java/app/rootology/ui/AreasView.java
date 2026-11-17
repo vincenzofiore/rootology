@@ -77,6 +77,10 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private final Paragraph gardenInfo = new Paragraph();
     private final Div areaCards = new Div();
     private final Button editGarden = new Button(getTranslation("garden.edit"), VaadinIcon.EDIT.create());
+    /** Opens the new area's dialog as the page opens (#133). */
+    static final String NEW = "new";
+    /** Opens the planting dialog of this area id as the page opens (#133). */
+    static final String PLANT = "plant";
     private final Button addArea = new Button(getTranslation("garden.addplot"));
     private final HorizontalLayout top = new HorizontalLayout();
     private boolean contributor;
@@ -122,6 +126,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         spaceId = where.get().spaceId();
         showContributorActions(currentUser.canContribute(spaceId));
         showGarden(gardens.garden(spaceId, login, where.get().gardenId()).orElse(null));
+        if (contributor && garden != null) {
+            // From the garden home (#133): a new area, or a planting in one of this garden's areas.
+            var query = event.getLocation().getQueryParameters();
+            if (query.getParameters().containsKey(NEW)) {
+                areaDialog(null);
+            }
+            query.getSingleParameter(PLANT).flatMap(id -> gardens.plots(spaceId, login, garden.id()).stream()
+                    .filter(area -> String.valueOf(area.id()).equals(id)).findFirst()).ifPresent(this::plantingDialog);
+        }
     }
 
     /** Only an OWNER or MEMBER changes the garden; a guest only looks (#33). */

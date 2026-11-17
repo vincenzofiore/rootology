@@ -384,10 +384,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         town.addClassName("rootology-garden-card-town");
         Div text = new Div(name, town);
         text.addClassName("rootology-garden-card-text");
-        Div facts = facts(counts);
-        if (facts.getComponentCount() > 0) {
-            text.add(facts);
-        }
+        text.add(facts(counts));
         Div card = new Div(text);
         hour.ifPresent(h -> {
             Span now = new Span();
@@ -408,18 +405,15 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     /**
      * The card's counts, each an icon and a number with the word as tooltip and aria label (#132): crops growing,
-     * questions waiting and weather alerts, the alerts with the icon and colour of the gravest; a zero is left out.
+     * questions waiting (a zero too) and weather alerts (only when there are some), with the gravest's icon and colour.
      */
     private Div facts(Counts counts) {
         Div facts = new Div();
         facts.addClassName("rootology-garden-card-facts");
-        if (counts.growing() > 0) {
-            facts.add(fact(new SvgIcon(GardenHomeView.SPROUT), counts.growing(), getTranslation("gardens.map.crops.label"), null));
-        }
-        if (counts.waiting() > 0) {
-            facts.add(fact(VaadinIcon.HOURGLASS.create(), counts.waiting(),
-                    getTranslation("gardens.map.waiting.label"), "rootology-garden-card-fact-waiting"));
-        }
+        // Crops and waiting questions always, a zero too, so every card reads the same (#132); colour only for waiting.
+        facts.add(fact(new SvgIcon(GardenHomeView.SPROUT), counts.growing(), getTranslation("gardens.map.crops.label"), null));
+        facts.add(fact(VaadinIcon.HOURGLASS.create(), counts.waiting(), getTranslation("gardens.map.waiting.label"),
+                counts.waiting() > 0 ? "rootology-garden-card-fact-waiting" : null));
         if (!counts.alerts().isEmpty()) {
             AlertSeverity gravest = counts.alerts().getFirst();
             facts.add(fact(gravest.icon().create(), counts.alerts().size(), getTranslation("home.alerts"),

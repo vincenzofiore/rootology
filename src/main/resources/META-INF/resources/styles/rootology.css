@@ -557,6 +557,10 @@ rootology-garden-map { display: block; width: 100%; }
     overflow-wrap: anywhere;
 }
 .rootology-page-header { margin-bottom: var(--lumo-space-s); }
+/* Where a garden is, right beside its name (#132): the title then takes only its own width. */
+.rootology-page-header:has(> .rootology-page-place) { align-items: baseline; column-gap: var(--lumo-space-s); }
+.rootology-page-header:has(> .rootology-page-place) > .rootology-page-title { flex: 0 1 auto; min-width: 0; }
+.rootology-page-place { flex: 1 1 auto; color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
 .rootology-page-actions { display: flex; gap: var(--lumo-space-s); align-items: center; }
 /* Taller than wide screens make it look: a frame where a popup fits above or below its marker. */
 .rootology-map {
@@ -958,12 +962,15 @@ rootology-garden-map { display: block; width: 100%; }
 }
 /* The question field takes the room it has and never pushes the button off a 360 px screen. */
 .rootology-home-ask vaadin-text-field { flex: 1 1 16rem; min-width: 0; }
-.rootology-home-actions {
+/* The links at the foot of a home card (#133): an action, then "go to" and "see all". */
+.rootology-home-links {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--lumo-space-xs);
-    width: 100%;
+    align-items: center;
+    gap: var(--lumo-space-xs) var(--lumo-space-m);
 }
+.rootology-home-links .rootology-home-see-all { display: inline-flex; align-items: center; gap: var(--lumo-space-xs); }
+.rootology-home-links .rootology-home-see-all vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
 .rootology-home-grid {
     box-sizing: border-box;
     display: grid;
@@ -984,6 +991,26 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-home-weather-row > .rootology-weather { flex: 1 1 auto; min-width: 0; }
 /* The days share the card's width, from 5.5rem up to 8rem each, so a wide card is filled, not half empty (#130). */
+/* The weather of now above the days (#132): the symbol and the temperature large, the hour's details beside. */
+.rootology-weather-now {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-m);
+}
+.rootology-weather-now-icon { width: 3.5rem; height: 3.5rem; }
+.rootology-weather-now-temperature {
+    font-family: var(--rootology-display-font);
+    font-size: var(--lumo-font-size-xxxl);
+    font-weight: 600;
+    line-height: 1;
+}
+.rootology-weather-now-details {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-weather-now-label { color: var(--lumo-body-text-color); font-weight: 500; }
 .rootology-weather-day {
     box-sizing: border-box;
     flex: 1 1 5.5rem;
@@ -1170,10 +1197,14 @@ rootology-garden-map { display: block; width: 100%; }
     vertical-align: middle;
 }
 .rootology-chip-plot {
+    display: flex;
+    align-items: center;
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-s);
     font-weight: 500;
 }
+/* The plus beside an area's name (#133): sow or plant there. */
+.rootology-chip-plot-add { margin-left: var(--lumo-space-xs); }
 .rootology-chips {
     display: flex;
     flex-wrap: wrap;

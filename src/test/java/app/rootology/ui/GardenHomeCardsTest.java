@@ -31,4 +31,19 @@ class GardenHomeCardsTest {
         assertThat(WeatherCard.firstFrost(List.of(day(12, 5), day(13, 4)))).isEmpty();
         assertThat(WeatherCard.firstFrost(List.of())).isEmpty();
     }
+
+    @Test
+    void theWeatherOfNowIsTheNearestHourWithinAnHour() {
+        java.time.Instant now = java.time.Instant.parse("2026-11-17T14:20:00Z");
+        app.rootology.weather.ForecastHour two = hour("2026-11-17T14:00:00Z");
+        app.rootology.weather.ForecastHour three = hour("2026-11-17T15:00:00Z");
+
+        assertThat(WeatherCard.now(List.of(three, two), now)).contains(two);
+        assertThat(WeatherCard.now(List.of(hour("2026-11-17T18:00:00Z")), now))
+                .as("a six-hour step far from now is not the weather of now").isEmpty();
+    }
+
+    private static app.rootology.weather.ForecastHour hour(String at) {
+        return new app.rootology.weather.ForecastHour(java.time.Instant.parse(at), 18, 70.0, 0.0, 1, "cloudy");
+    }
 }

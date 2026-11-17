@@ -27,6 +27,11 @@ class PageHeader extends Div {
         actions.add(action);
     }
 
+    /** A short line right beside the title, such as where a garden is (#132). */
+    void besideTitle(Component beside) {
+        addComponentAtIndex(1, beside);
+    }
+
     void setHeading(String text) {
         title.setText(text);
     }

@@ -112,8 +112,10 @@ class GardensMapTest {
         assertThat(pin.town()).isEqualTo("Milan");
         assertThat(pin.crops()).isZero();
         assertThat(pin.waiting()).isZero();
-        assertThat(hasClass(view.getElement(), "rootology-garden-card-facts"))
-                .as("a card leaves out its counts when they are all zero").isFalse();
+        assertThat(hasClass(view.getElement(), "rootology-garden-card-fact"))
+                .as("a card shows its zeros too, so every card reads the same").isTrue();
+        assertThat(hasClass(view.getElement(), "rootology-garden-card-fact-waiting"))
+                .as("colour only when a question waits").isFalse();
     }
 
     private static boolean hasClass(com.vaadin.flow.dom.Element element, String className) {
