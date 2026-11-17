@@ -5,6 +5,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.theme.lumo.LumoUtility.AlignItems;
 import com.vaadin.flow.theme.lumo.LumoUtility.Background;
@@ -71,8 +72,20 @@ class WeatherCard extends Div {
         if (stale) {
             footer.add(new Span(" · " + getTranslation("note.stale", DateTimeFormatter.ofPattern("d MMMM HH:mm", locale)
                     .format(fetchedAt.atZone(ZoneId.of("Europe/Rome"))))));
+        } else if (fetchedAt != null) {
+            // How fresh the forecast is (#130).
+            footer.add(new Span(" · " + when("weather.updated", fetchedAt)));
         }
         add(footer);
+    }
+
+    /** "aggiornato alle 17:36" today, with the date otherwise (#130). */
+    private String when(String key, Instant at) {
+        ZoneId italy = ZoneId.of("Europe/Rome");
+        if (at.atZone(italy).toLocalDate().equals(java.time.LocalDate.now(italy))) {
+            return getTranslation(key + ".today", DateTimeFormatter.ofPattern("HH:mm").format(at.atZone(italy)));
+        }
+        return getTranslation(key, DateText.dateTime(at, this));
     }
 
     private Div tile(DailyForecast day, Locale locale) {
@@ -82,7 +95,8 @@ class WeatherCard extends Div {
         Div tile = new Div(name);
         tile.addClassNames(Display.FLEX, FlexDirection.COLUMN, AlignItems.CENTER, Gap.XSMALL, Padding.SMALL,
                 BorderRadius.MEDIUM, frost ? "rootology-frost-day" : Background.BASE);
-        tile.setWidth("5.5rem");
+        // Its width is in the stylesheet: it grows with the card on a computer, fixed on a phone (#130).
+        tile.addClassName("rootology-weather-day");
         if (day.symbol() != null) {
             Image icon = new Image("weather-icons/" + day.symbol() + ".svg", day.symbol().replace('_', ' '));
             icon.setWidth("2.5rem");
@@ -104,8 +118,9 @@ class WeatherCard extends Div {
             tile.add(rain);
         }
         if (frost) {
-            Icon ice = VaadinIcon.ASTERISK.create();
-            ice.setSize("0.8em");
+            // The ice crystal of the climate and the winter sun (#130), not an asterisk.
+            SvgIcon ice = new SvgIcon(GardenHomeView.FROST);
+            ice.addClassName("rootology-frost-icon");
             Div label = new Div(ice, new Span(" " + getTranslation("weather.frost")));
             label.addClassNames(FontSize.XSMALL, "rootology-frost-text", Display.FLEX, AlignItems.CENTER);
             tile.add(label);

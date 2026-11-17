@@ -326,7 +326,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         return declared == null || declared.isBlank() ? value : value + " · " + declared;
     }
 
-    private static VaadinIcon sunIcon(DirectSun sun) {
+    static VaadinIcon sunIcon(DirectSun sun) {
         return switch (sun) {
             case FULL_SUN -> VaadinIcon.SUN_O;
             case PART_SHADE -> VaadinIcon.CLOUD_O;

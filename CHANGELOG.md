@@ -17,6 +17,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- The garden home is clearer: the climate sits beside the weather (closed under a one-line summary on a phone), with an ice crystal for frosts, a mountain for the altitude and the AgERA5 cell said as the source; the weather says when it was updated; what grows has a sprout, each area's sun this month, how and when each crop went into the ground, and a link to the areas; the waiting questions show the three newest with "See all" (#130).
 - The two cards of Ask's history that are not answers, a question refused as off-topic and one escalated and never answered by a person, follow the same rule as an answer: inside a garden they no longer say the page's garden again, and at the space level they still name it (#123).
 - The site's root, for a visitor who is not signed in, redirects permanently (301, never cached) to the welcome page instead of temporarily, so search engines index /welcome as the page itself and not as a duplicate of "/" (#124).
 - Each person chooses the name others see, in My account or in a short prompt at their first sign-in (which can be skipped); it can be changed freely, no two people show the same name, and it replaces the login in members, questions, waiting questions, answers, notifications, emails and the person menu. Admin pages show the name with the login. A personal space still called after the login takes the name (#106).

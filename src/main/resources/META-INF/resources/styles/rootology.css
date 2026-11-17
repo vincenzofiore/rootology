@@ -959,8 +959,32 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
     align-items: start;
 }
-/* The 7 days need the whole row; the other cards share two columns. */
-.rootology-home-grid > .rootology-weather { grid-column: 1 / -1; }
+/* The weather and the climate share the first row (#130): the 7 days take what they need, the climate the rest,
+   and it moves under the weather when the row is too narrow. The other cards share two columns. */
+.rootology-home-weather-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-m);
+    /* Side by side the two cards end on the same line (#130). */
+    align-items: stretch;
+}
+.rootology-home-weather-row > .rootology-weather { flex: 1 1 auto; min-width: 0; }
+/* The days share the card's width, from 5.5rem up to 8rem each, so a wide card is filled, not half empty (#130). */
+.rootology-weather-day {
+    box-sizing: border-box;
+    flex: 1 1 5.5rem;
+    min-width: 5.5rem;
+    max-width: 8rem;
+}
+/* The climate never grows past a column: on a large screen the weather takes the room (#130). */
+.rootology-home-weather-row > .rootology-climate { flex: 1 1 16rem; max-width: 22rem; min-width: 0; }
+/* Below a large screen the climate goes under the weather, at full width (#130); after the rule above,
+   so it wins. */
+@media (max-width: 1439px) {
+    .rootology-home-weather-row { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .rootology-home-weather-row > .rootology-climate { max-width: none; }
+}
 @media (max-width: 640px) {
     .rootology-home-ask vaadin-text-field { flex-basis: 100%; }
     .rootology-home-ask vaadin-button { width: 100%; }
@@ -982,9 +1006,37 @@ rootology-garden-map { display: block; width: 100%; }
     display: flex;
     align-items: center;
     gap: var(--lumo-space-xs);
-    margin: 0;
+    /* A little air between a card's title and its content (#130). */
+    margin: 0 0 var(--lumo-space-s);
     font-size: var(--lumo-font-size-m);
     font-weight: 600;
+}
+/* The climate is a Details (#130): its summary is the card's title, with the one-line summary while closed. */
+.rootology-climate::part(summary) { padding: 0; }
+.rootology-climate::part(content) { padding: 0; }
+.rootology-climate::part(summary-content) { color: var(--lumo-body-text-color); }
+.rootology-climate .rootology-card-title { margin: 0; }
+.rootology-climate[opened] .rootology-climate-head { margin-bottom: var(--lumo-space-s); }
+.rootology-climate-summary {
+    display: block;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 400;
+}
+.rootology-climate[opened] .rootology-climate-summary { display: none; }
+/* The climate's values: icon, word and value on one line, so the card stays as short as the weather (#130). */
+.rootology-climate .rootology-card-content { gap: var(--lumo-space-xs); }
+.rootology-climate .rootology-fact {
+    display: grid;
+    grid-template-columns: auto 6rem minmax(0, 1fr);
+    column-gap: var(--lumo-space-s);
+    align-items: center;
+    line-height: 1.3;
+}
+.rootology-home-weather-row > .rootology-climate { margin: 0; }
+.rootology-fact-label {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
 }
 .rootology-card-title vaadin-icon {
     flex: none;
@@ -998,11 +1050,38 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-s);
 }
 .rootology-card-text { margin: 0; }
-/* A source line (the AgERA5 cell) is there to be checked, not to decide by. */
+/* A source line (the AgERA5 cell) is there to be checked, not to decide by: said as a source (#130). */
 .rootology-card-source {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: var(--lumo-space-xs);
+    padding-top: var(--lumo-space-s);
+    border-top: 1px solid var(--lumo-contrast-10pct);
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
 }
+.rootology-card-source-title { font-weight: 600; }
+/* "See all" under the three newest waiting questions (#130). */
+.rootology-home-see-all {
+    align-self: flex-start;
+    color: var(--lumo-primary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+}
+.rootology-home-waiting-go {
+    flex: none;
+    margin-left: auto;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+/* How and when a crop went into the ground, inside its chip (#130). */
+.rootology-grow-when {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-frost-icon { width: 0.9em; height: 0.9em; }
 
 /* An alert of #37, coloured by its rule: a frost is ice blue, late blight amber (#87). */
 .rootology-alert {
@@ -1070,6 +1149,12 @@ rootology-garden-map { display: block; width: 100%; }
     display: flex;
     flex-direction: column;
     gap: var(--lumo-space-xs);
+}
+.rootology-chip-plot-sun {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    margin-left: var(--lumo-space-xs);
+    vertical-align: middle;
 }
 .rootology-chip-plot {
     color: var(--lumo-secondary-text-color);
@@ -1790,7 +1875,7 @@ vaadin-button.rootology-filter-chip[focus-ring] {
         -webkit-overflow-scrolling: touch;
     }
     .rootology-weather-days > * {
-        flex: 0 0 auto;
+        flex: 0 0 5.5rem;
         scroll-snap-align: start;
     }
     /* One card per row, readable at 360 px (#88, #93): a table has no room for a long text there. */
