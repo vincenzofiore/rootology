@@ -100,6 +100,68 @@ class GardenServiceTest {
     }
 
     @Test
+    void theSunHoursAreStoredWholeAndRefusedOutsideARealDay() {
+        long space = spaceOf("nino-sun");
+        GardenSummary balcony = gardens.saveGarden(space, "nino-sun", null, "Balcony", "Torino", null, null);
+
+        PlotSummary pot = gardens.savePlot(space, "nino-sun", balcony.id(), null, "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2);
+
+        assertThat(pot.sunHoursSummer()).isEqualTo(7);
+        assertThat(pot.sunHoursWinter()).isEqualTo(2);
+        assertThat(pot.directSunIn(java.time.Month.JUNE)).isEqualTo(DirectSun.FULL_SUN);
+        assertThat(pot.directSunIn(java.time.Month.DECEMBER)).isEqualTo(DirectSun.SHADE);
+        assertThat(gardens.plots(space, "nino-sun", balcony.id())).singleElement().satisfies(p -> {
+            assertThat(p.sunHoursSummer()).isEqualTo(7);
+            assertThat(p.sunHoursWinter()).isEqualTo(2);
+        });
+
+        // The bounds themselves are real: a whole day at most, and a season with no sun is a value.
+        PlotSummary extremes = gardens.savePlot(space, "nino-sun", balcony.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 0, 16);
+        assertThat(extremes.sunHoursSummer()).isZero();
+        assertThat(extremes.sunHoursWinter()).isEqualTo(16);
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino-sun", balcony.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, -1, 3))
+                .as("a negative number of hours is refused").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino-sun", balcony.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 3, 17))
+                .as("more hours than a day has is refused").isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void whoDeclaredTheSunAndWhenFollowTheValueAndNotAMereRename() {
+        long space = spaceOf("olmo");
+        spaces.signedIn("pino");
+        spaces.addMember(space, "olmo", "pino", app.rootology.spaces.Role.MEMBER);
+        GardenSummary balcony = gardens.saveGarden(space, "olmo", null, "Balcony", "Torino", null, null);
+        PlotSummary pot = gardens.savePlot(space, "olmo", balcony.id(), null, "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2);
+
+        assertThat(pot.sunDeclaredBy()).isEqualTo("olmo");
+        assertThat(pot.sunDeclaredAt()).isNotNull();
+        java.time.Instant firstDeclaration = pot.sunDeclaredAt();
+
+        PlotSummary renamed = gardens.savePlot(space, "olmo", balcony.id(), pot.id(), "Vaso grande", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null);
+        assertThat(renamed.name()).isEqualTo("Vaso grande");
+        assertThat(renamed.sunHoursSummer()).as("the 12-argument save keeps the hours").isEqualTo(7);
+        assertThat(renamed.sunHoursWinter()).isEqualTo(2);
+        assertThat(renamed.sunDeclaredBy()).as("a rename declares nothing").isEqualTo("olmo");
+        assertThat(renamed.sunDeclaredAt()).isEqualTo(firstDeclaration);
+
+        PlotSummary hoursChanged = gardens.savePlot(space, "pino", balcony.id(), pot.id(), "Vaso grande",
+                PlotKind.POT, Soil.POTTING_MIX, null, Orientation.S, null, null, null, 5, 2);
+        assertThat(hoursChanged.sunDeclaredBy()).as("the hours changed: the new declarer is recorded").isEqualTo("pino");
+        assertThat(hoursChanged.sunDeclaredAt()).isAfterOrEqualTo(firstDeclaration);
+
+        PlotSummary levelChanged = gardens.savePlot(space, "olmo", balcony.id(), pot.id(), "Vaso grande",
+                PlotKind.POT, Soil.POTTING_MIX, null, Orientation.S, DirectSun.PART_SHADE, null, null, 5, 2);
+        assertThat(levelChanged.sunDeclaredBy()).as("the level changed: it is a declaration too").isEqualTo("olmo");
+        assertThat(levelChanged.sunDeclaredAt()).isAfterOrEqualTo(hoursChanged.sunDeclaredAt());
+    }
+
+    @Test
     void growingOnLeavesOutWhatIsHarvestedOrNotYetPlanted() {
         long space = spaceOf("hugo");
         GardenSummary garden = gardens.saveGarden(space, "hugo", null, "Allotment", null, null, null);

@@ -11,8 +11,12 @@ import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.LightRule;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,9 +24,11 @@ import java.util.Optional;
  * light-need-v1 on what could be sown or planted (#54): `SOW_IN_PLOT` warns about crops asking for more light
  * than the named plot gets, `SOW_NOW` only when none of the run's garden's plots is bright enough (it does not
  * ask about one plot). The plot and the garden come from the {@link QuestionContext} (#55). Crops whose light
- * need is unknown are named in a note, never guessed. Only the direct sun behind an exclusion reaches the
- * decision layer, tagged DECLARED (declared, not measured); orientation, wind and floor are kept for later
- * rules and never sent.
+ * need is unknown are named in a note, never guessed. The area's direct sun is the one of the season of the
+ * question (#89): the level from that season's hours when they are declared, otherwise the declared level,
+ * and nothing when neither is known. Only the direct sun behind an exclusion reaches the decision layer,
+ * tagged DECLARED (declared, not measured); orientation, wind and floor are kept for later rules and never
+ * sent.
  */
 @Component
 class LightFacts {
@@ -34,10 +40,28 @@ class LightFacts {
 
     private final GardenService gardens;
     private final KnowledgeGraph knowledge;
+    private final Clock clock;
 
-    LightFacts(GardenService gardens, KnowledgeGraph knowledge) {
+    LightFacts(GardenService gardens, KnowledgeGraph knowledge, Clock clock) {
         this.gardens = gardens;
         this.knowledge = knowledge;
+        this.clock = clock;
+    }
+
+    /**
+     * The month the question is about: the one the context carries (the intent already resolved it, for
+     * example for SOW_IN_PLOT and SOW_NOW), the current one in Italy otherwise (#58).
+     */
+    private Month monthOf(QuestionContext context) {
+        String asked = context.intent() == null ? null : context.intent().month();
+        if (asked != null) {
+            try {
+                return Month.valueOf(asked.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException unknown) {
+                // An unknown month finds no facts and escalates anyway; the month of the run is a safe guess.
+            }
+        }
+        return LocalDate.now(clock).getMonth();
     }
 
     /** The named plot's declared exposure, and light-need-v1 on the crops that could be sown in it. */
@@ -46,7 +70,8 @@ class LightFacts {
             return Result.NONE;
         }
         PlotSummary plot = context.plot().found();
-        if (plot.directSun() == null) {
+        DirectSun sun = plot.directSunIn(monthOf(context));
+        if (sun == null) {
             return Result.NONE;
         }
         List<Reading> readings = new ArrayList<>();
@@ -57,7 +82,7 @@ class LightFacts {
             Optional<DirectSun> needs = needs(crop, context, lightNeeds);
             if (needs.isEmpty()) {
                 unknown.add(crop);
-            } else if (LightRule.tooDark(plot.directSun(), needs.get())) {
+            } else if (LightRule.tooDark(sun, needs.get())) {
                 avoided.add(crop);
                 readings.add(Reading.inferred(new Fact(crop, "avoidIn", plot.name()), LightRule.ID,
                         List.of(LightRule.GARDEN_SOURCE, LightRule.ECOCROP_SOURCE)));
@@ -65,7 +90,7 @@ class LightFacts {
         }
         List<Note> notes = new ArrayList<>();
         if (!avoided.isEmpty()) {
-            readings.addFirst(sunOf(plot));
+            readings.addFirst(sunOf(plot, sun));
             notes.add(Note.of(Note.Kind.LIGHT_IN_PLOT, plot.name(), String.join(", ", avoided), LightRule.ID));
         }
         if (!unknown.isEmpty()) {
@@ -82,12 +107,13 @@ class LightFacts {
         if (!context.hasSpace() || context.gardenId() == 0) {
             return Result.NONE;
         }
+        Month month = monthOf(context);
         List<PlotSummary> plots = gardens.plots(context.spaceId(), run.startedBy(), context.gardenId()).stream()
-                .filter(p -> p.directSun() != null).toList();
+                .filter(p -> p.directSunIn(month) != null).toList();
         if (plots.isEmpty()) {
             return Result.NONE;
         }
-        List<DirectSun> sun = plots.stream().map(PlotSummary::directSun).toList();
+        List<DirectSun> sun = plots.stream().map(p -> p.directSunIn(month)).toList();
         List<Reading> readings = new ArrayList<>();
         Map<String, String> lightNeeds = knowledge.lightNeeds();
         List<String> avoided = new ArrayList<>();
@@ -104,7 +130,7 @@ class LightFacts {
         }
         List<Note> notes = new ArrayList<>();
         if (!avoided.isEmpty()) {
-            readings.addAll(0, plots.stream().map(LightFacts::sunOf).toList());
+            readings.addAll(0, plots.stream().map(p -> sunOf(p, p.directSunIn(month))).toList());
             notes.add(Note.of(Note.Kind.LIGHT_ANYWHERE, String.join(", ", avoided), LightRule.ID));
         }
         if (!unknown.isEmpty()) {
@@ -125,9 +151,12 @@ class LightFacts {
                 .map(f -> f.fact().subject()).distinct().toList();
     }
 
-    /** The direct sun the gardener declared for the plot, a DECLARED reading with the `garden` source. */
-    private static Reading sunOf(PlotSummary plot) {
-        return new Reading(new Fact(plot.name(), "hasDirectSun", plot.directSun().name()), Reading.Source.DECLARED,
+    /**
+     * The direct sun the area gets in the question's season, a DECLARED reading with the `garden` source: its
+     * level, or the level its hours give (#89).
+     */
+    private static Reading sunOf(PlotSummary plot, DirectSun sun) {
+        return new Reading(new Fact(plot.name(), "hasDirectSun", sun.name()), Reading.Source.DECLARED,
                 List.of(LightRule.GARDEN_SOURCE), null);
     }
 }

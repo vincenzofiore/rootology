@@ -46,7 +46,16 @@ class LightFactsTest {
     KnowledgeGraph knowledge;
 
     private LightFacts facts() {
-        return new LightFacts(gardens, knowledge);
+        return new LightFacts(gardens, knowledge, java.time.Clock.systemDefaultZone());
+    }
+
+    private RunContext garden(String login, String plotName, DirectSun sun, Integer summer, Integer winter) {
+        spaces.signedIn(login);
+        long id = app.rootology.TestSpaces.personal(spaces, login);
+        var garden = gardens.saveGarden(id, login, null, "Balcony", "Torino", null, null);
+        gardens.savePlot(id, login, garden.id(), null, plotName, PlotKind.POT, Soil.POTTING_MIX, null,
+                Orientation.N, sun, Wind.EXPOSED, 3, summer, winter);
+        return new RunContext(id, garden.id(), login);
     }
 
     private RunContext garden(String login, String plotName, DirectSun sun) {
@@ -60,8 +69,13 @@ class LightFactsTest {
 
     /** The context the pipeline resolves for a plot question, in the run's garden (#55). */
     private QuestionContext context(RunContext run, QueryKind kind, String plotName) {
+        return context(run, kind, plotName, null);
+    }
+
+    /** The context of a question that names a month, which chooses the season of the sun hours (#89). */
+    private QuestionContext context(RunContext run, QueryKind kind, String plotName, String month) {
         return new ContextResolver(spaces, gardens, cells, geoNames, java.time.Clock.systemDefaultZone())
-                .resolve(new Intent(kind, plotName, null, "it", null, null), run);
+                .resolve(new Intent(kind, plotName, null, "it", null, month), run);
     }
 
     /** What the knowledge base's sowing facts look like: the crop's name as a subject, sowIn with the month. */
@@ -148,6 +162,62 @@ class LightFactsTest {
 
         assertThat(both.readings()).as("the sunny plot is enough, so nothing is sent").isEmpty();
         assertThat(both.notes()).isEmpty();
+    }
+
+    @Test
+    void theSunHoursOfTheSeasonChooseTheLevelInAQuestionThatNamesItsMonth() {
+        RunContext run = garden("light-franca", "Davanzale", null, 7, 2);
+
+        LightFacts.Result june = facts().inPlot(context(run, QueryKind.SOW_IN_PLOT, "Davanzale", "JUNE"),
+                sowable("Basilico"));
+
+        assertThat(june.readings()).as("seven hours in June are full sun, enough for a basil").isEmpty();
+        assertThat(june.notes()).isEmpty();
+
+        LightFacts.Result december = facts().inPlot(context(run, QueryKind.SOW_IN_PLOT, "Davanzale", "DECEMBER"),
+                sowable("Basilico"));
+
+        assertThat(avoided(december.readings(), "avoidIn")).as("two hours in winter are shade")
+                .containsExactly("Basilico");
+        assertThat(december.readings()).filteredOn(r -> r.source() == Reading.Source.DECLARED)
+                .extracting(r -> r.fact().predicate() + "=" + r.fact().object()).containsExactly("hasDirectSun=SHADE");
+    }
+
+    @Test
+    void hoursOfOneSeasonNeverStandForTheOtherAndTheDeclaredLevelCountsThere() {
+        RunContext declared = garden("light-gino", "Davanzale", DirectSun.PART_SHADE, 9, null);
+
+        LightFacts.Result june = facts().inPlot(context(declared, QueryKind.SOW_IN_PLOT, "Davanzale", "JUNE"),
+                sowable("Basilico"));
+        assertThat(june.readings()).as("nine hours in June are full sun").isEmpty();
+
+        LightFacts.Result december = facts().inPlot(context(declared, QueryKind.SOW_IN_PLOT, "Davanzale", "DECEMBER"),
+                sowable("Basilico", "Broccolo"));
+        assertThat(avoided(december.readings(), "avoidIn")).as("no winter hours: the declared part shade counts")
+                .containsExactly("Basilico");
+
+        RunContext none = garden("light-ida", "Davanzale", null, 9, null);
+
+        LightFacts.Result unknown = facts().inPlot(context(none, QueryKind.SOW_IN_PLOT, "Davanzale", "DECEMBER"),
+                sowable("Basilico"));
+
+        assertThat(unknown.readings()).as("hours for summer only and no level: winter judges nothing").isEmpty();
+        assertThat(unknown.notes()).isEmpty();
+    }
+
+    @Test
+    void sowingNowReadsTheHoursOfTheQuestionsMonthInEveryPlot() {
+        RunContext run = garden("light-luigi", "Davanzale", null, 7, 2);
+
+        LightFacts.Result june = facts().now(context(run, QueryKind.SOW_NOW, null, "JUNE"), run,
+                sowable("Basilico"));
+        assertThat(june.readings()).as("seven hours are enough for basil").isEmpty();
+
+        LightFacts.Result december = facts().now(context(run, QueryKind.SOW_NOW, null, "DECEMBER"), run,
+                sowable("Basilico"));
+        assertThat(avoided(december.readings(), "avoidNow")).containsExactly("Basilico");
+        assertThat(december.readings()).filteredOn(r -> r.source() == Reading.Source.DECLARED)
+                .extracting(r -> r.fact().subject() + "=" + r.fact().object()).containsExactly("Davanzale=SHADE");
     }
 
     @Test

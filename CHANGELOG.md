@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- An area can declare its hours of direct sun, in summer (April–September) and in winter (October–March), each optional: when a season has them they count more than the declared level (6 or more full sun, 3 to 5 part shade, fewer shade), the card shows them next to the sun and its icon the level of the current month, and the tooltip says who declared them and when (#89).
 - A question can name a place ("cosa semino a Torino?"): the sowing and harvest calendars and the forecast are
   those of that place, inside a garden or not, and a calendar question outside a garden, a place not found or
   one that matches several towns, and a garden question outside a garden now ask which place or garden instead
