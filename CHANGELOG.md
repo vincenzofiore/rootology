@@ -6,6 +6,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-17
+
 ### Added
 
 - Rootology can be installed on a phone or a computer like an app (Android's round icons too), and opened without a network it says so with a page of its own, never an error: nothing of a garden is kept on the device (#134).
@@ -312,7 +314,8 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.4.1...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.5.0...develop
+[0.5.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.5.0
 [0.4.1]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.1
 [0.4.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.0
 [0.3.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.3.0
