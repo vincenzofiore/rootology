@@ -130,12 +130,32 @@ public class GardenService {
         return savePlot(spaceId, login, gardenId, plotId, name, kind, soil, areaM2, null, null, null, null);
     }
 
-    /** orientation, directSun, wind and floor are declared by the gardener; all optional (#54). */
+    /** orientation, directSun, wind and floor are declared by the gardener; all optional (#54). Sun hours unchanged. */
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
                                 PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
                                 DirectSun directSun, Wind wind, Integer floor) {
+        Plot existing = plotId == null ? null : plot(spaceId, plotId);
+        return savePlot(spaceId, login, gardenId, plotId, name, kind, soil, areaM2, orientation, directSun, wind,
+                floor, existing == null ? null : existing.getSunHoursSummer(),
+                existing == null ? null : existing.getSunHoursWinter());
+    }
+
+    /**
+     * With the hours of direct sun in summer and in winter (#89), each optional, whole hours from 0 to 16. A
+     * change of the level or of the hours records who declared it and when.
+     */
+    @Transactional
+    public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
+                                PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
+                                DirectSun directSun, Wind wind, Integer floor, Integer sunHoursSummer,
+                                Integer sunHoursWinter) {
         requireContributor(spaceId, login);
+        for (Integer hours : new Integer[] {sunHoursSummer, sunHoursWinter}) {
+            if (hours != null && (hours < 0 || hours > MAX_SUN_HOURS)) {
+                throw new IllegalArgumentException("Hours of direct sun are between 0 and " + MAX_SUN_HOURS);
+            }
+        }
         String cleanName = required(name, "A plot needs a name");
         if (kind == null || soil == null) {
             throw new IllegalArgumentException("A plot needs a kind and a soil");
@@ -148,9 +168,18 @@ public class GardenService {
         }
         Garden garden = garden(spaceId, gardenId);
         Plot plot = plotId == null ? new Plot(garden, cleanName, kind, soil, areaM2) : plot(spaceId, plotId);
+        java.time.Instant now = java.time.Instant.now();
+        String who = SpaceService.normalizeLogin(login);
+        if (directSun != plot.getDirectSun()) {
+            plot.sunLevelDeclared(who, now);
+        }
         plot.update(cleanName, kind, soil, areaM2, orientation, directSun, wind, floor);
+        plot.declareSun(sunHoursSummer, sunHoursWinter, who, now);
         return summary(plots.save(plot));
     }
+
+    /** The most hours of direct sun a day an area can have (#89): a long June day. */
+    public static final int MAX_SUN_HOURS = 16;
 
     @Transactional
     public void deletePlot(long spaceId, String login, long plotId) {
@@ -365,7 +394,8 @@ public class GardenService {
 
     private static PlotSummary summary(Plot p) {
         return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2(),
-                p.getOrientation(), p.getDirectSun(), p.getWind(), p.getFloor());
+                p.getOrientation(), p.getDirectSun(), p.getWind(), p.getFloor(), p.getSunHoursSummer(),
+                p.getSunHoursWinter(), p.getSunDeclaredBy(), p.getSunDeclaredAt());
     }
 
     private PlantingSummary summary(Planting p) {
