@@ -22,7 +22,6 @@ import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.router.RouterLink;
 import app.rootology.decision.Intent;
 import app.rootology.enrichment.KnowledgeEnrichment;
 import app.rootology.facts.ClimateCells;
@@ -89,6 +88,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     static final String QUESTION = "q";
     /** Opens the history column: where the History page's old links lead (#100). */
     static final String HISTORY = "history";
+    /** Opens the waiting questions (#132): every one on the left, the history filtered to them. */
+    static final String WAITING = "waiting";
     /** Opens one past answer by the agent's process id: where an answered question's notification leads (#100). */
     static final String RUN = "run";
     /** Where the browser keeps whether the history column is open: a per-viewer convenience, never needed. */
@@ -278,7 +279,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         showSuggestions();
         loadHistory();
         QueryParameters query = event.getLocation().getQueryParameters();
-        if (query.getParameters().containsKey(HISTORY)) {
+        if (query.getParameters().containsKey(WAITING)) {
+            showAllWaiting();
+        } else if (query.getParameters().containsKey(HISTORY)) {
             setHistoryOpen(true, false);
         } else {
             restoreHistoryOpen();
@@ -298,6 +301,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
      */
     static boolean focusFieldOnOpen(QueryParameters query) {
         return !query.getParameters().containsKey(HISTORY)
+                && !query.getParameters().containsKey(WAITING)
                 && !query.getParameters().containsKey(RUN)
                 && !query.getParameters().containsKey(QUESTION);
     }
@@ -412,6 +416,20 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         stack(item);
         history.opened(key);
         showOnPhone(item);
+    }
+
+    /**
+     * The waiting questions of the page's context on the left, the newest on top, and the history filtered to
+     * them (#132): what the old waiting questions page showed, now on Questions, where every card is answered.
+     */
+    private void showAllWaiting() {
+        setHistoryOpen(true, false);
+        history.filter(new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, false, null, null));
+        String login = currentUser.login();
+        List<PendingReview> waiting = gardenId > 0 ? pipeline.pending(spaceId, gardenId, login)
+                : pipeline.pendingInSpace(spaceId, login);
+        // Each card goes on top of the stack, so the oldest first leaves the newest on top.
+        waiting.stream().sorted(java.util.Comparator.comparing(PendingReview::askedAt)).forEach(this::showWaiting);
     }
 
     /** On a phone the question comes back into view, with the item just opened (#100). */
@@ -1037,14 +1055,11 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     }
 
     /** The way to propose the missing fact: the knowledge page of this garden, or of the space (#24, #56). */
-    private RouterLink propose(String text) {
-        java.util.Map<String, String> here = gardenId > 0
-                ? java.util.Map.of(Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId))
-                : java.util.Map.of(Routed.SPACE, String.valueOf(spaceId));
-        RouterLink link = new RouterLink(getTranslation("ask.propose"), KnowledgeView.class,
-                new RouteParameters(here));
-        link.setQueryParameters(QueryParameters.simple(java.util.Map.of("question", text)));
-        return link;
+    private com.vaadin.flow.component.html.Anchor propose(String text) {
+        // A plain link to Knowledge (spaces/{space}[/gardens/{garden}]/knowledge), which the router follows in place.
+        String path = "spaces/" + spaceId + (gardenId > 0 ? "/gardens/" + gardenId : "") + "/knowledge";
+        return new com.vaadin.flow.component.html.Anchor(path + "?question="
+                + java.net.URLEncoder.encode(text, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"), getTranslation("ask.propose"));
     }
 
     /** Few questions left: shown as a small badge; while there is room the count stays out of the way (#79). */

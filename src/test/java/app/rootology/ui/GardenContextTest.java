@@ -222,20 +222,19 @@ class GardenContextTest {
 
     @Test
     void aGuestIsSentFromTheWaitingQuestionsToTheHistory() {
-        // #104: the waiting questions page is for whoever can answer; a guest follows them in Ask's history.
+        // #132: the old waiting questions page leads to Questions with the waiting ones open, a guest too.
         String login = "guest-waiting-" + Long.toString(System.nanoTime(), 36);
         String host = "guest-host-" + Long.toString(System.nanoTime(), 36);
         spaces.signedIn(login);
         spaces.signedIn(host);
         long shared = personalSpace(host);
         spaces.addMember(shared, host, login, app.rootology.spaces.Role.GUEST);
-        EscalationView view = new EscalationView(pipeline, gardens, new CurrentUser(spaces, login), crops, knowledge,
-                sources, enrichment, broadcaster);
+        EscalationView view = new EscalationView(gardens, new CurrentUser(spaces, login));
         BeforeEnterEvent event = entering(shared);
 
         view.beforeEnter(event);
 
-        verify(event).forwardTo("spaces/" + shared + "/ask", QueryParameters.simple(Map.of(AskView.HISTORY, "")));
+        verify(event).forwardTo("spaces/" + shared + "/ask", QueryParameters.simple(Map.of(AskView.WAITING, "")));
     }
 
     /** A question of the space level waiting for a person, as the pipeline stores it (#36). */

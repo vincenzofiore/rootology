@@ -248,12 +248,9 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         Div list = new Div();
         list.addClassName("rootology-waiting-list");
         waiting.stream().limit(WAITING_SHOWN).forEach(pending -> {
-            // Whoever can answer goes where they answer; a guest follows them in Ask's history (#104).
-            RouterLink link = contributor ? new RouterLink("", EscalationView.class, gardenParameters())
-                    : new RouterLink("", AskView.class, gardenParameters());
-            if (!contributor) {
-                link.setQueryParameters(QueryParameters.simple(Map.of(AskView.HISTORY, "")));
-            }
+            // Questions with the waiting ones open (#132): a contributor answers there, a guest follows them.
+            RouterLink link = new RouterLink("", AskView.class, gardenParameters());
+            link.setQueryParameters(QueryParameters.simple(Map.of(AskView.WAITING, "")));
             link.addClassName("rootology-home-waiting-question");
             link.add(new Span(pending.question().text()));
             Icon go = VaadinIcon.ANGLE_RIGHT.create();
@@ -265,11 +262,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         card.content().add(list);
         if (waiting.size() > WAITING_SHOWN) {
             // The three newest are shown; the others are one tap away, never hidden (#130).
-            RouterLink all = contributor ? new RouterLink("", EscalationView.class, gardenParameters())
-                    : new RouterLink("", AskView.class, gardenParameters());
-            if (!contributor) {
-                all.setQueryParameters(QueryParameters.simple(Map.of(AskView.HISTORY, "")));
-            }
+            RouterLink all = new RouterLink("", AskView.class, gardenParameters());
+            all.setQueryParameters(QueryParameters.simple(Map.of(AskView.WAITING, "")));
             all.add(new Span(getTranslation("home.waiting.all", waiting.size())));
             all.addClassName("rootology-home-see-all");
             card.content().add(all);

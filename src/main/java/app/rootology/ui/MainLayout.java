@@ -303,12 +303,11 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             level.add(new Action(PLOTS_ICON, "nav.plots", AreasView.class, here,
                     gardens.plots(space.id(), currentUser.login(), gardenId).size(), false));
         }
-        level.add(new Action(VaadinIcon.COMMENT_ELLIPSIS_O, "nav.ask", AskView.class, here, 0, false));
-        if (currentUser.canContribute(space.id())) {
-            int waiting = (gardenId > 0 ? pipeline.pending(space.id(), gardenId, currentUser.login())
-                    : pipeline.pendingInSpace(space.id(), currentUser.login())).size();
-            level.add(new Action(VaadinIcon.HOURGLASS, "nav.waiting", EscalationView.class, here, waiting, true));
-        }
+        // Questions holds Ask and the waiting questions (#132): its count is how many wait for whoever can answer.
+        int waiting = !currentUser.canContribute(space.id()) ? 0
+                : (gardenId > 0 ? pipeline.pending(space.id(), gardenId, currentUser.login())
+                : pipeline.pendingInSpace(space.id(), currentUser.login())).size();
+        level.add(new Action(VaadinIcon.COMMENTS_O, "nav.questions", AskView.class, here, waiting, true));
         // The proposals belong to the space, so Knowledge is offered inside and outside a garden.
         level.add(new Action(VaadinIcon.BOOK, "nav.knowledge", KnowledgeView.class, here, 0, false));
         if (gardenId <= 0) {

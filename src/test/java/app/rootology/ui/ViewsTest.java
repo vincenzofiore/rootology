@@ -436,17 +436,6 @@ class ViewsTest {
     }
 
     @Test
-    void escalationViewShowsOneCardPerWaitingQuestion() {
-        EscalationView view = new EscalationView(pipeline, gardens, viewer(), crops, knowledge, sourceCatalog,
-                enrichment, broadcaster);
-
-        // One card per waiting question, never a grid with a form below it (#86).
-        assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isFalse();
-        assertThat(view.getChildren().filter(Div.class::isInstance).map(Div.class::cast)
-                .anyMatch(d -> d.getClassNames().contains("rootology-cards"))).isTrue();
-    }
-
-    @Test
     void theWelcomePageDrawsItsFourFeatures() {
         // #87: answers with sources, it does not guess, it sees problems coming, a garden to share.
         WelcomeView view = new WelcomeView(authentication);

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Location;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.RouteParameters;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.enrichment.KnowledgeEnrichment;
@@ -102,18 +103,20 @@ class SpaceLevelQuestionsTest {
         spaces.signedIn(login);
         long space = personalSpace(login);
         long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
-        PendingReview inGarden = review(space, garden, login, "Quando semino il basilico?", "Balcony");
         PendingReview withoutGarden = review(space, 0, login, "Che luna c'è stasera?", null);
+        // Asked later, so its card is on top: the newest first (#132).
+        PendingReview inGarden = review(space, garden, login, "Quando semino il basilico?", "Balcony");
 
         GardenPipeline mocked = mock(GardenPipeline.class);
-        when(mocked.pendingInSpace(space, login)).thenReturn(List.of(inGarden, withoutGarden));
+        when(mocked.pendingInSpace(space, login)).thenReturn(List.of(withoutGarden, inGarden));
         when(mocked.respond(eq(inGarden.processId()), eq(space), eq(garden), any(HumanAnswer.class)))
                 .thenReturn(new PipelineAnswer("ask", List.of("Basilico"), 0.8, true, true, login, "Fatto",
                         List.of(), List.of(), null));
-        EscalationView view = new EscalationView(mocked, gardens, new CurrentUser(spaces, login), crops, knowledge,
-                sources, enrichment, broadcaster);
+        AskView view = new AskView(mocked, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
+                crops, knowledge, geoNames, cells, runHistory);
 
-        view.beforeEnter(spaceLevel(space));
+        // Questions with the waiting ones open (#132), where the old waiting questions page now leads.
+        view.beforeEnter(spaceLevel(space, AskView.WAITING));
 
         List<Component> cards = waitingCards(view);
         assertThat(cards).as("every garden's waiting question and those without one").hasSize(2);
@@ -176,25 +179,6 @@ class SpaceLevelQuestionsTest {
         assertThat(history.shown()).as("the questions without a garden").isEqualTo(1);
         history.filter(new HistoryPanel.Filters(null, false, null));
         assertThat(history.shown()).as("a chip tapped again shows every garden").isEqualTo(3);
-    }
-
-    @Test
-    void theWaitingListUpdatesItselfWhenAQuestionChanges() {
-        String login = "space-live-" + Long.toString(System.nanoTime(), 36);
-        spaces.signedIn(login);
-        long space = personalSpace(login);
-        long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
-        insertWaiting(space, garden, login, "Quando semino il basilico?");
-        EscalationView view = new EscalationView(pipeline, gardens, new CurrentUser(spaces, login), crops, knowledge,
-                sources, enrichment, broadcaster);
-        view.beforeEnter(spaceLevel(space));
-        assertThat(waitingCards(view)).hasSize(1);
-
-        // The bell's own broadcast: a question of the space starts waiting (or is answered) elsewhere.
-        insertWaiting(space, 0, login, "Quando semino la rucola?");
-        broadcaster.on(new NotificationsChanged(Set.of(login)));
-
-        assertThat(waitingCards(view)).as("no refresh button: the list reads itself again (#109)").hasSize(2);
     }
 
     @Test
@@ -262,16 +246,29 @@ class SpaceLevelQuestionsTest {
     }
 
     private static BeforeEnterEvent spaceLevel(long spaceId) {
+        return spaceLevel(spaceId, null);
+    }
+
+    /** The space level's Questions, with a query parameter when one is given. */
+    private static BeforeEnterEvent spaceLevel(long spaceId, String parameter) {
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
         when(event.getRouteParameters()).thenReturn(new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId))));
-        when(event.getLocation()).thenReturn(new Location("spaces/" + spaceId + "/escalations"));
+        when(event.getLocation()).thenReturn(parameter == null ? new Location("spaces/" + spaceId + "/ask")
+                : new Location("spaces/" + spaceId + "/ask", QueryParameters.simple(Map.of(parameter, ""))));
         return event;
     }
 
     /** The waiting cards of the page, newest first. */
-    private static List<Component> waitingCards(EscalationView view) {
-        return descendant(view, "rootology-cards").getChildren()
-                .filter(c -> c.getClassNames().contains("rootology-waiting-card")).toList();
+    private static List<Component> waitingCards(Component root) {
+        List<Component> found = new java.util.ArrayList<>();
+        root.getChildren().forEach(child -> {
+            if (child.getClassNames().contains("rootology-waiting-card")) {
+                found.add(child);
+            } else {
+                found.addAll(waitingCards(child));
+            }
+        });
+        return found;
     }
 
     /** The card's answer button: the one that hands the answer to the pipeline. */

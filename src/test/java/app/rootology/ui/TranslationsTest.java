@@ -105,8 +105,8 @@ class TranslationsTest {
     void italianIsTheDefaultAndEnglishIsKept() {
         Translations translations = new Translations();
 
-        assertThat(translations.getTranslation("nav.ask", Locale.GERMAN)).isEqualTo("Chiedi");
-        assertThat(translations.getTranslation("nav.ask", Locale.forLanguageTag("en-GB"))).isEqualTo("Ask");
+        assertThat(translations.getTranslation("nav.questions", Locale.GERMAN)).isEqualTo("Domande");
+        assertThat(translations.getTranslation("nav.questions", Locale.forLanguageTag("en-GB"))).isEqualTo("Questions");
         assertThat(translations.getTranslation("ask.today", Locale.ITALIAN, 3, 30)).isEqualTo("3 di 30 domande oggi");
         assertThat(translations.getTranslation("no.such.key", Locale.ITALIAN)).isEqualTo("!no.such.key");
     }
