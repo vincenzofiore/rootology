@@ -17,7 +17,25 @@ public final class GardenViews {
 
     /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */
     public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
-                              Orientation orientation, DirectSun directSun, Wind wind, Integer floor) {
+                              Orientation orientation, DirectSun directSun, Wind wind, Integer floor,
+                              Integer sunHoursSummer, Integer sunHoursWinter, String sunDeclaredBy,
+                              java.time.Instant sunDeclaredAt) {
+
+        /** Without the sun hours of #89, as before them. */
+        public PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
+                           Orientation orientation, DirectSun directSun, Wind wind, Integer floor) {
+            this(id, gardenId, name, kind, soil, areaM2, orientation, directSun, wind, floor, null, null, null, null);
+        }
+
+        /**
+         * The area's direct sun in the month of a question (#89): the level from that season's hours when they
+         * are declared (summer April-September, winter October-March), otherwise the declared level, possibly
+         * none. Nothing is guessed from the other season.
+         */
+        public DirectSun directSunIn(java.time.Month month) {
+            Integer hours = LightRule.isSummer(month) ? sunHoursSummer : sunHoursWinter;
+            return hours != null ? LightRule.fromHours(hours) : directSun;
+        }
     }
 
     /**

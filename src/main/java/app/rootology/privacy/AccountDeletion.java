@@ -100,6 +100,7 @@ public class AccountDeletion {
         telegram.forget(login);
         escalations.forget(login, gone, DELETED_USER);
         runs.forget(login, gone, DELETED_USER);
+        gardens.forget(login, gone, DELETED_USER);
         gardens.deleteSpaces(gone);
         usage.forget(login, DELETED_USER);
         roles.forget(login, DELETED_USER, clock.instant());
