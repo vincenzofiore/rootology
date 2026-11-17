@@ -120,19 +120,33 @@ public class KnowledgeGraph {
         return resolve(name, null);
     }
 
-    /** As {@link #resolve(String)}, also by the names this space added (null: only global names). */
+    /**
+     * As {@link #resolve(String)}, also by the names this space added (null: only global names). A name not
+     * found as written is tried in its singular forms ({@link Singulars}): questions say "i pomodori".
+     */
     public java.util.Optional<Entity> resolve(String name, Long spaceId) {
         if (name == null || name.isBlank()) {
             return java.util.Optional.empty();
         }
         String n = name.trim().toLowerCase(java.util.Locale.ROOT);
-        return list("MATCH (e:Kb) WHERE (e:Crop OR e:Organism) AND (toLower(e.id) = $n OR toLower(e.italianName) = $n "
-                        + "OR toLower(e.englishName) = $n OR toLower(e.scientificName) = $n "
-                        + "OR EXISTS { MATCH (a:Kb:Alias)-[:NAME_OF]->(e) WHERE a.name = $n AND (a.spaceId IS NULL OR a.spaceId = $space) }) "
+        java.util.Optional<Entity> exact = resolveAny(List.of(n), spaceId);
+        return exact.isPresent() ? exact : resolveAny(List.copyOf(Singulars.of(n)), spaceId);
+    }
+
+    /** The first of the names (in their order) that is a crop or an organism; italian when it matched the Italian name. */
+    private java.util.Optional<Entity> resolveAny(List<String> names, Long spaceId) {
+        if (names.isEmpty()) {
+            return java.util.Optional.empty();
+        }
+        return list("UNWIND range(0, size($names) - 1) AS i WITH i, $names[i] AS n "
+                        + "MATCH (e:Kb) WHERE (e:Crop OR e:Organism) AND (toLower(e.id) = n OR toLower(e.italianName) = n "
+                        + "OR toLower(e.englishName) = n OR toLower(e.scientificName) = n "
+                        + "OR EXISTS { MATCH (a:Kb:Alias)-[:NAME_OF]->(e) WHERE a.name = n AND (a.spaceId IS NULL OR a.spaceId = $space) }) "
                         + "RETURN CASE WHEN e:Crop THEN 'CROP' ELSE 'ORGANISM' END AS kind, e.id AS id, "
-                        + "e.italianName AS it, e.englishName AS en LIMIT 1", Map.of("n", n, "space", space(spaceId)),
+                        + "e.italianName AS it, e.englishName AS en, toLower(e.italianName) = n AS italian "
+                        + "ORDER BY i LIMIT 1", Map.of("names", names, "space", space(spaceId)),
                 r -> new Entity(r.get("kind").asString(), r.get("id").asString(), r.get("it").asString(),
-                        r.get("en").asString(), r.get("it").asString().equalsIgnoreCase(name.trim())))
+                        r.get("en").asString(), r.get("italian").asBoolean()))
                 .stream().findFirst();
     }
 
@@ -206,13 +220,9 @@ public class KnowledgeGraph {
     static final List<String> MONTHS = List.of("JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY",
             "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER");
 
-    /** The predicate a window activity becomes in the facts. */
+    /** The predicate a window activity becomes in the facts: one per activity (#112), harvestIn otherwise. */
     static String predicate(String activity) {
-        return switch (activity) {
-            case "SOW", "SOW_SEEDBED" -> "sowIn";
-            case "PLANT", "TRANSPLANT" -> "plantIn";
-            default -> "harvestIn";
-        };
+        return "HARVEST".equals(activity) ? "harvestIn" : SowingActivity.valueOf(activity).predicate();
     }
 
     /** The months of a window (1-12, wrapping over the year), in order. */

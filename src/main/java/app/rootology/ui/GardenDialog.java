@@ -12,6 +12,7 @@ import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.geocoding.GeoNames;
 import app.rootology.facts.ClimateCells;
 import app.rootology.geocoding.Place;
+import app.rootology.pipeline.QuestionContext.Choice;
 
 import java.math.BigDecimal;
 import java.util.function.Consumer;
@@ -39,7 +40,7 @@ final class GardenDialog {
     }
 
     void open(GardenSummary existing, Consumer<GardenSummary> saved) {
-        open(existing, saved, null, null);
+        open(existing, saved, null, null, null, null);
     }
 
     /**
@@ -47,11 +48,20 @@ final class GardenDialog {
      * other position, and the town and its country come from the nearest place, as with "Use my position".
      */
     void open(GardenSummary existing, Consumer<GardenSummary> saved, double latitude, double longitude) {
-        open(existing, saved, Double.valueOf(latitude), Double.valueOf(longitude));
+        open(existing, saved, null, Double.valueOf(latitude), Double.valueOf(longitude), null);
     }
 
-    private void open(GardenSummary existing, Consumer<GardenSummary> saved, Double prefilledLatitude,
-                      Double prefilledLongitude) {
+    /**
+     * The same dialog, opened for the place a question named or the person chose (#107): its town, position,
+     * country and altitude are all known, so nothing is searched again.
+     */
+    void open(GardenSummary existing, Consumer<GardenSummary> saved, Choice.Place place) {
+        open(existing, saved, place, place.latitude().doubleValue(), place.longitude().doubleValue(),
+                place.elevationM());
+    }
+
+    private void open(GardenSummary existing, Consumer<GardenSummary> saved, Choice.Place place,
+                      Double prefilledLatitude, Double prefilledLongitude, Integer prefilledElevationM) {
         UI ui = UI.getCurrent();
         TextField name = new TextField(ui.getTranslation("garden.name"));
         TextField town = new TextField(ui.getTranslation("garden.town"));
@@ -70,13 +80,22 @@ final class GardenDialog {
 
         // A place found by name fills in the town, the coordinates and the country (#30).
         String language = ui.getLocale() == null ? "en" : ui.getLocale().getLanguage();
+        // From a point on the map or from a place (#66, #107): the position is known, and it is a real place.
         boolean fromMap = prefilledLatitude != null && prefilledLongitude != null;
         // Only coordinates typed by hand are questioned (#66): a point on the map, a place found by name or the
         // browser's position are real places. Typing in either field makes the position the person's own again.
         boolean[] typed = {false};
         latitude.addValueChangeListener(e -> typed[0] |= e.isFromClient());
         longitude.addValueChangeListener(e -> typed[0] |= e.isFromClient());
-        if (fromMap) {
+        ComboBox<Place> search = PlaceSearch.field(geoNames, ui.getTranslation("garden.place"),
+                ui.getTranslation("garden.place.hint"), language);
+        if (place != null) {
+            // The place is known (#107): its own names, position and altitude, never a second lookup.
+            latitude.setValue(coarse(place.latitude().doubleValue()));
+            longitude.setValue(coarse(place.longitude().doubleValue()));
+            town.setValue(place.name());
+            country.setValue(place.countryCode() == null ? "" : place.countryCode());
+        } else if (fromMap) {
             latitude.setValue(coarse(prefilledLatitude));
             longitude.setValue(coarse(prefilledLongitude));
             geoNames.nearestPlace(prefilledLatitude, prefilledLongitude, language).ifPresent(p -> {
@@ -84,12 +103,7 @@ final class GardenDialog {
                 country.setValue(p.countryCode() == null ? "" : p.countryCode());
             });
         }
-        ComboBox<Place> place = new ComboBox<>(ui.getTranslation("garden.place"));
-        place.setPlaceholder(ui.getTranslation("garden.place.hint"));
-        place.setItemLabelGenerator(Place::label);
-        place.setItems(query -> geoNames.search(query.getFilter().orElse(""), language).stream()
-                .skip(query.getOffset()).limit(query.getLimit()));
-        place.addValueChangeListener(e -> {
+        search.addValueChangeListener(e -> {
             Place p = e.getValue();
             if (p != null) {
                 town.setValue(p.name());
@@ -99,8 +113,8 @@ final class GardenDialog {
                 typed[0] = false;
             }
         });
-        // From the map the place is already chosen: a second search here would only compete with it (#66).
-        place.setVisible(geoNames.enabled() && !fromMap);
+        // From the map or from a place the position is already chosen: a search here would only compete (#66).
+        search.setVisible(geoNames.enabled() && !fromMap);
 
         // The browser asks the person first; it works on localhost and over HTTPS only.
         Button here = new Button(ui.getTranslation("garden.position"), e -> ((Button) e.getSource()).getElement().executeJs("""
@@ -127,10 +141,10 @@ final class GardenDialog {
 
         Dialog dialog = new Dialog(ui.getTranslation(existing == null ? "garden.new" : "garden.edit"));
         if (fromMap) {
-            dialog.add(new Paragraph(ui.getTranslation("garden.frommap")));
+            dialog.add(new Paragraph(ui.getTranslation(place == null ? "garden.frommap" : "garden.fromplace")));
             name.focus();
         }
-        dialog.add(new FormLayout(name, place, town, latitude, longitude, country), here,
+        dialog.add(new FormLayout(name, search, town, latitude, longitude, country), here,
                 new Paragraph(ui.getTranslation("garden.location.note")
                         + (geoNames.enabled() ? " " + ui.getTranslation("garden.geonames") : "")));
         // Typed coordinates in open sea are only questioned, never refused (#66): a second Save keeps them.
@@ -170,7 +184,8 @@ final class GardenDialog {
                     }
                 }
                 GardenSummary garden = save.save(name.getValue(), town.getValue(), latitude.getValue(),
-                        longitude.getValue(), countryCode, elevation(existing, latitude.getValue(), longitude.getValue()));
+                        longitude.getValue(), countryCode, elevation(existing, latitude.getValue(), longitude.getValue(),
+                        prefilledLatitude, prefilledLongitude, prefilledElevationM));
                 dialog.close();
                 saved.accept(garden);
             } catch (RuntimeException ex) {
@@ -184,7 +199,8 @@ final class GardenDialog {
      * The elevation for the profile (#62): the old one when the place did not change, otherwise GTOPO30's
      * for the new place. A failed lookup leaves it null and never blocks saving.
      */
-    private Integer elevation(GardenSummary existing, BigDecimal latitude, BigDecimal longitude) {
+    private Integer elevation(GardenSummary existing, BigDecimal latitude, BigDecimal longitude,
+                              Double prefilledLatitude, Double prefilledLongitude, Integer prefilledElevationM) {
         if (latitude == null || longitude == null) {
             return null;
         }
@@ -192,6 +208,13 @@ final class GardenDialog {
                 && latitude.compareTo(existing.latitude()) == 0 && longitude.compareTo(existing.longitude()) == 0;
         if (same && existing.elevationM() != null) {
             return existing.elevationM();
+        }
+        // The place of a question already has its own altitude (#107): no lookup while the position is its own.
+        boolean untouched = prefilledElevationM != null && prefilledLatitude != null && prefilledLongitude != null
+                && latitude.compareTo(coarse(prefilledLatitude)) == 0
+                && longitude.compareTo(coarse(prefilledLongitude)) == 0;
+        if (untouched) {
+            return prefilledElevationM;
         }
         return geoNames.elevation(latitude.doubleValue(), longitude.doubleValue()).orElse(null);
     }

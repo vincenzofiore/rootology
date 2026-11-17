@@ -46,6 +46,9 @@ class ViewsTest {
     GardenPipeline pipeline;
 
     @Autowired
+    NotificationBroadcaster broadcaster;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -151,16 +154,15 @@ class ViewsTest {
 
     @Test
     void historySpaceAndCuratorViewsBuild() {
-        assertThat(new MembersView(spaces, viewer()).getChildren()).isNotEmpty();
-        assertThat(new InvitationsView(invitations, viewer()).getChildren()).isNotEmpty();
+        assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
-        assertThat(new GardensView(gardens, geoNames, ungardened, viewer(), cells, pipeline, weatherService, STYLE, "")
+        assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, STYLE, "")
                 .getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
-        assertThat(new StartView(gardens, viewer()).getChildren()).isEmpty();
+        assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
         assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
                 .getChildren()).isNotEmpty();
@@ -171,9 +173,6 @@ class ViewsTest {
 
         assertThat(SourcesView.class.isAnnotationPresent(com.vaadin.flow.server.auth.AnonymousAllowed.class)).isTrue();
     }
-
-    @Autowired
-    Ungardened ungardened;
 
     @Test
     void openingANotificationOfAnotherContextAsksFirst() {
@@ -342,7 +341,7 @@ class ViewsTest {
     @Test
     void theHistoryIsBesideTheQuestion() {
         // #100: a button in Ask's header opens the history; closed until the browser says otherwise.
-        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, history);
+        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history);
         assertThat(ask.historyOpen()).isFalse();
         PageHeader header = ask.getChildren().filter(PageHeader.class::isInstance).map(PageHeader.class::cast)
                 .findFirst().orElseThrow();
@@ -354,11 +353,67 @@ class ViewsTest {
     }
 
     @Test
+    void aHistoryCardsOpenButtonNamesTheQuestionItOpens() {
+        // #113: a screen reader hears which answer each button leads to, not "Apri la risposta" eleven times.
+        Translations translations = new Translations();
+        NoteText.Texts italian = (key, args) -> translations.getTranslation(key, java.util.Locale.ITALIAN, args);
+        NoteText.Texts english = (key, args) -> translations.getTranslation(key, java.util.Locale.ENGLISH, args);
+
+        assertThat(HistoryPanel.openLabel(false, "Quando semino la rucola?", italian))
+                .isEqualTo("Apri la risposta: «Quando semino la rucola?»");
+        assertThat(HistoryPanel.openLabel(true, "Quando semino la rucola?", italian))
+                .isEqualTo("Apri la domanda in attesa: «Quando semino la rucola?»");
+        assertThat(HistoryPanel.openLabel(false, "When do I sow rocket?", english))
+                .isEqualTo("Open the answer: “When do I sow rocket?”");
+        assertThat(HistoryPanel.openLabel(true, "When do I sow rocket?", english))
+                .isEqualTo("Open the waiting question: “When do I sow rocket?”");
+    }
+
+    @Test
+    void theFieldTakesTheKeyboardOnlyWhenNothingElseIsShown() {
+        // #113: nothing opened by the address (?run=, ?history, ?q=) leaves the field as the first thing to do.
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.empty())).isTrue();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of("space", "3"))).isTrue();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.RUN, "abc"))).isFalse();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.HISTORY, ""))).isFalse();
+        assertThat(AskView.focusFieldOnOpen(QueryParameters.of(AskView.QUESTION, "Cosa semino?"))).isFalse();
+    }
+
+    @Test
     void theHistorySearchFindsEveryWordIgnoringCaseAndAccents() {
+        // In a space of one, "asked by" and "mine" say nothing (#119).
+        HistoryPanel.Entry mine = new HistoryPanel.Entry("Quando?", HistoryPanel.Outcome.ANSWERED, "Ada", null, null,
+                null, HistoryPanel.NO_GARDEN);
+        HistoryPanel.Entry theirs = new HistoryPanel.Entry("Dove?", HistoryPanel.Outcome.ANSWERED, "bob", null, null,
+                null, HistoryPanel.NO_GARDEN);
+        assertThat(HistoryPanel.othersAsk(List.of(mine), "ada")).isFalse();
+        assertThat(HistoryPanel.othersAsk(List.of(mine, theirs), "ada")).isTrue();
         assertThat(HistoryPanel.matches("Perché il pomodoro ingiallisce?", "perche POMODORO")).isTrue();
         assertThat(HistoryPanel.matches("Quando semino il basilico?", "  ")).isTrue();
         assertThat(HistoryPanel.matches("Quando semino il basilico?", "basilico pomodoro")).isFalse();
         assertThat(HistoryPanel.matches(null, "x")).isFalse();
+    }
+
+    @Test
+    void theHistoryFiltersByOutcomeByWhoAskedAndByPeriod() {
+        // #104: one outcome, mine (logins ignoring case) and a period, combined.
+        java.time.Instant now = java.time.Instant.parse("2026-11-14T10:00:00Z");
+        HistoryPanel.Entry waiting = new HistoryPanel.Entry("Quando semino?", HistoryPanel.Outcome.WAITING, "Mia",
+                now.minus(java.time.Duration.ofDays(2)), null, null, "Balcony");
+        HistoryPanel.Entry old = new HistoryPanel.Entry("Cosa raccolgo?", HistoryPanel.Outcome.ANSWERED, "luca",
+                now.minus(java.time.Duration.ofDays(20)), null, null, HistoryPanel.NO_GARDEN);
+
+        assertThat(HistoryPanel.passes(waiting, HistoryPanel.Filters.NONE, "mia", now)).isTrue();
+        assertThat(HistoryPanel.passes(waiting, new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, true,
+                HistoryPanel.WEEK), "mia", now)).isTrue();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, true, null), "mia", now))
+                .as("someone else's").isFalse();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, HistoryPanel.WEEK), "mia", now))
+                .as("older than a week").isFalse();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(null, false, 30), "mia", now))
+                .isTrue();
+        assertThat(HistoryPanel.passes(old, new HistoryPanel.Filters(HistoryPanel.Outcome.OFF_DOMAIN, false, null),
+                "mia", now)).isFalse();
     }
 
     @Test
@@ -378,17 +433,6 @@ class ViewsTest {
     private long personalSpace(String login) {
         spaces.signedIn(login);
         return spaces.spacesOf(login).stream().filter(SpaceSummary::personal).findFirst().orElseThrow().id();
-    }
-
-    @Test
-    void escalationViewShowsOneCardPerWaitingQuestion() {
-        EscalationView view = new EscalationView(pipeline, gardens, viewer(), crops, knowledge, sourceCatalog,
-                enrichment);
-
-        // One card per waiting question, never a grid with a form below it (#86).
-        assertThat(view.getChildren().anyMatch(Grid.class::isInstance)).isFalse();
-        assertThat(view.getChildren().filter(Div.class::isInstance).map(Div.class::cast)
-                .anyMatch(d -> d.getClassNames().contains("rootology-cards"))).isTrue();
     }
 
     @Test

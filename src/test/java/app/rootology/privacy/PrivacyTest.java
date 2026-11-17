@@ -53,6 +53,14 @@ class PrivacyTest {
         long garden = jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Orto', now()) returning id")
                 .param("s", adaSpace).query(Long.class).single();
         jdbc.sql("insert into plot (garden_id, name, kind, soil) values (:g, 'A', 'GROUND', 'LOAMY')").param("g", garden).update();
+        // Ada declared the sun of a plot in Bob's space, which stays (#89).
+        long bobGarden = jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Bob orto', now()) returning id")
+                .param("s", bobSpace).query(Long.class).single();
+        long bobPlot = jdbc.sql("""
+                insert into plot (garden_id, name, kind, soil, sun_hours_summer, sun_hours_winter, sun_declared_by,
+                                  sun_declared_at)
+                values (:g, 'B', 'POT', 'POTTING_MIX', 7, 2, 'del-ada', now()) returning id""")
+                .param("g", bobGarden).query(Long.class).single();
         run(adaSpace, "del-ada", "a question in my own space", Instant.now());
         run(bobSpace, "del-ada", "a question in bob's space", Instant.now());
         run(bobSpace, "del-bob", "bob's own question", Instant.now());
@@ -88,6 +96,11 @@ class PrivacyTest {
         assertThat(count("select count(*) from user_identity where subject in ('4242', '4243')")).isZero();
         assertThat(count("select count(*) from space where id = " + adaSpace)).isZero();
         assertThat(count("select count(*) from garden where id = " + garden)).isZero();
+        // The sun she declared on Bob's plot stays, without her login (#89).
+        assertThat(jdbc.sql("select sun_declared_by from plot where id = :id").param("id", bobPlot)
+                .query(String.class).single()).isEqualTo(AccountDeletion.DELETED_USER);
+        assertThat(jdbc.sql("select sun_hours_summer from plot where id = :id").param("id", bobPlot)
+                .query(Integer.class).single()).as("the value itself stays").isEqualTo(7);
         assertThat(count("select count(*) from notification_preference where github_login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from usage_record where github_login = 'del-ada'")).isZero();
         assertThat(count("select count(*) from notification where recipient = 'del-ada'")).isZero();
@@ -154,9 +167,10 @@ class PrivacyTest {
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
-                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor)
+                insert into plot (garden_id, name, kind, soil, orientation, direct_sun, wind, floor,
+                                  sun_hours_summer, sun_hours_winter, sun_declared_by, sun_declared_at)
                 values ((select id from garden where space_id = :s), 'Gus pot', 'POT', 'POTTING_MIX',
-                        'N', 'SHADE', 'EXPOSED', 3)""").param("s", gusSpace).update();
+                        'N', 'SHADE', 'EXPOSED', 3, 7, 2, 'exp-gus', now())""").param("s", gusSpace).update();
         jdbc.sql("""
                 insert into user_identity (user_id, provider, subject, email, linked_at)
                 values ((select id from app_user where login = 'exp-fay'), 'github', '5252', 'fay@example.org', now())""").update();
@@ -172,6 +186,9 @@ class PrivacyTest {
                         "\"identities\"", "\"provider\" : \"github\"", "\"subject\" : \"5252\"", "fay@example.org",
                         "\"provider\" : \"google\"", "\"subject\" : \"5253\"", "fay@gmail.com",
                         "Gus pot", "\"direct_sun\" : \"SHADE\"", "\"floor\" : 3",
+                        // #89: the hours of direct sun by season and who declared them.
+                        "\"sun_hours_summer\" : 7", "\"sun_hours_winter\" : 2",
+                        "\"sun_declared_by\" : \"exp-gus\"", "\"sun_declared_at\"",
                         // #56: the garden a question belongs to is part of the export, like its space.
                         "\"garden_id\"",
                         // #38: the Telegram chat the person linked.

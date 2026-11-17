@@ -75,11 +75,21 @@ class NoteAndReasonTextTest {
     @Test
     void knownReasonsAreTranslatedAndOthersKept() {
         assertThat(ReasonText.text("lavanda is not in the dataset", italian))
-                .isEqualTo("lavanda non è nella base di conoscenza");
+                .isEqualTo("lavanda non è tra le colture e i parassiti che Rootology conosce");
         assertThat(ReasonText.text("Jev: low confidence (0,42)", italian))
-                .isEqualTo("Jev non è abbastanza sicuro (confidenza 0,42)");
+                .isEqualTo("i fatti trovati non bastano per una risposta sicura");
         assertThat(ReasonText.text("Jev: the facts do not answer this (p=0.18)", english))
-                .isEqualTo("the facts do not answer this question (probability 0.18)");
+                .isEqualTo("the facts found are not enough to answer");
         assertThat(ReasonText.text("From experience", italian)).isEqualTo("From experience");
+    }
+
+    @Test
+    void aDecisionLayersNumberIsKeptApartFromItsWords() {
+        // #114: a gardener reads words; the number stays for whoever wants it, as the words' tooltip.
+        assertThat(ReasonText.worded("Jev: the facts do not answer this (p=0,08)", italian))
+                .isEqualTo(new ReasonText.Worded("i fatti trovati non bastano a rispondere", "probabilità 0,08"));
+        assertThat(ReasonText.worded("Jev: confident (0.91)", english).number()).isEqualTo("confidence 0.91");
+        assertThat(ReasonText.worded("lavanda is not in the dataset", italian).number()).isNull();
+        assertThat(ReasonText.worded("From experience", italian)).isEqualTo(new ReasonText.Worded("From experience", null));
     }
 }

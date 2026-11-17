@@ -2,7 +2,6 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.avatar.AvatarVariant;
 import com.vaadin.flow.component.Component;
@@ -17,8 +16,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.page.ColorScheme;
-import com.vaadin.flow.component.sidenav.SideNav;
-import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.QueryParameters;
@@ -36,10 +33,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Shell of the app: the space switcher, the person and the bell always; the side menu of the level the
- * page works at (#56), read from the page's own route: the space's gardens and management outside a
- * garden, the garden's pages inside it. The URL is the only source of the context, so two browser tabs,
- * one on each garden, never mix.
+ * Shell of the app, navigation by levels (#132, ADR 0002): the space with its gardens, and a garden. The top
+ * bar has a way back to the level above, the clickable path, the level's sections as actions with a count, and
+ * the space switcher, the theme, the bell and the person's menu; on a phone the same actions sit in a bar at the
+ * bottom, the level's home first. The level is read from the page's own route (#56): the URL is the only
+ * source of the context, so two browser tabs, one on each garden, never mix.
  */
 @PermitAll
 public class MainLayout extends AppLayout implements AfterNavigationObserver {
@@ -47,23 +45,23 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private final NotificationService notifications;
     private final NotificationBroadcaster broadcaster;
     private final GardenService gardens;
-    private final Ungardened ungardened;
     private final GardenPipeline pipeline;
     private final CurrentUser currentUser;
     private final Button bell = new Button();
+    private final Avatar avatar = new Avatar();
+    private final Span who = new Span();
     /** The space of the page being shown; choosing another one opens its gardens (#56). */
     private final ComboBox<SpaceSummary> space = new ComboBox<>();
-    /** On a phone the navbar is full (#79): the same switcher lives in the side menu, below the name. */
-    private final ComboBox<SpaceSummary> drawerSpace = new ComboBox<>();
     /** Light or dark (#31): automatic (the device's setting), light or dark; kept in this browser. */
     private final Button scheme = new Button();
-    private final SideNav nav = new SideNav();
     private final Div where = new Div();
-    /** The space and garden at the top of the drawer below 640 px, where the navbar hides them (#79, #88). */
-    private final Div drawerWhere = new Div();
-    /** Home, Ask, Plots and Waiting questions at the bottom of a phone inside a garden (#88). */
+    /** The way to the level above (#132): the garden's home from its sections, the gardens from the rest. */
+    private final Div back = new Div();
+    /** The level's sections as actions, always visible above 640 px (#132). */
+    private final Div actions = new Div();
+    /** The same actions at the bottom of a phone, the level's home first (#88, #132). */
     private final Div bottomBar = new Div();
-    /** The first Tab of the page is a way to the content, past the navbar and the whole side menu (#88). */
+    /** The first Tab of the page is a way to the content, past the navbar (#88). */
     private final Anchor skip = new Anchor();
     private ColorScheme.Value colorScheme = ColorScheme.Value.LIGHT_DARK;
     private Runnable stopListening;
@@ -72,20 +70,15 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     private long contextGarden;
 
     public MainLayout(AuthenticationContext authentication, CurrentUser currentUser, NotificationService notifications,
-                      NotificationBroadcaster broadcaster, GardenService gardens, Ungardened ungardened,
-                      GardenPipeline pipeline) {
+                      NotificationBroadcaster broadcaster, GardenService gardens, GardenPipeline pipeline) {
         this.notifications = notifications;
         this.broadcaster = broadcaster;
         this.currentUser = currentUser;
         this.gardens = gardens;
-        this.ungardened = ungardened;
         this.pipeline = pipeline;
         H1 title = new H1(new Wordmark());
         title.addClassName("rootology-app-title");
-        // On a phone the side menu hides itself (#31): the toggle opens it.
-        DrawerToggle toggle = new DrawerToggle();
-        toggle.setAriaLabel(getTranslation("nav.menu"));
-        // The first Tab skips the navbar and the whole side menu (#88): it moves the focus into the content.
+        // The first Tab skips the navbar (#88): it moves the focus into the content.
         skip.setText(getTranslation("nav.skip"));
         skip.addClassName("rootology-skip");
         skip.setRouterIgnore(true);
@@ -94,16 +87,21 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         skip.getElement().executeJs("this.addEventListener('click', e => { e.preventDefault();"
                 + " const main = document.getElementById('main-content'); if (main) { main.focus(); } })");
         // The name always comes with the slogan (#87).
-        addToNavbar(skip, toggle, Wordmark.withSlogan(title), where);
+        back.addClassName("rootology-back");
+        addToNavbar(skip, back, Wordmark.withSlogan(title), where);
         where.addClassName("rootology-where");
+        where.getElement().setAttribute("role", "navigation");
+        where.getElement().setAttribute("aria-label", getTranslation("nav.where"));
+        actions.addClassName("rootology-level-actions");
+        actions.getElement().setAttribute("role", "navigation");
+        actions.getElement().setAttribute("aria-label", getTranslation("nav.sections"));
 
         switcher(space, "rootology-space-switcher");
-        switcher(drawerSpace, "rootology-space-switcher-narrow");
-        // The person's menu, top right (#40): their account and signing out. The login hides on a phone.
-        Avatar avatar = new Avatar(currentUser.login());
+        // The person's menu, top right (#40): their account and signing out. The name hides on a phone; it is
+        // the display name the person chose (#106), never the login.
+        showName();
         avatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
         avatar.getElement().setAttribute("aria-hidden", "true");
-        Span who = new Span(currentUser.login());
         who.addClassName("rootology-wide-only");
         Div person = new Div(avatar, who);
         person.addClassName("rootology-person");
@@ -114,6 +112,27 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         SubMenu items = user.addItem(person).getSubMenu();
         items.addItem(menuItem(VaadinIcon.USER, "nav.account"), e -> UI.getCurrent().navigate(AccountView.class));
         items.addItem(menuItem(VaadinIcon.BELL_O, "nav.notifications"), e -> openNotifications());
+        // On a phone the switcher is hidden (#79): the person changes space here (#132).
+        List<SpaceSummary> all = currentUser.pending() ? List.of() : currentUser.spaces();
+        if (all.size() > 1) {
+            SubMenu spaces = items.addItem(menuItem(VaadinIcon.EXCHANGE, "nav.spaces")).getSubMenu();
+            all.forEach(s -> spaces.addItem(s.name(), e -> openSpace(s)));
+        }
+        // The pages of a role, rare and for few people (#132): here rather than in the bar.
+        if (currentUser.hasRole(AppRole.CURATOR)) {
+            items.addItem(menuItem(VaadinIcon.CHECK, "nav.curator"), e -> UI.getCurrent().navigate(CuratorView.class));
+        }
+        if (currentUser.hasRole(AppRole.QA)) {
+            items.addItem(menuItem(VaadinIcon.FLASK, "nav.compare"), e -> UI.getCurrent().navigate(ComparisonView.class));
+        }
+        if (currentUser.hasRole(AppRole.ADMIN)) {
+            items.addItem(menuItem(VaadinIcon.COG_O, "nav.admin"), e -> UI.getCurrent().navigate(AdminView.class));
+        }
+        // Sources and Privacy are public pages (PublicLayout): a full page load, as their links always were.
+        items.addItem(menuItem(VaadinIcon.OPEN_BOOK, "nav.sources"),
+                e -> UI.getCurrent().getPage().setLocation("/" + SourcesView.ROUTE));
+        items.addItem(menuItem(VaadinIcon.LOCK, "nav.privacy"),
+                e -> UI.getCurrent().getPage().setLocation("/" + PrivacyView.ROUTE));
         items.addItem(menuItem(VaadinIcon.SIGN_OUT, "nav.logout"), e -> authentication.logout());
         // The unread notifications (#26), updated live through push while the page is open.
         bell.setIcon(VaadinIcon.BELL.create());
@@ -123,42 +142,41 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         scheme.addThemeName("tertiary");
         scheme.addClickListener(e -> nextScheme());
         // The end of the navbar stays together and reaches the right edge (#79); below 640 px the
-        // switcher is hidden and the drawer's copy takes its place.
-        Div end = new Div(space, scheme, bell, user);
+        // switcher and the actions are hidden: the person's menu and the bottom bar take their place.
+        Div end = new Div(actions, space, scheme, bell, user);
         end.addClassName("rootology-navbar-end");
         addToNavbar(end);
-        // The bar of a phone inside a garden (#88): hidden above 640 px, where the side menu is enough.
+        // The bar of a phone (#88, #132): hidden above 640 px, where the top bar's actions are enough.
         bottomBar.addClassName("rootology-bottom-nav");
         bottomBar.getElement().setAttribute("role", "navigation");
-        bottomBar.getElement().setAttribute("aria-label", getTranslation("nav.gardennavigation"));
+        bottomBar.getElement().setAttribute("aria-label", getTranslation("nav.sections"));
         addToNavbar(bottomBar);
-        // The menu fills the drawer and the service pages sit at its bottom.
-        Div drawerSpaceBox = new Div(drawerSpace);
-        drawerSpaceBox.addClassName("rootology-drawer-space");
-        drawerWhere.addClassName("rootology-drawer-where");
-        Div drawer = new Div(drawerSpaceBox, drawerWhere, nav, new ServiceLinks());
-        drawer.addClassName("rootology-drawer");
-        addToDrawer(drawer);
     }
 
-    /** The plots are beds, not the home of the garden (#79): the same icon in the menu and in the links. */
+    /** Opens a space's gardens, from the switcher or the person's menu. */
+    private void openSpace(SpaceSummary chosen) {
+        currentUser.switchTo(chosen.id());
+        UI.getCurrent().navigate(GardensView.class, new RouteParameters(
+                Map.of(Routed.SPACE, String.valueOf(chosen.id()))));
+    }
+
+    /** The plots are beds, not the home of the garden (#79): the same icon in the bar and in the links. */
     static final VaadinIcon PLOTS_ICON = VaadinIcon.GRID_BIG;
 
-    /** A space switcher: choosing a space opens its gardens. Two of them, the navbar's and the drawer's. */
+    /** The space switcher: choosing a space opens its gardens. */
     private void switcher(ComboBox<SpaceSummary> box, String className) {
         box.addClassName(className);
         box.setItemLabelGenerator(SpaceSummary::name);
+        box.getElement().setAttribute("aria-label", getTranslation("nav.spaces"));
         box.addValueChangeListener(e -> {
             if (e.isFromClient() && e.getValue() != null) {
-                currentUser.switchTo(e.getValue().id());
-                UI.getCurrent().navigate(GardensView.class, new RouteParameters(
-                        Map.of(Routed.SPACE, String.valueOf(e.getValue().id()))));
+                openSpace(e.getValue());
             }
         });
     }
 
     /**
-     * Builds the menu and the way to the space and garden from the route of the page being shown (#56),
+     * Builds the actions and the way to the space and garden from the route of the page being shown (#56),
      * never from the session's.
      */
     @Override
@@ -171,9 +189,6 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         QueryParameters query = event.getLocation().getQueryParameters();
         long spaceId = number(parameters, Routed.SPACE);
         long gardenId = number(parameters, Routed.GARDEN);
-        // A garden in the route itself, not one carried in a query string (#56): only there is a page a
-        // phone's bar belongs to (#88).
-        long routeGarden = gardenId;
         // The notifications page carries the context in its query string, so the bell keeps it (#56).
         if (spaceId <= 0) {
             spaceId = query.getSingleParameter(NotificationsView.SPACE).map(MainLayout::parse).orElse(-1L);
@@ -186,25 +201,23 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         SpaceSummary current = currentUser.spaces().stream().filter(s -> s.id() == pageSpace).findFirst()
                 .orElse(currentUser.space());
         space.setItems(currentUser.spaces());
-        drawerSpace.setItems(currentUser.spaces());
         if (!current.equals(space.getValue())) {
             space.setValue(current);
         }
-        if (!current.equals(drawerSpace.getValue())) {
-            drawerSpace.setValue(current);
-        }
+        Class<?> target = target(event);
         showWhere(current, pageGarden);
-        showDrawerWhere(current, pageGarden);
-        menu(current, pageGarden);
-        bottomMenu(current, routeGarden, target(event));
-        getElement().getClassList().set("rootology-with-bottom-nav", routeGarden > 0);
+        showBack(current, pageGarden, target);
+        List<Action> level = actions(current, pageGarden);
+        showActions(level, target);
+        bottomMenu(current, pageGarden, level, target);
+        getElement().getClassList().set("rootology-with-bottom-nav", true);
         focusTarget();
     }
 
-    /** The page being shown, the last of the chain: the layout is the first (#88, the bar's current item). */
+    /** The page being shown: the one of the chain that is not this layout (#88, #132: the current action). */
     private static Class<?> target(AfterNavigationEvent event) {
-        List<com.vaadin.flow.component.HasElement> chain = event.getActiveChain();
-        return chain.isEmpty() ? null : chain.get(chain.size() - 1).getClass();
+        return event.getActiveChain().stream().filter(c -> !(c instanceof MainLayout)).findFirst()
+                .map(Object::getClass).orElse(null);
     }
 
     /**
@@ -234,120 +247,127 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         UI.getCurrent().navigate(NotificationsView.class, new QueryParameters(query));
     }
 
-    /** "Space / Garden" while inside a garden; the two names lead back to the overview and the garden. */
+    /** "Space / Garden": the two names lead to the gardens and to the garden's home (#56, #132). */
     private void showWhere(SpaceSummary space, long gardenId) {
         where.removeAll();
-        if (gardenId <= 0) {
-            return;
+        where.add(link(space.name(), GardensView.class, Map.of(Routed.SPACE, String.valueOf(space.id()))));
+        if (gardenId > 0) {
+            where.add(new Span("/"), link(gardenName(space, gardenId), GardenHomeView.class,
+                    Map.of(Routed.SPACE, String.valueOf(space.id()), Routed.GARDEN, String.valueOf(gardenId))));
         }
-        String garden = gardens.garden(space.id(), currentUser.login(), gardenId).map(g -> g.name()).orElse("");
-        where.add(link(space.name(), GardensView.class, Map.of(Routed.SPACE, String.valueOf(space.id()))),
-                new Span("/"), link(garden, GardenHomeView.class, Map.of(Routed.SPACE, String.valueOf(space.id()),
-                        Routed.GARDEN, String.valueOf(gardenId))));
+    }
+
+    private String gardenName(SpaceSummary space, long gardenId) {
+        return gardens.garden(space.id(), currentUser.login(), gardenId).map(g -> g.name()).orElse("");
     }
 
     /**
-     * The same "Space / Garden" at the top of the drawer (#88): the navbar hides it on a phone (#79), and the
-     * drawer is where the person looks for it there.
+     * The arrow to the level above (#132): from a garden's section to its home, from anywhere else to the
+     * space's gardens; none on the gardens themselves. The parent, never the browser's history, so the person
+     * always knows where it leads.
      */
-    private void showDrawerWhere(SpaceSummary space, long gardenId) {
-        drawerWhere.removeAll();
-        if (gardenId <= 0) {
+    private void showBack(SpaceSummary space, long gardenId, Class<?> target) {
+        back.removeAll();
+        if (target == GardensView.class) {
             return;
         }
-        String garden = gardens.garden(space.id(), currentUser.login(), gardenId).map(g -> g.name()).orElse("");
-        drawerWhere.add(new Span(space.name()), new Span(" / "), new Span(garden));
+        boolean toGarden = gardenId > 0 && target != GardenHomeView.class;
+        RouterLink link = toGarden
+                ? link("", GardenHomeView.class, Map.of(Routed.SPACE, String.valueOf(space.id()),
+                        Routed.GARDEN, String.valueOf(gardenId)))
+                : link("", GardensView.class, Map.of(Routed.SPACE, String.valueOf(space.id())));
+        link.add(VaadinIcon.ARROW_LEFT.create());
+        String label = getTranslation("nav.back", toGarden ? gardenName(space, gardenId) : getTranslation("nav.gardens"));
+        link.getElement().setAttribute("aria-label", label);
+        link.getElement().setAttribute("title", label);
+        back.add(link);
+    }
+
+    /** A section of the level (#132): its icon, its word, its page and the count that helps a decision. */
+    record Action(VaadinIcon icon, String key, Class<? extends Component> view, Map<String, String> parameters,
+                  int count, boolean waiting) {
     }
 
     /**
-     * The bar of a phone inside a garden (#88): its home, Ask, the plots and the waiting questions, with the
-     * same icons as the side menu. Above 640 px it is hidden and the side menu says everything. The waiting
-     * count is read with the rest of the menu, so the bell's live counter is the only one that changes.
+     * The sections of the level (#132, ADR 0002). Inside a garden: its areas, Ask, the waiting questions and
+     * the knowledge; outside: Ask, the waiting questions, the knowledge and the members. The waiting questions
+     * only for whoever can answer them (#104): a guest follows them in Ask's history.
      */
-    private void bottomMenu(SpaceSummary space, long gardenId, Class<?> target) {
-        bottomBar.removeAll();
-        if (gardenId <= 0) {
-            return;
-        }
-        Map<String, String> here = Map.of(Routed.SPACE, String.valueOf(space.id()),
-                Routed.GARDEN, String.valueOf(gardenId));
-        int waiting = pipeline.pending(space.id(), gardenId, currentUser.login()).size();
-        bottomBar.add(bottomItem(VaadinIcon.DASHBOARD, "nav.gardenhome", GardenHomeView.class, here, target, 0),
-                bottomItem(VaadinIcon.COMMENT_ELLIPSIS_O, "nav.ask", AskView.class, here, target, 0),
-                bottomItem(PLOTS_ICON, "nav.plots", AreasView.class, here, target, 0),
-                bottomItem(VaadinIcon.HOURGLASS, "nav.waiting", EscalationView.class, here, target, waiting));
-    }
-
-    /**
-     * One page of the bar: the icon and a short word, the whole word as its title and aria label, and a badge
-     * of the waiting questions. The page being shown says so, as the side menu does.
-     */
-    private RouterLink bottomItem(VaadinIcon icon, String key, Class<? extends Component> view,
-                                  Map<String, String> parameters, Class<?> target, int count) {
-        RouterLink link = new RouterLink();
-        link.setRoute(view, new RouteParameters(parameters));
-        Span label = new Span(getTranslation(key));
-        link.add(icon.create(), label);
-        link.addClassName("rootology-bottom-nav-item");
-        String described = count > 0 ? getTranslation("nav.waiting.count", count) : getTranslation(key);
-        link.getElement().setAttribute("aria-label", described);
-        link.getElement().setAttribute("title", described);
-        if (view == target) {
-            link.addClassName("rootology-bottom-nav-current");
-            link.getElement().setAttribute("aria-current", "page");
-        }
-        if (count > 0) {
-            Span badge = new Span(String.valueOf(count));
-            badge.addClassName("rootology-bottom-nav-badge");
-            badge.getElement().setAttribute("aria-hidden", "true");
-            link.add(badge);
-        }
-        return link;
-    }
-
-    private void menu(SpaceSummary space, long gardenId) {
-        nav.removeAll();
+    List<Action> actions(SpaceSummary space, long gardenId) {
+        Map<String, String> spaceOnly = Map.of(Routed.SPACE, String.valueOf(space.id()));
         Map<String, String> here = gardenId > 0
                 ? Map.of(Routed.SPACE, String.valueOf(space.id()), Routed.GARDEN, String.valueOf(gardenId))
-                : Map.of(Routed.SPACE, String.valueOf(space.id()));
-        SideNavItem gardens = new SideNavItem(getTranslation("nav.gardens"), GardensView.class,
-                new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))), VaadinIcon.GRID_SMALL.create());
-        nav.addItem(gardens);
+                : spaceOnly;
+        List<Action> level = new java.util.ArrayList<>();
         if (gardenId > 0) {
-            nav.addItem(new SideNavItem(getTranslation("nav.gardenhome"), GardenHomeView.class, new RouteParameters(here),
-                    VaadinIcon.DASHBOARD.create()));
-            nav.addItem(new SideNavItem(getTranslation("nav.plots"), AreasView.class, new RouteParameters(here),
-                    PLOTS_ICON.create()));
+            level.add(new Action(PLOTS_ICON, "nav.plots", AreasView.class, here,
+                    gardens.plots(space.id(), currentUser.login(), gardenId).size(), false));
         }
-        nav.addItem(new SideNavItem(getTranslation("nav.ask"), AskView.class, new RouteParameters(here),
-                VaadinIcon.COMMENT_ELLIPSIS_O.create()));
-        nav.addItem(new SideNavItem(getTranslation("nav.escalations"), EscalationView.class, new RouteParameters(here),
-                VaadinIcon.HOURGLASS.create()));
+        // Questions holds Ask and the waiting questions (#132): its count is how many wait for whoever can answer.
+        int waiting = !currentUser.canContribute(space.id()) ? 0
+                : (gardenId > 0 ? pipeline.pending(space.id(), gardenId, currentUser.login())
+                : pipeline.pendingInSpace(space.id(), currentUser.login())).size();
+        level.add(new Action(VaadinIcon.COMMENTS_O, "nav.questions", AskView.class, here, waiting, true));
         // The proposals belong to the space, so Knowledge is offered inside and outside a garden.
-        nav.addItem(new SideNavItem(getTranslation("nav.knowledge"), KnowledgeView.class, new RouteParameters(here),
-                VaadinIcon.BOOK.create()));
-        if (gardenId == 0) {
-            // The questions the space asked outside a garden (#56): offered only when there are some.
-            if (ungardened.any(space.id(), currentUser.login())) {
-                nav.addItem(new SideNavItem(getTranslation("nav.ungardened"), EscalationView.class,
-                        new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))),
-                        VaadinIcon.QUESTION.create()));
-            }
-            nav.addItem(new SideNavItem(getTranslation("nav.members"), MembersView.class, new RouteParameters(
-                    Map.of(Routed.SPACE, String.valueOf(space.id()))), VaadinIcon.USERS.create()));
-            nav.addItem(new SideNavItem(getTranslation("nav.invitations"), InvitationsView.class,
-                    new RouteParameters(Map.of(Routed.SPACE, String.valueOf(space.id()))),
-                    VaadinIcon.ENVELOPE.create()));
-            if (currentUser.hasRole(AppRole.CURATOR)) {
-                nav.addItem(new SideNavItem(getTranslation("nav.curator"), CuratorView.class, VaadinIcon.CHECK.create()));
-            }
-            if (currentUser.hasRole(AppRole.QA)) {
-                nav.addItem(new SideNavItem(getTranslation("nav.compare"), ComparisonView.class, VaadinIcon.FLASK.create()));
-            }
-            if (currentUser.hasRole(AppRole.ADMIN)) {
-                nav.addItem(new SideNavItem(getTranslation("nav.admin"), AdminView.class, VaadinIcon.COG_O.create()));
-            }
+        level.add(new Action(VaadinIcon.BOOK, "nav.knowledge", KnowledgeView.class, here, 0, false));
+        if (gardenId <= 0) {
+            level.add(new Action(VaadinIcon.USERS, "nav.members", MembersView.class, spaceOnly, 0, false));
         }
+        return level;
+    }
+
+    /** The actions in the top bar (#132): the icon and a count, the word beside them on a wide screen. */
+    private void showActions(List<Action> level, Class<?> target) {
+        actions.removeAll();
+        level.forEach(action -> actions.add(item(action, target, "rootology-level-action")));
+    }
+
+    /**
+     * The bar of a phone (#88, #132): the level's home first (the garden's, or the gardens), then the same
+     * actions as the top bar. Above 640 px it is hidden.
+     */
+    private void bottomMenu(SpaceSummary space, long gardenId, List<Action> level, Class<?> target) {
+        bottomBar.removeAll();
+        Action home = gardenId > 0
+                ? new Action(VaadinIcon.DASHBOARD, "nav.gardenhome", GardenHomeView.class, Map.of(
+                        Routed.SPACE, String.valueOf(space.id()), Routed.GARDEN, String.valueOf(gardenId)), 0, false)
+                : new Action(VaadinIcon.GRID_SMALL, "nav.gardens", GardensView.class,
+                        Map.of(Routed.SPACE, String.valueOf(space.id())), 0, false);
+        bottomBar.add(item(home, target, "rootology-bottom-nav-item"));
+        level.forEach(action -> bottomBar.add(item(action, target, "rootology-bottom-nav-item")));
+    }
+
+    /**
+     * One section as a link: the icon, the word and the count; the whole sentence as its title and aria label.
+     * The page being shown says so. A count of waiting questions takes the waiting colour.
+     */
+    private RouterLink item(Action action, Class<?> target, String className) {
+        RouterLink link = new RouterLink();
+        link.setRoute(action.view(), new RouteParameters(action.parameters()));
+        Span word = new Span(getTranslation(action.key()));
+        word.addClassName("rootology-action-word");
+        link.add(action.icon().create(), word);
+        link.addClassName(className);
+        String described = action.count() > 0
+                ? getTranslation(action.waiting() ? "nav.waiting.count" : "nav.count", action.count(),
+                        getTranslation(action.key()))
+                : getTranslation(action.key());
+        link.getElement().setAttribute("aria-label", described);
+        link.getElement().setAttribute("title", described);
+        if (action.view() == target) {
+            link.addClassName("rootology-action-current");
+            link.getElement().setAttribute("aria-current", "page");
+        }
+        if (action.count() > 0) {
+            Span count = new Span(String.valueOf(action.count()));
+            count.addClassName("rootology-action-count");
+            if (action.waiting()) {
+                count.addClassName("rootology-action-count-waiting");
+            }
+            count.getElement().setAttribute("aria-hidden", "true");
+            link.add(count);
+        }
+        return link;
     }
 
     private static RouterLink link(String text, Class<? extends Component> view,
@@ -391,6 +411,17 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             }
         });
         showScheme();
+        // The name other people see (#106), asked once: at the first sign-in after it, and for every new person.
+        if (currentUser.asksForName()) {
+            new NamePrompt(currentUser, this::showName).open();
+        }
+    }
+
+    /** The person's own name in the menu (#106), again after they choose one. */
+    void showName() {
+        String name = currentUser.name();
+        avatar.setName(name);
+        who.setText(name);
     }
 
     @Override

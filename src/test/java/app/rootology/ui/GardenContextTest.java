@@ -39,6 +39,9 @@ import static org.mockito.Mockito.when;
 class GardenContextTest {
 
     @Autowired
+    app.rootology.notifications.NotificationService notificationService;
+
+    @Autowired
     app.rootology.history.RunHistory runHistory;
 
     @Autowired
@@ -60,9 +63,6 @@ class GardenContextTest {
     UsageService usage;
 
     @Autowired
-    Ungardened ungardened;
-
-    @Autowired
     CropCatalog crops;
 
     @Autowired
@@ -72,7 +72,16 @@ class GardenContextTest {
     ClimateCells cells;
 
     @Autowired
+    app.rootology.geocoding.GeoNames geoNames;
+
+    @Autowired
     app.rootology.weather.WeatherService weather;
+
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
+    @Autowired
+    NotificationBroadcaster broadcaster;
 
     @Test
     void twoPagesOfOneSessionOnTwoGardensAskInTheirOwnGarden() {
@@ -150,10 +159,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE, "");
+        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, STYLE, "");
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, ungardened, session, cells, pipeline, weather, STYLE, "");
+        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, STYLE, "");
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();
@@ -184,7 +193,64 @@ class GardenContextTest {
         guestAsk.beforeEnter(enteringSpace(shared));
 
         assertThat(ownAsk.suggestionCount()).as("the month's general questions").isEqualTo(3);
+        assertThat(ownAsk.suggestionTabIndexes()).as("one Tab stop for the group (#120)")
+                .containsExactly("0", "-1", "-1");
+        assertThat(ownAsk.suggestionsUnderAnswer()).as("an empty page keeps them above the field (#114)").isFalse();
         assertThat(guestAsk.suggestionCount()).as("a guest asks nothing, so nothing suggests it (#33)").isZero();
+        assertThat(guestAsk.suggestionTabIndexes()).as("no chips, no Tab stop").isEmpty();
+    }
+
+    @Test
+    void aWaitingQuestionIsInTheHistoryAndTheFiltersFindIt() {
+        // #104: a question waiting for a person is listed in Ask's history before it has an answer.
+        String login = "waiting-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = personalSpace(login);
+        String question = "Quando semino la rucola nel vaso grande?";
+        waitingQuestion(space, login, question);
+        AskView ask = askView(new CurrentUser(spaces, login));
+        ask.beforeEnter(entering(space));
+        HistoryPanel history = ask.historyPanel();
+
+        assertThat(history.count()).isEqualTo(1);
+        assertThat(history.shown()).isEqualTo(1);
+        history.filter(new HistoryPanel.Filters(HistoryPanel.Outcome.WAITING, true, HistoryPanel.WEEK));
+        assertThat(history.shown()).as("waiting, mine, this week").isEqualTo(1);
+        history.filter(new HistoryPanel.Filters(HistoryPanel.Outcome.ANSWERED, false, null));
+        assertThat(history.shown()).as("not answered yet").isZero();
+    }
+
+    @Test
+    void aGuestIsSentFromTheWaitingQuestionsToTheHistory() {
+        // #132: the old waiting questions page leads to Questions with the waiting ones open, a guest too.
+        String login = "guest-waiting-" + Long.toString(System.nanoTime(), 36);
+        String host = "guest-host-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        spaces.signedIn(host);
+        long shared = personalSpace(host);
+        spaces.addMember(shared, host, login, app.rootology.spaces.Role.GUEST);
+        EscalationView view = new EscalationView(gardens, new CurrentUser(spaces, login));
+        BeforeEnterEvent event = entering(shared);
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("spaces/" + shared + "/ask", QueryParameters.simple(Map.of(AskView.WAITING, "")));
+    }
+
+    /** A question of the space level waiting for a person, as the pipeline stores it (#36). */
+    private void waitingQuestion(long space, String login, String question) {
+        tools.jackson.databind.json.JsonMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
+        jdbc.sql("INSERT INTO pending_escalation (process_id, space_id, garden_id, started_by, question_id, "
+                        + "question_text, decision_json, facts_json, noise_json, context_json, created_at) "
+                        + "VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?)")
+                .params(java.util.UUID.randomUUID().toString(), space, login, "ui-" + System.nanoTime(), question,
+                        json.writeValueAsString(new app.rootology.decision.Decision(java.util.List.of(), 0.4, true,
+                                "confidence below threshold")),
+                        json.writeValueAsString(new app.rootology.decision.GraphFacts(java.util.List.of(),
+                                java.util.List.of())),
+                        json.writeValueAsString(app.rootology.pipeline.NoiseProfile.NONE),
+                        java.sql.Timestamp.from(java.time.Instant.now()))
+                .update();
     }
 
     @Test
@@ -195,7 +261,7 @@ class GardenContextTest {
         long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
         CurrentUser session = new CurrentUser(spaces, login);
         Queued queued = new Queued();
-        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, runHistory, queued);
+        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory, queued);
 
         view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
         assertThat(queued.queued).isEqualTo(1);
@@ -236,7 +302,7 @@ class GardenContextTest {
     }
 
     private AskView askView(CurrentUser session) {
-        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, runHistory);
+        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory);
     }
 
     /** The map's style: nothing is fetched here, the map is inspected as data (#66). */

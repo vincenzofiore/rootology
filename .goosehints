@@ -10,6 +10,7 @@ Notes for agents other than Claude Code:
 - Before going back to `spring-boot:run` after a `-Pproduction` build, run `./mvnw clean`.
 - Never commit, push, tag or open pull requests: stop, show the diff, and ask the owner. Ask the owner too before adding a dependency or an external data source.
 - Keep changes small and within the GitHub issue being worked on. Do not refactor unrelated code.
+- `CLAUDE.md` holds the rules and a short map; the detail of each module (how it works, which issue built it) is in `docs/architecture.md`. Before changing a module, read its part there, and update it when the change alters what it says.
 
 Headless runs started by the orchestrator (Claude Code, see "Agent orchestration" in CLAUDE.md):
 

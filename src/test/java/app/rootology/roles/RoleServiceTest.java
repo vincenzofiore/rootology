@@ -12,6 +12,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -80,11 +81,19 @@ class RoleServiceTest {
     void theLastAdminStays() {
         spaces.signedIn("ada");
         roles.grant("root", "ada", AppRole.ADMIN);
-        roles.revoke("ada", "root", AppRole.ADMIN);
-
-        assertThatThrownBy(() -> roles.revoke("ada", "ada", AppRole.ADMIN))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("at least one admin");
-        assertThat(roles.rolesOf("ada")).contains(AppRole.ADMIN);
-        roles.grant("ada", "root", AppRole.ADMIN); // root back, as the other tests expect
+        // The test database is shared (docs/testing.md): other tests may leave admins of their own, so ada
+        // becomes the last one by revoking every other, and gives them back at the end.
+        List<String> others = roles.people("ada").entrySet().stream()
+                .filter(e -> e.getValue().contains(AppRole.ADMIN) && !e.getKey().equals("ada"))
+                .map(java.util.Map.Entry::getKey).toList();
+        others.forEach(login -> roles.revoke("ada", login, AppRole.ADMIN));
+        try {
+            assertThatThrownBy(() -> roles.revoke("ada", "ada", AppRole.ADMIN))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("at least one admin");
+            assertThat(roles.rolesOf("ada")).contains(AppRole.ADMIN);
+        } finally {
+            // root among them; an admin another test wrote straight into the table, with no account, stays revoked
+            others.stream().filter(spaces.people()::contains).forEach(login -> roles.grant("ada", login, AppRole.ADMIN));
+        }
     }
 }

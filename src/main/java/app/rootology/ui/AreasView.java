@@ -12,6 +12,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -30,6 +31,7 @@ import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.LightRule;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
@@ -75,6 +77,10 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private final Paragraph gardenInfo = new Paragraph();
     private final Div areaCards = new Div();
     private final Button editGarden = new Button(getTranslation("garden.edit"), VaadinIcon.EDIT.create());
+    /** Opens the new area's dialog as the page opens (#133). */
+    static final String NEW = "new";
+    /** Opens the planting dialog of this area id as the page opens (#133). */
+    static final String PLANT = "plant";
     private final Button addArea = new Button(getTranslation("garden.addplot"));
     private final HorizontalLayout top = new HorizontalLayout();
     private boolean contributor;
@@ -120,6 +126,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         spaceId = where.get().spaceId();
         showContributorActions(currentUser.canContribute(spaceId));
         showGarden(gardens.garden(spaceId, login, where.get().gardenId()).orElse(null));
+        if (contributor && garden != null) {
+            // From the garden home (#133): a new area, or a planting in one of this garden's areas.
+            var query = event.getLocation().getQueryParameters();
+            if (query.getParameters().containsKey(NEW)) {
+                areaDialog(null);
+            }
+            query.getSingleParameter(PLANT).flatMap(id -> gardens.plots(spaceId, login, garden.id()).stream()
+                    .filter(area -> String.valueOf(area.id()).equals(id)).findFirst()).ifPresent(this::plantingDialog);
+        }
     }
 
     /** Only an OWNER or MEMBER changes the garden; a guest only looks (#33). */
@@ -185,8 +200,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         Div facts = new Div();
         facts.addClassName("rootology-area-facts");
         facts.add(fact(VaadinIcon.FLASK, getTranslation("soil." + area.soil().name()), null));
-        if (area.directSun() != null) {
-            facts.add(fact(sunIcon(area.directSun()), getTranslation("directsun." + area.directSun().name()), null));
+        DirectSun sun = area.directSunIn(LocalDate.now(DateText.ITALY).getMonth());
+        if (sun != null) {
+            // The level of the month of the visit, and the hours when the gardener gave them (#89).
+            String label = getTranslation("directsun." + sun.name());
+            Div row = fact(sunIcon(sun), sunTooltip(label, area.sunHoursSummer(), area.sunHoursWinter(),
+                    declaredSun(area), this::getTranslation), null);
+            seasonHours(row, "summer", area.sunHoursSummer());
+            seasonHours(row, "winter", area.sunHoursWinter());
+            facts.add(row);
         }
         if (area.areaM2() != null) {
             facts.add(fact(VaadinIcon.RESIZE_H, getTranslation("garden.area"), squareMetres(area.areaM2()) + " m²"));
@@ -267,7 +289,57 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         return row;
     }
 
-    private static VaadinIcon sunIcon(DirectSun sun) {
+    /** Who last declared the area's sun and when, when that is known (#89); null otherwise. */
+    private String declaredSun(PlotSummary area) {
+        if (area.sunDeclaredBy() == null || area.sunDeclaredAt() == null) {
+            return null;
+        }
+        return getTranslation("area.sun.declared", currentUser.nameOf(area.sunDeclaredBy()),
+                DateText.dateTime(area.sunDeclaredAt(), this));
+    }
+
+    /**
+     * The hours of one season next to the sun (#89): a sun for summer, a snowflake for winter, then "7 h"; only
+     * the seasons given. Hidden from screen readers, since the sun icon already says the whole sentence.
+     */
+    private static void seasonHours(Div row, String season, Integer hours) {
+        if (hours == null) {
+            return;
+        }
+        SvgIcon drawing = new SvgIcon("icons/seasons/" + season + ".svg");
+        drawing.addClassName("rootology-season-icon");
+        Span value = new Span(hours + " h");
+        value.addClassName("rootology-season-value");
+        Span part = new Span(drawing, value);
+        part.addClassName("rootology-season-hours");
+        part.getElement().setAttribute("aria-hidden", "true");
+        row.add(part);
+    }
+
+    /**
+     * What the sun of a card says as tooltip and aria label (#89): the level when the hours are not given,
+     * otherwise "Sole diretto: 7 ore d’estate, 2 d’inverno" with only the seasons given, then who declared it.
+     */
+    static String sunTooltip(String levelWord, Integer summerHours, Integer winterHours, String declared,
+                             NoteText.Texts in) {
+        String value = levelWord;
+        if (summerHours != null || winterHours != null) {
+            java.util.List<String> parts = new java.util.ArrayList<>(2);
+            if (summerHours != null) {
+                parts.add(in.get("area.sun.summer", summerHours));
+            }
+            if (winterHours != null) {
+                parts.add(in.get("area.sun.winter", winterHours));
+            }
+            value = in.get("area.sun.tooltip", String.join(", ", parts));
+        }
+        if (value == null) {
+            return null;
+        }
+        return declared == null || declared.isBlank() ? value : value + " · " + declared;
+    }
+
+    static VaadinIcon sunIcon(DirectSun sun) {
         return switch (sun) {
             case FULL_SUN -> VaadinIcon.SUN_O;
             case PART_SHADE -> VaadinIcon.CLOUD_O;
@@ -364,13 +436,21 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
 
     /**
      * The area in two steps (#85): name, kind and soil first; the declared exposure (#54) behind Details,
-     * with the direct sun as three icon buttons.
+     * with the direct sun as three icon buttons and, since #89, the hours of direct sun by season.
      */
     private void areaDialog(PlotSummary existing) {
+        Dialog dialog = areaDialogOf(existing);
+        if (dialog != null) {
+            dialog.open();
+        }
+    }
+
+    /** The area dialog's fields and save, unopened: the test reads them, the page opens the dialog (#89). */
+    Dialog areaDialogOf(PlotSummary existing) {
         GardenSummary garden = this.garden;
         if (garden == null) {
             Toasts.info(getTranslation("garden.first"));
-            return;
+            return null;
         }
         TextField name = new TextField(getTranslation("garden.name"));
         ComboBox<PlotKind> kind = new ComboBox<>(getTranslation("garden.kind"), PlotKind.values());
@@ -383,6 +463,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         orientation.setItemLabelGenerator(o -> getTranslation("orientation." + o.name()));
         orientation.setClearButtonVisible(true);
         SunToggle sun = new SunToggle(this);
+        // The hours of direct sun by season (#89): optional, whole hours, and they count more than the level.
+        IntegerField summerHours = sunHoursField("area.sun.summer.label", "area.sun.summer.help");
+        IntegerField winterHours = sunHoursField("area.sun.winter.label", "area.sun.winter.help");
         ComboBox<Wind> wind = new ComboBox<>(getTranslation("garden.wind"), Wind.values());
         wind.setItemLabelGenerator(w -> getTranslation("wind." + w.name()));
         wind.setClearButtonVisible(true);
@@ -399,11 +482,20 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             area.setValue(existing.areaM2());
             orientation.setValue(existing.orientation());
             sun.setValue(existing.directSun());
+            summerHours.setValue(existing.sunHoursSummer());
+            winterHours.setValue(existing.sunHoursWinter());
             wind.setValue(existing.wind());
             floor.setValue(existing.floor());
         }
+        // With both seasons' hours the level is no longer chosen: the buttons show, greyed, the one the hours
+        // give for this month (#89). With one season only, the level still counts for the other one.
+        Runnable fromHours = () -> sun.derive(summerHours.getValue() == null || winterHours.getValue() == null
+                ? null : seasonLevel(summerHours.getValue(), winterHours.getValue()));
+        summerHours.addValueChangeListener(e -> fromHours.run());
+        winterHours.addValueChangeListener(e -> fromHours.run());
+        fromHours.run();
         Details details = new Details(getTranslation("garden.details"),
-                new FormLayout(orientation, sun, wind, floor));
+                new FormLayout(orientation, sun, summerHours, winterHours, wind, floor));
         details.addClassName("rootology-area-details");
         Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.addplot" : "garden.editplot"));
         dialog.add(new FormLayout(name, kind, soil, area), details);
@@ -412,14 +504,32 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             try {
                 gardens.savePlot(spaceId, login, garden.id(), existing == null ? null : existing.id(),
                         name.getValue(), kind.getValue(), soil.getValue(), area.getValue(),
-                        orientation.getValue(), sun.getValue(), wind.getValue(), floor.getValue());
+                        orientation.getValue(), sun.getValue(), wind.getValue(), floor.getValue(),
+                        summerHours.getValue(), winterHours.getValue());
                 dialog.close();
                 showAreas();
             } catch (RuntimeException ex) {
                 UiErrors.show(this, ex);
             }
         }));
-        dialog.open();
+        return dialog;
+    }
+
+    /** The level the hours give for the current month in Italy (#89), out of range hours clamped for the view. */
+    private static DirectSun seasonLevel(int summerHours, int winterHours) {
+        boolean summer = LightRule.isSummer(LocalDate.now(DateText.ITALY).getMonth());
+        return LightRule.fromHours(Math.max(0, summer ? summerHours : winterHours));
+    }
+
+    /** An optional whole number of hours of direct sun, 0 to the longest June day (#89). */
+    private IntegerField sunHoursField(String label, String help) {
+        IntegerField field = new IntegerField(getTranslation(label));
+        field.setHelperText(getTranslation(help));
+        field.setMin(0);
+        field.setMax(GardenService.MAX_SUN_HOURS);
+        field.setStepButtonsVisible(true);
+        field.setClearButtonVisible(true);
+        return field;
     }
 
     /** Today at the latest, and never before the day it was sown or planted (#85). */
@@ -527,9 +637,15 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private static final class SunToggle extends Div {
 
         private final Map<DirectSun, Button> buttons = new LinkedHashMap<>();
+        private final String word;
+        private final String fromHoursWord;
         private DirectSun value;
+        /** The level the hours give (#89): shown instead of the chosen one, and the buttons are not chosen then. */
+        private DirectSun derived;
 
         SunToggle(Component texts) {
+            word = texts.getTranslation("garden.sun");
+            fromHoursWord = texts.getTranslation("area.sun.fromhours");
             addClassName("rootology-sun-toggle");
             // The three buttons are one choice (#85): the group carries the word the buttons have in common.
             getElement().setAttribute("role", "group");
@@ -561,13 +677,33 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             show();
         }
 
+        /** The level from both seasons' hours, or null to choose it again (#89); the chosen value is kept. */
+        void derive(DirectSun derived) {
+            this.derived = derived;
+            show();
+        }
+
         private void show() {
+            DirectSun shown = derived != null ? derived : value;
+            setClassName("rootology-sun-derived", derived != null);
+            getElement().setAttribute("aria-label", derived != null ? fromHoursWord : word);
+            hint(derived != null ? fromHoursWord : null);
             buttons.forEach((sun, button) -> {
+                button.setEnabled(derived == null);
                 button.removeClassName("rootology-sun-chosen");
-                if (sun == value) {
+                if (sun == shown) {
                     button.addClassName("rootology-sun-chosen");
                 }
             });
+        }
+
+        /** The group's title: a disabled button shows no tooltip, so the group says why (#89). */
+        private void hint(String title) {
+            if (title == null) {
+                getElement().removeAttribute("title");
+            } else {
+                getElement().setAttribute("title", title);
+            }
         }
     }
 }

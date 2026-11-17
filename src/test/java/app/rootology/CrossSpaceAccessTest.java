@@ -16,7 +16,6 @@ import app.rootology.spaces.SpaceService;
 import app.rootology.ui.CurrentUser;
 import app.rootology.ui.GardenMap;
 import app.rootology.ui.GardensView;
-import app.rootology.ui.Ungardened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +41,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CrossSpaceAccessTest {
 
     @Autowired
+    app.rootology.notifications.NotificationService notificationService;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -61,9 +63,6 @@ class CrossSpaceAccessTest {
 
     @Autowired
     ClimateCells cells;
-
-    @Autowired
-    Ungardened ungardened;
 
     @Autowired
     app.rootology.weather.WeatherService weather;
@@ -142,15 +141,15 @@ class CrossSpaceAccessTest {
         // shows the victim's garden, and the map refuses to select it.
         long located = gardens.saveGarden(victimSpace, victim, null, "Victim map garden", "Milan",
                 new java.math.BigDecimal("45.07"), new java.math.BigDecimal("9.19"), "IT").id();
-        GardensView intrudersOverview = new GardensView(gardens, geoNames, ungardened, session(intruder, intruderSpace),
-                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty", "");
+        GardensView intrudersOverview = new GardensView(gardens, geoNames, session(intruder, intruderSpace),
+                cells, pipeline, weather, notificationService, "https://tiles.openfreemap.org/styles/liberty", "");
         intrudersOverview.beforeEnter(entering(intruderSpace));
         assertThat(mapIds(intrudersOverview)).doesNotContain(located);
         assertThat(intrudersOverview.map().select(Long.toString(located)))
                 .as("and the map refuses to select it").isEmpty();
 
-        GardensView victimsOverview = new GardensView(gardens, geoNames, ungardened, session(victim, victimSpace),
-                cells, pipeline, weather, "https://tiles.openfreemap.org/styles/liberty", "");
+        GardensView victimsOverview = new GardensView(gardens, geoNames, session(victim, victimSpace),
+                cells, pipeline, weather, notificationService, "https://tiles.openfreemap.org/styles/liberty", "");
         victimsOverview.beforeEnter(entering(victimSpace));
         assertThat(victimsOverview.map().select(Long.toString(located))).hasValue(located);
     }

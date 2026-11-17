@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T00:54:20+00:00",
+  "title": "Design System: Rootology",
+  "extensions": {
+    "colorMeta": {
+      "sprout-green": {
+        "role": "primary",
+        "displayName": "Sprout Green",
+        "dark": "#6fbf6a",
+        "tonalRamp": [
+          "oklch(15% 0.05 145)",
+          "oklch(25% 0.07 145)",
+          "oklch(35% 0.09 145)",
+          "oklch(45% 0.11 145)",
+          "oklch(55% 0.11 145)",
+          "oklch(68% 0.084 145)",
+          "oklch(82% 0.056 145)",
+          "oklch(95% 0.03 145)"
+        ]
+      },
+      "sprout-green-text": {
+        "role": "primary",
+        "displayName": "Sprout Green Text",
+        "dark": "#8fd488",
+        "tonalRamp": [
+          "oklch(15% 0.046 145)",
+          "oklch(25% 0.064 145)",
+          "oklch(35% 0.083 145)",
+          "oklch(45% 0.101 145)",
+          "oklch(55% 0.101 145)",
+          "oklch(68% 0.077 145)",
+          "oklch(82% 0.051 145)",
+          "oklch(95% 0.028 145)"
+        ]
+      },
+      "garden-paper": {
+        "role": "neutral",
+        "displayName": "Garden Paper",
+        "dark": "#111611",
+        "tonalRamp": [
+          "oklch(15% 0.003 130)",
+          "oklch(25% 0.005 130)",
+          "oklch(35% 0.006 130)",
+          "oklch(45% 0.007 130)",
+          "oklch(55% 0.007 130)",
+          "oklch(68% 0.006 130)",
+          "oklch(82% 0.004 130)",
+          "oklch(95% 0.002 130)"
+        ]
+      },
+      "leaf-shade": {
+        "role": "neutral",
+        "displayName": "Leaf Shade",
+        "dark": "#050805",
+        "tonalRamp": [
+          "oklch(15% 0.01 145)",
+          "oklch(25% 0.015 145)",
+          "oklch(35% 0.019 145)",
+          "oklch(45% 0.023 145)",
+          "oklch(55% 0.023 145)",
+          "oklch(68% 0.017 145)",
+          "oklch(82% 0.012 145)",
+          "oklch(95% 0.006 145)"
+        ]
+      },
+      "turned-earth": {
+        "role": "tertiary",
+        "displayName": "Turned Earth",
+        "dark": "#c9a27f",
+        "tonalRamp": [
+          "oklch(15% 0.033 55)",
+          "oklch(25% 0.047 55)",
+          "oklch(35% 0.06 55)",
+          "oklch(45% 0.073 55)",
+          "oklch(55% 0.073 55)",
+          "oklch(68% 0.056 55)",
+          "oklch(82% 0.037 55)",
+          "oklch(95% 0.02 55)"
+        ]
+      },
+      "frost-blue": {
+        "role": "state",
+        "displayName": "Frost Blue",
+        "dark": "#79c0ff",
+        "tonalRamp": [
+          "oklch(15% 0.054 250)",
+          "oklch(25% 0.076 250)",
+          "oklch(35% 0.098 250)",
+          "oklch(45% 0.119 250)",
+          "oklch(55% 0.119 250)",
+          "oklch(68% 0.091 250)",
+          "oklch(82% 0.061 250)",
+          "oklch(95% 0.033 250)"
+        ]
+      },
+      "pest-amber": {
+        "role": "state",
+        "displayName": "Pest Amber",
+        "dark": "#e3b341",
+        "tonalRamp": [
+          "oklch(15% 0.054 65)",
+          "oklch(25% 0.076 65)",
+          "oklch(35% 0.098 65)",
+          "oklch(45% 0.119 65)",
+          "oklch(55% 0.119 65)",
+          "oklch(68% 0.091 65)",
+          "oklch(82% 0.061 65)",
+          "oklch(95% 0.033 65)"
+        ]
+      },
+      "waiting-violet": {
+        "role": "state",
+        "displayName": "Waiting Violet",
+        "dark": "#b392f0",
+        "tonalRamp": [
+          "oklch(15% 0.079 290)",
+          "oklch(25% 0.111 290)",
+          "oklch(35% 0.143 290)",
+          "oklch(45% 0.174 290)",
+          "oklch(55% 0.174 290)",
+          "oklch(68% 0.133 290)",
+          "oklch(82% 0.089 290)",
+          "oklch(95% 0.048 290)"
+        ]
+      },
+      "error-red": {
+        "role": "state",
+        "displayName": "Error Red",
+        "dark": "#da3633",
+        "tonalRamp": [
+          "oklch(15% 0.083 28)",
+          "oklch(25% 0.117 28)",
+          "oklch(35% 0.15 28)",
+          "oklch(45% 0.183 28)",
+          "oklch(55% 0.183 28)",
+          "oklch(68% 0.14 28)",
+          "oklch(82% 0.093 28)",
+          "oklch(95% 0.05 28)"
+        ]
+      },
+      "success-green": {
+        "role": "state",
+        "displayName": "Success Green",
+        "dark": "#238636",
+        "tonalRamp": [
+          "oklch(15% 0.054 150)",
+          "oklch(25% 0.076 150)",
+          "oklch(35% 0.098 150)",
+          "oklch(45% 0.119 150)",
+          "oklch(55% 0.119 150)",
+          "oklch(68% 0.091 150)",
+          "oklch(82% 0.061 150)",
+          "oklch(95% 0.033 150)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Fraunces",
+        "purpose": "h1–h4, the wordmark and the slogan only."
+      },
+      "body": {
+        "displayName": "System",
+        "purpose": "Answers, notes, forms; read at a glance on a phone."
+      },
+      "label": {
+        "displayName": "System label",
+        "purpose": "Chips, badges, meta lines, counts with tabular figures."
+      }
+    },
+    "shadows": [
+      {
+        "name": "lumo-box-shadow-s",
+        "value": "var(--lumo-box-shadow-s)",
+        "purpose": "Small floating elements: tooltips, the map's controls."
+      },
+      {
+        "name": "lumo-box-shadow-m",
+        "value": "var(--lumo-box-shadow-m)",
+        "purpose": "Menus and popups."
+      },
+      {
+        "name": "lumo-box-shadow-l",
+        "value": "var(--lumo-box-shadow-l)",
+        "purpose": "Dialogs."
+      }
+    ],
+    "motion": [
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Transitions and animations are switched off."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "640px"
+      },
+      {
+        "name": "tiny",
+        "value": "340px"
+      },
+      {
+        "name": "touch",
+        "value": "pointer: coarse (44px targets)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action of a screen region, such as Ask.",
+      "html": "<button class=\"ds-btn-primary\">Chiedi</button>",
+      "css": ".ds-btn-primary{background:#2f7a3b;color:#fcfdfa;border:none;border-radius:6px;padding:0 18px;height:40px;font:500 15px system-ui,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:#286a33}.ds-btn-primary:focus-visible{outline:2px solid #2f7a3b;outline-offset:2px}"
+    },
+    {
+      "name": "Tertiary Button",
+      "kind": "button",
+      "refersTo": "button-tertiary",
+      "description": "Secondary actions as green text.",
+      "html": "<button class=\"ds-btn-tertiary\">Annulla</button>",
+      "css": ".ds-btn-tertiary{background:transparent;color:#2a6e35;border:none;border-radius:6px;padding:0 12px;height:40px;font:500 15px system-ui,sans-serif;cursor:pointer}.ds-btn-tertiary:hover{background:rgba(47,122,59,.1)}.ds-btn-tertiary:focus-visible{outline:2px solid #2f7a3b;outline-offset:2px}"
+    },
+    {
+      "name": "Suggestion Chip",
+      "kind": "chip",
+      "refersTo": "chip-suggestion",
+      "description": "Suggested questions and place or garden choices; acts at once.",
+      "html": "<button class=\"ds-chip-suggest\">Vasto</button>",
+      "css": ".ds-chip-suggest{background:rgba(47,122,59,.1);color:#2a6e35;border:1px solid rgba(47,122,59,.5);border-radius:999px;padding:4px 12px;font:500 13px system-ui,sans-serif;cursor:pointer}.ds-chip-suggest:hover{background:rgba(47,122,59,.18)}.ds-chip-suggest:focus-visible{outline:2px solid #2f7a3b;outline-offset:2px}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-filter",
+      "description": "History filters; the chosen one turns green with a check.",
+      "html": "<button class=\"ds-chip-filter\">7 giorni</button> <button class=\"ds-chip-filter ds-on\">✓ Mie</button>",
+      "css": ".ds-chip-filter{background:transparent;color:#1e2a20;border:1px solid rgba(30,42,32,.2);border-radius:999px;padding:3px 10px;font:500 12px system-ui,sans-serif;cursor:pointer}.ds-chip-filter:hover{background:rgba(30,42,32,.05)}.ds-chip-filter.ds-on{background:rgba(47,122,59,.1);border-color:rgba(47,122,59,.5);color:#2a6e35}.ds-chip-filter:focus-visible{outline:2px solid #2f7a3b;outline-offset:2px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat card on a 5% tone with a 10% border; no shadow.",
+      "html": "<div class=\"ds-card\"><h4 class=\"ds-h\">Pomodoro</h4><p>Semina: marzo – aprile</p></div>",
+      "css": ".ds-card{background:rgba(30,42,32,.05);border:1px solid rgba(30,42,32,.1);border-radius:12px;padding:16px;font:15px system-ui,sans-serif;color:#1e2a20;transition:background .15s}.ds-card:hover{background:rgba(30,42,32,.1)}.ds-h{margin:0 0 4px;font:600 18px Fraunces,Georgia,serif;letter-spacing:-.005em}.ds-card p{margin:0}"
+    },
+    {
+      "name": "Question Field",
+      "kind": "input",
+      "refersTo": "input-question",
+      "description": "One question field with its Ask button beside it.",
+      "html": "<input class=\"ds-input\" placeholder=\"Cosa posso seminare adesso?\">",
+      "css": ".ds-input{background:rgba(30,42,32,.06);color:#1e2a20;border:none;border-radius:6px;padding:0 12px;height:40px;width:280px;font:15px system-ui,sans-serif}.ds-input:focus-visible{outline:2px solid #2f7a3b;outline-offset:1px}"
+    },
+    {
+      "name": "Waiting Question Card",
+      "kind": "custom",
+      "refersTo": "card-waiting",
+      "description": "A question waiting for a person: violet leading edge and hourglass.",
+      "html": "<div class=\"ds-wait\"><span class=\"ds-wait-ico\">⧗</span> Posso piantare l’aglio a novembre? <small>· chiesta da anna, 2 h fa</small></div>",
+      "css": ".ds-wait{background:rgba(30,42,32,.05);border:1px solid rgba(30,42,32,.1);border-inline-start:3px solid #6e40c9;border-radius:12px;padding:12px 16px;font:15px system-ui,sans-serif;color:#1e2a20}.ds-wait-ico{color:#6e40c9}.ds-wait small{color:rgba(30,42,32,.6)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Trusted Agronomist",
+    "overview": "Rootology looks and behaves like a good agronomist you trust: sober and precise, it says what it knows, what it does not know and where it knows it from. The interface stays out of the way of the answer; the brand lives in precise details (the sprout in the wordmark, Fraunces in the titles, the line drawings) rather than in decoration.\n\nWithin that sobriety the character is warm and tactile, a thing made for the garden: earthy neutrals that lean towards the green of the sprout, soft rounded shapes, small one-line drawings, comfortable touch targets for a phone held in one hand outdoors. Warmth comes from colour temperature, type and drawings, never from noise.\n\nThe confirmed anti-reference is anything playful or childish: saturated colours, mascots inside the app, the tone of an app for children.",
+    "keyCharacteristics": [
+      "Sprout green is the one accent, used where the person acts.",
+      "States have fixed colours and meanings everywhere: frost blue, pest amber, waiting violet, Lumo's success green and error red.",
+      "Flat, softly bordered surfaces; depth by tone, not by shadow.",
+      "A clear icon with a value or a count rather than a sentence; the word stays as tooltip and aria label.",
+      "Fraunces for titles and the wordmark; the system font for everything a person reads quickly."
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "Sprout green marks where to act; it is never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Meaning Rule",
+        "body": "A state colour means one thing everywhere: violet is always \"waiting for a person\", amber always a pest, blue always frost.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif-for-Titles Rule",
+        "body": "Fraunces appears only in h1–h4, the wordmark and the slogan; never in running text, buttons or fields.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest; a shadow means something floats above the page.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use sprout green only where the person acts or chooses.",
+      "Do keep each state colour to its one meaning, in light and in dark.",
+      "Do prefer an icon with a value or a count, with the word as tooltip and aria label.",
+      "Do check every screen at 360 px, in dark mode and with a keyboard.",
+      "Do keep styles in styles/rootology.css; no inline styles on components."
+    ],
+    "donts": [
+      "Don't make it playful or childish: no saturated palettes, no mascot inside the app, no toy-like shapes.",
+      "Don't set running text, buttons or fields in Fraunces.",
+      "Don't add shadows to resting cards or decorate with colour.",
+      "Don't use \"giardino\" for the vegetable garden: it is \"orto\"."
+    ]
+  }
+}

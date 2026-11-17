@@ -54,7 +54,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         this.weatherAlerts = weatherAlerts;
         this.currentUser = currentUser;
         this.accessRequests = accessRequests;
-        people.addColumn(Map.Entry::getKey).setHeader(getTranslation("space.login")).setAutoWidth(true);
+        people.addColumn(p -> person(p.getKey())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
         for (AppRole role : AppRole.values()) {
             people.addComponentColumn(p -> {
                 Checkbox box = new Checkbox(p.getValue().contains(role));
@@ -74,11 +74,11 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         }
         people.setAllRowsVisible(true);
 
-        history.addColumn(RoleGrantView::githubLogin).setHeader(getTranslation("admin.who")).setAutoWidth(true);
+        history.addColumn(g -> person(g.githubLogin())).setHeader(getTranslation("admin.who")).setAutoWidth(true);
         history.addColumn(g -> g.role().name()).setHeader(getTranslation("space.role")).setAutoWidth(true);
-        history.addComponentColumn(g -> new Span(g.grantedBy() + ", " + DateText.dateTime(g.grantedAt(), this)))
+        history.addComponentColumn(g -> new Span(person(g.grantedBy()) + ", " + DateText.dateTime(g.grantedAt(), this)))
                 .setHeader(getTranslation("admin.granted"));
-        history.addComponentColumn(g -> new Span(g.active() ? "" : g.revokedBy() + ", "
+        history.addComponentColumn(g -> new Span(g.active() ? "" : person(g.revokedBy()) + ", "
                         + DateText.dateTime(g.revokedAt(), this)))
                 .setHeader(getTranslation("admin.revoked"));
         history.setAllRowsVisible(true);
@@ -96,7 +96,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
 
     /** Usage of the paid services per person over the last 7 days, and personal daily limits (#19). */
     private VerticalLayout usageSection() {
-        consumption.addColumn(UsageService.PersonUsage::login).setHeader(getTranslation("space.login")).setAutoWidth(true);
+        consumption.addColumn(u -> person(u.login())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
         consumption.addColumn(u -> getTranslation("admin.usage.today.value", u.questionsToday(), u.limit()))
                 .setHeader(getTranslation("admin.usage.today")).setAutoWidth(true);
         consumption.addColumn(UsageService.PersonUsage::questions).setHeader(getTranslation("admin.usage.questions"))
@@ -154,7 +154,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         decidedRequests.addColumn(r -> getTranslation(r.status() == AccessRequestStatus.APPROVED
                 ? "admin.requests.approved" : "admin.requests.rejected"))
                 .setHeader(getTranslation("admin.requests.status")).setAutoWidth(true);
-        decidedRequests.addColumn(app.rootology.access.AccessRequestView::decidedBy)
+        decidedRequests.addColumn(r -> person(r.decidedBy()))
                 .setHeader(getTranslation("admin.requests.by")).setAutoWidth(true);
         decidedRequests.setAllRowsVisible(true);
         return new VerticalLayout(new H3(getTranslation("admin.requests")),
@@ -195,6 +195,15 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
             UiErrors.show(this, e);
         }
         refresh();
+    }
+
+    /**
+     * A person on the admin page (#106): their display name and, when it differs, the login it stands for,
+     * since admins work with both.
+     */
+    private String person(String login) {
+        String name = currentUser.nameOf(login);
+        return name == null || name.equals(login) ? login : name + " (" + login + ")";
     }
 
     private void refresh() {

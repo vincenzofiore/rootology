@@ -274,7 +274,7 @@ public class JevDecisionLayer implements DecisionLayer {
                     }
                 }
                 case SOWING_TIME -> {
-                    if (f.predicate().equals("sowIn") || f.predicate().equals("plantIn")) {
+                    if (app.rootology.facts.SowingActivity.PREDICATES.contains(f.predicate())) {
                         result.add(f.object());
                     }
                 }
@@ -284,7 +284,7 @@ public class JevDecisionLayer implements DecisionLayer {
                     }
                 }
                 case SOW_NOW, SOW_IN_PLOT -> {
-                    if (f.predicate().equals("sowIn") || f.predicate().equals("plantIn")) {
+                    if (app.rootology.facts.SowingActivity.PREDICATES.contains(f.predicate())) {
                         result.add(f.subject());
                     }
                 }
@@ -316,14 +316,14 @@ public class JevDecisionLayer implements DecisionLayer {
             case RELEVANT_PESTS -> "The answer is every pest or disease X such that (X, activeInSeason, "
                     + "`intent.season`) and (X, affects, `intent.subject`) are facts. The knowledge base declares "
                     + "no repels facts, so no pest is excluded for being repelled.";
-            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
+            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
+                    + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
                     + "such as frost or too little light. " + SITE;
-            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
+            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
+                    + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
                     + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE;
-            case SOWING_TIME -> "The answer is every month M such that (subject, sowIn, M) or (subject, plantIn, M) "
-                    + "is a fact. " + SITE;
+            case SOWING_TIME -> "The answer is every month M such that "
+                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE;
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
             default -> rule(kind);
         };
@@ -350,17 +350,17 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "is declared. Seasons are never guessed.";
             case ANTAGONISTS -> "The answer is every plant X such that the fact (subject, antagonistOf, X) is "
                     + "declared. Antagonists are never inferred, and companions are not antagonists.";
-            case SOWING_TIME -> "The answer is every month M such that (subject, sowIn, M) or (subject, plantIn, M) "
-                    + "is a fact for `intent.zone`.";
+            case SOWING_TIME -> "The answer is every month M such that "
+                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact for `intent.zone`.";
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact for "
                     + "`intent.zone`.";
-            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact for `intent.zone`, unless (X, avoidNow, frost) is a fact.";
+            case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
+                    + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact for `intent.zone`, unless (X, avoidNow, frost) is a fact.";
             case GROWING_NOW -> "The answer is every crop X such that (P, grows, X) is a fact for some plot P.";
             case PEST_RISK -> "The answer is every pest or disease X such that (X, threatens, C) is a fact for some "
                     + "crop C growing now.";
-            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`) or "
-                    + "(X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
+            case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
+                    + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
                     + "(X, avoidNow, frost) is a fact.";
             case OTHER -> "";
         };

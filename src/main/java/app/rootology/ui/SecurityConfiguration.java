@@ -105,6 +105,8 @@ class SecurityConfiguration {
                         // For crawlers, which have no session (#91), and the manifest of the home screen icon (#88):
                         // static files, see AccessRouting.
                         "/robots.txt", "/sitemap.xml", "/manifest.json",
+                        // The service worker and the page it shows offline (#134): fetched without a session.
+                        "/rootology-sw.js", "/offline.html",
                         // Safari asks for these at the root on its own: protected, the request was kept as the
                         // page to open after the sign-in, and the browser then downloaded the icon.
                         "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png")
@@ -114,6 +116,10 @@ class SecurityConfiguration {
         SimpleUrlLogoutSuccessHandler loggedOut = new SimpleUrlLogoutSuccessHandler();
         loggedOut.setDefaultTargetUrl("/" + WelcomeView.ROUTE + "?" + WelcomeView.SIGNED_OUT);
         loggedOut.setRedirectStrategy(new UidlRedirectStrategy()); // also redirects Vaadin's own requests
+        // "/" without a sign-in is the welcome page for good (#124): a permanent redirect, so search engines take
+        // /welcome as the page and not as a duplicate of "/".
+        http.addFilterAfter(new WelcomeRedirectFilter(),
+                org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class);
         // A visitor who is not signed in lands on the welcome page, not straight on GitHub (#47).
         http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> vaadin
                 .oauth2LoginPage("/" + WelcomeView.ROUTE)

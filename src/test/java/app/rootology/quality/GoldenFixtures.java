@@ -1,8 +1,11 @@
 package app.rootology.quality;
 
 import app.rootology.experiments.GoldenQuestions;
+import app.rootology.facts.ClimateCells;
 import app.rootology.facts.Contribution;
 import app.rootology.facts.KnowledgeContributions;
+import app.rootology.geocoding.GeoNames;
+import app.rootology.geocoding.Place;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.Orientation;
@@ -26,6 +29,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 /** The context of each golden question (#20): a new space, its garden, its facts, and the forecast. */
 final class GoldenFixtures {
 
@@ -34,12 +42,56 @@ final class GoldenFixtures {
     private final SpaceService spaces;
     private final GardenService gardens;
     private final KnowledgeContributions contributions;
+    private final ClimateCells cells;
     private final AtomicLong proposalIds = new AtomicLong(900_000);
 
-    GoldenFixtures(SpaceService spaces, GardenService gardens, KnowledgeContributions contributions) {
+    GoldenFixtures(SpaceService spaces, GardenService gardens, KnowledgeContributions contributions,
+                   ClimateCells cells) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.contributions = contributions;
+        this.cells = cells;
+    }
+
+    /**
+     * A place the suite knows, with the altitude GeoNames would give it (#107): never a real GeoNames call.
+     */
+    record KnownPlace(Place place, int elevationM) {
+    }
+
+    /**
+     * The fixed list of places the suite knows: Vasto at its reference cell's own coordinates and elevation,
+     * so a question naming it gets Vasto's windows; Turin and Palermo as the two-gardens fixture has them;
+     * two Sant'Angelo of similar population, which the person has to tell apart.
+     */
+    static List<KnownPlace> places(ClimateCells cells) {
+        ClimateCells.Cell centro = cells.nearest(42.11, 14.71).orElseThrow();
+        return List.of(
+                new KnownPlace(new Place("Vasto", "Abruzzo", "IT", "Italia", centro.latitude(), centro.longitude(),
+                        40_000), centro.elevationM()),
+                new KnownPlace(new Place("Torino", "Piemonte", "IT", "Italia", 45.07, 7.69, 850_000), 205),
+                new KnownPlace(new Place("Palermo", "Sicilia", "IT", "Italia", 38.12, 13.36, 650_000), 13),
+                new KnownPlace(new Place("Sant'Angelo", "Lazio", "IT", "Italia", 42.09, 12.28, 5_000), 100),
+                new KnownPlace(new Place("Sant'Angelo", "Lombardia", "IT", "Italia", 45.52, 9.45, 6_000), 120));
+    }
+
+    /** GeoNames as the fixed list of places (#107): names found by their start, altitudes by position. */
+    void stubPlaces(GeoNames geoNames) {
+        List<KnownPlace> known = places(cells);
+        when(geoNames.enabled()).thenReturn(true);
+        when(geoNames.search(anyString(), any())).thenAnswer(call -> {
+            String text = call.<String>getArgument(0).trim().toLowerCase(java.util.Locale.ROOT);
+            return known.stream().filter(k -> k.place().name().toLowerCase(java.util.Locale.ROOT).startsWith(text))
+                    .map(KnownPlace::place).toList();
+        });
+        when(geoNames.elevation(anyDouble(), anyDouble())).thenAnswer(call -> {
+            double latitude = call.<Double>getArgument(0);
+            double longitude = call.<Double>getArgument(1);
+            return known.stream()
+                    .filter(k -> Math.abs(k.place().latitude() - latitude) < 1e-6
+                            && Math.abs(k.place().longitude() - longitude) < 1e-6)
+                    .map(KnownPlace::elevationM).findFirst();
+        });
     }
 
     /** "Today" of the suite, at 10:00 in Italy. */

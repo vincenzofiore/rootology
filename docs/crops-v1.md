@@ -27,9 +27,9 @@ Months are Vasto's (central Italy, open field) and are the base of the derivatio
 |---|---|---|---|---|---|
 | Cavolfiore | Cauliflower | *Brassica oleracea* var. *botrytis* | Brassicaceae | Seedbed May-Jul, transplant Jul-Aug | Oct-Feb |
 | Broccolo | Broccoli | *Brassica oleracea* var. *italica* | Brassicaceae | Seedbed Jun-Jul, transplant Aug | Oct-Dec |
-| Cavolo nero | Tuscan kale | *Brassica oleracea* var. *palmifolia* | Brassicaceae | Seedbed May-Jul | Oct-Mar |
-| Cavolo verza | Savoy cabbage | *Brassica oleracea* var. *sabauda* | Brassicaceae | Seedbed May-Jul | Oct-Feb |
-| Cavolo cappuccio | Cabbage | *Brassica oleracea* var. *capitata* | Brassicaceae | Seedbed Mar-Jul (spring and autumn types) | Jun-Dec |
+| Cavolo nero | Tuscan kale | *Brassica oleracea* var. *palmifolia* | Brassicaceae | Seedbed May-Jul, transplant Jun-Aug | Oct-Mar |
+| Cavolo verza | Savoy cabbage | *Brassica oleracea* var. *sabauda* | Brassicaceae | Seedbed May-Jul, transplant Jun-Aug | Oct-Feb |
+| Cavolo cappuccio | Cabbage | *Brassica oleracea* var. *capitata* | Brassicaceae | Seedbed Mar-Jul (spring and autumn types), transplant Apr-Aug | Jun-Dec |
 | Cime di rapa | Turnip tops | *Brassica rapa* (cime di rapa group) | Brassicaceae | Sow Aug-Sep | Oct-Jan |
 | Finocchio | Florence fennel | *Foeniculum vulgare* var. *azoricum* | Apiaceae | Sow Jun-Aug | Oct-Jan |
 | Radicchio | Radicchio | *Cichorium intybus* | Asteraceae | Sow Jun-Jul | Oct-Feb |
@@ -92,3 +92,9 @@ uses that zone's reference site (NORD = Milan, CENTRO = Vasto, SUD = Palermo). T
 - 39 crops in 9 families.
 - Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
+
+## Italian articles (#111)
+
+Every crop has an `italian_article` in `crops-v1.csv` (il, lo, la, l’, i, gli, le), so a sentence of the app names
+the crop as Italian does: "Quali parassiti minacciano la fragola questo mese?", "Quando raccogliere le cime di
+rapa?". `KnowledgeValidator` refuses any other value. English names take no article.

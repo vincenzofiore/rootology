@@ -43,6 +43,21 @@ class GeoNamesTest {
     }
 
     @Test
+    void theTypographicApostropheIsSearchedAsThePlainOne() {
+        server.expect(ExpectedCount.once(), org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .queryParam("name_startsWith", "Sant'Angelo"))
+                .andRespond(withSuccess("""
+                        {"totalResultsCount":1,"geonames":[
+                         {"name":"Sant'Angelo Lodigiano","adminName1":"Lombardia","countryCode":"IT",
+                          "countryName":"Italia","lat":"45.23","lng":"9.40","population":13000}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(geoNames.search("Sant’Angelo", "it")).extracting(Place::name).containsExactly("Sant'Angelo Lodigiano");
+        assertThat(geoNames.search("Sant'Angelo", "it")).hasSize(1);
+        server.verify();
+    }
+
+    @Test
     void shortTextOrNoAccountMeansNoSearch() {
         assertThat(geoNames.search("B", "it")).isEmpty();
         assertThat(new GeoNames(builder.build(), " ", breaker).search("Bologna", "it")).isEmpty();

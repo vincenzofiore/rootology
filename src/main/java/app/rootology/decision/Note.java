@@ -49,10 +49,12 @@ public record Note(Kind kind, List<String> args) {
         GARDEN_GONE,
         /** args: the garden the question names, the garden of the page (#57). */
         GARDEN_OF_QUESTION,
+        /** args: the place the question names, the garden of the page (#107). */
+        PLACE_OF_QUESTION,
+        /** args: the place the question names, not found, and the garden of the page used instead (#107). */
+        PLACE_NOT_FOUND,
         /** args: the garden as asked (#57). */
         GARDEN_NOT_FOUND,
-        /** args: the garden as asked, the gardens matching (comma-separated) (#57). */
-        GARDEN_AMBIGUOUS,
         /** args: plot as asked, garden. */
         PLOT_NOT_FOUND,
         /** args: plot as asked, garden, the plots matching (comma-separated). */
@@ -116,9 +118,12 @@ public record Note(Kind kind, List<String> args) {
             case GARDEN_GONE -> "The garden this page was opened in no longer exists: the question was not answered.";
             case GARDEN_OF_QUESTION -> "The question names the garden " + arg(0) + ": it was answered for it, "
                     + "not for " + arg(1) + ".";
+            case PLACE_OF_QUESTION -> "The question names the place " + arg(0) + ": the calendars are those of that "
+                    + "place, not of " + arg(1) + ".";
+            case PLACE_NOT_FOUND -> "The place " + arg(0) + " named in the question was not found: the calendars "
+                    + "are those of " + arg(1) + ".";
             case GARDEN_NOT_FOUND -> "There is no garden named \"" + arg(0) + "\" in this space: the question "
                     + "was not answered.";
-            case GARDEN_AMBIGUOUS -> "More than one garden of this space matches \"" + arg(0) + "\": " + arg(1) + ".";
             case PLOT_NOT_FOUND -> "There is no plot named \"" + arg(0) + "\" in " + arg(1)
                     + ": what grows there and its rotation were not checked.";
             case PLOT_AMBIGUOUS -> "More than one plot in " + arg(1) + " matches \"" + arg(0) + "\": " + arg(2) + ".";

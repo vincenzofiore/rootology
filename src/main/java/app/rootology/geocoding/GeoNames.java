@@ -72,7 +72,8 @@ public class GeoNames {
      * text the places named exactly so come first, or "Ro" would only find Rome and Rovigo (#87).
      */
     public List<Place> search(String text, String language) {
-        String prefix = text == null ? "" : text.trim();
+        // GeoNames writes the plain apostrophe: "Sant’Angelo", as a phone types it, would find nothing (#107).
+        String prefix = text == null ? "" : text.trim().replaceAll("[\\u2018\\u2019`\\u00b4]", "'");
         if (!enabled() || prefix.length() < MIN_LENGTH) {
             return List.of();
         }
@@ -123,7 +124,8 @@ public class GeoNames {
                 .retrieve().body(SearchResult.class))
                 .map(r -> r.geonames() == null ? List.<Place>of() : r.geonames().stream()
                         .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(),
-                                Double.parseDouble(g.lat()), Double.parseDouble(g.lng())))
+                                Double.parseDouble(g.lat()), Double.parseDouble(g.lng()),
+                                g.population() == null ? 0 : g.population()))
                         .toList())
                 .orElse(null);
     }
@@ -146,7 +148,8 @@ public class GeoNames {
                 .retrieve().body(SearchResult.class))
                 .flatMap(r -> r.geonames() == null ? Optional.empty() : r.geonames().stream().findFirst())
                 .filter(g -> g.countryCode() != null && g.countryCode().matches("[A-Z]{2}"))
-                .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(), latitude, longitude));
+                .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(), latitude, longitude,
+                        g.population() == null ? 0 : g.population()));
     }
 
     /**
@@ -217,6 +220,7 @@ public class GeoNames {
     record ElevationResult(Integer gtopo30, Status status) implements Reply {
     }
 
-    record Entry(String name, String adminName1, String countryCode, String countryName, String lat, String lng) {
+    record Entry(String name, String adminName1, String countryCode, String countryName, String lat, String lng,
+                 Long population) {
     }
 }

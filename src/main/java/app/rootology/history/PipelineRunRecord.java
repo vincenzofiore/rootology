@@ -50,6 +50,16 @@ public class PipelineRunRecord {
     /** The context the question was answered in, as JSON of the pipeline's snapshot (#55); null before. */
     private String contextJson;
 
+    /** The notes of the answer, as JSON of the decision's notes (#110); null before. */
+    private String notesJson;
+
+    /** The ids of the sources behind the answer (#110); null before. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private List<String> sources;
+
+    /** How each value of a sowing or planting answer goes into the ground (#112), as JSON; null before. */
+    private String activitiesJson;
+
     /** The domain filter refused the question (#53): it has no values and no reviewer. */
     private boolean offDomain;
 
@@ -69,7 +79,8 @@ public class PipelineRunRecord {
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
                       boolean answeredByHuman, String reviewer, String answerText, String contextJson,
-                      boolean offDomain, List<String> jenaAnswer, Boolean matchesJena, Instant finishedAt) {
+                      String notesJson, List<String> sources, String activitiesJson, boolean offDomain, List<String> jenaAnswer,
+                      Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
         this.spaceId = spaceId;
         this.gardenId = gardenId;
@@ -90,6 +101,9 @@ public class PipelineRunRecord {
         this.reviewer = reviewer;
         this.answerText = answerText;
         this.contextJson = contextJson;
+        this.notesJson = notesJson;
+        this.sources = sources;
+        this.activitiesJson = activitiesJson;
         this.offDomain = offDomain;
         this.jenaAnswer = jenaAnswer;
         this.matchesJena = matchesJena;
@@ -117,6 +131,9 @@ public class PipelineRunRecord {
     public String getReviewer() { return reviewer; }
     public String getAnswerText() { return answerText; }
     public String getContextJson() { return contextJson; }
+    public String getNotesJson() { return notesJson; }
+    public List<String> getSources() { return sources; }
+    public String getActivitiesJson() { return activitiesJson; }
     public boolean isOffDomain() { return offDomain; }
     public List<String> getJenaAnswer() { return jenaAnswer; }
     public Boolean getMatchesJena() { return matchesJena; }

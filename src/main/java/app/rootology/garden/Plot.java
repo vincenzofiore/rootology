@@ -50,6 +50,17 @@ class Plot {
 
     private Integer floor;
 
+    /** Hours of direct sun in summer (April-September) and in winter (October-March), declared (#89). */
+    @jakarta.persistence.Column(name = "sun_hours_summer")
+    private Integer sunHoursSummer;
+    @jakarta.persistence.Column(name = "sun_hours_winter")
+    private Integer sunHoursWinter;
+    /** Who last declared the area's sun, its level or its hours, and when (#89). */
+    @jakarta.persistence.Column(name = "sun_declared_by")
+    private String sunDeclaredBy;
+    @jakarta.persistence.Column(name = "sun_declared_at")
+    private java.time.Instant sunDeclaredAt;
+
     protected Plot() {
     }
 
@@ -80,4 +91,29 @@ class Plot {
     DirectSun getDirectSun() { return directSun; }
     Wind getWind() { return wind; }
     Integer getFloor() { return floor; }
+    Integer getSunHoursSummer() { return sunHoursSummer; }
+    Integer getSunHoursWinter() { return sunHoursWinter; }
+    String getSunDeclaredBy() { return sunDeclaredBy; }
+    java.time.Instant getSunDeclaredAt() { return sunDeclaredAt; }
+
+    /**
+     * The area's sun hours (#89); who declared and when change only when the level or the hours change, so
+     * saving the dialog for another reason keeps the earlier declaration.
+     */
+    void declareSun(Integer summer, Integer winter, String by, java.time.Instant at) {
+        boolean changed = !java.util.Objects.equals(summer, sunHoursSummer)
+                || !java.util.Objects.equals(winter, sunHoursWinter);
+        this.sunHoursSummer = summer;
+        this.sunHoursWinter = winter;
+        if (changed) {
+            this.sunDeclaredBy = by;
+            this.sunDeclaredAt = at;
+        }
+    }
+
+    /** The declared level changed (#89): it is a declaration of the area's sun too. */
+    void sunLevelDeclared(String by, java.time.Instant at) {
+        this.sunDeclaredBy = by;
+        this.sunDeclaredAt = at;
+    }
 }

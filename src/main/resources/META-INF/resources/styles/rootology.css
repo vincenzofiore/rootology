@@ -118,6 +118,11 @@ vaadin-grid {
     }
 }
 
+/* The word beside an icon action on a wide screen (#120): a little air, so it does not touch the icon. */
+.rootology-again-word {
+    margin-left: var(--lumo-space-xs);
+}
+
 /* Long text pages such as Privacy (#40): a centred column of readable width, full width on a phone. */
 .rootology-prose {
     box-sizing: border-box;
@@ -133,7 +138,7 @@ vaadin-grid {
     margin: var(--lumo-space-l) 0 var(--lumo-space-xs);
     font-size: var(--lumo-font-size-l);
 }
-.rootology-prose h3.rootology-page-title { margin: 0; font-size: var(--lumo-font-size-xxl); }
+.rootology-prose h2.rootology-page-title { margin: 0; font-size: var(--lumo-font-size-xxl); }
 .rootology-prose p { margin: 0 0 var(--lumo-space-s); }
 .rootology-prose ul { margin: 0 0 var(--lumo-space-s); padding-inline-start: 1.25em; }
 .rootology-prose li { margin-bottom: var(--lumo-space-xs); }
@@ -230,7 +235,8 @@ vaadin-grid {
 @media (max-width: 640px) {
     /* On a phone the navbar also holds the space, the bell and the person menu. */
     .rootology-app-title, .rootology-public-title { font-size: 1.5rem; }
-    .rootology-brand-slogan { font-size: 0.65rem; }
+    /* 11 px at least on a phone (#113): below that the slogan is no longer read comfortably. */
+    .rootology-brand-slogan { font-size: 0.6875rem; }
 }
 @media (max-width: 340px) {
     /* A very narrow phone keeps only the sprout (#79): the name is still read by screen readers. */
@@ -260,8 +266,6 @@ vaadin-grid {
     width: 12rem;
     min-width: 6rem;
 }
-/* Below 640 px the switcher moves into the side menu (#79): the drawer's copy is hidden on a wide screen. */
-.rootology-drawer-space { display: none; }
 .rootology-where {
     display: flex;
     align-items: center;
@@ -289,15 +293,12 @@ vaadin-grid {
     gap: var(--lumo-space-s);
 }
 @media (max-width: 640px) {
-    /* On a phone the navbar is full (#79): the switcher goes in the side menu, so the avatar stays visible. */
+    /* On a phone the navbar is full (#79): the switcher is in the person's menu and the actions at the
+       bottom (#132), so the avatar stays visible. */
     .rootology-navbar-end { gap: var(--lumo-space-xs); }
     .rootology-space-switcher { display: none !important; }
-    .rootology-drawer-space {
-        display: block;
-        padding: var(--lumo-space-m) var(--lumo-space-m) 0;
-    }
-    .rootology-space-switcher-narrow { width: 100%; }
-    /* The drawer already shows the space (#79): the navbar keeps only the actions. */
+    .rootology-navbar-end .rootology-level-actions { display: none; }
+    /* The arrow says the way back (#132): the path would not fit. */
     .rootology-where { display: none; }
     .rootology-user-menu { margin-right: 0; }
 }
@@ -388,8 +389,6 @@ vaadin-grid {
 }
 
 /* Sources and Privacy (ServiceLinks): a small line at the bottom of the side menu and of the public pages. */
-.rootology-drawer { display: flex; flex-direction: column; min-height: 100%; }
-.rootology-drawer > vaadin-side-nav { flex: 1; }
 .rootology-service-links {
     display: flex;
     flex-wrap: wrap;
@@ -478,6 +477,26 @@ rootology-garden-map { display: block; width: 100%; }
     white-space: nowrap;
 }
 .rootology-garden-card-weather img { width: 1.5rem; height: 1.5rem; }
+/* The card's counts (#132): crops growing, questions waiting, weather alerts; colour only for what needs attention. */
+.rootology-garden-card-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+    margin-top: var(--lumo-space-xs);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-garden-card-fact {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    padding: 0 var(--lumo-space-xs);
+    border-radius: var(--lumo-border-radius-s);
+}
+.rootology-garden-card-fact vaadin-icon { width: 1rem; height: 1rem; }
+.rootology-garden-card-fact-waiting { color: var(--rootology-waiting); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-frost { color: var(--rootology-frost); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-blight { color: var(--rootology-pest); font-weight: 600; }
 /* On the map: the place search and "where I am" at the top left, as in the map apps people know (#87). */
 .rootology-map-overlay {
     position: absolute;
@@ -526,12 +545,22 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-page-title {
     /* From zero, so a long title wraps beside the action instead of pushing it to a line of its own. */
     flex: 1 1 0;
-    min-width: 0;
+    /* Never narrower than a short word (#126): on a phone, two actions beside "Aree" broke it letter by letter;
+       now the actions wrap to the next line instead. */
+    min-width: min(100%, 9ch);
     margin: 0;
+    /* The page's second level under the wordmark's h1, now an h2 and with the look it had as an h3 (#113): the
+       title size, Lumo's heading weight and line height, no margin. */
     font-size: var(--lumo-font-size-xxl);
+    font-weight: 600;
+    line-height: var(--lumo-line-height-xs);
     overflow-wrap: anywhere;
 }
 .rootology-page-header { margin-bottom: var(--lumo-space-s); }
+/* Where a garden is, right beside its name (#132): the title then takes only its own width. */
+.rootology-page-header:has(> .rootology-page-place) { align-items: baseline; column-gap: var(--lumo-space-s); }
+.rootology-page-header:has(> .rootology-page-place) > .rootology-page-title { flex: 0 1 auto; min-width: 0; }
+.rootology-page-place { flex: 1 1 auto; color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
 .rootology-page-actions { display: flex; gap: var(--lumo-space-s); align-items: center; }
 /* Taller than wide screens make it look: a frame where a popup fits above or below its marker. */
 .rootology-map {
@@ -836,13 +865,27 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-m);
     width: 100%;
 }
-.rootology-waiting-card { box-sizing: border-box; width: 100%; }
+.rootology-waiting-card {
+    box-sizing: border-box;
+    width: 100%;
+    /* The waiting violet edge (#113), as on the waiting question's history card: one look wherever it waits. */
+    border-inline-start: 3px solid var(--rootology-waiting);
+}
 /* A long question wraps instead of being cut, at 360 px too. */
 .rootology-waiting-question {
     margin: 0;
     font-size: var(--lumo-font-size-l);
     font-weight: 600;
     overflow-wrap: anywhere;
+}
+/* The garden a waiting question belongs to, at the space level only (#109). */
+.rootology-waiting-garden {
+    align-self: flex-start;
+    padding: 0 var(--lumo-space-xs);
+    border-radius: var(--lumo-border-radius-s);
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
 }
 .rootology-waiting-meta {
     display: flex;
@@ -878,6 +921,25 @@ rootology-garden-map { display: block; width: 100%; }
     overflow-wrap: anywhere;
 }
 .rootology-chip > span { min-width: 0; }
+/* What the answer will assume, before the question (#110): quiet, like the context line of an answer. */
+.rootology-ask-context {
+    display: block;
+    margin-top: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+/* The answer form of a waiting question (#110): in view on Escalations, behind "Answer it yourself" on Ask. */
+.rootology-answer-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+}
+
+.rootology-answer-open {
+    align-self: flex-start;
+}
+
 .rootology-answer-controls {
     display: flex;
     flex-direction: column;
@@ -900,12 +962,15 @@ rootology-garden-map { display: block; width: 100%; }
 }
 /* The question field takes the room it has and never pushes the button off a 360 px screen. */
 .rootology-home-ask vaadin-text-field { flex: 1 1 16rem; min-width: 0; }
-.rootology-home-actions {
+/* The links at the foot of a home card (#133): an action, then "go to" and "see all". */
+.rootology-home-links {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--lumo-space-xs);
-    width: 100%;
+    align-items: center;
+    gap: var(--lumo-space-xs) var(--lumo-space-m);
 }
+.rootology-home-links .rootology-home-see-all { display: inline-flex; align-items: center; gap: var(--lumo-space-xs); }
+.rootology-home-links .rootology-home-see-all vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
 .rootology-home-grid {
     box-sizing: border-box;
     display: grid;
@@ -914,8 +979,52 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
     align-items: start;
 }
-/* The 7 days need the whole row; the other cards share two columns. */
-.rootology-home-grid > .rootology-weather { grid-column: 1 / -1; }
+/* The weather and the climate share the first row (#130): the 7 days take what they need, the climate the rest,
+   and it moves under the weather when the row is too narrow. The other cards share two columns. */
+.rootology-home-weather-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-m);
+    /* Side by side the two cards end on the same line (#130). */
+    align-items: stretch;
+}
+.rootology-home-weather-row > .rootology-weather { flex: 1 1 auto; min-width: 0; }
+/* The days share the card's width, from 5.5rem up to 8rem each, so a wide card is filled, not half empty (#130). */
+/* The weather of now above the days (#132): the symbol and the temperature large, the hour's details beside. */
+.rootology-weather-now {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-m);
+}
+.rootology-weather-now-icon { width: 3.5rem; height: 3.5rem; }
+.rootology-weather-now-temperature {
+    font-family: var(--rootology-display-font);
+    font-size: var(--lumo-font-size-xxxl);
+    font-weight: 600;
+    line-height: 1;
+}
+.rootology-weather-now-details {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-weather-now-label { color: var(--lumo-body-text-color); font-weight: 500; }
+.rootology-weather-day {
+    box-sizing: border-box;
+    flex: 1 1 5.5rem;
+    min-width: 5.5rem;
+    max-width: 8rem;
+}
+/* The climate never grows past a column: on a large screen the weather takes the room (#130). */
+.rootology-home-weather-row > .rootology-climate { flex: 1 1 16rem; max-width: 22rem; min-width: 0; }
+/* Below a large screen the climate goes under the weather, at full width (#130); after the rule above,
+   so it wins. */
+@media (max-width: 1439px) {
+    .rootology-home-weather-row { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .rootology-home-weather-row > .rootology-climate { max-width: none; }
+}
 @media (max-width: 640px) {
     .rootology-home-ask vaadin-text-field { flex-basis: 100%; }
     .rootology-home-ask vaadin-button { width: 100%; }
@@ -937,9 +1046,37 @@ rootology-garden-map { display: block; width: 100%; }
     display: flex;
     align-items: center;
     gap: var(--lumo-space-xs);
-    margin: 0;
+    /* A little air between a card's title and its content (#130). */
+    margin: 0 0 var(--lumo-space-s);
     font-size: var(--lumo-font-size-m);
     font-weight: 600;
+}
+/* The climate is a Details (#130): its summary is the card's title, with the one-line summary while closed. */
+.rootology-climate::part(summary) { padding: 0; }
+.rootology-climate::part(content) { padding: 0; }
+.rootology-climate::part(summary-content) { color: var(--lumo-body-text-color); }
+.rootology-climate .rootology-card-title { margin: 0; }
+.rootology-climate[opened] .rootology-climate-head { margin-bottom: var(--lumo-space-s); }
+.rootology-climate-summary {
+    display: block;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 400;
+}
+.rootology-climate[opened] .rootology-climate-summary { display: none; }
+/* The climate's values: icon, word and value on one line, so the card stays as short as the weather (#130). */
+.rootology-climate .rootology-card-content { gap: var(--lumo-space-xs); }
+.rootology-climate .rootology-fact {
+    display: grid;
+    grid-template-columns: auto 6rem minmax(0, 1fr);
+    column-gap: var(--lumo-space-s);
+    align-items: center;
+    line-height: 1.3;
+}
+.rootology-home-weather-row > .rootology-climate { margin: 0; }
+.rootology-fact-label {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
 }
 .rootology-card-title vaadin-icon {
     flex: none;
@@ -953,11 +1090,38 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-s);
 }
 .rootology-card-text { margin: 0; }
-/* A source line (the AgERA5 cell) is there to be checked, not to decide by. */
+/* A source line (the AgERA5 cell) is there to be checked, not to decide by: said as a source (#130). */
 .rootology-card-source {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: var(--lumo-space-xs);
+    padding-top: var(--lumo-space-s);
+    border-top: 1px solid var(--lumo-contrast-10pct);
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
 }
+.rootology-card-source-title { font-weight: 600; }
+/* "See all" under the three newest waiting questions (#130). */
+.rootology-home-see-all {
+    align-self: flex-start;
+    color: var(--lumo-primary-text-color);
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+}
+.rootology-home-waiting-go {
+    flex: none;
+    margin-left: auto;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+/* How and when a crop went into the ground, inside its chip (#130). */
+.rootology-grow-when {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-frost-icon { width: 0.9em; height: 0.9em; }
 
 /* An alert of #37, coloured by its rule: a frost is ice blue, late blight amber (#87). */
 .rootology-alert {
@@ -1026,11 +1190,21 @@ rootology-garden-map { display: block; width: 100%; }
     flex-direction: column;
     gap: var(--lumo-space-xs);
 }
+.rootology-chip-plot-sun {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    margin-left: var(--lumo-space-xs);
+    vertical-align: middle;
+}
 .rootology-chip-plot {
+    display: flex;
+    align-items: center;
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-s);
     font-weight: 500;
 }
+/* The plus beside an area's name (#133): sow or plant there. */
+.rootology-chip-plot-add { margin-left: var(--lumo-space-xs); }
 .rootology-chips {
     display: flex;
     flex-wrap: wrap;
@@ -1207,6 +1381,23 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-area-details {
     margin-top: var(--lumo-space-s);
 }
+/* The level given by both seasons' hours (#89): shown, greyed, and not chosen by hand. */
+.rootology-sun-derived .rootology-sun-chosen {
+    background: var(--lumo-contrast-5pct);
+    color: var(--lumo-secondary-text-color);
+    box-shadow: inset 0 0 0 2px var(--lumo-contrast-30pct);
+}
+/* The hours of each season next to an area's sun (#89): a sun or a snowflake, then the hours. */
+.rootology-season-hours {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-season-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
 @media (max-width: 640px) {
     .rootology-area-cards { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1223,10 +1414,26 @@ rootology-garden-map { display: block; width: 100%; }
     width: 100%;
     max-width: 42rem;
 }
+/* The suggestions (#114): above the field on an empty page; under the newest answer once there is one, with a
+   label and three chips at most, so the answer is the first thing read. */
+.rootology-ask-suggestions-label { display: none; }
+.rootology-ask-suggestions-later .rootology-ask-suggestions-label {
+    display: block;
+    /* A heading for screen readers (#119), the same small line to the eye. */
+    margin: 0 0 var(--lumo-space-xs);
+    font-family: inherit;
+    font-weight: 400;
+    line-height: inherit;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-ask-suggestions-later .rootology-ask-chip:nth-child(n+4) { display: none; }
 /* A chip is a button that asks: a pill, the words readable in light and dark. */
 .rootology-ask-chip {
     max-width: 100%;
     min-height: 2rem;
+    /* At least 8 px beside the words: 5 px made a chip read as a cut-off label (#113). */
+    padding-inline: var(--lumo-space-s);
     border: 1px solid var(--lumo-primary-color-50pct);
     border-radius: 999px;
     background: var(--lumo-primary-color-10pct);
@@ -1241,6 +1448,15 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-ask-chip:hover {
     background: var(--lumo-primary-color-10pct);
     border-color: var(--lumo-primary-color);
+}
+/* The keyboard's place, on the suggestion and choice chips and on the history's filters (#113): one clear ring
+   in the accent, instead of the faint halo Lumo draws. Vaadin marks a button reached from the keyboard with
+   `focus-ring`, so a tap shows nothing. */
+vaadin-button.rootology-ask-chip[focus-ring],
+vaadin-button.rootology-filter-chip[focus-ring] {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 .rootology-ask-form {
     box-sizing: border-box;
@@ -1286,6 +1502,38 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-history-search {
     width: 100%;
 }
+/* The history's filters (#104): small toggle chips that wrap; the chosen ones filled, with a check. */
+.rootology-history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-xs);
+}
+.rootology-filter-chip {
+    margin: 0;
+    min-width: 0;
+    min-height: 1.75rem;
+    height: auto;
+    padding: 0 var(--lumo-space-s);
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--lumo-body-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 500;
+}
+.rootology-filter-chip-on {
+    border-color: var(--lumo-primary-color);
+    background: var(--lumo-primary-color-10pct);
+    color: var(--lumo-primary-text-color);
+}
+.rootology-filter-chip vaadin-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+/* A waiting question keeps the waiting colour on its edge, as on the garden home. */
+.rootology-history-card-waiting {
+    border-inline-start: 3px solid var(--rootology-waiting);
+}
 /* A card opens its answer: the whole card is the target, the open button is the keyboard's. */
 .rootology-history-panel .rootology-history-card {
     cursor: pointer;
@@ -1293,9 +1541,24 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-history-panel .rootology-history-card:hover {
     background: var(--lumo-contrast-10pct);
 }
-/* The count beside the clock, in figures that do not jump as it changes. */
+/* The count beside the clock, in figures that do not jump as it changes; the word beside it on a wide
+   screen (#109), where the button has room to say what it opens. */
 .rootology-history-toggle {
     font-variant-numeric: tabular-nums;
+}
+/* Open is a state, not an action (#113): a neutral pressed fill, the clock in the accent; "Ask" stays the one
+   filled green. */
+.rootology-history-toggle[aria-pressed="true"] {
+    background-color: var(--lumo-contrast-20pct);
+    color: var(--lumo-body-text-color);
+}
+.rootology-history-toggle[aria-pressed="true"]::part(prefix) {
+    color: var(--lumo-primary-text-color);
+}
+.rootology-history-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
 }
 /* Which question a past answer is for, and when (#100). */
 .rootology-ask-asked {
@@ -1333,6 +1596,39 @@ rootology-garden-map { display: block; width: 100%; }
     gap: var(--lumo-space-xs);
     padding: 0 var(--lumo-space-xs) var(--lumo-space-s);
 }
+.rootology-ask-choice {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-xs);
+    width: 100%;
+    max-width: 42rem;
+}
+/* The line of the choice (#107): a short question above its chips, never a paragraph. */
+.rootology-ask-choice-question {
+    display: block;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    overflow-wrap: anywhere;
+}
+.rootology-ask-choice-line {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-ask-choice-chips {
+    display: flex;
+    flex-wrap: wrap;
+}
+/* "Another place": the search opens on demand, under the chips, and fits a 360 px screen. */
+.rootology-ask-choice-search {
+    width: 100%;
+    max-width: 22rem;
+    margin-top: var(--lumo-space-xs);
+}
+/* "Create a garden here", under the answer of a place (#107): a tertiary button that reads as a link. */
+.rootology-answer-create {
+    margin: var(--lumo-space-xs) 0 0;
+}
 /* The question while Claude and Jev work: the words, a bar that moves and the seconds so far. */
 .rootology-thinking {
     box-sizing: border-box;
@@ -1360,9 +1656,10 @@ rootology-garden-map { display: block; width: 100%; }
     font-size: var(--lumo-font-size-s);
 }
 @media (max-width: 640px) {
-    /* The field stays where the thumb is: the page scrolls above it, and its last card is never covered. */
-    .rootology-ask {
-        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    /* The field stays where the thumb is: the page scrolls above it, and its last card is never covered. As
+       specific as the narrow screens' padding rule, which otherwise wins outside a garden (#117). */
+    vaadin-vertical-layout.rootology-ask {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     }
     .rootology-ask-form {
         position: fixed;
@@ -1375,8 +1672,17 @@ rootology-garden-map { display: block; width: 100%; }
         background: var(--lumo-base-color);
         border-top: 1px solid var(--lumo-contrast-10pct);
     }
-    .rootology-ask-field {
-        flex: 1 1 100%;
+    /* One line above the bar (#117): the field and the button side by side, the label read by screen readers
+       only, since the field and its placeholder already say what it is for. */
+    .rootology-ask-form .rootology-ask-field {
+        flex: 1 1 0;
+        padding-top: 0;
+    }
+    .rootology-ask-form .rootology-ask-field > label[slot="label"] {
+        display: none;
+    }
+    .rootology-ask-form .rootology-count-badge {
+        flex-basis: 100%;
     }
     /* One at a time (#100): the history, when open, takes the whole page and hides the question's field. */
     .rootology-ask-split[data-history="open"] .rootology-ask-main {
@@ -1396,9 +1702,6 @@ rootology-garden-map { display: block; width: 100%; }
         bottom: var(--lumo-space-l);
         align-self: center;
         margin-top: var(--lumo-space-l);
-    }
-    .rootology-ask-form vaadin-button {
-        flex: 1 1 auto;
     }
 }
 
@@ -1430,15 +1733,61 @@ rootology-garden-map { display: block; width: 100%; }
     outline: none;
 }
 
-/* Home, Ask, Plots and Waiting questions at the bottom of a phone (#88): never above 640 px. */
+/* The level's home and its sections at the bottom of a phone (#88, #132): never above 640 px. */
 .rootology-bottom-nav {
     display: none;
 }
 
-/* The space and garden at the top of the drawer (#88), where the navbar hides them on a phone (#79). */
-.rootology-drawer-where {
-    display: none;
+/* The way to the level above (#132): an arrow before the name, none on the gardens themselves. */
+.rootology-back:empty { display: none; }
+.rootology-back a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    margin-inline-start: var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    color: var(--lumo-primary-text-color);
 }
+.rootology-back a:hover { background: var(--lumo-contrast-5pct); }
+
+/* The level's sections in the top bar (#132, ADR 0002): an icon and a count, the word on a wide screen. */
+.rootology-level-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-inline-end: var(--lumo-space-s);
+    padding-inline-end: var(--lumo-space-s);
+    border-inline-end: 1px solid var(--lumo-contrast-10pct);
+}
+.rootology-level-action {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    min-height: 2.25rem;
+    padding: 0 var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    color: var(--lumo-secondary-text-color);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.rootology-level-action:hover { background: var(--lumo-contrast-5pct); color: var(--lumo-body-text-color); }
+.rootology-level-action vaadin-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+.rootology-level-action.rootology-action-current {
+    color: var(--lumo-primary-text-color);
+    background: var(--lumo-primary-color-10pct);
+}
+.rootology-level-action .rootology-action-word { display: none; font-size: var(--lumo-font-size-s); }
+@media (min-width: 1280px) {
+    .rootology-level-action .rootology-action-word { display: inline; }
+}
+.rootology-action-count {
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.rootology-action-count-waiting { color: var(--rootology-waiting); }
 
 /* Seven days of weather in one row that scrolls sideways (#88), not in columns with the last day alone. */
 .rootology-weather-days {
@@ -1473,6 +1822,20 @@ rootology-garden-map { display: block; width: 100%; }
     padding: var(--lumo-space-s) var(--lumo-space-m);
     border-radius: var(--lumo-border-radius-l);
     background: var(--lumo-contrast-5pct);
+}
+/* The garden a question belongs to, at the space level only (#109). */
+/* The garden of a card at the space level (#109), as text before the date (#122): a chip read as a value. */
+.rootology-history-card-garden {
+    font-weight: 600;
+}
+.rootology-history-card-garden::after {
+    content: " ·";
+    font-weight: 400;
+}
+/* A calendar card's verdict (#122): the opened card's line, one size smaller. */
+.rootology-history-card-verdict {
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
 }
 .rootology-history-card-head,
 .rootology-notification-card-head {
@@ -1518,13 +1881,6 @@ rootology-garden-map { display: block; width: 100%; }
 }
 
 @media (max-width: 640px) {
-    .rootology-drawer-where {
-        display: block;
-        padding: var(--lumo-space-xs) var(--lumo-space-m) var(--lumo-space-s);
-        color: var(--lumo-secondary-text-color);
-        font-size: var(--lumo-font-size-s);
-        overflow-wrap: anywhere;
-    }
     .rootology-bottom-nav {
         position: fixed;
         inset-inline: 0;
@@ -1563,11 +1919,13 @@ rootology-garden-map { display: block; width: 100%; }
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .rootology-bottom-nav-current {
+    .rootology-bottom-nav-item.rootology-action-current {
         color: var(--lumo-primary-text-color);
         font-weight: 600;
     }
-    .rootology-bottom-nav-badge {
+    /* The bar shows only the waiting questions' count, as a badge: the others are for the wide bar. */
+    .rootology-bottom-nav-item .rootology-action-count { display: none; }
+    .rootology-bottom-nav-item .rootology-action-count-waiting {
         position: absolute;
         top: 0;
         inset-inline-start: 50%;
@@ -1575,8 +1933,9 @@ rootology-garden-map { display: block; width: 100%; }
         min-width: 1.15rem;
         padding: 0 0.3em;
         border-radius: 999px;
-        background: var(--lumo-error-color);
-        color: #fff;
+        display: block;
+        background: var(--rootology-waiting);
+        color: var(--lumo-base-color);
         font-size: 0.7rem;
         line-height: 1.3;
         text-align: center;
@@ -1589,8 +1948,9 @@ rootology-garden-map { display: block; width: 100%; }
     .rootology-with-bottom-nav .rootology-ask-form {
         bottom: calc(var(--rootology-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
     }
+    /* The layout's content already keeps the bar's room: Ask adds only the field's line (#117). */
     .rootology-with-bottom-nav .rootology-ask {
-        padding-bottom: calc(var(--rootology-bottom-nav-height) + 5rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 5.5rem;
     }
     /* The weather row scrolls itself, never the page (#88). */
     .rootology-weather-days {
@@ -1601,7 +1961,7 @@ rootology-garden-map { display: block; width: 100%; }
         -webkit-overflow-scrolling: touch;
     }
     .rootology-weather-days > * {
-        flex: 0 0 auto;
+        flex: 0 0 5.5rem;
         scroll-snap-align: start;
     }
     /* One card per row, readable at 360 px (#88, #93): a table has no room for a long text there. */
@@ -1624,11 +1984,41 @@ rootology-garden-map { display: block; width: 100%; }
     flex-wrap: wrap;
     gap: var(--lumo-space-s);
 }
+/* Values grouped by how they go into the ground (#112): one row per activity, its name before its values. */
+.rootology-answer-activities {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+}
+.rootology-answer-activities .rootology-answer-values { align-items: center; }
+.rootology-answer-activity {
+    min-width: 8.5em;
+    font-size: var(--lumo-font-size-s);
+    font-weight: 600;
+    color: var(--lumo-secondary-text-color);
+}
+/* What a calendar answer means for the month it was asked in (#116), worked out from the values. */
+.rootology-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    font-weight: 600;
+    font-size: var(--lumo-font-size-m);
+}
+.rootology-verdict-icon { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); flex: none; }
+.rootology-verdict-now .rootology-verdict-icon { color: var(--lumo-success-text-color); }
+.rootology-verdict-later .rootology-verdict-icon { color: var(--lumo-secondary-text-color); }
+.rootology-answer-person-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--lumo-secondary-text-color);
+}
 .rootology-answer-value {
     padding: var(--lumo-space-xs) var(--lumo-space-m);
     border-radius: 999px;
-    background: var(--lumo-primary-color-10pct);
-    color: var(--lumo-primary-text-color);
+    /* Values are read, not acted on: neutral, so green stays where the person acts (#113). */
+    background: var(--lumo-contrast-10pct);
+    color: var(--lumo-body-text-color);
     font-size: var(--lumo-font-size-m);
     font-weight: 600;
 }
@@ -1700,4 +2090,87 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
 .rootology-page-header ~ * { animation: rootology-page-in 220ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
     .rootology-page-header, .rootology-page-header ~ * { animation: none; }
+}
+
+/* The questions open on Ask's left (#119): a light green fill, as a selected row, so the edge keeps saying
+   only the state (waiting) and a waiting card open shows one colour each, never two lines. */
+.rootology-history-panel .rootology-history-card-current,
+.rootology-history-panel .rootology-history-card-current:hover {
+    background: var(--lumo-primary-color-10pct);
+}
+
+/* The members page (#105): one card per member or pending invitation, readable on a phone, its actions as icons
+   on the right. A blocked member is greyed, with the reason in words beside a no-entry sign. */
+.rootology-member-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+    width: 100%;
+    max-width: 40rem;
+}
+.rootology-member-card {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-m);
+    width: 100%;
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-member-card-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.rootology-member-card-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.rootology-member-card-role {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-member-card-blocked .rootology-member-card-avatar,
+.rootology-member-card-blocked .rootology-member-card-name {
+    opacity: 0.6;
+}
+.rootology-member-card-blocked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    color: var(--lumo-error-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-member-card-blocked-badge vaadin-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+.rootology-member-card-actions {
+    display: flex;
+    gap: var(--lumo-space-xs);
+}
+/* The dialogs of the members page: one column, as wide as a phone allows. */
+.rootology-member-dialog {
+    --rootology-dialog-width: min(28rem, calc(100vw - 2 * var(--lumo-space-m)));
+}
+.rootology-member-dialog::part(content) {
+    width: var(--rootology-dialog-width);
+    box-sizing: border-box;
+}
+/* The display name (#106): the prompt is as wide as the members' dialogs, the account row keeps the field
+   and Save together and wraps on a phone. */
+.rootology-name-prompt::part(content) {
+    width: min(28rem, calc(100vw - 2 * var(--lumo-space-m)));
+    box-sizing: border-box;
+}
+.rootology-name-row {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 32rem;
+}
+.rootology-name-row vaadin-text-field {
+    flex: 1 1 14rem;
 }

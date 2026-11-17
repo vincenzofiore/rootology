@@ -6,6 +6,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 
 /**
@@ -47,14 +48,41 @@ final class RowActions {
         return icon(VaadinIcon.CLOSE_SMALL, label, listener);
     }
 
-    /** Asking the same question again (#82): the words go back in the field, ready to send. */
+    /**
+     * Reusing a question (#82): the words go back in the field, ready to change or send. An up arrow (#120):
+     * the words go back up into the field, and the refresh arrow read as running the question again and
+     * spending one.
+     */
     static Button again(String label, ComponentEventListener<ClickEvent<Button>> listener) {
-        return icon(VaadinIcon.REFRESH, label, listener);
+        Button button = icon(VaadinIcon.ARROW_UP, label, listener);
+        // The word beside the arrow on a wide screen (#120), the icon alone on a phone, as the history toggle.
+        Span word = new Span(label);
+        word.addClassName("rootology-wide-only");
+        word.addClassName("rootology-again-word");
+        button.setSuffixComponent(word);
+        return button;
+    }
+
+    /** Blocking a member of a space (#105): a no-entry sign, red like every action that takes something away. */
+    static Button block(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        Button button = icon(VaadinIcon.BAN, label, listener);
+        button.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        return button;
+    }
+
+    /** Unblocking a member (#105): an open lock. */
+    static Button unblock(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.UNLOCK, label, listener);
     }
 
     /** Putting a question and its answer on the clipboard (#82). */
     static Button copy(String label, ComponentEventListener<ClickEvent<Button>> listener) {
         return icon(VaadinIcon.COPY, label, listener);
+    }
+
+    /** Closing what is open (#119): it goes from the page, nothing is deleted. */
+    static Button close(String label, ComponentEventListener<ClickEvent<Button>> listener) {
+        return icon(VaadinIcon.CLOSE_SMALL, label, listener);
     }
 
     static Button delete(String label, ComponentEventListener<ClickEvent<Button>> listener) {

@@ -6,6 +6,54 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-17
+
+### Added
+
+- Rootology can be installed on a phone or a computer like an app (Android's round icons too), and opened without a network it says so with a page of its own, never an error: nothing of a garden is kept on the device (#134).
+- An area can declare its hours of direct sun, in summer (April–September) and in winter (October–March), each optional: when a season has them they count more than the declared level (6 or more full sun, 3 to 5 part shade, fewer shade), the card shows them next to the sun and its icon the level of the current month, and the tooltip says who declared them and when (#89).
+- A question can name a place ("cosa semino a Torino?"): the sowing and harvest calendars and the forecast are
+  those of that place, inside a garden or not, and a calendar question outside a garden, a place not found or
+  one that matches several towns, and a garden question outside a garden now ask which place or garden instead
+  of escalating: the person picks it with one tap in the chips under the question, or searches another place,
+  and a place's answer offers to create a garden there (#107).
+
+### Changed
+
+- Navigation by levels, with no side menu: the app opens on the space's gardens, a garden opens its home, and each level's sections (areas, Ask, waiting questions, knowledge, members) are icons with a count in the top bar, or in the bottom bar on a phone; a back arrow leads to the level above and the breadcrumb is clickable; the spaces, the pages for a role, Sources and Privacy move to the person menu; each garden's card counts its crops growing and its questions waiting (a zero too) and its weather alerts of the last three days; Ask and the waiting questions are one page, Questions, whose count says how many wait, and "See all" opens every waiting question with the history filtered to them (#132).
+- The garden home has a Questions card (the question field, the three newest waiting questions, "Go to the questions" and "See all"), and what grows lists every area with a plus to sow or plant there and "Add an area"; the buttons at its top right are gone; the town is beside the garden's name, and the weather card opens with the weather of now, MET Norway's forecast for this hour (#133).
+- The garden home is clearer: the climate sits beside the weather (closed under a one-line summary on a phone), with an ice crystal for frosts, a mountain for the altitude and the AgERA5 cell said as the source; the weather says when it was updated; what grows has a sprout, each area's sun this month, how and when each crop went into the ground, and a link to the areas; the waiting questions show the three newest with "See all" (#130).
+- The two cards of Ask's history that are not answers, a question refused as off-topic and one escalated and never answered by a person, follow the same rule as an answer: inside a garden they no longer say the page's garden again, and at the space level they still name it (#123).
+- The site's root, for a visitor who is not signed in, redirects permanently (301, never cached) to the welcome page instead of temporarily, so search engines index /welcome as the page itself and not as a duplicate of "/" (#124).
+- Each person chooses the name others see, in My account or in a short prompt at their first sign-in (which can be skipped); it can be changed freely, no two people show the same name, and it replaces the login in members, questions, waiting questions, answers, notifications, emails and the person menu. Admin pages show the name with the login. A personal space still called after the login takes the name (#106).
+- The members page is one page with the invitations: "Invita" is its main action, the pending invitations a section under the members, and members are cards readable on a phone. An owner changes a role or blocks a member instead of removing them: a blocked member stays listed, no longer sees or uses the space, keeps their questions and can be unblocked. A change of role, a block and a member who leaves can carry a message, which arrives as a notification in the app, by email and on Telegram (title and link only). The old invitations page forwards to Members (#105).
+- "Quando pianto il cavolo?" also says when to transplant it: cabbage April–August, savoy cabbage and Tuscan kale June–August, after the seedbed months (editorial, to be verified) (#115).
+- Ask's suggested questions are one Tab stop: the arrow keys move between the chips and Tab leaves the group, and Esc closes the history from inside it and gives the keyboard back to the toggle. The reuse action is "Riusa" with an up arrow, the word beside it on a wide screen and the icon alone on a phone (#120).
+- Inside a garden an answer card and a waiting question no longer say the garden again: it is in the breadcrumb and in the page's context line, and the card names it only when the question was about another one, always at the space level. "Dati usati:" appears only when it adds something to the line above, so it no longer repeats the last frost the page already shows; a place the question named, a zone from an older answer and a month the question named stay (#121).
+- A sowing or planting answer says how each month or crop goes into the ground: "in semenzaio febbraio–marzo, trapianto aprile–maggio" for tomatoes instead of one list of months that read as planting out in February, and "cosa semino a febbraio" marks the seedbed crops. The answer card groups the values the same way, and a past answer keeps them (#112).
+- A calendar answer starts with what it means for the month it was asked in, worked out from its months: "Non adesso · da febbraio: semina in semenzaio" or "Sì, adesso: trapianto", so a sentence about February cannot read as "now". An answer a person gave says who answered instead of showing a confidence bar (#116).
+- On a phone, Ask's question field and its button sit on one line above the bottom bar, and the last suggested question is no longer hidden under them, also outside a garden. A person's "no" no longer shows a "no values" badge (#117).
+- Ask speaks the gardener's words: "Chiedi a Rootology", no "livello decisionale" or "cella climatica", "Dati usati:" in the fold, and a person's answer no longer reads "un revisore umano" or repeats the decision layer's numbers as their note (#118).
+- Ask's history is lighter: only the "In attesa" and "Mie" filters, and only when they help, "Chiesta da" only in a space where others ask, the open questions marked in the list, a × to close an answer, and the suggested questions after the answers (#119).
+- In Ask's history a calendar answer's card says "Non adesso · da febbraio" instead of a check beside its months, an answered question carries no mark (only waiting and off-topic ones do), and at the space level the garden is text before the date rather than a chip like the answer's values (#122).
+- In Ask the answer comes first: once the page shows an answer, the suggested questions move under the newest one as "Altre domande", three at most. The "why" fold speaks in words: "i fatti trovati non bastano a rispondere" instead of a probability, which stays as the words' tooltip; an answer saved before sources were recorded says so instead of "no source"; and the climate line says what it is ("Calcolata con: …"). "Chiedi di nuovo" is now "Riusa la domanda" with a reply arrow, since the refresh arrow read as spending a question again, and it puts the cursor in the field (#114).
+- Ask keeps one accent and one shape for every question: the open history button and the history's badges are neutral, the values under an answer too, so green marks only where to act; an answer, a past answer and a waiting question all start with the question and when it was asked, and a waiting question carries its violet edge in Ask as in Escalations (#113).
+- Ask is easier from the keyboard and with a screen reader: on a wide screen the question field takes the keyboard when the page opens with nothing else to show, the history cards' open buttons say which question they open, the suggestion, choice and filter chips have a clear focus ring and 8 px beside their words, the page title is an h2 under the wordmark, and the slogan stays at 11 px on a phone (#113).
+- The suggested questions name a crop as Italian does, with its article: "Quali parassiti minacciano la fragola questo mese?", "Quando raccogliere la lattuga?" (#111).
+- The fold under an answer says what it holds: "Perché aspetta?" on a waiting question, one plain line on what the reliability means, only what the line above the answer does not say (the climate and its source), and "Nessuna fonte registrata" on a past answer stored without sources; "senza orto" has the same capital where it starts a line or a chip, and the space-level line no longer speaks in the first person (#111).
+- Ask says what the answer will assume before the question: inside a garden its name, the last frost of its site and the month; at the space level the month, and that the place is asked for when a question needs one (#110).
+- In Ask a question waiting for a person reads as a promise: a person of the space will answer and you will be told; the decision layer's reason and number are under "Why this answer?", and the answer form opens with "Answer it yourself" for who may answer. The waiting questions page keeps the full form (#110).
+- Answer values are shown in the person's language (months as words, crops and pests by their name) and the answer card no longer repeats the values its sentence already says; the history cards keep them all (#110).
+- At the space level one waiting questions page lists every waiting question of the space, of every garden and without one, each card naming its garden and answering in it, and it updates by itself when a question starts waiting or is answered (no refresh button); "Questions without a garden" is gone from the menu. The history at the space level lists every question of the space with the garden's name on each card and a garden filter, and the history button says "History" next to the count on a wide screen (#109).
+- The history in Ask lists the questions still waiting for a person at the top, opens them in Ask to answer or follow, and has filters by outcome, by who asked and by period (#104).
+- The waiting questions menu is shown only to who can answer them: guests are sent to the history instead (#104).
+
+### Fixed
+
+- On a phone a page title no longer breaks letter by letter beside its actions: the actions move to the next line (#126).
+- An answer opened again from the history or a notification shows its warnings (frost, late blight, missing data) and its sources, as when it was given, with the context above the answer; answers stored before keep only their sentence and values (#110).
+- A crop or pest named in the plural ("i pomodori", "tomatoes") is found: such questions used to get no facts and wait for a person (#108).
+
 ## [0.4.1] - 2026-11-13
 
 ### Fixed
@@ -266,7 +314,8 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.4.1...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.5.0...develop
+[0.5.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.5.0
 [0.4.1]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.1
 [0.4.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.0
 [0.3.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.3.0

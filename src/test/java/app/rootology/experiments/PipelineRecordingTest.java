@@ -17,7 +17,7 @@ import java.util.List;
  * Like {@link ExperimentRecordingTest}, a recording mechanism with no assertions:
  * a disagreement is an experiment outcome, not a test failure. Read the printed report.
  * Calls Claude for real, so it only runs when ROOTOLOGY_ANTHROPIC_API_KEY is set. Uses Jev when
- * ROOTOLOGY_TYPESAFE_API_KEY is set, otherwise the stub; observed results are summarized in CLAUDE.md.
+ * ROOTOLOGY_TYPESAFE_API_KEY is set, otherwise the stub; observed results are summarized in docs/experiment-log.md.
  */
 @Import(TestcontainersConfiguration.class)
 @Tag("live-api")

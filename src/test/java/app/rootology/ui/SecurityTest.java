@@ -34,9 +34,12 @@ class SecurityTest {
 
     @Test
     void anonymousVisitorsAreSentToTheWelcomePage() throws Exception {
+        // Permanently and never stored (#124): search engines index /welcome itself, and a browser that signs in
+        // later still reaches the app at "/".
         mockMvc.perform(get("/"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/" + WelcomeView.ROUTE));
+                .andExpect(status().isMovedPermanently())
+                .andExpect(redirectedUrl("/" + WelcomeView.ROUTE))
+                .andExpect(header().string("Cache-Control", "no-store"));
     }
 
     @Test

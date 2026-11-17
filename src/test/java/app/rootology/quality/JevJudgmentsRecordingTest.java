@@ -63,6 +63,13 @@ class JevJudgmentsRecordingTest {
     @MockitoBean
     WeatherService weather;
 
+    /** The fixed places of the suite (#107): GeoNames is never called here either. */
+    @MockitoBean
+    app.rootology.geocoding.GeoNames geoNames;
+
+    @Autowired
+    app.rootology.facts.ClimateCells cells;
+
     @Autowired
     GardenPipelineAgent agent;
 
@@ -86,7 +93,8 @@ class JevJudgmentsRecordingTest {
     void recordJudgments() throws Exception {
         JevDecisionLayer jev = (JevDecisionLayer) decisionLayer;
         Instant startedAt = Instant.now();
-        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions);
+        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions, cells);
+        fixtures.stubPlaces(geoNames);
         List<Judged> judged = new ArrayList<>();
         for (GoldenQuestions.Case c : GOLDEN.cases()) {
             if (c.intent().kind() == app.rootology.decision.QueryKind.OTHER) {
@@ -94,7 +102,7 @@ class JevJudgmentsRecordingTest {
             }
             RunContext run = fixtures.space("judge-" + startedAt.toEpochMilli(), c);
             when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
-            var context = agent.resolveContext(c.intent(), run);
+            var context = agent.resolveContext(c.intent(), run, app.rootology.pipeline.QuestionContext.Pinned.NONE);
             Intent intent = context.intent();
             GraphFacts facts = agent.gatherFacts(context, NoiseProfile.NONE, FactScope.KNOWLEDGE_BASE, run);
             JevDecisionLayer.Judgments j = jev.judge(intent, facts);

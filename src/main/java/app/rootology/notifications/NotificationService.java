@@ -8,6 +8,7 @@ import app.rootology.pipeline.EscalationWaiting;
 import app.rootology.roles.AppRole;
 import app.rootology.roles.RoleService;
 import app.rootology.spaces.Member;
+import app.rootology.spaces.MembershipChanged;
 import app.rootology.spaces.SpaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,11 +148,35 @@ public class NotificationService {
         }
     }
 
+    /**
+     * A change of membership (#105): one unread notification per recipient, in the space it is about, with who
+     * acted, the optional message and the space's name then (a blocked member no longer sees the space).
+     */
+    @EventListener
+    @Transactional
+    void on(MembershipChanged changed) {
+        String event = changed.event() == MembershipChanged.Event.ROLE_CHANGED
+                ? "ROLE:" + changed.role().name() : changed.event().name();
+        for (String recipient : changed.recipients()) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, kind, event, space_name, asked_by, title, body, "
+                            + "created_at) VALUES (?, ?, 'MEMBERSHIP', ?, ?, ?, ?, ?, ?)")
+                    .params(normalize(recipient), changed.spaceId(), event, truncate(changed.spaceName(), 200),
+                            changed.actor(), "Membership changed: " + event,
+                            changed.message().isEmpty() ? null : truncate(changed.message(), 1000),
+                            Timestamp.from(clock.instant()))
+                    .update();
+        }
+        if (!changed.recipients().isEmpty()) {
+            events.publishEvent(new NotificationsChanged(Set.copyOf(changed.recipients())));
+        }
+    }
+
     /** The latest notifications of a person, newest first. */
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
         return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
-                        + "resolved_at, resolved_by, dedup_key, asked_by FROM notification WHERE recipient = ? "
+                        + "resolved_at, resolved_by, dedup_key, asked_by, event, space_name FROM notification "
+                        + "WHERE recipient = ? "
                         + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
                 .query((rs, i) -> {
@@ -162,7 +187,8 @@ public class NotificationService {
                     return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
                             rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
                             rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
-                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12), rs.getString(13));
+                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12), rs.getString(13),
+                            rs.getString(14), rs.getString(15));
                 })
                 .list();
     }
@@ -345,6 +371,9 @@ public class NotificationService {
         if (p.accessRequest()) {
             return TelegramMessages.accessRequest(adminLink());
         }
+        if (p.membership()) {
+            return TelegramMessages.membership(p.event(), p.spaceName(), membershipLink(p));
+        }
         String page = p.weather() ? "" : p.answered() ? "history" : "escalations";
         String link = link(page, p);
         return p.weather() ? TelegramMessages.weather(p.title(), p.place(), link)
@@ -359,10 +388,15 @@ public class NotificationService {
     private Map<String, List<Pending>> pending(String mark, Instant notAfter) {
         Map<String, List<Pending>> byRecipient = new LinkedHashMap<>();
         // An access request (#65) belongs to no space: the join must not drop it.
-        var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, n.resolved_by, n.space_id, "
-                        + "n.garden_id, s.name, g.name, n.asked_by FROM notification n "
+        // People by the name they chose (#106): the rows keep the logins, the email and Telegram read the names.
+        var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, "
+                        + "COALESCE(ur.display_name, n.resolved_by), n.space_id, "
+                        + "n.garden_id, COALESCE(n.space_name, s.name), g.name, COALESCE(ua.display_name, n.asked_by), "
+                        + "n.event FROM notification n "
                         + "LEFT JOIN space s ON s.id = n.space_id "
                         + "LEFT JOIN garden g ON g.id = n.garden_id "
+                        + "LEFT JOIN app_user ua ON ua.login = n.asked_by "
+                        + "LEFT JOIN app_user ur ON ur.login = n.resolved_by "
                         + "WHERE n." + mark + " IS NULL AND n.resolved_at IS NULL"
                         + (notAfter == null ? "" : " AND n.created_at <= :notAfter")
                         + " ORDER BY n.created_at");
@@ -371,7 +405,7 @@ public class NotificationService {
         }
         query.query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
                         rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
-                        rs.getString(10), rs.getString(11))).list()
+                        rs.getString(10), rs.getString(11), rs.getString(12))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         return byRecipient;
     }
@@ -381,6 +415,7 @@ public class NotificationService {
         List<Pending> answers = pending.stream().filter(Pending::answered).toList();
         List<Pending> weather = pending.stream().filter(Pending::weather).toList();
         List<Pending> requests = pending.stream().filter(Pending::accessRequest).toList();
+        List<Pending> memberships = pending.stream().filter(Pending::membership).toList();
         String subject;
         if (!weather.isEmpty()) {
             subject = questions.isEmpty() && answers.isEmpty()
@@ -390,7 +425,8 @@ public class NotificationService {
                     : questions.isEmpty() ? "Rootology: risposte e avvisi meteo"
                     : "Rootology: risposte, domande in attesa e avvisi meteo";
         } else if (questions.isEmpty() && answers.isEmpty()) {
-            // Only invitation requests (#65): the rest of the chain below assumes an answer or a question.
+            // Only invitation requests (#65) or changes of membership (#105): the chain below assumes an answer
+            // or a question.
             subject = null;
         } else if (questions.isEmpty()) {
             subject = "Rootology: la tua domanda ha una risposta";
@@ -407,6 +443,11 @@ public class NotificationService {
                     ? "Rootology: " + extra + (requests.size() == 1 ? " aspetta una decisione"
                             : " aspettano una decisione")
                     : subject + " e " + extra;
+        }
+        if (!memberships.isEmpty()) {
+            String extra = memberships.size() == 1 ? MembershipText.subject(memberships.getFirst().event(),
+                    memberships.getFirst().spaceName()) : "cambiamenti nei tuoi spazi";
+            subject = subject == null ? "Rootology: " + extra : subject + " e " + extra;
         }
         StringBuilder text = new StringBuilder("Ciao,\n\n");
         StringBuilder html = new StringBuilder("<p>Ciao,</p>");
@@ -456,6 +497,20 @@ public class NotificationService {
                     : "Alcune richieste di invito aspettano una decisione:").append("</p><ul><li><a href=\"")
                     .append(HtmlUtils.htmlEscape(adminLink())).append("\">Amministrazione</a></li></ul>");
         }
+        if (!memberships.isEmpty()) {
+            // Who acted and what changed, with their message when they wrote one (#105).
+            for (Pending p : memberships) {
+                String line = MembershipText.sentence(p.event(), p.askedBy(), p.spaceName());
+                text.append(line).append('\n');
+                html.append("<p>").append(HtmlUtils.htmlEscape(line));
+                if (p.body() != null) {
+                    text.append("  «").append(p.body()).append("»\n");
+                    html.append("<br><em>«").append(HtmlUtils.htmlEscape(p.body())).append("»</em>");
+                }
+                text.append("  ").append(membershipLink(p)).append('\n');
+                html.append("<br><a href=\"").append(HtmlUtils.htmlEscape(membershipLink(p))).append("\">Rootology</a></p>");
+            }
+        }
         text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
         html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
         return new OutgoingMail(to, subject, text.toString(), html.toString());
@@ -471,6 +526,18 @@ public class NotificationService {
         return baseUrl + "/admin";
     }
 
+    /**
+     * Where a change of membership leads (#105): the members page for the owners a member left, the start page
+     * for a member who was blocked (the space is no longer theirs), the space otherwise.
+     */
+    private String membershipLink(Pending p) {
+        return switch (p.event() == null ? "" : p.event()) {
+            case "LEFT" -> baseUrl + "/spaces/" + p.spaceId() + "/members";
+            case "BLOCKED" -> baseUrl + "/";
+            default -> baseUrl + "/spaces/" + p.spaceId() + "/gardens";
+        };
+    }
+
     private String link(String page, Pending p) {
         String where = "/spaces/" + p.spaceId();
         if (p.gardenId() > 0) {
@@ -482,7 +549,8 @@ public class NotificationService {
     }
 
     private record Pending(long id, String recipient, String kind, String title, String body, String resolvedBy,
-                           long spaceId, long gardenId, String spaceName, String gardenName, String askedBy) {
+                           long spaceId, long gardenId, String spaceName, String gardenName, String askedBy,
+                           String event) {
 
         /**
          * A waiting question in the email, in Italian (#94): who asked and the question. A row stored before
@@ -512,8 +580,12 @@ public class NotificationService {
             return "ESCALATION_ANSWERED".equals(kind);
         }
 
+        boolean membership() {
+            return "MEMBERSHIP".equals(kind);
+        }
+
         boolean waiting() {
-            return !weather() && !answered() && !accessRequest();
+            return !weather() && !answered() && !accessRequest() && !membership();
         }
     }
 

@@ -40,8 +40,12 @@ class ContextResolverTest {
     @Autowired
     ClimateCells cells;
 
+    /** GeoNames is never called here: the place rule is checked on its own, and no test asks for a place. */
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    app.rootology.geocoding.GeoNames geoNames;
+
     private ContextResolver resolver() {
-        return new ContextResolver(spaces, gardens, cells, CLOCK);
+        return new ContextResolver(spaces, gardens, cells, geoNames, CLOCK);
     }
 
     private long spaceOf(String login) {
@@ -186,31 +190,126 @@ class ContextResolverTest {
     }
 
     @Test
-    void atTheSpaceLevelAGeneralQuestionUsesTheDefaultsAndSaysSo() {
+    void atTheSpaceLevelACalendarQuestionAsksWhichPlace() {
         long space = spaceOf("ctx-ida");
-        garden("ctx-ida", "Orto", "45.46", "9.19");
+        gardens.saveGarden(space, "ctx-ida", null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
+                new BigDecimal("7.68"), "IT", 205);
 
         var context = resolver().resolve(sow(null, null), new RunContext(space, 0, "ctx-ida"));
 
         assertThat(context.refusal()).isNull();
-        assertThat(context.intent().zone()).isNull();
-        assertThat(context.climate().zone()).isEqualTo("CENTRO");
-        assertThat(context.snapshot().gardenName()).isNull();
-        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.DEFAULT);
-        assertThat(context.weather()).as("no garden, no forecast").isNull();
-        assertThat(context.notes()).extracting(Note::kind).containsExactly(Note.Kind.NO_GARDEN_DEFAULTS);
+        assertThat(context.choice()).isNotNull();
+        assertThat(context.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.PLACE);
+        assertThat(context.choice().why()).isEqualTo(QuestionContext.Choice.Why.MISSING);
+        assertThat(context.choice().places()).extracting(QuestionContext.Choice.Place::label)
+                .containsExactly("Torino");
+        assertThat(context.choice().gardens()).isEmpty();
+        assertThat(context.climate()).as("no site yet, so no calendar").isNull();
+        assertThat(context.snapshot()).isNull();
     }
 
     @Test
-    void atTheSpaceLevelAQuestionAboutTheGardenEscalates() {
-        long space = spaceOf("ctx-luca");
-        garden("ctx-luca", "Orto", "45.46", "9.19");
+    void aZoneNamedInTheQuestionNeedsNoChoiceEvenAtTheSpaceLevel() {
+        long space = spaceOf("ctx-zone-space");
+        garden("ctx-zone-space", "Orto", "45.46", "9.19");
 
-        var context = resolver().resolve(new Intent(QueryKind.GROWING_NOW, null, null, "it"), 
+        var context = resolver().resolve(sow("SUD", null), new RunContext(space, 0, "ctx-zone-space"));
+
+        assertThat(context.choice()).isNull();
+        assertThat(context.climate().zone()).isEqualTo("SUD");
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.QUESTION);
+    }
+
+    @Test
+    void atTheSpaceLevelAQuestionAboutTheGardenAsksWhichGarden() {
+        long space = spaceOf("ctx-luca");
+        long garden = garden("ctx-luca", "Orto", "45.46", "9.19");
+
+        var context = resolver().resolve(new Intent(QueryKind.GROWING_NOW, null, null, "it"),
                 new RunContext(space, 0, "ctx-luca"));
 
-        assertThat(context.refusal()).isEqualTo(ContextResolver.NEEDS_GARDEN_REASON);
-        assertThat(context.notes()).extracting(Note::kind).containsExactly(Note.Kind.NO_GARDEN_FOR_QUESTION);
+        assertThat(context.refusal()).isNull();
+        assertThat(context.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.GARDEN);
+        assertThat(context.choice().why()).isEqualTo(QuestionContext.Choice.Why.MISSING);
+        assertThat(context.choice().gardens()).extracting(QuestionContext.Choice.Garden::id).containsExactly(garden);
+        assertThat(context.choice().gardens().getFirst().name()).isEqualTo("Orto");
+    }
+
+    /** A place named in the question (#107): its own cell and altitude, and the forecast is there. */
+    @Test
+    void aPlaceNamedInTheQuestionIsTheSiteOfTheCalendarsAndOfTheForecast() {
+        long space = spaceOf("ctx-place");
+        org.mockito.Mockito.when(geoNames.search("Torino", "it")).thenReturn(java.util.List.of(
+                new app.rootology.geocoding.Place("Torino", "Piemonte", "IT", "Italia", 45.07, 7.69)));
+        org.mockito.Mockito.when(geoNames.elevation(45.07, 7.69)).thenReturn(java.util.Optional.of(205));
+
+        var context = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it", null, null,
+                null, "Torino"), new RunContext(space, 0, "ctx-place"));
+
+        assertThat(context.choice()).isNull();
+        assertThat(context.climate()).isNotNull();
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.PLACE);
+        assertThat(context.snapshot().placeName()).isEqualTo("Torino");
+        assertThat(context.weather().latitude()).isEqualByComparingTo("45.07");
+        assertThat(context.notes()).as("the place is the answer's own site").isEmpty();
+    }
+
+    /** Inside a garden a place named wins over it, and the note names both (#107). */
+    @Test
+    void aPlaceNamedInsideAGardenWinsWithANote() {
+        long space = spaceOf("ctx-place-garden");
+        long garden = garden("ctx-place-garden", "Orto di Palermo", "38.12", "13.36");
+        org.mockito.Mockito.when(geoNames.search("Torino", "it")).thenReturn(java.util.List.of(
+                new app.rootology.geocoding.Place("Torino", "Piemonte", "IT", "Italia", 45.07, 7.69)));
+        org.mockito.Mockito.when(geoNames.elevation(45.07, 7.69)).thenReturn(java.util.Optional.of(205));
+
+        var context = resolver().resolve(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null,
+                null, "Torino"), new RunContext(space, garden, "ctx-place-garden"));
+
+        assertThat(context.gardenId()).as("the row still belongs to the garden").isEqualTo(garden);
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.PLACE);
+        assertThat(context.notes()).extracting(Note::kind).containsExactly(Note.Kind.PLACE_OF_QUESTION);
+        assertThat(context.notes().getFirst().english()).contains("Torino", "Orto di Palermo");
+        assertThat(context.weather().latitude()).isEqualByComparingTo("45.07");
+    }
+
+    @Test
+    void aPlaceNotFoundOrMatchingSeveralIsThePersonsChoice() {
+        long space = spaceOf("ctx-place-choice");
+        gardens.saveGarden(space, "ctx-place-choice", null, "Orto di Torino", "Torino", new BigDecimal("45.07"),
+                new BigDecimal("7.68"), "IT", 205);
+        org.mockito.Mockito.when(geoNames.search("Xyzville", "it")).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(geoNames.search("Sant'Angelo", "it")).thenReturn(java.util.List.of(
+                new app.rootology.geocoding.Place("Sant'Angelo", "Lazio", "IT", "Italia", 42.09, 12.28, 5000),
+                new app.rootology.geocoding.Place("Sant'Angelo", "Lombardia", "IT", "Italia", 45.52, 9.45, 6000)));
+
+        var missing = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it", null, null,
+                null, "Xyzville"), new RunContext(space, 0, "ctx-place-choice"));
+        var several = resolver().resolve(new Intent(QueryKind.SOWING_TIME, "pomodoro", null, "it", null, null,
+                null, "Sant'Angelo"), new RunContext(space, 0, "ctx-place-choice"));
+
+        assertThat(missing.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.PLACE);
+        assertThat(missing.choice().why()).isEqualTo(QuestionContext.Choice.Why.NOT_FOUND);
+        assertThat(missing.choice().places()).as("the space's own towns are the alternatives")
+                .extracting(QuestionContext.Choice.Place::label).containsExactly("Torino");
+        assertThat(several.choice().why()).isEqualTo(QuestionContext.Choice.Why.AMBIGUOUS);
+        assertThat(several.choice().places()).extracting(QuestionContext.Choice.Place::label)
+                .containsExactly("Sant'Angelo, Lombardia", "Sant'Angelo, Lazio");
+    }
+
+    @Test
+    void aChosenPlaceIsNotLookedUpAgain() {
+        long space = spaceOf("ctx-place-chosen");
+        var chosen = new QuestionContext.Choice.Place("Torino", "Piemonte", "IT", "Italia",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), 205);
+
+        var context = resolver().resolve(new Intent(QueryKind.SOW_NOW, null, null, "it", null, null,
+                null, "Torino"), new RunContext(space, 0, "ctx-place-chosen"), chosen);
+
+        assertThat(context.choice()).isNull();
+        assertThat(context.snapshot().placeName()).isEqualTo("Torino");
+        assertThat(context.snapshot().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.PLACE);
+        org.mockito.Mockito.verifyNoInteractions(geoNames);
     }
 
     @Test
@@ -346,7 +445,7 @@ class ContextResolverTest {
     }
 
     @Test
-    void aGardenNameThatMatchesNoneOrSeveralEscalatesAndKeepsThePagesGarden() {
+    void aGardenNameThatMatchesNoneEscalatesAndOneThatMatchesSeveralIsAChoice() {
         long space = spaceOf("ctx-unclear");
         long roof = garden("ctx-unclear", "Orto sul tetto", null, null);
         garden("ctx-unclear", "Orto sul mare", null, null);
@@ -359,9 +458,11 @@ class ContextResolverTest {
         assertThat(missing.refusal()).isEqualTo(ContextResolver.GARDEN_NAME_REASON);
         assertThat(missing.gardenId()).isEqualTo(roof);
         assertThat(missing.notes()).extracting(Note::kind).containsExactly(Note.Kind.GARDEN_NOT_FOUND);
-        assertThat(several.refusal()).isEqualTo(ContextResolver.GARDEN_NAME_REASON);
-        assertThat(several.notes()).extracting(Note::kind).containsExactly(Note.Kind.GARDEN_AMBIGUOUS);
-        assertThat(several.notes().getFirst().english()).contains("Orto sul tetto", "Orto sul mare");
+        assertThat(several.refusal()).isNull();
+        assertThat(several.choice().kind()).isEqualTo(QuestionContext.Choice.Kind.GARDEN);
+        assertThat(several.choice().why()).isEqualTo(QuestionContext.Choice.Why.AMBIGUOUS);
+        assertThat(several.choice().gardens()).extracting(QuestionContext.Choice.Garden::name)
+                .containsExactlyInAnyOrder("Orto sul tetto", "Orto sul mare");
     }
 
     @Test

@@ -73,6 +73,19 @@ class PublicSeoTest {
     }
 
     @Test
+    void theServiceWorkerAndTheOfflinePageArePublic() throws Exception {
+        HttpResponse<String> worker = get("/rootology-sw.js");
+        assertThat(worker.statusCode()).isEqualTo(200);
+        assertThat(worker.headers().firstValue("Content-Type").orElse("")).contains("javascript");
+        assertThat(worker.body()).as("only page loads are answered, with the offline page")
+                .contains("mode !== 'navigate'", "/offline.html");
+
+        HttpResponse<String> offline = get("/offline.html");
+        assertThat(offline.statusCode()).isEqualTo(200);
+        assertThat(offline.body()).contains("Sei offline");
+    }
+
+    @Test
     void theIconsSafariAsksForAtTheRootArePublicImages() throws Exception {
         for (String path : java.util.List.of("/apple-touch-icon.png", "/apple-touch-icon-precomposed.png")) {
             HttpResponse<String> response = get(path);

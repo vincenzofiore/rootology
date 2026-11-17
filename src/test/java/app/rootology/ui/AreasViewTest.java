@@ -77,4 +77,54 @@ class AreasViewTest {
         assertThat(AreasView.harvestDateValid(planted.minusDays(1), planted, today)).as("before the planting").isFalse();
         assertThat(AreasView.harvestDateValid(null, planted, today)).isFalse();
     }
+
+    private static NoteText.Texts italian() {
+        Translations translations = new Translations();
+        return (key, args) -> translations.getTranslation(key, java.util.Locale.ITALIAN, args);
+    }
+
+    @Test
+    void theTooltipOfTheSunSaysTheHoursAndWhoDeclaredThem() {
+        // #89: the icon's tooltip and aria label carry the same sentence, the seasons given only.
+        assertThat(AreasView.sunTooltip("mezz’ombra", 7, 2, null, italian()))
+                .isEqualTo("Sole diretto: 7 ore d’estate, 2 ore d’inverno");
+        assertThat(AreasView.sunTooltip("mezz’ombra", 7, null, null, italian()))
+                .isEqualTo("Sole diretto: 7 ore d’estate");
+        assertThat(AreasView.sunTooltip("mezz’ombra", null, 2, null, italian()))
+                .isEqualTo("Sole diretto: 2 ore d’inverno");
+        // Without hours the level is what the icon says, as before #89.
+        assertThat(AreasView.sunTooltip("ombra", null, null, null, italian())).isEqualTo("ombra");
+        // Who declared it and when is added when it is known.
+        assertThat(AreasView.sunTooltip("ombra", null, null, "Dichiarato da Ada il 3 mag, 14:05", italian()))
+                .isEqualTo("ombra · Dichiarato da Ada il 3 mag, 14:05");
+        assertThat(AreasView.sunTooltip("ombra", null, null, "  ", italian())).as("nobody known").isEqualTo("ombra");
+        assertThat(AreasView.sunTooltip(null, null, null, null, italian())).as("no level, no fact").isNull();
+    }
+
+    @Test
+    void theSeasonOfTheMonthChoosesTheLevel() {
+        // #89: the hours of that season when given, else the declared level; the other season is not guessed.
+        app.rootology.garden.GardenViews.PlotSummary hours = sun(null, 7, 2);
+        assertThat(hours.directSunIn(java.time.Month.JUNE)).isEqualTo(app.rootology.garden.DirectSun.FULL_SUN);
+        assertThat(hours.directSunIn(java.time.Month.JANUARY)).isEqualTo(app.rootology.garden.DirectSun.SHADE);
+        assertThat(hours.directSunIn(java.time.Month.APRIL)).isEqualTo(app.rootology.garden.DirectSun.FULL_SUN);
+        assertThat(hours.directSunIn(java.time.Month.OCTOBER)).isEqualTo(app.rootology.garden.DirectSun.SHADE);
+
+        app.rootology.garden.GardenViews.PlotSummary declared = sun(app.rootology.garden.DirectSun.PART_SHADE,
+                7, null);
+        assertThat(declared.directSunIn(java.time.Month.JULY)).as("the summer hours win over the level")
+                .isEqualTo(app.rootology.garden.DirectSun.FULL_SUN);
+        assertThat(declared.directSunIn(java.time.Month.DECEMBER)).as("no winter hours, the declared level")
+                .isEqualTo(app.rootology.garden.DirectSun.PART_SHADE);
+
+        app.rootology.garden.GardenViews.PlotSummary none = sun(null, null, null);
+        assertThat(none.directSunIn(java.time.Month.JULY)).as("nothing declared").isNull();
+    }
+
+    private static app.rootology.garden.GardenViews.PlotSummary sun(app.rootology.garden.DirectSun level,
+                                                                     Integer summer, Integer winter) {
+        return new app.rootology.garden.GardenViews.PlotSummary(1, 7, "Area",
+                app.rootology.garden.PlotKind.POT, app.rootology.garden.Soil.POTTING_MIX, null, null, level,
+                null, null, summer, winter, null, null);
+    }
 }

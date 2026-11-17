@@ -5,7 +5,9 @@ import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.DomainFilter;
 import app.rootology.decision.Intent;
+import app.rootology.facts.ClimateCells;
 import app.rootology.facts.KnowledgeContributions;
+import app.rootology.geocoding.GeoNames;
 import app.rootology.garden.GardenService;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.Question;
@@ -48,6 +50,13 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
     @MockitoBean
     WeatherService weather;
 
+    /** The fixed places of the suite (#107): GeoNames is never called in tests. */
+    @MockitoBean
+    GeoNames geoNames;
+
+    @Autowired
+    ClimateCells cells;
+
     /** Offline, the domain filter answers from the case, the way Claude's intent does (#53). */
     @MockitoBean
     DomainFilter domainFilter;
@@ -66,7 +75,8 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
 
     @TestFactory
     Stream<DynamicTest> goldenQuestions() {
-        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions);
+        GoldenFixtures fixtures = new GoldenFixtures(spaces, gardens, contributions, cells);
+        fixtures.stubPlaces(geoNames);
         whenGenerateText(prompt -> true).thenReturn("phrased answer");
         return GOLDEN.cases().stream().map(c -> DynamicTest.dynamicTest(c.id(), () -> check(fixtures, c)));
     }
@@ -83,11 +93,13 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
 
         GoldenVerdict verdict = GoldenVerdict.of(c, result);
         if (verdict != GoldenVerdict.CORRECT && verdict != GoldenVerdict.CORRECT_ESCALATION
-                && verdict != GoldenVerdict.CORRECT_REFUSAL) {
+                && verdict != GoldenVerdict.CORRECT_REFUSAL && verdict != GoldenVerdict.CORRECT_CHOICE) {
             fail(verdict + " for " + c.id() + ": " + (result.offDomain() ? "refused as off-domain"
+                    : result.choice() != null ? "asked to choose " + result.choice()
                     : result.answer() != null ? "answered " + result.answer().answer() + " with notes " + result.answer().notes()
                     : "escalated: " + result.pending().decision().reason() + " with notes " + result.pending().notes())
                     + "; expected " + (c.offDomain() ? "a refusal as off-domain"
+                    : c.choice() != null ? "a choice of " + c.choice()
                     : c.answer() != null ? c.answer() + " with notes " + c.notes()
                     : "an escalation about \"" + c.escalate() + "\""));
         }

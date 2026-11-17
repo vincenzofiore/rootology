@@ -56,6 +56,12 @@ class PendingEscalations {
         return query.query((rs, i) -> stored(rs).review()).list();
     }
 
+    /** Every waiting question of a space, of all its gardens and of none (#109), newest first. */
+    List<GardenPipeline.PendingReview> waitingInSpace(long spaceId) {
+        return jdbc.sql(SELECT + "WHERE space_id = ? AND resolved_at IS NULL ORDER BY created_at DESC")
+                .param(spaceId).query((rs, i) -> stored(rs).review()).list();
+    }
+
     Optional<Stored> waiting(String processId) {
         return jdbc.sql(SELECT + "WHERE process_id = ? AND resolved_at IS NULL").param(processId)
                 .query((rs, i) -> stored(rs)).optional();

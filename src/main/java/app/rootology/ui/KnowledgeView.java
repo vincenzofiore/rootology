@@ -102,7 +102,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
                 .setAutoWidth(true);
         mine.addColumn(p -> getTranslation("proposal." + p.status().name())).setHeader(getTranslation("knowledge.status"))
                 .setAutoWidth(true);
-        mine.addColumn(ProposalSummary::proposedBy).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
+        mine.addColumn(p -> currentUser.nameOf(p.proposedBy())).setHeader(getTranslation("knowledge.by")).setAutoWidth(true);
         mine.addColumn(this::review).setHeader(getTranslation("knowledge.review")).setFlexGrow(2);
         withdraw = mine.addComponentColumn(p -> {
             Button withdraw = new Button(getTranslation("knowledge.withdraw"), e -> act(() ->
@@ -234,12 +234,12 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
 
     private String review(ProposalSummary p) {
         if (p.withdrawnBy() != null) {
-            return getTranslation("knowledge.withdrawnby", p.withdrawnBy());
+            return getTranslation("knowledge.withdrawnby", currentUser.nameOf(p.withdrawnBy()));
         }
         if (p.reviewedBy() == null) {
             return "";
         }
-        return p.reviewedBy() + (p.reviewNote() == null ? "" : ": " + p.reviewNote());
+        return currentUser.nameOf(p.reviewedBy()) + (p.reviewNote() == null ? "" : ": " + p.reviewNote());
     }
 
     private Locale pageLocale() {

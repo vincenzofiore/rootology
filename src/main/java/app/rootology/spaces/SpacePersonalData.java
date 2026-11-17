@@ -69,7 +69,7 @@ public class SpacePersonalData {
 
     public Map<String, Object> export(String login) {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("account", jdbc.sql("select login, created_at, first_login_at from app_user where login = :login")
+        data.put("account", jdbc.sql("select login, display_name, name_asked_at, created_at, first_login_at from app_user where login = :login")
                 .param("login", login).query().listOfRows());
         // The GitHub account behind this person, by its id and the address GitHub verified (#28).
         data.put("identities", jdbc.sql("""
@@ -78,7 +78,7 @@ public class SpacePersonalData {
                         where u.login = :login order by i.id""")
                 .param("login", login).query().listOfRows());
         data.put("spaces", jdbc.sql("""
-                        select s.id, s.name, m.role, m.joined_at, s.personal_of = u.id as personal
+                        select s.id, s.name, m.role, m.joined_at, s.personal_of = u.id as personal, m.blocked_at
                         from space_member m join space s on s.id = m.space_id join app_user u on u.id = m.user_id
                         where u.login = :login order by s.id""")
                 .param("login", login).query().listOfRows());
@@ -106,6 +106,8 @@ public class SpacePersonalData {
         jdbc.sql("update invitation set created_by = :r where created_by = :login").param("r", replacement).param("login", login).update();
         jdbc.sql("update invitation set accepted_by = :r where accepted_by = :login").param("r", replacement).param("login", login).update();
         jdbc.sql("update invitation set invited_login = null where invited_login = :login").param("login", login).update();
+        // Who blocked a member (#105) is a login like the others: replaced, so the block stays and names no one.
+        jdbc.sql("update space_member set blocked_by = :r where blocked_by = :login").param("r", replacement).param("login", login).update();
         if (!spaces.isEmpty()) {
             jdbc.sql("delete from space_member where space_id in (:spaces)").param("spaces", spaces).update();
         }

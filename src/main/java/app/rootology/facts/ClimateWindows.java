@@ -43,7 +43,7 @@ public class ClimateWindows {
     }
 
     /**
-     * The sowing, planting and harvest months of a crop at a site, as facts (crop, sowIn|plantIn|harvestIn,
+     * The sowing, planting and harvest months of a crop at a site, as facts (crop, sowIn|seedbedIn|transplantIn|plantIn|harvestIn,
      * MONTH) named as the question named it. Derived facts keep the rule in derivedBy and the sources of the
      * site; curated ones keep their own source. Empty when the crop is unknown.
      */
@@ -60,7 +60,7 @@ public class ClimateWindows {
     }
 
     /**
-     * The crops that can be sown or planted in a month at a site, as facts (crop, sowIn|plantIn, MONTH),
+     * The crops that can be sown or planted in a month at a site, as facts (crop, sowIn|seedbedIn|transplantIn|plantIn, MONTH),
      * named in the given language ("it" for Italian, otherwise English).
      */
     public List<SourcedFact> sowingFacts(String month, SiteProfile site, String language) {

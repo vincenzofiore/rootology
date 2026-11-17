@@ -30,18 +30,28 @@ class KnowledgeValidatorTest {
         assertThat(real.needs()).hasSize(38);
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
-        assertThat(real.windows()).hasSize(93);
+        assertThat(real.windows()).hasSize(96);
     }
 
     @Test
     void refusesACropWithoutAValidFrostGroup() {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
-                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP")),
+                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP", "la")),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
                 "crop lavender: frost_group must be one of " + FrostShiftRule.GROUPS + ", not NOT_A_GROUP");
+    }
+
+    @Test
+    void refusesACropWithoutAKnownItalianArticle() {
+        var k = new CuratedKnowledge(real.sources(),
+                plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
+                        "Lamiaceae", "Q102241", null, "TENDER", "una")),
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+
+        assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop lavender: italian_article"));
     }
 
     @Test

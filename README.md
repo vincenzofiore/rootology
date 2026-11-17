@@ -155,8 +155,13 @@ reproducible) while Jena keeps arbitrating on the clean data.
 ## Running the UI
 
 ```bash
-./mvnw spring-boot:run      # then open http://localhost:8080
+./run-local.sh      # then open http://localhost:8080
 ```
+
+`run-local.sh` leaves out the `ROOTOLOGY_SMTP_*` settings, so every email goes to
+Mailpit (http://localhost:8025) and never to a real person, and it stops an older
+local run of this repository first (another program on port 8080 is left alone).
+Extra arguments go to `./mvnw spring-boot:run`.
 
 Docker must be running: Spring Boot starts Postgres (run history) and Neo4j
 (the pipeline's facts) from `compose.yaml`, and the tests use Testcontainers
@@ -228,7 +233,7 @@ trusts every reading) answered wrongly without escalating in 18 of 25 trials,
 Jev in 1 to 3, all of them right at the confidence threshold. Two findings on
 the phrasing step: Claude once contradicted a correct decision in its text, and
 once silently hid a wrong one, so the recorded values come from the decision
-layer, never from the text. Detailed notes are in `CLAUDE.md`.
+layer, never from the text. Detailed notes are in `docs/experiment-log.md`.
 
 ## Dependencies
 

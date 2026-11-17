@@ -5,6 +5,7 @@ import app.rootology.decision.Intent;
 import app.rootology.decision.Note;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.PipelineAnswer;
+import app.rootology.pipeline.QuestionContext;
 
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,9 @@ enum GoldenVerdict {
     /** The right values (or the right escalation), without an expected note. */
     MISSING_NOTE,
     /** Refused as off-domain where it had to be (#53). */
-    CORRECT_REFUSAL;
+    CORRECT_REFUSAL,
+    /** Asked the person to choose the place or garden the case expects (#107). */
+    CORRECT_CHOICE;
 
     static GoldenVerdict of(GoldenQuestions.Case c, GardenPipeline.Run run) {
         return of(c, run, true);
@@ -42,6 +45,18 @@ enum GoldenVerdict {
         }
         if (run.offDomain()) {
             return SILENT_WRONG;
+        }
+        if (c.choice() != null) {
+            // A choice is the whole run (#107): the right kind, and the options the case names.
+            if (run.choice() == null) {
+                return SILENT_WRONG;
+            }
+            boolean kind = c.choice().kind().equalsIgnoreCase(run.choice().kind().name());
+            return kind && hasOptions(c.choice().options(), optionsOf(run.choice())) ? CORRECT_CHOICE : SILENT_WRONG;
+        }
+        if (run.choice() != null) {
+            // The run asked for a choice where an answer or an escalation was expected: a regression, no error.
+            return UNNECESSARY_ESCALATION;
         }
         if (c.answer() == null) {
             if (answer != null) {
@@ -60,7 +75,31 @@ enum GoldenVerdict {
                 || !new HashSet<>(answer.answer()).equals(new HashSet<>(c.answer()))) {
             return SILENT_WRONG;
         }
+        if (!c.activities().isEmpty() && !sameActivities(c.activities(), answer.activities())) {
+            // A seedbed month told as a month to plant out is the error #112 is about: as wrong as a wrong value.
+            return SILENT_WRONG;
+        }
         return hasNotes(c, notesOf(answer.notes())) ? CORRECT : MISSING_NOTE;
+    }
+
+    /** The same values with the same activities, ignoring the order of each value's activities (#112). */
+    private static boolean sameActivities(java.util.Map<String, List<String>> expected,
+                                          java.util.Map<String, List<String>> produced) {
+        return expected.keySet().equals(produced.keySet()) && expected.entrySet().stream()
+                .allMatch(e -> new HashSet<>(e.getValue()).equals(new HashSet<>(produced.get(e.getKey()))));
+    }
+
+    /** The places' labels or the gardens' names the choice offers. */
+    private static List<String> optionsOf(QuestionContext.Choice choice) {
+        return choice.kind() == QuestionContext.Choice.Kind.PLACE
+                ? choice.places().stream().map(QuestionContext.Choice.Place::label).toList()
+                : choice.gardens().stream().map(QuestionContext.Choice.Garden::name).toList();
+    }
+
+    /** Every expected option is one of the choice's, ignoring case. */
+    private static boolean hasOptions(List<String> expected, List<String> produced) {
+        List<String> offered = produced.stream().map(o -> o.toLowerCase(Locale.ROOT)).toList();
+        return expected.stream().allMatch(e -> offered.contains(e.toLowerCase(Locale.ROOT)));
     }
 
     /** Every expected note, as English text, is part of one of the notes the run produced. */
@@ -74,7 +113,8 @@ enum GoldenVerdict {
 
     /**
      * Whether Claude understood the question as expected: kind, subject (any case) and what the case sets.
-     * The garden always counts (#57): naming a garden the question does not name changes the answer.
+     * The garden always counts (#57), and so does the place (#107): naming one the question does not changes
+     * the answer.
      */
     static boolean intentMatches(Intent expected, Intent understood) {
         if (understood == null || expected.kind() != understood.kind()) {
@@ -84,7 +124,7 @@ enum GoldenVerdict {
                 && (expected.month() == null || same(expected.month(), understood.month()))
                 && (expected.zone() == null || same(expected.zone(), understood.zone()))
                 && (expected.language() == null || same(expected.language(), understood.language()))
-                && same(expected.garden(), understood.garden());
+                && same(expected.garden(), understood.garden()) && same(expected.place(), understood.place());
     }
 
     private static boolean same(String a, String b) {

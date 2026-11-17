@@ -29,4 +29,14 @@ class CropCatalogTest {
             assertThat(c.family()).endsWith("aceae");
         });
     }
+
+    @Test
+    void aSentenceNamesACropWithItsArticle() {
+        assertThat(catalog.all()).allSatisfy(c -> assertThat(Crop.ITALIAN_ARTICLES).contains(c.italianArticle()));
+        assertThat(catalog.byId("strawberry").orElseThrow().italianInSentence()).isEqualTo("la fragola");
+        assertThat(catalog.byId("garlic").orElseThrow().italianInSentence()).isEqualTo("l’aglio");
+        assertThat(catalog.byId("spinach").orElseThrow().italianInSentence()).isEqualTo("lo spinacio");
+        assertThat(catalog.byId("turnip-tops").orElseThrow().italianInSentence()).isEqualTo("le cime di rapa");
+        assertThat(catalog.byId("tuscan-kale").orElseThrow().italianInSentence()).isEqualTo("il cavolo nero");
+    }
 }

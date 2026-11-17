@@ -23,7 +23,12 @@
 # spaceFacts: contributed by a member of the asking space (#24), visible only to that space
 # expect: answer (the exact set of values) or escalate (a part of the reason); notes: parts of the notes
 #   (English text), checked on answers and on escalations (#60): whoever answers a waiting question must
-#   see why it was not answered
+#   see why it was not answered; choice: the kind of choice the question needs ({kind: PLACE|GARDEN}) and
+#   the options the person must be offered (#107), when the case names them
+# intent.place: the town or place the question names (#107), found among the fixed places of the fixtures
+# expect.activities: for each value of a sowing or planting answer, how it goes into the ground (#112): SOW,
+#   SOW_SEEDBED (in a protected seedbed), TRANSPLANT or PLANT, from the curated windows; when present, every
+#   value is listed and a different activity is a silent wrong answer
 
 today: 2026-11-04
 
@@ -55,28 +60,123 @@ cases:
     intent: {kind: ANTAGONISTS, subject: finocchio, language: it}
     expect: {answer: [Fagiolo, Peperone]}
 
-  # Calendars (zone CENTRO by default).
+  # Calendars: the question names Vasto, the site the curated CENTRO windows belong to (#107).
   - id: sowing-tomato
-    question: Quando si semina il pomodoro?
-    intent: {kind: SOWING_TIME, subject: pomodoro, language: it}
+    question: Quando si semina il pomodoro a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # A crop named in the plural, as questions usually do (#108): the same answer as the singular.
+  - id: sowing-tomato-plural
+    question: Quando semino i pomodori a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
     expect: {answer: [FEBRUARY, MARCH, APRIL, MAY]}
 
+  # "Piantare" is ambiguous: each activity with its own months, never one list (#112).
+  - id: planting-tomato-it
+    question: Quando pianto i pomodori a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # "Trapiantare" names one activity, but the answer still says both, each with its months (owner's choice
+  # 2026-11-15: every activity with its months, the verb does not filter).
+  - id: transplanting-tomato-it
+    question: Quando trapianto il pomodoro a Vasto?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # The case of the third critique of Ask: "posso piantare … oggi?" in November is a calendar question.
+  - id: planting-tomato-today-it
+    question: Posso piantare i pomodori a Vasto oggi?
+    intent: {kind: SOWING_TIME, subject: pomodori, language: it, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH, APRIL, MAY]
+      activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # A seedbed crop transplanted later (#115): the months overlap, so a month can carry both activities.
+  - id: planting-cabbage-it
+    question: Quando pianto il cavolo cappuccio a Vasto?
+    intent: {kind: SOWING_TIME, subject: cavolo cappuccio, language: it, place: Vasto}
+    expect:
+      answer: [MARCH, APRIL, MAY, JUNE, JULY, AUGUST]
+      activities:
+        MARCH: [SOW_SEEDBED]
+        APRIL: [SOW_SEEDBED, TRANSPLANT]
+        MAY: [SOW_SEEDBED, TRANSPLANT]
+        JUNE: [SOW_SEEDBED, TRANSPLANT]
+        JULY: [SOW_SEEDBED, TRANSPLANT]
+        AUGUST: [TRANSPLANT]
+
+  - id: companions-tomato-plural-en
+    question: Which plants are companions of tomatoes?
+    intent: {kind: COMPANIONS, subject: tomatoes, language: en}
+    expect: {answer: [Basil, Onion, Parsley, Carrot]}
+
   - id: harvest-garlic
-    question: Quando si raccoglie l'aglio?
-    intent: {kind: HARVEST_TIME, subject: aglio, language: it}
+    question: Quando si raccoglie l'aglio a Vasto?
+    intent: {kind: HARVEST_TIME, subject: aglio, language: it, place: Vasto}
     expect: {answer: [JUNE, JULY]}
 
   - id: sow-now-november
-    question: Cosa posso seminare adesso?
-    intent: {kind: SOW_NOW, language: it}
+    question: Cosa posso seminare adesso a Vasto?
+    intent: {kind: SOW_NOW, language: it, place: Vasto}
     expect: {answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]}
 
   - id: sow-in-march-en
-    question: What can I sow in March?
-    intent: {kind: SOW_NOW, language: en, month: MARCH}
+    question: What can I sow in March in Vasto?
+    intent: {kind: SOW_NOW, language: en, month: MARCH, place: Vasto}
     expect:
       answer: [Basil, Cabbage, Carrot, Celery, Chard, Chili pepper, Eggplant, Leek, Lettuce, Onion, Parsley,
                Pea, Potato, Radish, Rocket, Rosemary, Sage, Spinach, Sweet pepper, Tomato]
+      activities:
+        Basil: [SOW]
+        Cabbage: [SOW_SEEDBED]
+        Carrot: [SOW]
+        Celery: [SOW_SEEDBED]
+        Chard: [SOW]
+        Chili pepper: [SOW_SEEDBED]
+        Eggplant: [SOW_SEEDBED]
+        Leek: [SOW_SEEDBED]
+        Lettuce: [SOW]
+        Onion: [SOW]
+        Parsley: [SOW]
+        Pea: [SOW]
+        Potato: [PLANT]
+        Radish: [SOW]
+        Rocket: [SOW]
+        Rosemary: [PLANT]
+        Sage: [PLANT]
+        Spinach: [SOW]
+        Sweet pepper: [SOW_SEEDBED]
+        Tomato: [SOW_SEEDBED]
+
+  # What to sow in a month: seedbed crops stay in the list, marked as such (owner's choice 2026-11-15, #112).
+  - id: sow-in-february-it
+    question: Cosa posso seminare a febbraio a Vasto?
+    intent: {kind: SOW_NOW, language: it, month: FEBRUARY, place: Vasto}
+    expect:
+      answer: [Carota, Cipolla, Lattuga, Melanzana, Peperoncino, Peperone, Pisello, Pomodoro, Porro,
+               Prezzemolo, Ravanello, Sedano, Spinacio]
+      activities:
+        Carota: [SOW]
+        Cipolla: [SOW]
+        Lattuga: [SOW]
+        Melanzana: [SOW_SEEDBED]
+        Peperoncino: [SOW_SEEDBED]
+        Peperone: [SOW_SEEDBED]
+        Pisello: [SOW]
+        Pomodoro: [SOW_SEEDBED]
+        Porro: [SOW_SEEDBED]
+        Prezzemolo: [SOW]
+        Ravanello: [SOW]
+        Sedano: [SOW_SEEDBED]
+        Spinacio: [SOW]
 
   # Pests and diseases.
   - id: relevant-pests-tomato-summer
@@ -208,19 +308,16 @@ cases:
     expect: {escalate: does not fit}
 
   # Not refused; read as a question about a plot (as the live run of 2026-11-10 did), which needs a garden.
+  # No garden to answer in: the person picks one (#107). This space has none, so the only way is a new one.
   - id: in-domain-terrace-pots
     question: Cosa posso seminare adesso nei vasi sul terrazzo?
     intent: {kind: SOW_IN_PLOT, subject: vasi sul terrazzo, language: it}
-    expect:
-      escalate: needs a garden
-      notes: [inside one of the space's gardens]
+    expect: {choice: {kind: GARDEN}}
 
   - id: growing-now-without-garden
     question: Cosa cresce nel mio orto?
     intent: {kind: GROWING_NOW, language: it}
-    expect:
-      escalate: needs a garden
-      notes: [inside one of the space's gardens]
+    expect: {choice: {kind: GARDEN}}
 
   # Question context (#55): only the garden the question is asked in, and never a guess.
   # Calendars by the garden's climate profile (#62, frost-shift-v1 on Vasto's CENTRO windows; values from
@@ -253,26 +350,78 @@ cases:
     weather: missing
     expect: {answer: [Aglio]}
 
+  # A calendar question outside a garden, with no place and no zone: the person picks one of the gardens'
+  # towns (#107). The choices replace the old default-zone answer and the old escalation.
   - id: sow-now-outside-a-garden-uses-no-garden
     question: Cosa posso seminare adesso?
     intent: {kind: SOW_NOW, language: it}
     garden: two-gardens-space
     weather: missing
-    expect:
-      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]
-      notes: [outside a garden]
+    expect: {choice: {kind: PLACE, options: [Torino, Palermo]}}
 
   - id: pest-risk-outside-a-garden
     question: Cosa minaccia il mio orto questo mese?
     intent: {kind: PEST_RISK, language: it}
     garden: two-gardens-space
     weather: missing
+    expect: {choice: {kind: GARDEN, options: [Orto di Torino, Orto di Palermo]}}
+
+  # A place named in the question (#107): it is the site of the calendars, found by its exact name and its
+  # own climate cell; inside a garden it wins over the garden, with a note. Two towns of the same name that
+  # population cannot tell apart, and a name GeoNames does not know, are the person's choice.
+  - id: sow-now-in-turin-place
+    question: Cosa posso seminare adesso a Torino?
+    intent: {kind: SOW_NOW, language: it, place: Torino}
+    weather: missing
     expect:
-      escalate: needs a garden
-      notes: [inside one of the space's gardens]
+      answer: [Aglio]
+      notes: [not available]
+
+  - id: sow-now-in-palermo-place
+    question: Cosa posso seminare adesso a Palermo?
+    intent: {kind: SOW_NOW, language: it, place: Palermo}
+    weather: missing
+    expect:
+      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia]
+      notes: [not available]
+
+  - id: sow-now-in-a-place-named-inside-a-garden
+    question: Cosa posso seminare adesso a Torino?
+    intent: {kind: SOW_NOW, language: it, place: Torino}
+    garden: two-gardens-south
+    weather: missing
+    expect:
+      answer: [Aglio]
+      notes: [names the place Torino]
+
+  - id: place-named-matching-several
+    question: Quando semino il pomodoro a Sant'Angelo?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Sant'Angelo}
+    expect: {choice: {kind: PLACE, options: ["Sant'Angelo, Lazio", "Sant'Angelo, Lombardia"]}}
+
+  - id: place-named-not-found
+    question: Quando semino il pomodoro a Xyzville?
+    intent: {kind: SOWING_TIME, subject: pomodoro, language: it, place: Xyzville}
+    expect: {choice: {kind: PLACE}}
+
+  # Inside a garden a place that is not found is not worth a choice: the garden answers, with a note.
+  - id: place-not-found-inside-a-garden
+    question: Cosa posso seminare adesso a Xyzville?
+    intent: {kind: SOW_NOW, language: it, place: Xyzville}
+    garden: two-gardens-north
+    weather: missing
+    expect:
+      answer: [Aglio]
+      notes: [not available, Xyzville named in the question was not found]
+
+  # A question that needs no garden and no place is still answered at the space level: no choice.
+  - id: companions-without-garden
+    question: Quali sono le compagne del pomodoro?
+    intent: {kind: COMPANIONS, subject: pomodoro, language: it}
+    expect: {answer: [Basilico, Cipolla, Prezzemolo, Carota]}
 
   # A garden named in the question (#57): it wins over the page's, with a note; a name that matches no
-  # garden or several waits for a person.
+  # garden waits for a person, one that matches several is the person's choice (#107).
   - id: growing-now-in-the-garden-named
     question: Cosa cresce nel terrazzo grande?
     intent: {kind: GROWING_NOW, language: it, garden: terrazzo grande}
@@ -293,9 +442,7 @@ cases:
     question: Cosa cresce sul terrazzo?
     intent: {kind: GROWING_NOW, language: it, garden: terrazzo}
     garden: two-terraces-space
-    expect:
-      escalate: the garden named is not clear
-      notes: [Terrazzo grande, Terrazzo piccolo]
+    expect: {choice: {kind: GARDEN, options: [Terrazzo grande, Terrazzo piccolo]}}
 
   - id: garden-named-not-in-the-space
     question: Cosa cresce nell'orto della nonna?

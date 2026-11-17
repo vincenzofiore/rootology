@@ -15,6 +15,10 @@ import java.util.Set;
  */
 public class StubDecisionLayer implements DecisionLayer {
 
+    /** Every sowing and planting predicate, in the order of the curated windows' activities (#112). */
+    private static final List<String> SOWING = java.util.Arrays.stream(app.rootology.facts.SowingActivity.values())
+            .map(app.rootology.facts.SowingActivity::predicate).toList();
+
     @Override
     public Decision decide(Intent intent, GraphFacts facts) {
         if (intent.kind() == QueryKind.OTHER) {
@@ -51,7 +55,7 @@ public class StubDecisionLayer implements DecisionLayer {
             case ACTIVE_SEASONS -> activeSeasons(subject, facts);
             case ANTAGONISTS -> Decision.certain(facts.objects(subject, "antagonistOf"),
                     "declared antagonists of " + subject);
-            case SOWING_TIME -> months(subject, facts, List.of("sowIn", "plantIn"), "sowing or planting");
+            case SOWING_TIME -> months(subject, facts, List.copyOf(SOWING), "sowing or planting");
             case HARVEST_TIME -> months(subject, facts, List.of("harvestIn"), "harvest");
             case SOW_IN_PLOT -> sowInPlot(subject, intent.month(), facts);
             case SOW_NOW, GROWING_NOW, PEST_RISK, OTHER -> throw new IllegalStateException("handled above");
@@ -102,8 +106,7 @@ public class StubDecisionLayer implements DecisionLayer {
     }
 
     private Decision sowNow(String month, GraphFacts facts) {
-        List<String> crops = java.util.stream.Stream.concat(facts.subjects("sowIn", month).stream(),
-                facts.subjects("plantIn", month).stream()).distinct().toList();
+        List<String> crops = SOWING.stream().flatMap(p -> facts.subjects(p, month).stream()).distinct().toList();
         if (crops.isEmpty()) {
             return Decision.escalated("nothing is declared to sow or plant in " + month);
         }

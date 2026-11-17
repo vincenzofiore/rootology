@@ -4,6 +4,7 @@ import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.component.page.ColorScheme;
+import com.vaadin.flow.component.page.Inline;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.lumo.Lumo;
 
@@ -31,7 +32,13 @@ public class AppShell implements AppShellConfigurator {
         settings.addFavIcon("icon", "icons/rootology.svg" + ICONS_VERSION, "any");
         settings.addFavIcon("icon", "icons/favicon-32.png" + ICONS_VERSION, "32x32");
         settings.addFavIcon("apple-touch-icon", "icons/apple-touch-icon.png" + ICONS_VERSION, "180x180");
-        // Add to Home screen (#88): a full-screen start, never offline (ADR 0001).
+        // Add to Home screen (#88), installable (#134): a full-screen start, never offline (ADR 0001).
         settings.addLink("manifest", "manifest.json");
+        settings.addMetaTag("theme-color", "#2f7a3b");
+        settings.addMetaTag("apple-mobile-web-app-title", "Rootology");
+        // The service worker only shows a page saying the app needs a connection (rootology-sw.js: Vaadin
+        // serves a sw.js of its own); a failed registration changes nothing for the app.
+        settings.addInlineWithContents("if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/rootology-sw.js')"
+                + ".catch(() => {}); }", Inline.Wrapping.JAVASCRIPT);
     }
 }

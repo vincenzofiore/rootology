@@ -74,6 +74,8 @@ class TranslationsTest {
                 Stream.of(app.rootology.garden.DirectSun.values())
                         .map(v -> "directsun." + v.name()),
                 Stream.of(app.rootology.garden.Wind.values()).map(v -> "wind." + v.name()),
+                Stream.of(app.rootology.facts.SowingActivity.values()).map(v -> "activity." + v.name()),
+                Stream.of(app.rootology.facts.SowingActivity.values()).map(v -> "verdict.activity." + v.name()),
                 Stream.of(app.rootology.enrichment.ProposalStatus.values())
                         .map(v -> "proposal." + v.name()),
                 Stream.of(app.rootology.spaces.IdentityProvider.values())
@@ -103,8 +105,8 @@ class TranslationsTest {
     void italianIsTheDefaultAndEnglishIsKept() {
         Translations translations = new Translations();
 
-        assertThat(translations.getTranslation("nav.ask", Locale.GERMAN)).isEqualTo("Chiedi");
-        assertThat(translations.getTranslation("nav.ask", Locale.forLanguageTag("en-GB"))).isEqualTo("Ask");
+        assertThat(translations.getTranslation("nav.questions", Locale.GERMAN)).isEqualTo("Domande");
+        assertThat(translations.getTranslation("nav.questions", Locale.forLanguageTag("en-GB"))).isEqualTo("Questions");
         assertThat(translations.getTranslation("ask.today", Locale.ITALIAN, 3, 30)).isEqualTo("3 di 30 domande oggi");
         assertThat(translations.getTranslation("no.such.key", Locale.ITALIAN)).isEqualTo("!no.such.key");
     }

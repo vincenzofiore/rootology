@@ -11,15 +11,24 @@ import app.rootology.notifications.NotificationView;
 final class NotificationText {
 
     static String details(NotificationView n, NoteText.Texts in) {
+        return details(n, in, java.util.function.Function.identity());
+    }
+
+    /** @param name the display name for a login (#106) */
+    static String details(NotificationView n, NoteText.Texts in, java.util.function.Function<String, String> name) {
         if (n.answered()) {
             // A row stored before #94 has the sentence written then; a new one has no body at all.
-            return n.body() != null ? n.body() : in.get("notifications.details.answered", n.resolvedBy());
+            return n.body() != null ? n.body() : in.get("notifications.details.answered", name.apply(n.resolvedBy()));
+        }
+        if (n.membership()) {
+            // The message of who acted (#105), quoted, or nothing.
+            return n.body() == null ? "" : "«" + n.body() + "»";
         }
         if (n.askedBy() == null) {
             // A weather alert, an invitation request, or a waiting question stored before #94.
             return n.body() == null ? "" : n.body();
         }
-        return in.get("notifications.details.asked", n.askedBy(), n.body());
+        return in.get("notifications.details.asked", name.apply(n.askedBy()), n.body());
     }
 
     private NotificationText() {

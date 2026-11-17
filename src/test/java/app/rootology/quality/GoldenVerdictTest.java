@@ -22,14 +22,14 @@ class GoldenVerdictTest {
     private static GoldenQuestions.Case expected(List<String> notes) {
         return new GoldenQuestions.Case("case", "Cosa cresce nel mio orto?",
                 new Intent(QueryKind.GROWING_NOW, null, null, "it", null, null), "none", "missing", List.of(),
-                null, "needs a garden", notes, false);
+                null, "needs a garden", notes, false, null);
     }
 
     private static GardenPipeline.Run escalated(List<Note> notes) {
         GardenPipeline.PendingReview review = new GardenPipeline.PendingReview("process", RunContext.NONE,
                 new Question("case", "Cosa cresce nel mio orto?"),
                 Decision.escalated("the question needs a garden"), null, notes, Instant.now());
-        return new GardenPipeline.Run(null, review, null, false);
+        return new GardenPipeline.Run(null, review, null, false, null);
     }
 
     @Test
@@ -43,12 +43,12 @@ class GoldenVerdictTest {
     private static GoldenQuestions.Case offDomain() {
         return new GoldenQuestions.Case("off-1", "Come si fa il punto zig-zag a macchina?",
                 new Intent(QueryKind.OTHER, null, null, "it", null, null), "none", "missing", List.of(),
-                null, null, List.of(), true);
+                null, null, List.of(), true, null);
     }
 
     private static GardenPipeline.Run refused() {
         return new GardenPipeline.Run(new app.rootology.pipeline.PipelineAnswer("off-1",
-                List.of(), 0.02, false, false, null, null, List.of(), List.of(), null), null, null, true);
+                List.of(), 0.02, false, false, null, null, List.of(), List.of(), null), null, null, true, null);
     }
 
     @Test
@@ -59,7 +59,7 @@ class GoldenVerdictTest {
     @Test
     void answeringAnOffDomainQuestionIsASilentError() {
         GardenPipeline.Run answered = new GardenPipeline.Run(new app.rootology.pipeline.PipelineAnswer(
-                "off-1", List.of("Basilico"), 1.0, false, false, null, "text", List.of(), List.of(), null), null, null, false);
+                "off-1", List.of("Basilico"), 1.0, false, false, null, "text", List.of(), List.of(), null), null, null, false, null);
 
         assertThat(GoldenVerdict.of(offDomain(), answered)).isEqualTo(GoldenVerdict.SILENT_WRONG);
     }
@@ -69,7 +69,7 @@ class GoldenVerdictTest {
         GardenPipeline.PendingReview review = new GardenPipeline.PendingReview("process", RunContext.NONE,
                 new Question("off-1", "Come si fa il punto zig-zag a macchina?"),
                 Decision.escalated("the question does not fit any supported shape"), null, List.of(), Instant.now());
-        GardenPipeline.Run escalated = new GardenPipeline.Run(null, review, null, false);
+        GardenPipeline.Run escalated = new GardenPipeline.Run(null, review, null, false, null);
 
         assertThat(GoldenVerdict.of(offDomain(), escalated)).isEqualTo(GoldenVerdict.SILENT_WRONG);
     }

@@ -8,6 +8,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -42,9 +43,35 @@ class WaitingQuestionCard extends AnswerCard {
     private final Checkbox none;
     private final TextField note = new TextField();
     private final Button answer = new Button();
+    /** Who asked: the login until the page gives the display name (#106) through {@link #askedBy}. */
+    private final Span asker = new Span();
 
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished) {
+        this(review, mayAnswer, suggestions, answerer, finished, false, false, null);
+    }
+
+    /**
+     * The card as Ask shows it (#110), for the person who asked or follows the question: a promise that a person
+     * will answer instead of the decision layer's reason and number (those go under "Why this answer?"), the
+     * notes as on an answer, and the answer form behind "Answer it yourself" for whoever may answer.
+     * Escalations keeps the reviewer's card, with everything in view.
+     */
+    WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
+                        Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden,
+                        boolean forAsker) {
+        this(review, mayAnswer, suggestions, answerer, finished, namesGarden, forAsker, null);
+    }
+
+    /**
+     * The same card, in a page that already says which garden it is about (#121): the garden is named first
+     * when the page lists several (#109), and left out of the line when it is the page's own.
+     *
+     * @param pageGarden the name of the garden the page is about; null at the space level
+     */
+    WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
+                        Answerer answerer, Function<PipelineAnswer, Component> finished, boolean namesGarden,
+                        boolean forAsker, String pageGarden) {
         this.draft = new AnswerDraft(review.decision().answer());
         this.answerer = answerer;
         this.finished = finished;
@@ -52,39 +79,103 @@ class WaitingQuestionCard extends AnswerCard {
 
         H4 question = new H4(review.question().text());
         question.addClassName("rootology-waiting-question");
-        add(question);
-        if (review.snapshot() != null) {
-            context(ContextText.line(review.snapshot(), this));
+        if (namesGarden) {
+            // The garden this question belongs to, before the question itself: the card replaces the line
+            // that would say it again with only what the garden does not (#109).
+            String garden = HistoryPanel.gardenOf(review);
+            Span where = new Span(garden.equals(HistoryPanel.NO_GARDEN)
+                    ? getTranslation("history.nogarden") : garden);
+            where.addClassName("rootology-waiting-garden");
+            add(where);
         }
-        waiting(ReasonText.text(review.decision().reason(), this));
-        // Whoever answers needs every note at hand (#60): none is folded away here.
-        addNotes(review.notes(), this, this);
-        add(meta(review));
+        // On Ask the item says the question above the card, like an answer's (#113); Escalations keeps it inside.
+        if (!forAsker) {
+            add(question);
+        }
+        if (review.snapshot() != null) {
+            if (namesGarden) {
+                String rest = ContextText.rest(review.snapshot(), this);
+                if (!rest.isBlank()) {
+                    context(rest);
+                }
+            } else if (forAsker) {
+                // The page's own garden is in the breadcrumb and in its context line (#121).
+                context(review.snapshot(), pageGarden);
+            } else if (pageGarden != null && pageGarden.equals(review.snapshot().gardenName())) {
+                // Escalations inside that garden: only what the page's line does not say (#121).
+                String rest = ContextText.rest(review.snapshot(), this);
+                if (!rest.isBlank()) {
+                    context(rest);
+                }
+            } else {
+                context(ContextText.line(review.snapshot(), this));
+            }
+        }
+        String reason = review.decision().reason();
+        if (forAsker) {
+            promise(reason);
+            notes(review.notes());
+        } else {
+            waiting(reason);
+            // Whoever answers needs every note at hand (#60): none is folded away here.
+            addNotes(review.notes(), this, this);
+        }
+        add(meta(review, !forAsker));
+        if (forAsker) {
+            // Who asked and when belong to the question; "Why this answer?" stays at the end of what it says.
+            whyLast();
+        }
         chips.addClassName("rootology-chip-row");
-        add(chips);
+        Div answering = new Div(chips);
+        answering.addClassName("rootology-answer-form");
+        add(answering);
         if (mayAnswer) {
             none = new Checkbox(getTranslation("escalations.none"));
-            addControls(suggestions);
+            addControls(suggestions, answering);
         } else {
             none = null;
         }
         renderChips();
+        if (forAsker) {
+            // The person who asked follows the question; whoever may answer opens the form with one tap.
+            answering.setVisible(false);
+            if (mayAnswer) {
+                Button open = new Button(getTranslation("escalations.answeryourself"), VaadinIcon.EDIT.create());
+                open.addClassName("rootology-answer-open");
+                open.addClickListener(e -> {
+                    open.setVisible(false);
+                    answering.setVisible(true);
+                    add.focus();
+                });
+                add(open);
+            }
+        }
+    }
+
+    /** The name other people see for whoever asked (#106); the card knows only the login. */
+    WaitingQuestionCard askedBy(String name) {
+        if (name != null && !asker.getText().isEmpty()) {
+            asker.setText(getTranslation("escalations.asked", name));
+        }
+        return this;
     }
 
     /** Who asked and when, and how sure the decision layer was: the number, clearly labelled. */
-    private Div meta(PendingReview review) {
+    private Div meta(PendingReview review, boolean withDate) {
         Div meta = new Div();
         meta.addClassName("rootology-waiting-meta");
         if (review.context().startedBy() != null) {
-            meta.add(new Span(getTranslation("escalations.asked", review.context().startedBy())));
+            asker.setText(getTranslation("escalations.asked", review.context().startedBy()));
+            meta.add(asker);
         }
-        if (review.askedAt() != null) {
+        // On Ask the date is already on the item's line above the card (#113).
+        if (withDate && review.askedAt() != null) {
             meta.add(DateText.dateTimeSpan(review.askedAt(), this));
         }
         return meta;
     }
 
-    private void addControls(List<String> suggestions) {
+    private void addControls(List<String> suggestions, Div into) {
         add.setLabel(getTranslation("escalations.values"));
         add.setPlaceholder(getTranslation("escalations.add"));
         add.setItems(suggestions);
@@ -122,7 +213,7 @@ class WaitingQuestionCard extends AnswerCard {
 
         Div controls = new Div(field, note, actions);
         controls.addClassName("rootology-answer-controls");
-        add(controls);
+        into.add(controls);
     }
 
     private void addTyped() {

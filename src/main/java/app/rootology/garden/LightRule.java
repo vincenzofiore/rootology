@@ -35,4 +35,19 @@ public final class LightRule {
 
     private LightRule() {
     }
+
+    /** Hours of direct sun that make full sun, and part shade (#89); fewer is shade. */
+    public static final int FULL_SUN_HOURS = 6;
+    public static final int PART_SHADE_HOURS = 3;
+
+    /** The level of a number of hours of direct sun a day (#89): 6 or more full sun, 3 to 5 part shade, else shade. */
+    public static DirectSun fromHours(int hours) {
+        return hours >= FULL_SUN_HOURS ? DirectSun.FULL_SUN
+                : hours >= PART_SHADE_HOURS ? DirectSun.PART_SHADE : DirectSun.SHADE;
+    }
+
+    /** The summer half of the year for the sun hours (#89): April to September; October to March is winter. */
+    public static boolean isSummer(java.time.Month month) {
+        return month.getValue() >= 4 && month.getValue() <= 9;
+    }
 }

@@ -47,6 +47,7 @@ public final class KnowledgeValidator {
                 problems.add("crop " + c.id() + " has no valid Wikidata id");
             }
             oneOf(c.frostGroup(), FrostShiftRule.GROUPS, "crop " + c.id() + ": frost_group", problems);
+            oneOf(c.italianArticle(), Crop.ITALIAN_ARTICLES, "crop " + c.id() + ": italian_article", problems);
         }
         for (NeedRow n : k.needs()) {
             String where = "needs of " + n.cropId();

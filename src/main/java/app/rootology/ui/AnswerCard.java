@@ -28,8 +28,9 @@ import java.util.List;
 
 /**
  * An answer as a card (#31, lighter in #83): Claude's sentence and the values first, then only the warnings the
- * person should act on, the confidence in words with a bar, and everything else (the full context, the other
- * notes, the sources) under a closed "Why this answer?". Also the card of a question that waits.
+ * person should act on, the confidence in words with a bar and what it means, and everything else (the part of
+ * the context the line above does not say, the other notes, the sources) under a closed "Why this answer?" —
+ * "Why it waits?" on a waiting question (#111). Also the card of a question that waits.
  */
 class AnswerCard extends Div {
 
@@ -46,6 +47,8 @@ class AnswerCard extends Div {
     /** "Why this answer?", added at the end of the card the first time something goes in it. */
     private Details why;
     private Div whyContent;
+    /** What the fold is called: an answer asks why it answers, a waiting question why it waits (#111). */
+    private String whyLabel = "card.why";
 
     /** One source line: an icon, a text, and a link when there is one (url may be null). */
     record SourceLine(VaadinIcon icon, String text, String url) {
@@ -65,34 +68,156 @@ class AnswerCard extends Div {
     }
 
     /**
-     * The context of an answer (#83): a short line above it (garden, area, month), the full line under
-     * "Why this answer?".
+     * The context of an answer (#83): a short line above it (garden, area, month), and under "Why this
+     * answer?" only what that line does not say — the climate and its source, a zone from an older row, a month
+     * the question named (#111).
      */
     AnswerCard context(ContextSnapshot context) {
-        Span brief = new Span(ContextText.brief(context, this));
-        brief.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
-        add(brief);
-        Span full = new Span(ContextText.line(context, this));
-        full.addClassName("rootology-why-line");
-        why().add(full);
+        return context(context, null);
+    }
+
+    /**
+     * The same, for a card shown in a page whose garden is already in the breadcrumb and in its context line
+     * (#121): the garden is left out of both the line above and the fold, and the line goes when it has
+     * nothing else to say.
+     *
+     * @param pageGarden the name of the garden the page is about; null at the space level
+     */
+    AnswerCard context(ContextSnapshot context, String pageGarden) {
+        String briefText = ContextText.brief(context, pageGarden, this);
+        if (!briefText.isBlank()) {
+            Span brief = new Span(briefText);
+            brief.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+            add(brief);
+        }
+        String detail = ContextText.detail(context, pageGarden, this);
+        if (!detail.isBlank()) {
+            // Said for what it is (#114): alone, "ultime gelate metà febbraio (dall’orto)" read as a stray line.
+            Span label = new Span(getTranslation("card.why.context"));
+            label.addClassName(FontWeight.SEMIBOLD);
+            why().add(line(VaadinIcon.CALENDAR_O, new Span(label, new Span(" " + detail))));
+        }
         return whyLast();
     }
 
     AnswerCard answered(String text, List<String> values, double confidence) {
+        return answered(text, values, confidence, java.util.Map.of());
+    }
+
+    /**
+     * An answer whose values carry how they go into the ground (#112): the values grouped by activity, "In
+     * semenzaio: febbraio, marzo · Trapianto: aprile, maggio", always shown, since the groups are what keeps a
+     * seedbed month from reading as a month to plant out.
+     */
+    AnswerCard answered(String text, List<String> values, double confidence,
+                        java.util.Map<String, List<String>> activities) {
+        sentenceAndValues(text, values, activities, true);
+        return confidence(confidence);
+    }
+
+    /**
+     * An answer a person of the space gave (#116): who answered instead of a confidence bar, which would only
+     * measure the decision layer that did not answer.
+     *
+     * @param reviewer the login of who answered, null when it was not recorded
+     */
+    AnswerCard answeredBy(String text, List<String> values, String reviewer,
+                          java.util.Map<String, List<String>> activities) {
+        // A person's "no" is said by their sentence (#117): a "no values" badge under it only repeats it.
+        sentenceAndValues(text, values, activities, false);
+        warnings();
+        Span who = new Span(reviewer == null ? getTranslation("card.byperson.someone")
+                : getTranslation("card.byperson", reviewer));
+        who.addClassNames(FontSize.SMALL, TextColor.SECONDARY);
+        Icon icon = VaadinIcon.USER.create();
+        icon.addClassName("rootology-answer-person-icon");
+        Div row = new Div(icon, who);
+        row.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.SMALL, "rootology-answer-person");
+        add(row);
+        return this;
+    }
+
+    /**
+     * What a calendar answer means for the month it was asked in (#116), above the sentence: worked out from
+     * the values, so a sentence that says "yes" for a month months away cannot be read as "now".
+     */
+    AnswerCard verdict(CalendarVerdict.Verdict verdict) {
+        Icon icon = (verdict.now() ? VaadinIcon.CHECK_CIRCLE_O : VaadinIcon.CALENDAR_CLOCK).create();
+        icon.addClassName("rootology-verdict-icon");
+        Span words = new Span(verdict.words());
+        Div row = new Div(icon, words);
+        row.addClassName("rootology-verdict");
+        row.addClassName(verdict.now() ? "rootology-verdict-now" : "rootology-verdict-later");
+        add(row);
+        return this;
+    }
+
+    private void sentenceAndValues(String text, List<String> values, java.util.Map<String, List<String>> activities,
+                                   boolean sayNoValues) {
         Paragraph sentence = new Paragraph(text);
         sentence.addClassName("rootology-answer-text");
         add(sentence);
-        Div chips = new Div();
-        chips.addClassName("rootology-answer-values");
-        if (values.isEmpty()) {
-            chips.add(chip(getTranslation("ask.novalues"), "rootology-answer-value-none"));
+        if (!activities.isEmpty()) {
+            add(activityGroups(values, activities));
+            return;
         }
-        values.forEach(v -> chips.add(chip(v, null)));
-        add(chips);
+        // The values in the page's language (#110), without those the sentence already says: a badge repeating
+        // a word just read adds nothing. An answer with no value keeps its "no values" badge.
+        List<String> words = values.stream().map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
+                .toList();
+        if ((values.isEmpty() && sayNoValues) || !words.isEmpty()) {
+            Div chips = new Div();
+            chips.addClassName("rootology-answer-values");
+            if (values.isEmpty()) {
+                chips.add(chip(getTranslation("ask.novalues"), "rootology-answer-value-none"));
+            }
+            words.forEach(v -> chips.add(chip(v, null)));
+            add(chips);
+        }
+    }
+
+    /** One row per activity, in the activities' order, with its values; a value with none goes in a plain row. */
+    private Div activityGroups(List<String> values, java.util.Map<String, List<String>> activities) {
+        Div groups = new Div();
+        groups.addClassName("rootology-answer-activities");
+        java.util.Map<String, List<String>> byActivity = new java.util.TreeMap<>(java.util.Comparator.comparingInt(
+                (String a) -> app.rootology.facts.SowingActivity.valueOf(a).ordinal()));
+        List<String> plain = new java.util.ArrayList<>();
+        for (String value : values) {
+            List<String> ways = activities.getOrDefault(value, List.of());
+            if (ways.isEmpty()) {
+                plain.add(value);
+            }
+            ways.forEach(a -> byActivity.computeIfAbsent(a, k -> new java.util.ArrayList<>()).add(value));
+        }
+        byActivity.forEach((activity, group) -> groups.add(activityRow(getTranslation("activity." + activity), group)));
+        if (!plain.isEmpty()) {
+            groups.add(activityRow(null, plain));
+        }
+        return groups;
+    }
+
+    private Div activityRow(String label, List<String> group) {
+        Div row = new Div();
+        row.addClassName("rootology-answer-values");
+        if (label != null) {
+            Span name = new Span(label);
+            name.addClassName("rootology-answer-activity");
+            row.add(name);
+        }
+        group.forEach(v -> row.add(chip(ValueText.of(v, this), null)));
+        return row;
+    }
+
+    private void warnings() {
         warnings = new Div();
         warnings.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
         warnings.setVisible(false);
         add(warnings);
+    }
+
+    private AnswerCard confidence(double confidence) {
+        warnings();
         double value = Math.max(0, Math.min(1, confidence));
         ProgressBar bar = new ProgressBar(0, 1, value);
         bar.addClassName("rootology-confidence-bar");
@@ -105,12 +230,34 @@ class AnswerCard extends Div {
         row.addClassNames(Display.FLEX, AlignItems.CENTER, Gap.MEDIUM);
         row.getElement().setAttribute("title", getTranslation("card.confidence", confidence));
         add(row);
+        // What the number means (#111): "Affidabilità media" alone says nothing to a gardener.
+        why().add(line(VaadinIcon.QUESTION_CIRCLE_O, getTranslation("card.confidence.meaning")));
         return whyLast();
     }
 
-    AnswerCard waiting(String reason) {
+    /**
+     * A waiting question as the person who asked it reads it (#110): a promise rather than a verdict. The
+     * decision layer's reason goes under "Why it waits?" (#111), in words, its number as a tooltip (#114).
+     *
+     * @param reason the reason as the pipeline recorded it, worded here by {@link ReasonText}
+     */
+    AnswerCard promise(String reason) {
+        whyCalled("card.why.waiting");
         add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
-        add(new Paragraph(getTranslation("card.waiting.why", reason)));
+        add(new Paragraph(getTranslation("card.waiting.promise")));
+        if (reason != null && !reason.isBlank()) {
+            Span words = new Span(getTranslation("card.waiting.reason", ReasonText.text(reason, this)));
+            why().add(line(VaadinIcon.INFO_CIRCLE_O, ReasonText.withNumber(words, reason, this)));
+        }
+        return whyLast();
+    }
+
+    /** A waiting question as whoever answers it reads it: the reason in words, its number as a tooltip (#114). */
+    AnswerCard waiting(String reason) {
+        whyCalled("card.why.waiting");
+        add(header(VaadinIcon.HOURGLASS, "rootology-waiting-icon", getTranslation("card.waiting")));
+        add(ReasonText.withNumber(new Paragraph(getTranslation("card.waiting.why", ReasonText.text(reason, this))),
+                reason, this));
         return whyLast();
     }
 
@@ -161,9 +308,7 @@ class AnswerCard extends Div {
         if (lines.isEmpty()) {
             return this;
         }
-        Span title = new Span(getTranslation("ask.sources"));
-        title.addClassNames(FontSize.SMALL, FontWeight.SEMIBOLD, TextColor.SECONDARY, Margin.Top.SMALL);
-        why().add(title);
+        why().add(sourcesTitle());
         for (SourceLine line : lines) {
             Component text = line.url() == null ? new Span(line.text()) : link(line.text(), line.url());
             why().add(line(line.icon(), text));
@@ -171,19 +316,44 @@ class AnswerCard extends Div {
         return whyLast();
     }
 
+    /**
+     * A past answer stored before notes and sources were kept (#110): rather than leaving the fold silent about
+     * its sources, it says it was saved before Rootology recorded them (#111, #114). A fresh answer with no
+     * source stays silent.
+     */
+    AnswerCard noSources() {
+        why().add(sourcesTitle());
+        why().add(line(VaadinIcon.BOOK, getTranslation("ask.sources.before")));
+        return whyLast();
+    }
+
+    private Span sourcesTitle() {
+        Span title = new Span(getTranslation("ask.sources"));
+        title.addClassNames(FontSize.SMALL, FontWeight.SEMIBOLD, TextColor.SECONDARY, Margin.Top.SMALL);
+        return title;
+    }
+
     /** "Why this answer?", created closed at the end of the card when the first line goes in it. */
     private Div why() {
         if (why == null) {
             whyContent = new Div();
             whyContent.addClassNames(Display.FLEX, "flex-col", Gap.SMALL);
-            why = new Details(getTranslation("card.why"), whyContent);
+            why = new Details(getTranslation(whyLabel), whyContent);
             why.addClassName("rootology-answer-why");
         }
         return whyContent;
     }
 
+    /** The fold's own words: an answer asks why it answers, a waiting question why it waits (#111). */
+    private void whyCalled(String key) {
+        whyLabel = key;
+        if (why != null) {
+            why.setSummaryText(getTranslation(key));
+        }
+    }
+
     /** "Why this answer?" stays the last part of the card, whatever was added after it. */
-    private AnswerCard whyLast() {
+    AnswerCard whyLast() {
         if (why != null) {
             add(why);
         }
