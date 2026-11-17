@@ -168,7 +168,8 @@ public class GardenService {
         }
         Garden garden = garden(spaceId, gardenId);
         Plot plot = plotId == null ? new Plot(garden, cleanName, kind, soil, areaM2) : plot(spaceId, plotId);
-        java.time.Instant now = java.time.Instant.now();
+        // Postgres keeps microseconds: the same instant in memory and stored, also where the clock has nanoseconds.
+        java.time.Instant now = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         String who = SpaceService.normalizeLogin(login);
         if (directSun != plot.getDirectSun()) {
             plot.sunLevelDeclared(who, now);
