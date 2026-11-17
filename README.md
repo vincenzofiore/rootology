@@ -233,7 +233,7 @@ trusts every reading) answered wrongly without escalating in 18 of 25 trials,
 Jev in 1 to 3, all of them right at the confidence threshold. Two findings on
 the phrasing step: Claude once contradicted a correct decision in its text, and
 once silently hid a wrong one, so the recorded values come from the decision
-layer, never from the text. Detailed notes are in `CLAUDE.md`.
+layer, never from the text. Detailed notes are in `docs/experiment-log.md`.
 
 ## Dependencies
 
