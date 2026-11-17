@@ -155,8 +155,13 @@ reproducible) while Jena keeps arbitrating on the clean data.
 ## Running the UI
 
 ```bash
-./mvnw spring-boot:run      # then open http://localhost:8080
+./run-local.sh      # then open http://localhost:8080
 ```
+
+`run-local.sh` leaves out the `ROOTOLOGY_SMTP_*` settings, so every email goes to
+Mailpit (http://localhost:8025) and never to a real person, and it stops an older
+local run of this repository first (another program on port 8080 is left alone).
+Extra arguments go to `./mvnw spring-boot:run`.
 
 Docker must be running: Spring Boot starts Postgres (run history) and Neo4j
 (the pipeline's facts) from `compose.yaml`, and the tests use Testcontainers
