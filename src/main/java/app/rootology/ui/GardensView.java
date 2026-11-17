@@ -5,8 +5,10 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
@@ -27,11 +29,15 @@ import app.rootology.geocoding.Place;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.Question;
 import app.rootology.weather.ForecastHour;
+import app.rootology.notifications.NotificationService;
+import app.rootology.notifications.NotificationView;
 import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +65,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final ClimateCells climateCells;
     private final GardenPipeline pipeline;
     private final WeatherService weather;
+    private final NotificationService notifications;
     private final Button add = new Button(getTranslation("garden.new"), VaadinIcon.PLUS.create());
     /** The space's name and the main action, "New garden" (#87). */
     private final PageHeader header = new PageHeader(getTranslation("gardens.title"), add);
@@ -90,6 +97,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     public GardensView(GardenService gardens, GeoNames geoNames, CurrentUser currentUser,
                        ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
+                       NotificationService notifications,
                        @Value("${rootology.map.style-url}") String styleUrl,
                        @Value("${rootology.map.dark-style-url:}") String darkStyleUrl) {
         this.gardens = gardens;
@@ -98,6 +106,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         this.climateCells = climateCells;
         this.pipeline = pipeline;
         this.weather = weather;
+        this.notifications = notifications;
         ask.setVisible(false);
         ask.setDefaultVerticalComponentAlignment(Alignment.END);
         ask.setWrap(true);
@@ -310,9 +319,10 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         List<GardenSummary> all = spaceId == 0 ? List.of() : gardens.gardens(spaceId, currentUser.login());
         shown = all;
         Map<String, Optional<ForecastHour>> hours = new LinkedHashMap<>();
+        Map<Long, Counts> counts = counts(all);
         cards.removeAll();
-        all.forEach(garden -> cards.add(card(garden, hour(garden, hours))));
-        map.setGroups(groups(all, hours));
+        all.forEach(garden -> cards.add(card(garden, hour(garden, hours), counts.get(garden.id()))));
+        map.setGroups(groups(all, hours, counts));
         none.setVisible(all.isEmpty());
         ask.setVisible(all.isEmpty() && contributor);
         updateVisibility();
@@ -332,6 +342,27 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         show(!shown.isEmpty() && !anyMarker ? "list" : "map");
     }
 
+    /** What a garden's card and popup count: crops growing today, questions waiting, weather alerts of late. */
+    private record Counts(int growing, int waiting, List<AlertSeverity> alerts) {
+    }
+
+    /** The counts of every garden shown, read once per page: the alerts are the garden home's (#37, #132). */
+    private Map<Long, Counts> counts(List<GardenSummary> all) {
+        String login = currentUser.login();
+        LocalDate today = LocalDate.now(GardenHomeView.ITALY);
+        Instant since = Instant.now().minus(GardenHomeView.ALERT_DAYS, ChronoUnit.DAYS);
+        List<NotificationView> alerts = all.isEmpty() ? List.of() : notifications.of(login, 50).stream()
+                .filter(n -> n.weather() && n.spaceId() == spaceId && n.createdAt().isAfter(since)).toList();
+        Map<Long, Counts> counts = new LinkedHashMap<>();
+        for (GardenSummary garden : all) {
+            counts.put(garden.id(), new Counts(gardens.growingOn(spaceId, login, garden.id(), today).size(),
+                    pipeline.pending(spaceId, garden.id(), login).size(),
+                    alerts.stream().filter(n -> n.gardenId() == garden.id())
+                            .map(n -> AlertSeverity.of(n.dedupKey())).sorted().toList()));
+        }
+        return counts;
+    }
+
     /** The weather now at a garden's point, read once per point for the cards and the markers (#67). */
     private Optional<ForecastHour> hour(GardenSummary garden, Map<String, Optional<ForecastHour>> hours) {
         if (garden.latitude() == null || garden.longitude() == null) {
@@ -345,7 +376,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
      * A garden's card (#87): its name, which opens it, its town, the weather now from the stored forecast and the
      * menu of its actions. A click elsewhere on the card shows it on the map.
      */
-    private Div card(GardenSummary garden, Optional<ForecastHour> hour) {
+    private Div card(GardenSummary garden, Optional<ForecastHour> hour, Counts counts) {
         // A plain link to the garden's home (spaces/{space}/gardens/{garden}), which the router follows in place.
         Anchor name = new Anchor("spaces/" + spaceId + "/gardens/" + garden.id(), garden.name());
         name.addClassName("rootology-garden-card-name");
@@ -353,6 +384,10 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         town.addClassName("rootology-garden-card-town");
         Div text = new Div(name, town);
         text.addClassName("rootology-garden-card-text");
+        Div facts = facts(counts);
+        if (facts.getComponentCount() > 0) {
+            text.add(facts);
+        }
         Div card = new Div(text);
         hour.ifPresent(h -> {
             Span now = new Span();
@@ -372,11 +407,47 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     }
 
     /**
+     * The card's counts, each an icon and a number with the word as tooltip and aria label (#132): crops growing,
+     * questions waiting and weather alerts, the alerts with the icon and colour of the gravest; a zero is left out.
+     */
+    private Div facts(Counts counts) {
+        Div facts = new Div();
+        facts.addClassName("rootology-garden-card-facts");
+        if (counts.growing() > 0) {
+            facts.add(fact(new SvgIcon(GardenHomeView.SPROUT), counts.growing(), getTranslation("gardens.map.crops.label"), null));
+        }
+        if (counts.waiting() > 0) {
+            facts.add(fact(VaadinIcon.HOURGLASS.create(), counts.waiting(),
+                    getTranslation("gardens.map.waiting.label"), "rootology-garden-card-fact-waiting"));
+        }
+        if (!counts.alerts().isEmpty()) {
+            AlertSeverity gravest = counts.alerts().getFirst();
+            facts.add(fact(gravest.icon().create(), counts.alerts().size(), getTranslation("home.alerts"),
+                    gravest.className()));
+        }
+        return facts;
+    }
+
+    private Span fact(Component icon, int count, String word, String className) {
+        Span fact = new Span(icon, new Span(Integer.toString(count)));
+        fact.addClassName("rootology-garden-card-fact");
+        if (className != null) {
+            fact.addClassName(className);
+        }
+        String label = getTranslation("nav.count", count, word);
+        fact.getElement().setAttribute("title", label);
+        fact.getElement().setAttribute("aria-label", label);
+        fact.getElement().setAttribute("role", "img");
+        return fact;
+    }
+
+    /**
      * The markers: gardens on the same rounded point (about 1 km) share one, which counts them (#66).
      * Everything a popup shows is computed here, in this space and for this person only: the coordinates,
      * what grows today, the questions waiting and the weather now from the stored forecast (#67).
      */
-    private List<GardenMap.Group> groups(List<GardenSummary> all, Map<String, Optional<ForecastHour>> hours) {
+    private List<GardenMap.Group> groups(List<GardenSummary> all, Map<String, Optional<ForecastHour>> hours,
+                                         Map<Long, Counts> counts) {
         Map<String, List<GardenSummary>> byPoint = new LinkedHashMap<>();
         for (GardenSummary garden : all) {
             if (garden.latitude() != null && garden.longitude() != null) {
@@ -389,7 +460,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
             GardenSummary first = same.getFirst();
             // Gardens on one rounded point share one stored position, so they share one reading (#67).
             Optional<ForecastHour> hour = hour(first, hours);
-            List<GardenMap.Pin> pins = same.stream().map(garden -> pin(garden, hour)).toList();
+            List<GardenMap.Pin> pins = same.stream()
+                    .map(garden -> pin(garden, hour, counts.get(garden.id()))).toList();
             groups.add(new GardenMap.Group(first.latitude().doubleValue(), first.longitude().doubleValue(),
                     same.size() > 1 ? getTranslation("gardens.map.point", same.size()) : first.name(),
                     getTranslation("gardens.map.position", first.latitude().toPlainString(),
@@ -398,18 +470,14 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         return groups;
     }
 
-    private GardenMap.Pin pin(GardenSummary garden, Optional<ForecastHour> hour) {
-        String login = currentUser.login();
-        LocalDate today = LocalDate.now(GardenHomeView.ITALY);
-        int growing = gardens.growingOn(spaceId, login, garden.id(), today).size();
-        int waiting = pipeline.pending(spaceId, garden.id(), login).size();
+    private GardenMap.Pin pin(GardenSummary garden, Optional<ForecastHour> hour, Counts counts) {
         return new GardenMap.Pin(Long.toString(garden.id()), garden.name(),
                 garden.town() == null ? getTranslation("garden.notown") : garden.town(),
                 garden.elevationM() == null ? getTranslation("gardens.map.altitude.none")
                         : getTranslation("gardens.map.altitude", garden.elevationM()),
                 hour.map(ForecastHour::symbol).orElse(null),
                 hour.map(this::weatherText).orElse(null),
-                growing, waiting);
+                counts.growing(), counts.waiting());
     }
 
     /**

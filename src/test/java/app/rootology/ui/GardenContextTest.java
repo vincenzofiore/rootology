@@ -39,6 +39,9 @@ import static org.mockito.Mockito.when;
 class GardenContextTest {
 
     @Autowired
+    app.rootology.notifications.NotificationService notificationService;
+
+    @Autowired
     app.rootology.history.RunHistory runHistory;
 
     @Autowired
@@ -156,10 +159,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, STYLE, "");
+        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, STYLE, "");
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, STYLE, "");
+        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, STYLE, "");
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();

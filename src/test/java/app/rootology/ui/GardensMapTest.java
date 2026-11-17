@@ -43,6 +43,9 @@ class GardensMapTest {
     private static final String STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
     @Autowired
+    app.rootology.notifications.NotificationService notificationService;
+
+    @Autowired
     SpaceService spaces;
 
     @Autowired
@@ -109,6 +112,13 @@ class GardensMapTest {
         assertThat(pin.town()).isEqualTo("Milan");
         assertThat(pin.crops()).isZero();
         assertThat(pin.waiting()).isZero();
+        assertThat(hasClass(view.getElement(), "rootology-garden-card-facts"))
+                .as("a card leaves out its counts when they are all zero").isFalse();
+    }
+
+    private static boolean hasClass(com.vaadin.flow.dom.Element element, String className) {
+        return element.getClassList().contains(className)
+                || element.getChildren().anyMatch(child -> hasClass(child, className));
     }
 
     @Test
@@ -303,7 +313,7 @@ class GardensMapTest {
 
     private GardensView view(String login) {
         return new GardensView(gardens, geoNames, new CurrentUser(spaces, login), cells, pipeline,
-                weather, STYLE, "");
+                weather, notificationService, STYLE, "");
     }
 
     private long garden(long spaceId, String login, String name, String latitude, String longitude) {
