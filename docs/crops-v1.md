@@ -87,10 +87,42 @@ the app derives every garden's windows from its own climate profile, and only a 
 uses that zone's reference site (NORD = Milan, CENTRO = Vasto, SUD = Palermo). The curated NORD row
 (broad bean, February) applies only when the question names NORD.
 
+## Annual crops added on 2026-11-18 (#139)
+
+Approved by the owner by group (vegetables, annual herbs, physalis). Families, Wikidata and FAO ECOCROP ids were
+checked on 2026-11-18; the months are Vasto's, editorial like the rest of the list, and still to be verified
+(`verified=no`). Romanesco and catalogna are not crops of their own: they are names of broccoli and radicchio,
+to be added as global names through knowledge enrichment (#24).
+
+| Italian | English | Scientific name | Family | Sowing / planting | Harvest |
+|---|---|---|---|---|---|
+| Barbabietola | Beetroot | *Beta vulgaris* (Conditiva group) | Amaranthaceae | Sow Mar-Jul | Jun-Nov |
+| Rapa | Turnip | *Brassica rapa* var. *rapa* | Brassicaceae | Sow Aug-Sep | Oct-Dec |
+| Pastinaca | Parsnip | *Pastinaca sativa* | Apiaceae | Sow Mar-May | Oct-Feb |
+| Sedano rapa | Celeriac | *Apium graveolens* var. *rapaceum* | Apiaceae | Seedbed Feb-Mar, transplant May-Jun | Oct-Dec |
+| Patata dolce | Sweet potato | *Ipomoea batatas* | Convolvulaceae | Plant rooted slips May-Jun | Sep-Oct |
+| Cavolini di Bruxelles | Brussels sprouts | *Brassica oleracea* var. *gemmifera* | Brassicaceae | Seedbed Apr-May, transplant Jun-Jul | Nov-Feb |
+| Cavolo rapa | Kohlrabi | *Brassica oleracea* var. *gongylodes* | Brassicaceae | Sow Mar-Aug | May-Nov |
+| Borragine | Borage | *Borago officinalis* | Boraginaceae | Sow Mar-May | May-Oct |
+| Portulaca | Purslane | *Portulaca oleracea* | Portulacaceae | Sow May-Jul | Jun-Sep |
+| Scalogno | Shallot | *Allium cepa* var. *aggregatum* | Amaryllidaceae | Plant bulbs Oct-Dec and Feb-Mar | Jun-Jul |
+| Cipollotto | Spring onion | *Allium cepa* | Amaryllidaceae | Sow Feb-Apr and Aug-Sep | Apr-Jun, Oct-Dec |
+| Cece | Chickpea | *Cicer arietinum* | Fabaceae | Sow Feb-Apr | Jun-Aug |
+| Lenticchia | Lentil | *Lens culinaris* | Fabaceae | Sow Feb-Apr | Jun-Jul |
+| Cicerchia | Grass pea | *Lathyrus sativus* | Fabaceae | Sow Feb-Apr | Jun-Jul |
+| Fagiolo dall’occhio | Cowpea | *Vigna unguiculata* | Fabaceae | Sow May-Jun | Aug-Sep |
+| Fagiolo di Spagna | Runner bean | *Phaseolus coccineus* | Fabaceae | Sow Apr-Jun | Jul-Oct |
+| Mais dolce | Sweet corn | *Zea mays* (Saccharata group) | Poaceae | Sow Apr-Jun | Jul-Sep |
+| Okra | Okra | *Abelmoschus esculentus* | Malvaceae | Seedbed Mar-Apr, transplant May | Jul-Oct |
+| Aneto | Dill | *Anethum graveolens* | Apiaceae | Sow Mar-Jun | May-Sep |
+| Coriandolo | Coriander | *Coriandrum sativum* | Apiaceae | Sow Mar-May and Sep | May-Jul, Oct-Nov |
+| Cerfoglio | Chervil | *Anthriscus cerefolium* | Apiaceae | Sow Feb-Apr and Aug-Sep | Apr-Jun, Oct-Dec |
+| Alchechengi | Cape gooseberry | *Physalis peruviana* | Solanaceae | Seedbed Feb-Mar, transplant May | Aug-Oct |
+
 ## Notes
 
-- 39 crops in 9 families.
-- Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
+- 61 crops in 16 families (39 from 2026-11-03, 22 annuals from 2026-11-18).
+- Candidates for later: the perennials, fruit, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

@@ -88,7 +88,7 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         GardenPipeline.Run answered = pipeline.continueWith(new Question("ask", text), asked.intent(), run, turin());
 
         assertThat(answered.answer()).isNotNull();
-        assertThat(answered.answer().answer()).as("Turin in November").containsExactly("Aglio");
+        assertThat(answered.answer().answer()).as("Turin in November").containsExactly("Aglio", "Scalogno");
         assertThat(answered.answer().context().placeName()).isEqualTo("Torino");
         assertThat(answered.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.PLACE);
         // One understanding call for the question, none for the continuation.

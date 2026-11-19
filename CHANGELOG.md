@@ -6,6 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Added
+
+- 22 more annual crops: beetroot, turnip, parsnip, celeriac, sweet potato, Brussels sprouts, kohlrabi, borage, purslane, shallot, spring onion, chickpea, lentil, grass pea, cowpea, runner bean, sweet corn, okra, dill, coriander, chervil and cape gooseberry (alchechengi), with their sowing and harvest months and FAO ECOCROP needs (#139).
+
 ## [0.5.0] - 2026-11-17
 
 ### Added

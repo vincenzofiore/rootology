@@ -1,4 +1,4 @@
-# Crops of the knowledge base v1 (docs/crops-v1.md), approved 2026-11-03.
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -44,3 +44,25 @@ celery,Sedano,Celery,Apium graveolens,Apiaceae,Q28298,432,var. dulce,HARDY,il
 parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae,Q25284,1661,,LONG,il
 rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae,Q102240169,9326,Rosmarinus officinalis,OVERWINTER,il
 sage,Salvia,Sage,Salvia officinalis,Lamiaceae,Q1111359,2412,,OVERWINTER,la
+beetroot,Barbabietola,Beetroot,Beta vulgaris (Conditiva group),Amaranthaceae,Q165437,514,Beta vulgaris,LONG,la
+turnip,Rapa,Turnip,Brassica rapa var. rapa,Brassicaceae,Q3916957,3881,var. rapifera,AUTUMN,la
+parsnip,Pastinaca,Parsnip,Pastinaca sativa,Apiaceae,Q188614,1642,,HARDY,la
+celeriac,Sedano rapa,Celeriac,Apium graveolens var. rapaceum,Apiaceae,Q575174,3289,,HARDY,il
+sweet-potato,Patata dolce,Sweet potato,Ipomoea batatas,Convolvulaceae,Q37937,1265,,TENDER,la
+brussels-sprouts,Cavolini di Bruxelles,Brussels sprouts,Brassica oleracea var. gemmifera,Brassicaceae,Q150463,555,,AUTUMN,i
+kohlrabi,Cavolo rapa,Kohlrabi,Brassica oleracea var. gongylodes,Brassicaceae,Q147202,2220,,LONG,il
+borage,Borragine,Borage,Borago officinalis,Boraginaceae,Q147075,3761,,LONG,la
+purslane,Portulaca,Purslane,Portulaca oleracea,Portulacaceae,Q158015,1784,,TENDER,la
+shallot,Scalogno,Shallot,Allium cepa var. aggregatum,Amaryllidaceae,Q193498,1096,,OVERWINTER,lo
+spring-onion,Cipollotto,Spring onion,Allium cepa,Amaryllidaceae,Q774278,364,Allium cepa,LONG,il
+chickpea,Cece,Chickpea,Cicer arietinum,Fabaceae,Q81375,2479,,HARDY,il
+lentil,Lenticchia,Lentil,Lens culinaris,Fabaceae,Q131226,7209,,HARDY,la
+grass-pea,Cicerchia,Grass pea,Lathyrus sativus,Fabaceae,Q162093,7164,,HARDY,la
+cowpea,Fagiolo dall’occhio,Cowpea,Vigna unguiculata,Fabaceae,Q498940,2153,,TENDER,il
+runner-bean,Fagiolo di Spagna,Runner bean,Phaseolus coccineus,Fabaceae,Q159753,1665,,TENDER,il
+sweet-corn,Mais dolce,Sweet corn,Zea mays (Saccharata group),Poaceae,Q18966,10981,,TENDER,il
+okra,Okra,Okra,Abelmoschus esculentus,Malvaceae,Q80531,289,,TENDER,l’
+dill,Aneto,Dill,Anethum graveolens,Apiaceae,Q26686,2192,,LONG,l’
+coriander,Coriandolo,Coriander,Coriandrum sativum,Apiaceae,Q41611,784,,LONG,il
+chervil,Cerfoglio,Chervil,Anthriscus cerefolium,Apiaceae,Q218462,3265,,LONG,il
+physalis,Alchechengi,Cape gooseberry,Physalis peruviana,Solanaceae,Q165227,1686,,TENDER,l’
