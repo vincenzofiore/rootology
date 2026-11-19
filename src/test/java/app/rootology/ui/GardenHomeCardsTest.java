@@ -19,8 +19,12 @@ class GardenHomeCardsTest {
     void aWeatherAlertIsColouredByTheRuleThatSentIt() {
         assertThat(AlertSeverity.of("frost:12:2026-11-12")).isEqualTo(AlertSeverity.FROST);
         assertThat(AlertSeverity.of("blight:12:2026-11-12")).isEqualTo(AlertSeverity.BLIGHT);
+        assertThat(AlertSeverity.of("heat:12:2026-11-12")).isEqualTo(AlertSeverity.HEAT);
+        assertThat(AlertSeverity.of("rain:12:2026-11-12")).isEqualTo(AlertSeverity.RAIN);
+        assertThat(AlertSeverity.of("wind:12:2026-11-12")).isEqualTo(AlertSeverity.WIND);
+        assertThat(AlertSeverity.of("dry:12:2026-11-12")).isEqualTo(AlertSeverity.DRY);
         // A rule the home does not know yet is still shown, in the neutral colour, never guessed.
-        assertThat(AlertSeverity.of("rain:12:2026-11-12")).isEqualTo(AlertSeverity.OTHER);
+        assertThat(AlertSeverity.of("hail:12:2026-11-12")).isEqualTo(AlertSeverity.OTHER);
         assertThat(AlertSeverity.of(null)).isEqualTo(AlertSeverity.OTHER);
     }
 

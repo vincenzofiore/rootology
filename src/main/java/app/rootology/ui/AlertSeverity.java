@@ -4,24 +4,35 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 
 /**
  * How much a weather alert of #37 matters on the garden home (#84): a frost is the graver one, a warm and wet
- * period favourable to late blight comes after it. The rule is read from the event key the alert was sent
- * with ("frost:...", "blight:..."), never from its wording, which the morning check writes in Italian.
+ * period favourable to late blight comes after it, then the rules of #137 (heat, heavy rain, strong wind and
+ * the dry-days reminder). The rule is read from the event key the alert was sent with ("frost:...", "heat:..."),
+ * never from its wording, which the morning check writes in Italian; the short name is a translated label.
  */
 enum AlertSeverity {
 
-    /** Cold enough to harm what grows: red. */
-    FROST("rootology-alert-frost", VaadinIcon.ASTERISK),
+    /** Cold enough to harm what grows: ice blue. */
+    FROST("rootology-alert-frost", VaadinIcon.ASTERISK, "alert.frost"),
     /** A Smith period, favourable to late blight on tomato and potato: amber. */
-    BLIGHT("rootology-alert-blight", VaadinIcon.CLOUD_O),
+    BLIGHT("rootology-alert-blight", VaadinIcon.CLOUD_O, "alert.blight"),
+    /** A maximum beyond what a growing crop stands (ECOCROP): warm red. */
+    HEAT("rootology-alert-heat", VaadinIcon.FIRE, "alert.heat"),
+    /** At least 30 mm in a day or 10 mm in an hour: teal. */
+    RAIN("rootology-alert-rain", VaadinIcon.DROP, "alert.rain"),
+    /** A mean wind of 11 m/s or more: slate grey. */
+    WIND("rootology-alert-wind", VaadinIcon.ARROWS_LONG_H, "alert.wind"),
+    /** Three dry days and warm: earth brown, a reminder to water. */
+    DRY("rootology-alert-dry", VaadinIcon.SUN_O, "alert.dry"),
     /** An alert of a rule the home does not know yet: still shown, in the neutral colour. */
-    OTHER("rootology-alert-neutral", VaadinIcon.WARNING);
+    OTHER("rootology-alert-neutral", VaadinIcon.WARNING, "alert.other");
 
     private final String className;
     private final VaadinIcon icon;
+    private final String label;
 
-    AlertSeverity(String className, VaadinIcon icon) {
+    AlertSeverity(String className, VaadinIcon icon, String label) {
         this.className = className;
         this.icon = icon;
+        this.label = label;
     }
 
     /** The class that colours the alert, from the stylesheet. */
@@ -31,6 +42,11 @@ enum AlertSeverity {
 
     VaadinIcon icon() {
         return icon;
+    }
+
+    /** The key of the rule's short name, the icon's tooltip and aria label. */
+    String label() {
+        return label;
     }
 
     /** The severity of an alert from its event key; a key it does not know is not guessed. */
@@ -43,6 +59,18 @@ enum AlertSeverity {
         }
         if (dedupKey.startsWith("blight:")) {
             return BLIGHT;
+        }
+        if (dedupKey.startsWith("heat:")) {
+            return HEAT;
+        }
+        if (dedupKey.startsWith("rain:")) {
+            return RAIN;
+        }
+        if (dedupKey.startsWith("wind:")) {
+            return WIND;
+        }
+        if (dedupKey.startsWith("dry:")) {
+            return DRY;
         }
         return OTHER;
     }

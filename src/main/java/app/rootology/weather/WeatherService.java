@@ -120,7 +120,7 @@ public class WeatherService {
             return Optional.empty();
         }
         return jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, step_hours, "
-                        + "symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? "
+                        + "symbol_code, wind_speed_ms FROM weather_hour WHERE latitude = ? AND longitude = ? "
                         + "AND valid_at BETWEEN ? AND ?")
                 .params(lat, lon, ts(now.minus(NOW_DISTANCE)), ts(now.plus(NOW_DISTANCE)))
                 .query(WeatherService::hour).list().stream()
@@ -136,20 +136,22 @@ public class WeatherService {
     private void store(BigDecimal lat, BigDecimal lon, List<ForecastHour> hours, Instant now) {
         for (ForecastHour h : hours) {
             jdbc.sql("INSERT INTO weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
-                            + "precipitation_mm, step_hours, symbol_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                            + "precipitation_mm, step_hours, symbol_code, wind_speed_ms) "
+                            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
                             + "ON CONFLICT (latitude, longitude, valid_at) DO UPDATE SET "
                             + "air_temperature = EXCLUDED.air_temperature, relative_humidity = EXCLUDED.relative_humidity, "
                             + "precipitation_mm = EXCLUDED.precipitation_mm, step_hours = EXCLUDED.step_hours, "
-                            + "symbol_code = EXCLUDED.symbol_code")
+                            + "symbol_code = EXCLUDED.symbol_code, wind_speed_ms = EXCLUDED.wind_speed_ms")
                     .params(lat, lon, ts(h.time()), h.airTemperature(), h.relativeHumidity(), h.precipitation(),
-                            h.stepHours(), h.symbol()).update();
+                            h.stepHours(), h.symbol(), h.windSpeed()).update();
         }
         jdbc.sql("DELETE FROM weather_hour WHERE valid_at < ?").params(ts(now.minus(KEPT))).update();
     }
 
     private Forecast read(BigDecimal lat, BigDecimal lon, Instant now, Instant fetchedAt, boolean stale) {
         List<ForecastHour> hours = jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, "
-                        + "step_hours, symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
+                        + "step_hours, symbol_code, wind_speed_ms FROM weather_hour "
+                        + "WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
                         + "ORDER BY valid_at").params(lat, lon, ts(now.minus(PAST)))
                 .query(WeatherService::hour).list();
         return new Forecast(hours, fetchedAt, stale);
@@ -158,7 +160,8 @@ public class WeatherService {
     /** One stored hour, in the column order every query above selects. */
     private static ForecastHour hour(ResultSet rs, int row) throws SQLException {
         return new ForecastHour(rs.getTimestamp(1).toInstant(), rs.getDouble(2),
-                (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6));
+                (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6),
+                (Double) rs.getObject(7));
     }
 
     private static Timestamp ts(Instant instant) {

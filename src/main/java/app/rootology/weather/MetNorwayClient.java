@@ -90,7 +90,8 @@ class MetNorwayClient {
             Double precipitation = next == null || next.details() == null ? null : next.details().precipitationAmount();
             String symbol = next == null || next.summary() == null ? null : next.summary().symbolCode();
             if (now.airTemperature() != null) {
-                hours.add(new ForecastHour(time, now.airTemperature(), now.relativeHumidity(), precipitation, step, symbol));
+                hours.add(new ForecastHour(time, now.airTemperature(), now.relativeHumidity(), precipitation, step,
+                        symbol, now.windSpeed()));
             }
         }
         return hours;
@@ -132,6 +133,7 @@ class MetNorwayClient {
 
     record Details(@JsonProperty("air_temperature") Double airTemperature,
                    @JsonProperty("relative_humidity") Double relativeHumidity,
-                   @JsonProperty("precipitation_amount") Double precipitationAmount) {
+                   @JsonProperty("precipitation_amount") Double precipitationAmount,
+                   @JsonProperty("wind_speed") Double windSpeed) {
     }
 }

@@ -22,11 +22,11 @@ class MetNorwayClientTest {
 
     static final String BODY = """
             {"properties":{"meta":{"updated_at":"2026-11-04T09:17:28Z"},"timeseries":[
-             {"time":"2026-11-04T10:00:00Z","data":{"instant":{"details":{"air_temperature":12.5,"relative_humidity":91.0}},
+             {"time":"2026-11-04T10:00:00Z","data":{"instant":{"details":{"air_temperature":12.5,"relative_humidity":91.0,"wind_speed":4.2}},
               "next_1_hours":{"summary":{"symbol_code":"lightrain"},"details":{"precipitation_amount":0.4}}}},
-             {"time":"2026-11-04T11:00:00Z","data":{"instant":{"details":{"air_temperature":13.0,"relative_humidity":88.0}},
+             {"time":"2026-11-04T11:00:00Z","data":{"instant":{"details":{"air_temperature":13.0,"relative_humidity":88.0,"wind_speed":3.1}},
               "next_1_hours":{"details":{"precipitation_amount":0.0}}}},
-             {"time":"2026-11-04T17:00:00Z","data":{"instant":{"details":{"air_temperature":9.0}},
+             {"time":"2026-11-04T17:00:00Z","data":{"instant":{"details":{"air_temperature":9.0,"wind_speed":7.4}},
               "next_6_hours":{"details":{"precipitation_amount":1.2}}}}]}}
             """;
 
@@ -47,9 +47,9 @@ class MetNorwayClientTest {
         MetNorwayClient.Response response = client.fetch(45.4612, 9.1899, null);
 
         assertThat(response.hours()).containsExactly(
-                new ForecastHour(Instant.parse("2026-11-04T10:00:00Z"), 12.5, 91.0, 0.4, 1, "lightrain"),
-                new ForecastHour(Instant.parse("2026-11-04T11:00:00Z"), 13.0, 88.0, 0.0, 6),
-                new ForecastHour(Instant.parse("2026-11-04T17:00:00Z"), 9.0, null, 1.2, 6));
+                new ForecastHour(Instant.parse("2026-11-04T10:00:00Z"), 12.5, 91.0, 0.4, 1, "lightrain", 4.2),
+                new ForecastHour(Instant.parse("2026-11-04T11:00:00Z"), 13.0, 88.0, 0.0, 6, null, 3.1),
+                new ForecastHour(Instant.parse("2026-11-04T17:00:00Z"), 9.0, null, 1.2, 6, null, 7.4));
         assertThat(response.expires()).isEqualTo(Instant.parse("2026-11-04T10:01:06Z"));
         assertThat(response.lastModified()).isEqualTo("Wed, 04 Nov 2026 09:30:30 GMT");
     }

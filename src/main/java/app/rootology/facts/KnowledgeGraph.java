@@ -71,6 +71,14 @@ public class KnowledgeGraph {
         return result;
     }
 
+    /** The highest temperature each crop stands (ECOCROP's absolute maximum), for the crops that have one. */
+    public Map<String, Double> upperTemperatures() {
+        Map<String, Double> result = new java.util.TreeMap<>();
+        list("MATCH (c:Kb:Crop) WHERE c.tempAbsMax IS NOT NULL RETURN c.id AS id, c.tempAbsMax AS t", Map.of(),
+                r -> r).forEach(r -> result.put(r.get("id").asString(), r.get("t").asDouble()));
+        return result;
+    }
+
     /**
      * ECOCROP's light optimum of each crop, as `crop-needs.csv` writes it (for example "very bright",
      * "clear skies", "cloudy skies"), for the light rule (#54).

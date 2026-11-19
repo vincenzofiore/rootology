@@ -25,6 +25,14 @@
     --rootology-pest-10pct: light-dark(rgba(196, 120, 0, .14), rgba(227, 179, 65, .14));
     --rootology-waiting: light-dark(#6e40c9, #b392f0);
     --rootology-waiting-10pct: light-dark(rgba(110, 64, 201, .1), rgba(179, 146, 240, .14));
+    /* The weather alerts of #137: heat is warm red, heavy rain teal, strong wind slate, dry days the earth. */
+    --rootology-heat: light-dark(#b02a10, #ff8f6b);
+    --rootology-heat-10pct: light-dark(rgba(176, 42, 16, .1), rgba(255, 143, 107, .14));
+    --rootology-rain: light-dark(#0f6b7a, #63c8d9);
+    --rootology-rain-10pct: light-dark(rgba(15, 107, 122, .1), rgba(99, 200, 217, .14));
+    --rootology-wind: light-dark(#4a5a66, #a9bccb);
+    --rootology-wind-10pct: light-dark(rgba(74, 90, 102, .1), rgba(169, 188, 203, .14));
+    --rootology-earth-10pct: light-dark(rgba(138, 90, 59, .1), rgba(201, 162, 127, .14));
     --lumo-base-color: light-dark(#fcfdfa, #111611);
     --lumo-tint: light-dark(#fff, #e4ebe2);
     --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(228, 235, 226, .06));
@@ -497,6 +505,10 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-garden-card-fact-waiting { color: var(--rootology-waiting); font-weight: 600; }
 .rootology-garden-card-fact.rootology-alert-frost { color: var(--rootology-frost); font-weight: 600; }
 .rootology-garden-card-fact.rootology-alert-blight { color: var(--rootology-pest); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-heat { color: var(--rootology-heat); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-rain { color: var(--rootology-rain); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-wind { color: var(--rootology-wind); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-dry { color: var(--rootology-earth); font-weight: 600; }
 /* On the map: the place search and "where I am" at the top left, as in the map apps people know (#87). */
 .rootology-map-overlay {
     position: absolute;
@@ -1123,7 +1135,8 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-frost-icon { width: 0.9em; height: 0.9em; }
 
-/* An alert of #37, coloured by its rule: a frost is ice blue, late blight amber (#87). */
+/* An alert of #37, coloured by its rule: frost ice blue, late blight amber (#87); heat, heavy rain, strong
+   wind and dry days as the tokens above (#137). */
 .rootology-alert {
     display: flex;
     align-items: flex-start;
@@ -1137,6 +1150,14 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-alert-frost .rootology-alert-icon { color: var(--rootology-frost); }
 .rootology-alert-blight { background: var(--rootology-pest-10pct); }
 .rootology-alert-blight .rootology-alert-icon { color: var(--rootology-pest); }
+.rootology-alert-heat { background: var(--rootology-heat-10pct); }
+.rootology-alert-heat .rootology-alert-icon { color: var(--rootology-heat); }
+.rootology-alert-rain { background: var(--rootology-rain-10pct); }
+.rootology-alert-rain .rootology-alert-icon { color: var(--rootology-rain); }
+.rootology-alert-wind { background: var(--rootology-wind-10pct); }
+.rootology-alert-wind .rootology-alert-icon { color: var(--rootology-wind); }
+.rootology-alert-dry { background: var(--rootology-earth-10pct); }
+.rootology-alert-dry .rootology-alert-icon { color: var(--rootology-earth); }
 .rootology-alert-neutral .rootology-alert-icon { color: var(--lumo-secondary-text-color); }
 .rootology-alert-icon {
     flex: none;

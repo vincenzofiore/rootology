@@ -42,6 +42,7 @@ class WeatherAlertsTest {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
     static final Instant NOW = Instant.parse("2026-11-04T06:00:00Z");
+    static final Instant START = NOW.minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
 
     @TestBean
     Clock clock;
@@ -85,10 +86,14 @@ class WeatherAlertsTest {
     }
 
     private static Optional<Forecast> steady(double temperature, double humidity) {
+        return series(i -> new ForecastHour(START.plus(i, ChronoUnit.HOURS), temperature, humidity, 0.0, 1));
+    }
+
+    /** Six days of hourly steps from yesterday, one per index, so a test can shape a single hour. */
+    private static Optional<Forecast> series(java.util.function.IntFunction<ForecastHour> hour) {
         List<ForecastHour> hours = new ArrayList<>();
-        Instant start = NOW.minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
         for (int i = 0; i < 24 * 6; i++) {
-            hours.add(new ForecastHour(start.plus(i, ChronoUnit.HOURS), temperature, humidity, 0.0, 1));
+            hours.add(hour.apply(i));
         }
         return Optional.of(new Forecast(hours, NOW, false));
     }
@@ -153,6 +158,78 @@ class WeatherAlertsTest {
         when(weather.around(eq(new BigDecimal("40.85")), eq(new BigDecimal("14.27")))).thenReturn(steady(15.0, 60.0));
         alerts.check();
         assertThat(weatherOf("marco")).isEmpty();
+    }
+
+    @Test
+    void heatWarnsNamingCropsBeyondTheirLimitAndThoseNotChecked() {
+        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        // Lattuga stands 30 degrees C (ECOCROP); the songino has no record, so it is named, never guessed.
+        garden("paola", "quinto", "38.11", "13.35", "lettuce", "lambs-lettuce");
+        when(weather.around(eq(new BigDecimal("38.11")), eq(new BigDecimal("13.35")))).thenReturn(steady(31.0, 60.0));
+
+        alerts.check();
+
+        assertThat(weatherOf("paola")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Rischio caldo estremo");
+            assertThat(n.body()).contains("31,0 °C").contains("A rischio: Lattuga (Aiuola A)")
+                    .contains("Limite di caldo non noto: Valerianella (songino) (Aiuola A)")
+                    .contains("heat-v1").contains("FAO ECOCROP");
+        });
+    }
+
+    @Test
+    void thirtyMillimetresInADayWarnOfHeavyRain() {
+        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        garden("rosa", "tino", "37.51", "15.08", "lettuce");
+        // 1.5 mm an hour through the whole of 5 November: 36 mm that day, well over the 30 of the rule.
+        LocalDate wetDay = LocalDate.of(2026, 11, 5);
+        when(weather.around(eq(new BigDecimal("37.51")), eq(new BigDecimal("15.08")))).thenReturn(series(i -> {
+            Instant time = START.plus(i, ChronoUnit.HOURS);
+            boolean wet = LocalDate.ofInstant(time, ITALY).equals(wetDay);
+            return new ForecastHour(time, 15.0, 70.0, wet ? 1.5 : 0.0, 1);
+        }));
+
+        alerts.check();
+
+        assertThat(weatherOf("rosa")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Pioggia intensa");
+            assertThat(n.body()).contains("in un giorno").contains("heavy-rain-v1");
+        });
+    }
+
+    @Test
+    void strongWindIsWordedAsAPossibilityNeverACertainty() {
+        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        garden("sonia", "ugo", "44.06", "9.66", "lettuce");
+        when(weather.around(eq(new BigDecimal("44.06")), eq(new BigDecimal("9.66")))).thenReturn(series(i ->
+                new ForecastHour(START.plus(i, ChronoUnit.HOURS), 15.0, 70.0, 0.0, 1, null,
+                        i == 30 ? 12.0 : 5.0)));
+
+        alerts.check();
+
+        assertThat(weatherOf("sonia")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Possibile vento forte");
+            assertThat(n.body()).contains("12,0 m/s").contains("circa 43 km/h").contains("wind-v1")
+                    .contains("Possibile vento forte");
+        });
+    }
+
+    @Test
+    void dryWarmDaysAskForWaterOnlyInPotsPlantersAndRaisedBeds() {
+        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        garden(PlotKind.POT, "teresa", "vera", "41.56", "14.66", "lettuce");
+        garden(PlotKind.GROUND, "walter", "xenia", "41.57", "14.67", "lettuce");
+        Optional<Forecast> dry = steady(26.0, 60.0);
+        when(weather.around(eq(new BigDecimal("41.56")), eq(new BigDecimal("14.66")))).thenReturn(dry);
+        when(weather.around(eq(new BigDecimal("41.57")), eq(new BigDecimal("14.67")))).thenReturn(dry);
+
+        alerts.check();
+
+        assertThat(weatherOf("teresa")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Promemoria: annaffiare");
+            assertThat(n.body()).contains("Lattuga (Aiuola A)").contains("dry-days-v1");
+        });
+        assertThat(weatherOf("walter")).as("open ground is not the reminder's business").isEmpty();
     }
 
     @Test

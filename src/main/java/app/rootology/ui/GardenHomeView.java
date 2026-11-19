@@ -206,12 +206,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         grid.add(card);
     }
 
-    /** One alert: its icon and colour say the rule, then the title and what the morning check saw. */
-    private static Div alert(NotificationView alert) {
+    /**
+     * One alert: its icon and colour say the rule (its short name stays as tooltip and aria label), then the
+     * title and what the morning check saw.
+     */
+    private Div alert(NotificationView alert) {
         AlertSeverity severity = AlertSeverity.of(alert.dedupKey());
+        String rule = getTranslation(severity.label());
         Icon icon = severity.icon().create();
         icon.addClassName("rootology-alert-icon");
-        icon.getElement().setAttribute("aria-hidden", "true");
+        icon.getElement().setAttribute("title", rule);
+        icon.getElement().setAttribute("aria-label", rule);
+        icon.getElement().setAttribute("role", "img");
         Span alertTitle = new Span(alert.title());
         alertTitle.addClassName("rootology-alert-title");
         Div text = new Div(alertTitle, new Span(alert.body()));
