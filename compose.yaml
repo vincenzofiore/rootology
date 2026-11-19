@@ -29,4 +29,6 @@ services:
 
 volumes:
   postgres-data:
-    name: rootology-postgres
+    # Named after the Compose project (the folder): the main checkout keeps rootology-postgres, while a worktree
+    # gets its own volume. A shared one let two Postgres servers write the same files and broke it (2026-11-19).
+    name: ${COMPOSE_PROJECT_NAME}-postgres
