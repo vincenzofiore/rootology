@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: '25'
+          java-version-file: .java-version
           cache: maven
       - name: Build and test
         run: ./mvnw -B -ntp test
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: '25'
+          java-version-file: .java-version
           cache: maven
       - name: Build the production jar
         env:

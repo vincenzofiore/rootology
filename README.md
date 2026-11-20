@@ -256,7 +256,7 @@ layer, never from the text. Detailed notes are in `docs/experiment-log.md`.
 
 ## Dependencies
 
-- Java 25
+- Java 25 (`.java-version`, read by CI and by version managers such as jenv or mise)
 - Spring Boot 4.1 (starter, no web layer required for the core experiment)
 - Spring Modulith 2.1 (`spring-modulith-starter-core`, `spring-modulith-starter-test`)
 - Apache Jena 6.2 (`apache-jena-libs`) — RDF graph construction, SPARQL querying,
