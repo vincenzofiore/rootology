@@ -26,8 +26,8 @@ class KnowledgeGraphTest {
 
     @Test
     void holdsTheCuratedKnowledge() {
-        assertThat(knowledge.count("Crop")).isEqualTo(66);
-        assertThat(knowledge.count("Family")).isEqualTo(17);
+        assertThat(knowledge.count("Crop")).isEqualTo(73);
+        assertThat(knowledge.count("Family")).isEqualTo(18);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         // Only curated windows are written now (#62): CENTRO and the one NORD row; SUD is derived.
         assertThat(knowledge.count("Zone")).isEqualTo(2);
@@ -104,7 +104,7 @@ class KnowledgeGraphTest {
                 .extracting(SourcedFact::fact).contains(new Fact("Late blight", "activeInSeason", "SUMMER"));
         assertThat(knowledge.factsAbout("Pomodoro")).extracting(SourcedFact::fact)
                 .contains(new Fact("Pomodoro", "companionOf", "Basilico"));
-        assertThat(knowledge.factsAbout("Lavender")).isEmpty();
+        assertThat(knowledge.factsAbout("Papaya")).isEmpty();
         assertThat(knowledge.factsAbout("tomato", "it")).extracting(SourcedFact::fact)
                 .contains(new Fact("tomato", "companionOf", "Basilico"), new Fact("Peronospora del pomodoro e della patata",
                         "affects", "tomato"));

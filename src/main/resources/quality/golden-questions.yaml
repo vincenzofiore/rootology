@@ -141,6 +141,25 @@ cases:
     intent: {kind: HARVEST_TIME, subject: Mandarin, language: en, place: Vasto}
     expect: {answer: [NOVEMBER, DECEMBER, JANUARY, FEBRUARY]}
 
+  # Perennial herbs (#139).
+  - id: prune-lavender
+    question: Quando si pota la lavanda a Vasto?
+    intent: {kind: PRUNING_TIME, subject: lavanda, language: it, place: Vasto}
+    expect: {answer: [AUGUST, SEPTEMBER]}
+
+  - id: harvest-thyme-en
+    question: When is thyme harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: thyme, language: en, place: Vasto}
+    expect:
+      answer: [JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER]
+
+  - id: plant-marjoram
+    question: Quando si pianta la maggiorana a Vasto?
+    intent: {kind: SOWING_TIME, subject: maggiorana, language: it, place: Vasto}
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
   # A crop with no pruning window: nothing is guessed, the question waits for a person.
   - id: prune-tomato
     question: Quando si pota il pomodoro a Vasto?
@@ -150,18 +169,19 @@ cases:
   - id: sow-now-november
     question: Cosa posso seminare adesso a Vasto?
     intent: {kind: SOW_NOW, language: it, place: Vasto}
-    expect: {answer: [Fava, Aglio, Pisello, Rosmarino, Salvia, Scalogno]}
+    expect: {answer: [Fava, Aglio, Alloro, Pisello, Rosmarino, Salvia, Scalogno]}
 
   - id: sow-in-march-en
     question: What can I sow in March in Vasto?
     intent: {kind: SOW_NOW, language: en, month: MARCH, place: Vasto}
     expect:
-      answer: [Basil, Beetroot, Borage, Cabbage, Cape gooseberry, Carrot, Celeriac, Celery, Chard, Chervil,
-               Chickpea, Chili pepper, Coriander, Dill, Eggplant, Grass pea, Kohlrabi, Leek, Lentil, Lettuce,
-               Okra, Onion, Parsley, Parsnip, Pea, Potato, Radish, Rocket, Rosemary, Sage, Shallot, Spinach,
-               Spring onion, Sweet pepper, Tomato]
+      answer: [Basil, Bay laurel, Beetroot, Borage, Cabbage, Cape gooseberry, Carrot, Celeriac, Celery, Chard,
+               Chervil, Chickpea, Chili pepper, Chives, Coriander, Dill, Eggplant, Grass pea, Kohlrabi,
+               Lavender, Leek, Lentil, Lettuce, Mint, Okra, Onion, Oregano, Parsley, Parsnip, Pea, Potato,
+               Radish, Rocket, Rosemary, Sage, Shallot, Spinach, Spring onion, Sweet pepper, Thyme, Tomato]
       activities:
         Basil: [SOW]
+        Bay laurel: [PLANT]
         Beetroot: [SOW]
         Borage: [SOW]
         Cabbage: [SOW_SEEDBED]
@@ -173,16 +193,20 @@ cases:
         Chervil: [SOW]
         Chickpea: [SOW]
         Chili pepper: [SOW_SEEDBED]
+        Chives: [SOW, PLANT]
         Coriander: [SOW]
         Dill: [SOW]
         Eggplant: [SOW_SEEDBED]
         Grass pea: [SOW]
         Kohlrabi: [SOW]
+        Lavender: [PLANT]
         Leek: [SOW_SEEDBED]
         Lentil: [SOW]
         Lettuce: [SOW]
+        Mint: [PLANT]
         Okra: [SOW_SEEDBED]
         Onion: [SOW]
+        Oregano: [PLANT]
         Parsley: [SOW]
         Parsnip: [SOW]
         Pea: [SOW]
@@ -195,8 +219,8 @@ cases:
         Spinach: [SOW]
         Spring onion: [SOW]
         Sweet pepper: [SOW_SEEDBED]
+        Thyme: [PLANT]
         Tomato: [SOW_SEEDBED]
-
   # What to sow in a month: seedbed crops stay in the list, marked as such (owner's choice 2026-11-15, #112).
   - id: sow-in-february-it
     question: Cosa posso seminare a febbraio a Vasto?
@@ -269,7 +293,7 @@ cases:
     intent: {kind: SOW_IN_PLOT, subject: Aiuola B, language: it}
     garden: rome
     weather: missing
-    expect: {answer: [Aglio, Rosmarino, Salvia, Scalogno]}
+    expect: {answer: [Aglio, Alloro, Rosmarino, Salvia, Scalogno]}
 
   # Local weather (#18): frost-risk-v1 with ECOCROP's killing temperature for young plants.
   - id: frost-rules-out-pea
@@ -287,7 +311,7 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Aglio, Alloro, Pisello, Rosmarino, Salvia, Scalogno]
       notes: [not available]
 
   # Facts added by a space (#24): visible only there.
@@ -304,8 +328,8 @@ cases:
 
   # Questions that must go to a person.
   - id: unknown-crop
-    question: Quali sono le compagne della lavanda?
-    intent: {kind: COMPANIONS, subject: lavanda, language: it}
+    question: Quali sono le compagne della papaya?
+    intent: {kind: COMPANIONS, subject: papaya, language: it}
     expect: {escalate: not in the dataset}
 
   # A plain weather forecast is not about the garden (#53): refused, where it used to wait for a person.
@@ -390,7 +414,7 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Pisello, Aglio, Alloro, Rosmarino, Salvia, Scalogno]
       notes: [not available, on the coast]
 
   - id: growing-now-in-one-of-two-gardens
@@ -432,7 +456,7 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Palermo}
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Pisello, Aglio, Alloro, Rosmarino, Salvia, Scalogno]
       notes: [not available]
 
   - id: sow-now-in-a-place-named-inside-a-garden
@@ -508,7 +532,7 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Pisello, Aglio, Rosmarino, Salvia, Scalogno]
+      answer: [Pisello, Aglio, Alloro, Rosmarino, Salvia, Scalogno]
       notes: [names zone NORD, but the garden is in zone CENTRO]
 
   - id: plot-not-in-the-garden

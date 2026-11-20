@@ -351,7 +351,7 @@ class GardenServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> gardens.saveGarden(space, "kara", null, "X", null, new BigDecimal("95"), null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> gardens.plant(space, "kara", bed.id(), "lavender", PlantingMethod.SOWN,
+        assertThatThrownBy(() -> gardens.plant(space, "kara", bed.id(), "papaya", PlantingMethod.SOWN,
                 LocalDate.now(), null)).isInstanceOf(IllegalArgumentException.class);
         PlantingSummary carrots = gardens.plant(space, "kara", bed.id(), "carrot", PlantingMethod.SOWN,
                 LocalDate.of(2026, 3, 1), null);

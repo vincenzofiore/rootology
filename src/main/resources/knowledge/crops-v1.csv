@@ -1,4 +1,4 @@
-# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20 (#139).
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -75,3 +75,10 @@ orange,Arancio,Sweet orange,Citrus x sinensis,Rutaceae,Q3355098,720,Citrus sinen
 mandarin,Mandarino,Mandarin,Citrus reticulata,Rutaceae,Q125337,718,,TENDER,il,PERENNIAL,-6,rootology-editorial
 clementine,Clementina,Clementine,Citrus x clementina,Rutaceae,Q460517,718,Citrus reticulata (parent),TENDER,la,PERENNIAL,-5,rootology-editorial
 kumquat,Kumquat,Kumquat,Citrus japonica,Rutaceae,Q124344319,1110,Fortunella japonica,TENDER,il,PERENNIAL,-10,rootology-editorial
+thyme,Timo,Thyme,Thymus vulgaris,Lamiaceae,Q148668,2441,,OVERWINTER,il,PERENNIAL,-15,rootology-editorial
+oregano,Origano,Oregano,Origanum vulgare,Lamiaceae,Q134283,2369,,OVERWINTER,l’,PERENNIAL,-15,rootology-editorial
+mint,Menta,Mint,Mentha spicata,Lamiaceae,Q160114,7710,Mentha spicata var. crispa,OVERWINTER,la,PERENNIAL,-20,rootology-editorial
+marjoram,Maggiorana,Marjoram,Origanum majorana,Lamiaceae,Q22694,2368,,TENDER,la,PERENNIAL,-5,rootology-editorial
+chives,Erba cipollina,Chives,Allium schoenoprasum,Amaryllidaceae,Q51148,810,,OVERWINTER,l’,PERENNIAL,-25,rootology-editorial
+bay-laurel,Alloro,Bay laurel,Laurus nobilis,Lauraceae,Q26006,1333,,OVERWINTER,l’,PERENNIAL,-10,rootology-editorial
+lavender,Lavanda,Lavender,Lavandula angustifolia,Lamiaceae,Q42081,7172,,OVERWINTER,la,PERENNIAL,-15,rootology-editorial

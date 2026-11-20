@@ -152,10 +152,30 @@ winter minimum, which the climate cells do not hold yet (#147). Until then the f
 growing citrus on the real forecast, and a garden whose spring comes later than Vasto's loses the winter
 harvests (`frost-shift-v1`), so those questions wait for a person.
 
+### Perennial herbs (2026-11-20)
+
+Seven perennial herbs, planted in spring or autumn (`OVERWINTER`, like rosemary and sage) except marjoram, which is
+tender. A pruning window only where there is a real gesture to remember; for marjoram and chives a pruning
+question waits for a person. Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Timo | Q148668 | 2441 | Mar–May, Sep–Oct | all year | Jun–Jul (light trim after flowering) | -15 °C |
+| Origano | Q134283 | 2369 | Mar–May, Sep–Oct | May–Sep | Feb–Mar (the dry stems) | -15 °C |
+| Menta | Q160114 | 7710 (var. crispa) | Mar–May, Sep–Oct (best in a pot) | Apr–Oct | Feb–Mar (to the ground) | -20 °C |
+| Maggiorana | Q22694 | 2368 | Apr–May | Jun–Sep | none | -5 °C |
+| Erba cipollina | Q51148 | 810 | sown Mar–Apr; clumps Mar–Apr, Sep–Oct | Mar–Oct | none | -25 °C |
+| Alloro | Q26006 | 1333 | Mar–Apr, Oct–Nov | all year | Mar–Apr (after the frosts) | -10 °C |
+| Lavanda | Q42081 | 7172 | Mar–May, Sep–Oct | Jun–Jul (flowers) | Aug–Sep (after flowering) | -15 °C |
+
+Lavender, mint and thyme used to be the tests' examples of an unknown crop; papaya, mango and feijoa took their
+place. The experiment's case hard-3 ("Which plants are companions of Lavender?") is unchanged: it reads the
+suite's own graph, which never sees this catalog.
+
 ## Notes
 
-- 66 crops in 17 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus from 2026-11-20).
-- Candidates for later: perennial herbs, berries, fruit trees, flowers and green manures of #139.
+- 73 crops in 18 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20).
+- Candidates for later: berries, fruit trees, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

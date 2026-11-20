@@ -34,7 +34,7 @@ class ValueTextTest {
     @Test
     void whatTheKnowledgeBaseDoesNotKnowStaysExactlyAsWritten() {
         assertThat(ValueText.of("Aiuola B", Locale.ENGLISH)).isEqualTo("Aiuola B");
-        assertThat(ValueText.of("lavanda", Locale.ITALIAN)).isEqualTo("lavanda");
+        assertThat(ValueText.of("papaya", Locale.ITALIAN)).isEqualTo("papaya");
         assertThat(ValueText.of("SUMMER", Locale.ITALIAN)).isEqualTo("SUMMER");
         assertThat(ValueText.of("", Locale.ITALIAN)).isEmpty();
         assertThat(ValueText.of(null, Locale.ITALIAN)).isNull();

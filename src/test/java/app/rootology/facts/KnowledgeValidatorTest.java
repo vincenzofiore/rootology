@@ -27,49 +27,49 @@ class KnowledgeValidatorTest {
     @Test
     void theCuratedFilesAreValid() {
         assertThat(KnowledgeValidator.validate(real)).isEmpty();
-        assertThat(real.crops()).hasSize(66);
-        assertThat(real.needs()).hasSize(65);
+        assertThat(real.crops()).hasSize(73);
+        assertThat(real.needs()).hasSize(72);
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
-        assertThat(real.windows()).hasSize(166);
+        assertThat(real.windows()).hasSize(192);
     }
 
     @Test
     void refusesACropWithoutAValidFrostGroup() {
         var k = new CuratedKnowledge(real.sources(),
-                plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
-                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null)),
+                plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
+                        "Caricaceae", "Q34887", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null)),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
-                "crop lavender: frost_group must be one of " + FrostShiftRule.GROUPS + ", not NOT_A_GROUP");
+                "crop papaya: frost_group must be one of " + FrostShiftRule.GROUPS + ", not NOT_A_GROUP");
     }
 
     @Test
     void refusesACropWithoutAKnownItalianArticle() {
         var k = new CuratedKnowledge(real.sources(),
-                plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
-                        "Lamiaceae", "Q102241", null, "TENDER", "una", "PERENNIAL", null, null)),
+                plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
+                        "Caricaceae", "Q34887", null, "TENDER", "una", "PERENNIAL", null, null)),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
-        assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop lavender: italian_article"));
+        assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop papaya: italian_article"));
     }
 
     @Test
     void keepsFrostHardinessForPerennialsWithAKnownSource() {
         var k = new CuratedKnowledge(real.sources(), plus(real.crops(),
-                new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia", "Lamiaceae", "Q102241", null,
+                new Crop("papaya", "Papaya", "Papaya", "Carica papaya", "Caricaceae", "Q34887", null,
                         "HARDY", "la", "ANNUAL", -15.0, "rootology-editorial"),
-                new Crop("thyme", "Timo", "Thyme", "Thymus vulgaris", "Lamiaceae", "Q148668", null, "HARDY", "il",
+                new Crop("mango", "Mango", "Mango", "Mangifera indica", "Anacardiaceae", "Q3919027", null, "HARDY", "il",
                         "PERENNIAL", -15.0, "a-blog"),
-                new Crop("mint", "Menta", "Mint", "Mentha spicata", "Lamiaceae", "Q156939", null, "HARDY", "la",
+                new Crop("feijoa", "Feijoa", "Feijoa", "Acca sellowiana", "Myrtaceae", "Q1092496", null, "HARDY", "la",
                         "EVERGREEN", null, null)),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
-                "crop lavender: frost_hardiness is for perennials only",
-                "crop thyme: hardiness_source: unknown source a-blog",
-                "crop mint: lifecycle must be one of " + Crop.LIFECYCLES + ", not EVERGREEN");
+                "crop papaya: frost_hardiness is for perennials only",
+                "crop mango: hardiness_source: unknown source a-blog",
+                "crop feijoa: lifecycle must be one of " + Crop.LIFECYCLES + ", not EVERGREEN");
     }
 
     @Test
@@ -97,13 +97,13 @@ class KnowledgeValidatorTest {
     @Test
     void refusesUnknownCropsSourcesAndOrganisms() {
         var k = new CuratedKnowledge(real.sources(), real.crops(), real.needs(),
-                plus(real.windows(), new WindowRow("lavender", "CENTRO", "SOW", 3, 4, "", "rootology-editorial", false)),
+                plus(real.windows(), new WindowRow("papaya", "CENTRO", "SOW", 3, 4, "", "rootology-editorial", false)),
                 plus(real.pairs(), new PairRow("tomato", "basil", "COMPANION", "x", "traditional", List.of("blog"))),
                 real.organisms(),
                 plus(real.hosts(), new HostRow("XXXXXX", "tomato", 5, 6, "", "rootology-editorial", false)));
 
         assertThat(KnowledgeValidator.validate(k)).contains(
-                "window lavender SOW: unknown crop lavender",
+                "window papaya SOW: unknown crop papaya",
                 "pair tomato-basil: unknown source blog",
                 "host XXXXXX-tomato: unknown organism XXXXXX");
     }

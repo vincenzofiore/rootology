@@ -448,17 +448,17 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aWaitingQuestionAndItsAnswerAreAnnouncedForNotifications() {
         RunContext run = signedIn("yara");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mint?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mint"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mango?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mango"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
-        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mint?"), run);
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mango?"), run);
         pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(), new HumanAnswer(List.of(), "", "yara"));
 
         assertThat(applicationEvents.stream(EscalationWaiting.class)).singleElement().satisfies(e -> {
             assertThat(e.spaceId()).isEqualTo(run.spaceId());
             assertThat(e.askedBy()).isEqualTo("yara");
-            assertThat(e.reason()).isEqualTo("mint is not in the dataset");
+            assertThat(e.reason()).isEqualTo("mango is not in the dataset");
         });
         assertThat(applicationEvents.stream(EscalationResolved.class)).singleElement()
                 .extracting(EscalationResolved::reviewer).isEqualTo("yara");
@@ -495,12 +495,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aWaitingQuestionSurvivesTheLossOfItsAgentAndCanStillBeAnswered() {
         RunContext run = signedIn("zeno");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of thyme?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "thyme"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of feijoa?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "feijoa"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
-                && prompt.contains("companions of thyme")).thenReturn("a person answered after the restart");
+                && prompt.contains("companions of feijoa")).thenReturn("a person answered after the restart");
 
-        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of thyme?"), run);
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of feijoa?"), run);
         String processId = asked.pending().processId();
         agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
 
@@ -523,12 +523,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void everyQuestionAndEveryAnswerToAnEscalationIsRecorded() {
         RunContext run = signedIn("xavier");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(
-                new Question("ask", "Which plants are companions of lavender?"), run);
+                new Question("ask", "Which plants are companions of papaya?"), run);
         assertThat(usage.today("xavier").used()).isEqualTo(1);
         pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(),
                 new HumanAnswer(List.of(), "not in the garden", "xavier"));
@@ -538,14 +538,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void anUnknownCropInARealQuestionWaitsForAPerson() {
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
 
         GardenPipeline.Run run = pipeline.askKnowledgeBase(
-                new Question("ask", "Which plants are companions of lavender?"), signedIn("omar"));
+                new Question("ask", "Which plants are companions of papaya?"), signedIn("omar"));
 
         assertThat(run.answer()).isNull();
-        assertThat(run.pending().decision().reason()).isEqualTo("lavender is not in the dataset");
+        assertThat(run.pending().decision().reason()).isEqualTo("papaya is not in the dataset");
     }
 
     @Test

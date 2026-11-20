@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Seven perennial herbs: thyme, oregano, mint, marjoram, chives, bay laurel and lavender, with their planting, harvest and pruning months and their FAO ECOCROP needs (#139).
 - Five citrus, the first fruit trees: lemon, sweet orange, mandarin, clementine and kumquat, with their planting, harvest and pruning months and their FAO ECOCROP needs; questions such as "Quando si pota il limone?" are now answered from the pruning months, and nothing is guessed for a crop that has none (#139).
 - The garden home and the area cards say when each crop growing now is usually harvested, as the harvest months of the garden's own climate (a small basket with "lug–set", the whole sentence as tooltip), and say nothing where there is no such window (#131).
 - 22 more annual crops: beetroot, turnip, parsnip, celeriac, sweet potato, Brussels sprouts, kohlrabi, borage, purslane, shallot, spring onion, chickpea, lentil, grass pea, cowpea, runner bean, sweet corn, okra, dill, coriander, chervil and cape gooseberry (alchechengi), with their sowing and harvest months and FAO ECOCROP needs (#139).
