@@ -283,6 +283,11 @@ public class JevDecisionLayer implements DecisionLayer {
                         result.add(f.object());
                     }
                 }
+                case PRUNING_TIME -> {
+                    if (f.predicate().equals("pruneIn")) {
+                        result.add(f.object());
+                    }
+                }
                 case SOW_NOW, SOW_IN_PLOT -> {
                     if (app.rootology.facts.SowingActivity.PREDICATES.contains(f.predicate())) {
                         result.add(f.subject());
@@ -325,6 +330,7 @@ public class JevDecisionLayer implements DecisionLayer {
             case SOWING_TIME -> "The answer is every month M such that "
                     + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE;
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
+            case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact. " + SITE;
             default -> rule(kind);
         };
     }
@@ -353,6 +359,8 @@ public class JevDecisionLayer implements DecisionLayer {
             case SOWING_TIME -> "The answer is every month M such that "
                     + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact for `intent.zone`.";
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact for "
+                    + "`intent.zone`.";
+            case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact for "
                     + "`intent.zone`.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact for `intent.zone`, unless (X, avoidNow, frost) is a fact.";

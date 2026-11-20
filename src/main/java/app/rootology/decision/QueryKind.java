@@ -16,6 +16,8 @@ public enum QueryKind {
     SOWING_TIME,
     /** Knowledge base: months to harvest a crop, in a zone. */
     HARVEST_TIME,
+    /** Knowledge base: months to prune a perennial crop, in a zone (#139). */
+    PRUNING_TIME,
     /** Knowledge base: crops that can be sown or planted in a month (now by default), in a zone. */
     SOW_NOW,
     /** My garden: crops growing now in the asking person's space. */

@@ -48,6 +48,7 @@ public class GardenPipelineAgent {
             - ANTAGONISTS: which plants should not be planted next to a plant
             - SOWING_TIME: when to sow or plant a plant
             - HARVEST_TIME: when to harvest a plant
+            - PRUNING_TIME: when to prune a plant (a fruit tree, a citrus, a perennial herb)
             - SOW_NOW: what can be sown or planted now, or in a given month (no subject)
             - GROWING_NOW: what is growing in my garden now (no subject)
             - PEST_RISK: which pests or diseases threaten what I grow, now or in a given month (no subject)
@@ -238,7 +239,7 @@ public class GardenPipelineAgent {
         // The asking space also sees the facts its members added (#24), tagged PROPOSED.
         Long space = context.hasSpace() ? context.spaceId() : null;
         List<SourcedFact> facts = switch (full.kind()) {
-            case SOWING_TIME, HARVEST_TIME -> climate.windowFacts(full.subject(), context.climate(), space);
+            case SOWING_TIME, HARVEST_TIME, PRUNING_TIME -> climate.windowFacts(full.subject(), context.climate(), space);
             case SOW_NOW -> climate.sowingFacts(full.month(), context.climate(), full.languageOrDefault());
             case GROWING_NOW -> garden.growing(context, run, full.languageOrDefault());
             case PEST_RISK -> garden.threats(context, run, full.languageOrDefault());

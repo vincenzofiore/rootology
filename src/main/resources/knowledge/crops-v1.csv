@@ -1,4 +1,4 @@
-# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18 (#139).
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -70,3 +70,8 @@ dill,Aneto,Dill,Anethum graveolens,Apiaceae,Q26686,2192,,LONG,l’,ANNUAL,,
 coriander,Coriandolo,Coriander,Coriandrum sativum,Apiaceae,Q41611,784,,LONG,il,ANNUAL,,
 chervil,Cerfoglio,Chervil,Anthriscus cerefolium,Apiaceae,Q218462,3265,,LONG,il,ANNUAL,,
 physalis,Alchechengi,Cape gooseberry,Physalis peruviana,Solanaceae,Q165227,1686,,TENDER,l’,ANNUAL,,
+lemon,Limone,Lemon,Citrus x limon,Rutaceae,Q500,714,Citrus limon,TENDER,il,PERENNIAL,-3,rootology-editorial
+orange,Arancio,Sweet orange,Citrus x sinensis,Rutaceae,Q3355098,720,Citrus sinensis,TENDER,l’,PERENNIAL,-5,rootology-editorial
+mandarin,Mandarino,Mandarin,Citrus reticulata,Rutaceae,Q125337,718,,TENDER,il,PERENNIAL,-6,rootology-editorial
+clementine,Clementina,Clementine,Citrus x clementina,Rutaceae,Q460517,718,Citrus reticulata (parent),TENDER,la,PERENNIAL,-5,rootology-editorial
+kumquat,Kumquat,Kumquat,Citrus japonica,Rutaceae,Q124344319,1110,Fortunella japonica,TENDER,il,PERENNIAL,-10,rootology-editorial

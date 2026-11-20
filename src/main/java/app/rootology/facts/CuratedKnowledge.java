@@ -22,7 +22,7 @@ public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<N
                           String light, Double tempKillEarly, String source) {
     }
 
-    /** activity: SOW, SOW_SEEDBED, TRANSPLANT, PLANT or HARVEST; months 1-12, wrapping when from > to. */
+    /** activity: SOW, SOW_SEEDBED, TRANSPLANT, PLANT, HARVEST or PRUNE; months 1-12, wrapping when from > to. */
     public record WindowRow(String cropId, String zone, String activity, int fromMonth, int toMonth, String note,
                             String source, boolean verified) {
     }

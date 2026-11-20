@@ -123,6 +123,30 @@ cases:
     intent: {kind: HARVEST_TIME, subject: aglio, language: it, place: Vasto}
     expect: {answer: [JUNE, JULY]}
 
+  # Citrus and pruning (#139): perennials with a planting, a harvest and a pruning window.
+  - id: plant-lemon
+    question: Quando si pianta il limone a Vasto?
+    intent: {kind: SOWING_TIME, subject: limone, language: it, place: Vasto}
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
+  - id: prune-lemon
+    question: Quando si pota il limone a Vasto?
+    intent: {kind: PRUNING_TIME, subject: limone, language: it, place: Vasto}
+    expect: {answer: [MARCH, APRIL]}
+
+  - id: harvest-mandarin-en
+    question: When are mandarins harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: Mandarin, language: en, place: Vasto}
+    expect: {answer: [NOVEMBER, DECEMBER, JANUARY, FEBRUARY]}
+
+  # A crop with no pruning window: nothing is guessed, the question waits for a person.
+  - id: prune-tomato
+    question: Quando si pota il pomodoro a Vasto?
+    intent: {kind: PRUNING_TIME, subject: pomodoro, language: it, place: Vasto}
+    expect: {escalate: pruning months}
+
   - id: sow-now-november
     question: Cosa posso seminare adesso a Vasto?
     intent: {kind: SOW_NOW, language: it, place: Vasto}

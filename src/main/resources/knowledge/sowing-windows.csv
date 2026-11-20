@@ -155,3 +155,18 @@ chervil,CENTRO,HARVEST,10,12,,rootology-editorial,no
 physalis,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
 physalis,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
 physalis,CENTRO,HARVEST,8,10,,rootology-editorial,no
+lemon,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lemon,CENTRO,HARVEST,1,12,mostly November to May,rootology-editorial,no
+lemon,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+orange,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+orange,CENTRO,HARVEST,12,4,depends on the variety,rootology-editorial,no
+orange,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+mandarin,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+mandarin,CENTRO,HARVEST,11,2,,rootology-editorial,no
+mandarin,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+clementine,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+clementine,CENTRO,HARVEST,10,1,,rootology-editorial,no
+clementine,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+kumquat,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+kumquat,CENTRO,HARVEST,12,3,,rootology-editorial,no
+kumquat,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no

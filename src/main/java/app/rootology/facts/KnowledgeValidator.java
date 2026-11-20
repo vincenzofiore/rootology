@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public final class KnowledgeValidator {
 
     static final Set<String> ZONES = Set.of("NORD", "CENTRO", "SUD");
-    static final Set<String> ACTIVITIES = Set.of("SOW", "SOW_SEEDBED", "TRANSPLANT", "PLANT", "HARVEST");
+    static final Set<String> ACTIVITIES = Set.of("SOW", "SOW_SEEDBED", "TRANSPLANT", "PLANT", "HARVEST", "PRUNE");
     static final Set<String> RELATIONS = Set.of("COMPANION", "ANTAGONIST");
     static final Set<String> EVIDENCE = Set.of("study", "extension", "traditional");
     static final Set<String> KINDS = Set.of("INSECT", "MITE", "MOLLUSC", "DISEASE");

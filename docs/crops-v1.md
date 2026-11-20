@@ -134,12 +134,28 @@ editorial, to be reviewed by the owner:
 | Rosmarino | -10 °C | rootology-editorial |
 | Salvia | -15 °C | rootology-editorial |
 
-Pruning (`PRUNE`) is planned with the first group that needs it (citrus), together with its question kind.
+### Citrus (2026-11-20)
+
+Five citrus in a new family, Rutaceae, all `TENDER` (planted in spring after the frosts), with a pruning window
+(`PRUNE`, "Quando si pota il limone?", question kind `PRUNING_TIME`). Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Limone | Q500 | 714 | Apr–May | all year (mostly Nov–May) | Mar–Apr | -3 °C |
+| Arancio | Q3355098 | 720 | Apr–May | Dec–Apr (depends on the variety) | Mar–Apr | -5 °C |
+| Mandarino | Q125337 | 718 | Apr–May | Nov–Feb | Mar–Apr | -6 °C |
+| Clementina | Q460517 | 718 (mandarin, a parent) | Apr–May | Oct–Jan | Mar–Apr | -5 °C |
+| Kumquat | Q124344319 | 1110 (Fortunella japonica) | Apr–May | Dec–Mar | Mar–Apr | -10 °C |
+
+Whether a citrus survives the winter at a given site ("il limone resiste a Torino?") needs the site's typical
+winter minimum, which the climate cells do not hold yet (#147). Until then the frost alert judges a
+growing citrus on the real forecast, and a garden whose spring comes later than Vasto's loses the winter
+harvests (`frost-shift-v1`), so those questions wait for a person.
 
 ## Notes
 
-- 61 crops in 16 families (39 from 2026-11-03, 22 annuals from 2026-11-18).
-- Candidates for later: citrus, perennial herbs, berries, fruit trees, flowers and green manures of #139.
+- 66 crops in 17 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus from 2026-11-20).
+- Candidates for later: perennial herbs, berries, fruit trees, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

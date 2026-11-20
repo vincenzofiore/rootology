@@ -57,6 +57,7 @@ public class StubDecisionLayer implements DecisionLayer {
                     "declared antagonists of " + subject);
             case SOWING_TIME -> months(subject, facts, List.copyOf(SOWING), "sowing or planting");
             case HARVEST_TIME -> months(subject, facts, List.of("harvestIn"), "harvest");
+            case PRUNING_TIME -> months(subject, facts, List.of("pruneIn"), "pruning");
             case SOW_IN_PLOT -> sowInPlot(subject, intent.month(), facts);
             case SOW_NOW, GROWING_NOW, PEST_RISK, OTHER -> throw new IllegalStateException("handled above");
         };

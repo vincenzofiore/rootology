@@ -26,7 +26,8 @@ import java.util.Set;
  * TENDER, HARDY and OVERWINTER harvests end at most at lastSafe. A winter harvest (starting October to
  * February) is not derived when its d is not 0, a window whose end falls before its start is never
  * derived, and year-round windows (11 months or more) stay as they are. Nothing ever moves earlier in
- * spring than Vasto: the clamps above guarantee it.
+ * spring than Vasto: the clamps above guarantee it. A pruning window (PRUNE, #139) moves with the crop's
+ * group like a planting window, but never sets where the crop's planting chain starts.
  */
 public final class FrostShiftRule {
 
@@ -72,7 +73,8 @@ public final class FrostShiftRule {
             return new int[]{from, to};
         }
         List<WindowRow> chain = rows.stream()
-                .filter(w -> w.cropId().equals(row.cropId()) && !w.activity().equals("HARVEST")).toList();
+                .filter(w -> w.cropId().equals(row.cropId()) && !w.activity().equals("HARVEST")
+                        && !w.activity().equals("PRUNE")).toList();
         int firstSafe = site.firstSafeMonth();
         int lastSafe = site.lastSafeMonth();
         int d;

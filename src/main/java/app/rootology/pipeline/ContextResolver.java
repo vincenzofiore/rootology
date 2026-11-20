@@ -55,15 +55,15 @@ class ContextResolver {
 
     /** The kinds that read the Italian calendars: only these get a climate profile and a month. */
     static final java.util.Set<QueryKind> NEEDS_ZONE = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT);
 
     /** The kinds a place named in the question applies to (#107). */
     static final java.util.Set<QueryKind> NEEDS_PLACE = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW);
 
     /** The kinds that need a month: the calendars and the pest months, which apply abroad too (#58). */
     static final java.util.Set<QueryKind> NEEDS_MONTH = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
 
     /** The kinds about the run's garden: they cannot be answered outside one. */
     static final java.util.Set<QueryKind> NEEDS_GARDEN = java.util.Set.of(QueryKind.GROWING_NOW,
@@ -493,7 +493,8 @@ class ContextResolver {
         }
         String month = intent.month();
         if (NEEDS_MONTH.contains(intent.kind()) && month == null
-                && intent.kind() != QueryKind.SOWING_TIME && intent.kind() != QueryKind.HARVEST_TIME) {
+                && intent.kind() != QueryKind.SOWING_TIME && intent.kind() != QueryKind.HARVEST_TIME
+                && intent.kind() != QueryKind.PRUNING_TIME) {
             month = currentMonth.name();
         }
         // A kind that reads no zone (a pest question, #58) carries none, so nothing shows a zone that
