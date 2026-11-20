@@ -400,7 +400,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         if (garden.latitude() == null || garden.longitude() == null) {
             return;
         }
-        weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
+        weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
             var days = DailyForecast.of(forecast, GardenHomeView.ITALY, LocalDate.now(GardenHomeView.ITALY), 7);
             WeatherCard.firstFrost(days).ifPresent(frost -> {
                 RouterLink link = frostLink(frost);

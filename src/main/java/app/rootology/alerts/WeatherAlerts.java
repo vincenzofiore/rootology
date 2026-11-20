@@ -88,7 +88,8 @@ public class WeatherAlerts {
             if (garden.growing().isEmpty()) {
                 continue;
             }
-            Optional<Forecast> forecast = weather.around(garden.garden().latitude(), garden.garden().longitude());
+            Optional<Forecast> forecast = weather.around(garden.garden().latitude(),
+                    garden.garden().longitude(), garden.garden().elevationM());
             if (forecast.isEmpty()) {
                 continue; // no weather today: no alert, never a guess
             }

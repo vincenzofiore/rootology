@@ -312,7 +312,8 @@ class ContextResolver {
                 climate == null ? null : climate.firstFrostDay(), climateFrom,
                 place == null ? null : place.name());
         return new QuestionContext(run.spaceId(), garden == null ? 0 : garden.id(), effective, plot,
-                place != null ? new QuestionContext.Location(place.latitude(), place.longitude()) : location(garden),
+                place != null ? new QuestionContext.Location(place.latitude(), place.longitude(), place.elevationM())
+                        : location(garden),
                 climate, snapshot, refusal, notes, null, place);
     }
 
@@ -478,7 +479,7 @@ class ContextResolver {
 
     private static QuestionContext.Location location(GardenSummary garden) {
         return garden == null || garden.latitude() == null || garden.longitude() == null ? null
-                : new QuestionContext.Location(garden.latitude(), garden.longitude());
+                : new QuestionContext.Location(garden.latitude(), garden.longitude(), garden.elevationM());
     }
 
     /**

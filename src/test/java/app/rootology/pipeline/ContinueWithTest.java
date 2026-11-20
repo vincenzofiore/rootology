@@ -79,7 +79,7 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
         when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", text), run);
         assertThat(asked.choice()).as("no garden, no place, no zone: the person chooses").isNotNull();
@@ -132,7 +132,7 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
         when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         for (int i = 0; i < usage.defaultLimit() - 1; i++) {
             usage.record("cont-limit", space, UsageKind.QUESTION, new RunUsage(2, 0, 0, 0, 1));
         }

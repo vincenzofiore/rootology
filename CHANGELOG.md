@@ -11,6 +11,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 - 22 more annual crops: beetroot, turnip, parsnip, celeriac, sweet potato, Brussels sprouts, kohlrabi, borage, purslane, shallot, spring onion, chickpea, lentil, grass pea, cowpea, runner bean, sweet corn, okra, dill, coriander, chervil and cape gooseberry (alchechengi), with their sowing and harvest months and FAO ECOCROP needs (#139).
 - The morning weather alerts grow from two rules to six: extreme heat (a day's maximum at or above a growing crop's ECOCROP limit, with the crops it cannot check named), heavy rain (30 mm in a day or 10 mm in an hour), a possible strong wind (11 m/s or more, worded as a possibility since MET Norway has no gusts and is unreliable in complex terrain) and a reminder to water after three dry and warm days, only where pots, planters and raised beds dry out first; each has its own colour and icon on the garden home (#137).
 
+### Changed
+
+- The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
+
 ### Security
 
 - Spring Boot 4.1.3 (Spring Framework 7.0.11, Spring Security 7.1.3) for the Spring advisories of 2026-11-19; none of them reached Rootology's configuration (#145).

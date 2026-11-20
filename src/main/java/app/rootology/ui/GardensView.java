@@ -368,8 +368,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         if (garden.latitude() == null || garden.longitude() == null) {
             return Optional.empty();
         }
-        return hours.computeIfAbsent(garden.latitude() + "/" + garden.longitude(),
-                key -> weather.storedNow(garden.latitude(), garden.longitude()));
+        return hours.computeIfAbsent(garden.latitude() + "/" + garden.longitude() + "/" + garden.elevationM(),
+                key -> weather.storedNow(garden.latitude(), garden.longitude(), garden.elevationM()));
     }
 
     /**

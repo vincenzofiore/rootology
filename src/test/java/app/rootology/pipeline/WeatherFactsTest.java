@@ -102,7 +102,7 @@ class WeatherFactsTest {
 
     @Test
     void frostRulesOutTenderCropsAndSaysWhatItCouldNotCheck() {
-        when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
+        when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
 
         WeatherFacts.Result result = facts().frost(context(space("wanda", true),
                 app.rootology.decision.QueryKind.SOW_NOW, "NOVEMBER"), SOWABLE);
@@ -120,7 +120,7 @@ class WeatherFactsTest {
 
     @Test
     void aGreenhouseKeepsTheOutdoorMinimumAndSaysSo() {
-        when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
+        when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
         RunContext run = space("bruna", true);
         gardens.savePlot(run.spaceId(), "bruna", run.gardenId(), null, "Tunnel", PlotKind.GREENHOUSE, Soil.LOAMY, null);
         ContextResolver resolver = new ContextResolver(spaces, gardens, cells, geoNames, CLOCK);
@@ -142,7 +142,7 @@ class WeatherFactsTest {
 
     @Test
     void anotherMonthOrNoCoordinatesMeansNoWeather() {
-        when(weather.around(any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
+        when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
 
         assertThat(facts().frost(context(space("xavi", true),
                 app.rootology.decision.QueryKind.SOW_NOW, "MARCH"), SOWABLE))
@@ -155,7 +155,7 @@ class WeatherFactsTest {
 
     @Test
     void aMissingForecastIsSaidAndChangesNothing() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
 
         WeatherFacts.Result result = facts().frost(context(space("zoe", true),
                 app.rootology.decision.QueryKind.SOW_NOW, "NOVEMBER"), SOWABLE);
@@ -166,7 +166,7 @@ class WeatherFactsTest {
 
     @Test
     void warmHumidDaysFavourLateBlightOnTheTomatoGrowingNow() {
-        when(weather.around(any(), any())).thenReturn(Optional.of(steady(14.0, 95.0)));
+        when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(14.0, 95.0)));
 
         RunContext abel = space("abel", true);
         WeatherFacts.Result result = facts().blight(context(abel,
@@ -180,7 +180,7 @@ class WeatherFactsTest {
 
     @Test
     void dryWeatherGivesNoBlightReading() {
-        when(weather.around(any(), any())).thenReturn(Optional.of(steady(14.0, 60.0)));
+        when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(14.0, 60.0)));
 
         RunContext bice = space("bice", true);
         WeatherFacts.Result result = facts().blight(context(bice,

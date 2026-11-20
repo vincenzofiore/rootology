@@ -183,7 +183,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             weatherRow.add(card);
             return;
         }
-        weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
+        weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
             List<DailyForecast> days = DailyForecast.of(forecast, ITALY, LocalDate.now(ITALY), 7);
             if (!days.isEmpty()) {
                 weatherRow.add(new WeatherCard(days, WeatherCard.now(forecast.hours(), Instant.now()),

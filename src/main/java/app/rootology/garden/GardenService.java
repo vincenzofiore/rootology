@@ -92,7 +92,7 @@ public class GardenService {
         GardenSummary saved = summary(gardens.save(garden));
         if (moved) {
             // A new place has no stored forecast yet: the map's popups would show no weather (#67).
-            events.publishEvent(new GardenLocated(saved.id(), lat, lon));
+            events.publishEvent(new GardenLocated(saved.id(), lat, lon, elevation));
         }
         return saved;
     }

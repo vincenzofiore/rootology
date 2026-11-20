@@ -104,9 +104,10 @@ class WeatherAlertsTest {
 
     @Test
     void frostWarnsEveryMemberOnceNamingCropsAtRiskAndUnknownOnes() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("fabio", "gaia", "45.46", "9.19", "lettuce", "garlic", "tomato");
-        when(weather.around(eq(new BigDecimal("45.46")), eq(new BigDecimal("9.19")))).thenReturn(steady(-2.0, 80.0));
+        when(weather.around(eq(new BigDecimal("45.46")), eq(new BigDecimal("9.19")), any()))
+                .thenReturn(steady(-2.0, 80.0));
 
         alerts.check();
 
@@ -123,9 +124,10 @@ class WeatherAlertsTest {
 
     @Test
     void frostInAGreenhouseSaysTheOutdoorMinimumWasUsed() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden(PlotKind.GREENHOUSE, "rita", "sara", "45.07", "7.69", "lettuce");
-        when(weather.around(eq(new BigDecimal("45.07")), eq(new BigDecimal("7.69")))).thenReturn(steady(-2.0, 80.0));
+        when(weather.around(eq(new BigDecimal("45.07")), eq(new BigDecimal("7.69")), any()))
+                .thenReturn(steady(-2.0, 80.0));
 
         alerts.check();
 
@@ -136,9 +138,10 @@ class WeatherAlertsTest {
 
     @Test
     void warmHumidDaysWarnOfLateBlightOnTomatoAndPotato() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("ilaria", "luca", "41.90", "12.50", "tomato", "lettuce");
-        when(weather.around(eq(new BigDecimal("41.90")), eq(new BigDecimal("12.50")))).thenReturn(steady(14.0, 95.0));
+        when(weather.around(eq(new BigDecimal("41.90")), eq(new BigDecimal("12.50")), any()))
+                .thenReturn(steady(14.0, 95.0));
 
         alerts.check();
 
@@ -150,22 +153,24 @@ class WeatherAlertsTest {
 
     @Test
     void noForecastOrMildWeatherMeansNoAlert() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("marco", "nadia", "40.85", "14.27", "tomato");
         alerts.check();
         assertThat(weatherOf("marco")).isEmpty();
 
-        when(weather.around(eq(new BigDecimal("40.85")), eq(new BigDecimal("14.27")))).thenReturn(steady(15.0, 60.0));
+        when(weather.around(eq(new BigDecimal("40.85")), eq(new BigDecimal("14.27")), any()))
+                .thenReturn(steady(15.0, 60.0));
         alerts.check();
         assertThat(weatherOf("marco")).isEmpty();
     }
 
     @Test
     void heatWarnsNamingCropsBeyondTheirLimitAndThoseNotChecked() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         // Lattuga stands 30 degrees C (ECOCROP); the songino has no record, so it is named, never guessed.
         garden("paola", "quinto", "38.11", "13.35", "lettuce", "lambs-lettuce");
-        when(weather.around(eq(new BigDecimal("38.11")), eq(new BigDecimal("13.35")))).thenReturn(steady(31.0, 60.0));
+        when(weather.around(eq(new BigDecimal("38.11")), eq(new BigDecimal("13.35")), any()))
+                .thenReturn(steady(31.0, 60.0));
 
         alerts.check();
 
@@ -179,11 +184,12 @@ class WeatherAlertsTest {
 
     @Test
     void thirtyMillimetresInADayWarnOfHeavyRain() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("rosa", "tino", "37.51", "15.08", "lettuce");
         // 1.5 mm an hour through the whole of 5 November: 36 mm that day, well over the 30 of the rule.
         LocalDate wetDay = LocalDate.of(2026, 11, 5);
-        when(weather.around(eq(new BigDecimal("37.51")), eq(new BigDecimal("15.08")))).thenReturn(series(i -> {
+        when(weather.around(eq(new BigDecimal("37.51")), eq(new BigDecimal("15.08")), any()))
+                .thenReturn(series(i -> {
             Instant time = START.plus(i, ChronoUnit.HOURS);
             boolean wet = LocalDate.ofInstant(time, ITALY).equals(wetDay);
             return new ForecastHour(time, 15.0, 70.0, wet ? 1.5 : 0.0, 1);
@@ -199,9 +205,10 @@ class WeatherAlertsTest {
 
     @Test
     void strongWindIsWordedAsAPossibilityNeverACertainty() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("sonia", "ugo", "44.06", "9.66", "lettuce");
-        when(weather.around(eq(new BigDecimal("44.06")), eq(new BigDecimal("9.66")))).thenReturn(series(i ->
+        when(weather.around(eq(new BigDecimal("44.06")), eq(new BigDecimal("9.66")), any()))
+                .thenReturn(series(i ->
                 new ForecastHour(START.plus(i, ChronoUnit.HOURS), 15.0, 70.0, 0.0, 1, null,
                         i == 30 ? 12.0 : 5.0)));
 
@@ -216,12 +223,14 @@ class WeatherAlertsTest {
 
     @Test
     void dryWarmDaysAskForWaterOnlyInPotsPlantersAndRaisedBeds() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden(PlotKind.POT, "teresa", "vera", "41.56", "14.66", "lettuce");
         garden(PlotKind.GROUND, "walter", "xenia", "41.57", "14.67", "lettuce");
         Optional<Forecast> dry = steady(26.0, 60.0);
-        when(weather.around(eq(new BigDecimal("41.56")), eq(new BigDecimal("14.66")))).thenReturn(dry);
-        when(weather.around(eq(new BigDecimal("41.57")), eq(new BigDecimal("14.67")))).thenReturn(dry);
+        when(weather.around(eq(new BigDecimal("41.56")), eq(new BigDecimal("14.66")), any()))
+                .thenReturn(dry);
+        when(weather.around(eq(new BigDecimal("41.57")), eq(new BigDecimal("14.67")), any()))
+                .thenReturn(dry);
 
         alerts.check();
 
@@ -234,11 +243,12 @@ class WeatherAlertsTest {
 
     @Test
     void weatherEmailsFollowTheirOwnPreference() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("olga", "pino", "43.77", "11.25", "lettuce");
         notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, true, true, null, null));
         notifications.save("pino", new NotificationPreferences("pino@example.org", true, false, true, true, null, null));
-        when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")))).thenReturn(steady(-3.0, 80.0));
+        when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")), any()))
+                .thenReturn(steady(-3.0, 80.0));
 
         alerts.check();
 

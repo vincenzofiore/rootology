@@ -112,7 +112,7 @@ class GoldenLiveRecordingTest {
         List<Result> results = new ArrayList<>();
         for (GoldenQuestions.Case c : GOLDEN.cases()) {
             RunContext run = fixtures.space(prefix, c);
-            when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+            when(weather.around(any(), any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
             // The filter's own judgment, recorded so a live run shows what it saw (#53).
             Double domain = domainProbability(c.question());
             long start = System.nanoTime();

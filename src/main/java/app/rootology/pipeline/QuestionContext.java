@@ -48,8 +48,11 @@ public record QuestionContext(
         }
     }
 
-    /** Where the forecast is for: the run's garden's coordinates, or the place's, when it has them. */
-    public record Location(BigDecimal latitude, BigDecimal longitude) {
+    /**
+     * Where the forecast is for: the run's garden's coordinates and altitude, or the place's, when they have
+     * them. The altitude is null when not known, and MET Norway then uses its own topography (#135).
+     */
+    public record Location(BigDecimal latitude, BigDecimal longitude, Integer elevationM) {
     }
 
     /**

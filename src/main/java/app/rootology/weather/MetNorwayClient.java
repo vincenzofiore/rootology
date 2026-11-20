@@ -20,7 +20,8 @@ import java.util.Locale;
 /**
  * Calls MET Norway's Locationforecast 2.0 (compact). Its terms: identify the app in the User-Agent,
  * respect `Expires`, send `If-Modified-Since`, at most 4 decimals in coordinates
- * (https://api.met.no/doc/TermsOfService).
+ * (https://api.met.no/doc/TermsOfService). The ground altitude is sent whenever it is known (#135): MET
+ * Norway then adjusts the air temperature to the garden's elevation instead of its 1 km topography.
  */
 @Component
 class MetNorwayClient {
@@ -54,11 +55,17 @@ class MetNorwayClient {
         return timeouts;
     }
 
-    Response fetch(double latitude, double longitude, String lastModified) {
+    Response fetch(double latitude, double longitude, Integer altitudeM, String lastModified) {
         return restClient.get()
-                .uri(u -> u.path("/weatherapi/locationforecast/2.0/compact")
-                        .queryParam("lat", String.format(Locale.ROOT, "%.2f", latitude))
-                        .queryParam("lon", String.format(Locale.ROOT, "%.2f", longitude)).build())
+                .uri(u -> {
+                    var url = u.path("/weatherapi/locationforecast/2.0/compact")
+                            .queryParam("lat", String.format(Locale.ROOT, "%.2f", latitude))
+                            .queryParam("lon", String.format(Locale.ROOT, "%.2f", longitude));
+                    if (altitudeM != null) {
+                        url.queryParam("altitude", Integer.toString(altitudeM));
+                    }
+                    return url.build();
+                })
                 .headers(h -> {
                     if (lastModified != null) {
                         h.set(HttpHeaders.IF_MODIFIED_SINCE, lastModified);

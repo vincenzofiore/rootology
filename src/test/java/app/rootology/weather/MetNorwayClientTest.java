@@ -17,7 +17,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/** The MET Norway call against canned responses: coordinates, cache headers, parsing, failures. */
+/** The MET Norway call against canned responses: coordinates and altitude, cache headers, parsing, failures. */
 class MetNorwayClientTest {
 
     static final String BODY = """
@@ -44,7 +44,7 @@ class MetNorwayClientTest {
                 .andExpect(header(HttpHeaders.USER_AGENT, "rootology-test"))
                 .andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON).headers(headers));
 
-        MetNorwayClient.Response response = client.fetch(45.4612, 9.1899, null);
+        MetNorwayClient.Response response = client.fetch(45.4612, 9.1899, null, null);
 
         assertThat(response.hours()).containsExactly(
                 new ForecastHour(Instant.parse("2026-11-04T10:00:00Z"), 12.5, 91.0, 0.4, 1, "lightrain", 4.2),
@@ -60,10 +60,19 @@ class MetNorwayClientTest {
                 .andExpect(header(HttpHeaders.IF_MODIFIED_SINCE, "Wed, 04 Nov 2026 09:30:30 GMT"))
                 .andRespond(withStatus(HttpStatus.NOT_MODIFIED));
 
-        MetNorwayClient.Response response = client.fetch(41.9, 12.5, "Wed, 04 Nov 2026 09:30:30 GMT");
+        MetNorwayClient.Response response = client.fetch(41.9, 12.5, null, "Wed, 04 Nov 2026 09:30:30 GMT");
 
         assertThat(response.notModified()).isTrue();
         assertThat(response.lastModified()).isEqualTo("Wed, 04 Nov 2026 09:30:30 GMT");
+    }
+
+    @Test
+    void sendsTheAltitudeWhenKnown() {
+        server.expect(requestTo(
+                        "https://met.test/weatherapi/locationforecast/2.0/compact?lat=45.46&lon=9.19&altitude=320"))
+                .andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
+
+        client.fetch(45.4612, 9.1899, 320, null);
     }
 
     @Test
@@ -71,6 +80,6 @@ class MetNorwayClientTest {
         server.expect(requestTo("https://met.test/weatherapi/locationforecast/2.0/compact?lat=41.90&lon=12.50"))
                 .andRespond(withServerError());
 
-        assertThatThrownBy(() -> client.fetch(41.9, 12.5, null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> client.fetch(41.9, 12.5, null, null)).isInstanceOf(IllegalStateException.class);
     }
 }

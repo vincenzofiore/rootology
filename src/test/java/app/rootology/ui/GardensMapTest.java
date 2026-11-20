@@ -132,14 +132,15 @@ class GardensMapTest {
 
         // A copy the 7:00 alerts job (or a question) left behind, with the hour of now (#67).
         java.time.Instant now = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
-        jdbc.sql("insert into weather_location (latitude, longitude, fetched_at, expires_at, last_modified) "
-                        + "values (?, ?, ?, ?, null) on conflict (latitude, longitude) do update set "
+        jdbc.sql("insert into weather_location (latitude, longitude, altitude, fetched_at, expires_at, last_modified) "
+                        + "values (?, ?, null, ?, ?, null) on conflict (latitude, longitude, altitude) do update set "
                         + "fetched_at = excluded.fetched_at, expires_at = excluded.expires_at")
                 .params(new BigDecimal("46.31"), new BigDecimal("11.11"), java.sql.Timestamp.from(now),
                         java.sql.Timestamp.from(now.plusSeconds(1800))).update();
-        jdbc.sql("insert into weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
-                        + "precipitation_mm, step_hours, symbol_code) values (?, ?, ?, ?, ?, ?, ?, ?) "
-                        + "on conflict (latitude, longitude, valid_at) do update set "
+        jdbc.sql("insert into weather_hour (latitude, longitude, altitude, valid_at, air_temperature, "
+                        + "relative_humidity, precipitation_mm, step_hours, symbol_code) "
+                        + "values (?, ?, null, ?, ?, ?, ?, ?, ?) "
+                        + "on conflict (latitude, longitude, altitude, valid_at) do update set "
                         + "air_temperature = excluded.air_temperature, symbol_code = excluded.symbol_code")
                 .params(new BigDecimal("46.31"), new BigDecimal("11.11"), java.sql.Timestamp.from(now),
                         12.4, 70.0, 0.4, 1, "rain").update();

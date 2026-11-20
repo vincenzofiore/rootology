@@ -116,7 +116,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
     void theForecastIsTheRunsGardenAndTheQuestionWinsOnTheZone() {
         long space = spaceOf("ctx-weather");
         long north = garden(space, "ctx-weather", "Orto di Milano", "45.46", "9.19");
-        org.mockito.Mockito.when(weather.around(any(), any())).thenReturn(java.util.Optional.empty());
+        org.mockito.Mockito.when(weather.around(any(), any(), any())).thenReturn(java.util.Optional.empty());
 
         var centre = ask("ctx-weather", space, north, "Cosa semino adesso?",
                 new Intent(QueryKind.SOW_NOW, null, null, "it"));
@@ -124,7 +124,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
                 new Intent(QueryKind.SOW_NOW, null, null, "it", "SUD", null));
 
         // The forecast is the run's garden's; a question naming another zone keeps it and says so.
-        verify(weather, org.mockito.Mockito.times(2)).around(new BigDecimal("45.46"), new BigDecimal("9.19"));
+        verify(weather, org.mockito.Mockito.times(2)).around(new BigDecimal("45.46"), new BigDecimal("9.19"), null);
         assertThat(centre.answer().context().zone()).isNull();
         assertThat(centre.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         assertThat(south.answer().context().zone()).isEqualTo("SUD");

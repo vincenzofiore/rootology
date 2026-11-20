@@ -87,7 +87,7 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
                 .thenReturn(c.intent());
         when(domainFilter.judge(c.question())).thenReturn(c.offDomain()
                 ? DomainFilter.Verdict.refusing(0.02) : DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+        when(weather.around(any(), any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
 
         GardenPipeline.Run result = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
 
