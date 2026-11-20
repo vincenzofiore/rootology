@@ -186,6 +186,25 @@ Whoever answers an escalation is recorded by their GitHub login.
 - **History**: the latest finished runs, stored in Postgres, with the pipeline's
   answer next to Jena's, confidence, input noise and who answered escalations.
 
+### The local database
+
+```bash
+./local-db.sh dump [name]      # save it to ~/rootology-dumps (default name: date and time)
+./local-db.sh list
+./local-db.sh restore <name>   # replace it with a dump; Flyway applies newer migrations on the next run
+./local-db.sh reset            # delete the volume and start from an empty database
+```
+
+`restore` and `reset` ask first (`--yes` skips the question) and refuse while the app
+of this checkout is running. After a reset, sign in once and grant yourself ADMIN as in
+"First admin of an environment" in `docs/operations.md`. A dump taken with some
+realistic gardens is the quickest way back to a useful state.
+
+Each checkout has its own Postgres volume (named after the folder), so a feature
+branch's migration run in a worktree never reaches the main checkout's database.
+If one did reach it, restore a dump taken before it, or reset. The migration keeps
+its number on the branch and is renumbered when merged (`CLAUDE.md`, Pitfalls).
+
 ## Recording comparisons
 
 The `experiments` module doesn't automate the LLM side — that part is
