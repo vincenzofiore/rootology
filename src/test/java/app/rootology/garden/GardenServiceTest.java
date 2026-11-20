@@ -269,6 +269,25 @@ class GardenServiceTest {
     }
 
     @Test
+    void perennialsAreLeftOutOfTheRotation() {
+        long space = spaceOf("mara");
+        GardenSummary garden = gardens.saveGarden(space, "mara", null, "Garden", null, null, null);
+        PlotSummary lettuceBed = gardens.savePlot(space, "mara", garden.id(), null, "Bed D", PlotKind.GROUND, Soil.LOAMY, null);
+        PlotSummary artichokeBed = gardens.savePlot(space, "mara", garden.id(), null, "Bed E", PlotKind.GROUND, Soil.LOAMY, null);
+        LocalDate june = LocalDate.of(2026, 6, 1);
+        // Lettuce and artichoke are both Asteraceae; the artichoke stays in place for years.
+        gardens.plant(space, "mara", lettuceBed.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 3, 1), null);
+        gardens.plant(space, "mara", artichokeBed.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2025, 9, 1), null);
+
+        assertThat(gardens.rotationWarning(space, "mara", lettuceBed.id(), "artichoke", june))
+                .as("a perennial candidate").isEmpty();
+        assertThat(gardens.rotationWarning(space, "mara", artichokeBed.id(), "lettuce", june))
+                .as("beside a perennial still growing, not after it").isEmpty();
+        assertThat(gardens.rotationWarning(space, "mara", lettuceBed.id(), "lettuce", june))
+                .as("annuals keep the rule").isPresent();
+    }
+
+    @Test
     void theZoneFollowsTheGardensLatitude() {
         assertThat(GardenService.zoneOf(45.46)).isEqualTo("NORD");
         assertThat(GardenService.zoneOf(41.90)).isEqualTo("CENTRO");

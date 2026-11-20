@@ -17,9 +17,10 @@ class KnowledgeValidatorTest {
 
     private final CuratedKnowledge real = CuratedKnowledgeReader.read(new CropCatalog());
 
-    private static <T> List<T> plus(List<T> list, T extra) {
+    @SafeVarargs
+    private static <T> List<T> plus(List<T> list, T... extra) {
         List<T> copy = new ArrayList<>(list);
-        copy.add(extra);
+        copy.addAll(List.of(extra));
         return copy;
     }
 
@@ -37,7 +38,7 @@ class KnowledgeValidatorTest {
     void refusesACropWithoutAValidFrostGroup() {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
-                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP", "la")),
+                        "Lamiaceae", "Q102241", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null)),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
@@ -48,10 +49,27 @@ class KnowledgeValidatorTest {
     void refusesACropWithoutAKnownItalianArticle() {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia",
-                        "Lamiaceae", "Q102241", null, "TENDER", "una")),
+                        "Lamiaceae", "Q102241", null, "TENDER", "una", "PERENNIAL", null, null)),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
 
         assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop lavender: italian_article"));
+    }
+
+    @Test
+    void keepsFrostHardinessForPerennialsWithAKnownSource() {
+        var k = new CuratedKnowledge(real.sources(), plus(real.crops(),
+                new Crop("lavender", "Lavanda", "Lavender", "Lavandula angustifolia", "Lamiaceae", "Q102241", null,
+                        "HARDY", "la", "ANNUAL", -15.0, "rootology-editorial"),
+                new Crop("thyme", "Timo", "Thyme", "Thymus vulgaris", "Lamiaceae", "Q148668", null, "HARDY", "il",
+                        "PERENNIAL", -15.0, "a-blog"),
+                new Crop("mint", "Menta", "Mint", "Mentha spicata", "Lamiaceae", "Q156939", null, "HARDY", "la",
+                        "EVERGREEN", null, null)),
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "crop lavender: frost_hardiness is for perennials only",
+                "crop thyme: hardiness_source: unknown source a-blog",
+                "crop mint: lifecycle must be one of " + Crop.LIFECYCLES + ", not EVERGREEN");
     }
 
     @Test

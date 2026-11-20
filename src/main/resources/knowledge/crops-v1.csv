@@ -4,65 +4,69 @@
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
 # italian_article: the Italian definite article of the name, so a sentence can name the crop
 # ("la fragola", "l’aglio", "le cime di rapa").
-id,italian,english,scientific,family,wikidata,ecocrop,ecocrop_match,frost_group,italian_article
-tomato,Pomodoro,Tomato,Solanum lycopersicum,Solanaceae,Q23501,1379,Lycopersicon esculentum,TENDER,il
-sweet-pepper,Peperone,Sweet pepper,Capsicum annuum,Solanaceae,Q1380,618,,TENDER,il
-chili-pepper,Peperoncino,Chili pepper,Capsicum annuum / C. frutescens,Solanaceae,Q1380,621,C. frutescens,TENDER,il
-eggplant,Melanzana,Eggplant,Solanum melongena,Solanaceae,Q7540,1965,,TENDER,la
-potato,Patata,Potato,Solanum tuberosum,Solanaceae,Q10998,1971,,HARDY,la
-zucchini,Zucchina,Zucchini,Cucurbita pepo,Cucurbitaceae,Q7229863,821,,TENDER,la
-cucumber,Cetriolo,Cucumber,Cucumis sativus,Cucurbitaceae,Q23425,817,,TENDER,il
-melon,Melone,Melon,Cucumis melo,Cucurbitaceae,Q81602,815,,TENDER,il
-watermelon,Anguria,Watermelon,Citrullus lanatus,Cucurbitaceae,Q17507129,708,,TENDER,l’
-winter-squash,Zucca,Winter squash,Cucurbita maxima / C. moschata,Cucurbitaceae,Q161180,819,C. maxima,TENDER,la
-bean,Fagiolo,Bean,Phaseolus vulgaris,Fabaceae,Q42339,1668,,TENDER,il
-basil,Basilico,Basil,Ocimum basilicum,Lamiaceae,Q38859,1547,,TENDER,il
-cauliflower,Cavolfiore,Cauliflower,Brassica oleracea var. botrytis,Brassicaceae,Q7537,553,,AUTUMN,il
-broccoli,Broccolo,Broccoli,Brassica oleracea var. italica,Brassicaceae,Q47722,556,,AUTUMN,il
-tuscan-kale,Cavolo nero,Tuscan kale,Brassica oleracea var. palmifolia,Brassicaceae,Q2048275,3867,kale (var. acephala),AUTUMN,il
-savoy-cabbage,Cavolo verza,Savoy cabbage,Brassica oleracea var. sabauda,Brassicaceae,Q154013,554,cabbage (var. capitata),AUTUMN,il
-cabbage,Cavolo cappuccio,Cabbage,Brassica oleracea var. capitata,Brassicaceae,Q35051,554,,HARDY,il
-turnip-tops,Cime di rapa,Turnip tops,Brassica rapa,Brassicaceae,Q3384,3881,turnip (var. rapifera),AUTUMN,le
-fennel,Finocchio,Florence fennel,Foeniculum vulgare var. azoricum,Apiaceae,Q41777547,1107,,AUTUMN,il
-radicchio,Radicchio,Radicchio,Cichorium intybus,Asteraceae,Q2544599,694,,AUTUMN,il
-endive,Indivia e scarola,Endive and escarole,Cichorium endivia,Asteraceae,Q178547,693,,AUTUMN,l’
-leek,Porro,Leek,Allium porrum,Amaryllidaceae,Q21870138,363,Allium ampeloprasum,HARDY,il
-spinach,Spinacio,Spinach,Spinacia oleracea,Amaranthaceae,Q81464,1997,,OVERWINTER,lo
-lambs-lettuce,Valerianella (songino),Lamb's lettuce,Valerianella locusta,Caprifoliaceae,Q158954,,,OVERWINTER,la
-broad-bean,Fava,Broad bean,Vicia faba,Fabaceae,Q131342,2146,,OVERWINTER,la
-pea,Pisello,Pea,Pisum sativum,Fabaceae,Q25237,1721,,OVERWINTER,il
-garlic,Aglio,Garlic,Allium sativum,Amaryllidaceae,Q23400,367,,OVERWINTER,l’
-onion,Cipolla,Onion,Allium cepa,Amaryllidaceae,Q23485,364,,OVERWINTER,la
-artichoke,Carciofo,Artichoke,Cynara cardunculus var. scolymus,Asteraceae,Q23043615,847,Cynara scolymus,OVERWINTER,il
-strawberry,Fragola,Strawberry,Fragaria x ananassa,Rosaceae,Q13158,1112,,OVERWINTER,la
-lettuce,Lattuga,Lettuce,Lactuca sativa,Asteraceae,Q83193,1313,var. capitata,LONG,la
-rocket,Rucola,Rocket,Eruca vesicaria,Brassicaceae,Q5395935,5794,Eruca sativa,LONG,la
-radish,Ravanello,Radish,Raphanus sativus,Brassicaceae,Q7224565,1839,,LONG,il
-carrot,Carota,Carrot,Daucus carota,Apiaceae,Q30056,871,,LONG,la
-chard,Bietola,Chard,Beta vulgaris var. cicla,Amaranthaceae,Q50884896,2474,var. cicla,LONG,la
-celery,Sedano,Celery,Apium graveolens,Apiaceae,Q28298,432,var. dulce,HARDY,il
-parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae,Q25284,1661,,LONG,il
-rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae,Q102240169,9326,Rosmarinus officinalis,OVERWINTER,il
-sage,Salvia,Sage,Salvia officinalis,Lamiaceae,Q1111359,2412,,OVERWINTER,la
-beetroot,Barbabietola,Beetroot,Beta vulgaris (Conditiva group),Amaranthaceae,Q165437,514,Beta vulgaris,LONG,la
-turnip,Rapa,Turnip,Brassica rapa var. rapa,Brassicaceae,Q3916957,3881,var. rapifera,AUTUMN,la
-parsnip,Pastinaca,Parsnip,Pastinaca sativa,Apiaceae,Q188614,1642,,HARDY,la
-celeriac,Sedano rapa,Celeriac,Apium graveolens var. rapaceum,Apiaceae,Q575174,3289,,HARDY,il
-sweet-potato,Patata dolce,Sweet potato,Ipomoea batatas,Convolvulaceae,Q37937,1265,,TENDER,la
-brussels-sprouts,Cavolini di Bruxelles,Brussels sprouts,Brassica oleracea var. gemmifera,Brassicaceae,Q150463,555,,AUTUMN,i
-kohlrabi,Cavolo rapa,Kohlrabi,Brassica oleracea var. gongylodes,Brassicaceae,Q147202,2220,,LONG,il
-borage,Borragine,Borage,Borago officinalis,Boraginaceae,Q147075,3761,,LONG,la
-purslane,Portulaca,Purslane,Portulaca oleracea,Portulacaceae,Q158015,1784,,TENDER,la
-shallot,Scalogno,Shallot,Allium cepa var. aggregatum,Amaryllidaceae,Q193498,1096,,OVERWINTER,lo
-spring-onion,Cipollotto,Spring onion,Allium cepa,Amaryllidaceae,Q774278,364,Allium cepa,LONG,il
-chickpea,Cece,Chickpea,Cicer arietinum,Fabaceae,Q81375,2479,,HARDY,il
-lentil,Lenticchia,Lentil,Lens culinaris,Fabaceae,Q131226,7209,,HARDY,la
-grass-pea,Cicerchia,Grass pea,Lathyrus sativus,Fabaceae,Q162093,7164,,HARDY,la
-cowpea,Fagiolo dall’occhio,Cowpea,Vigna unguiculata,Fabaceae,Q498940,2153,,TENDER,il
-runner-bean,Fagiolo di Spagna,Runner bean,Phaseolus coccineus,Fabaceae,Q159753,1665,,TENDER,il
-sweet-corn,Mais dolce,Sweet corn,Zea mays (Saccharata group),Poaceae,Q18966,10981,,TENDER,il
-okra,Okra,Okra,Abelmoschus esculentus,Malvaceae,Q80531,289,,TENDER,l’
-dill,Aneto,Dill,Anethum graveolens,Apiaceae,Q26686,2192,,LONG,l’
-coriander,Coriandolo,Coriander,Coriandrum sativum,Apiaceae,Q41611,784,,LONG,il
-chervil,Cerfoglio,Chervil,Anthriscus cerefolium,Apiaceae,Q218462,3265,,LONG,il
-physalis,Alchechengi,Cape gooseberry,Physalis peruviana,Solanaceae,Q165227,1686,,TENDER,l’
+# lifecycle: ANNUAL (biennials included, grown as annuals) or PERENNIAL, which stays in place for years
+# and is left out of the rotation rule (#139).
+# frost_hardiness: PERENNIAL only, the lowest air temperature in degrees C an established plant
+# (from its second year) stands, with hardiness_source; empty when not known, never guessed (#139).
+id,italian,english,scientific,family,wikidata,ecocrop,ecocrop_match,frost_group,italian_article,lifecycle,frost_hardiness,hardiness_source
+tomato,Pomodoro,Tomato,Solanum lycopersicum,Solanaceae,Q23501,1379,Lycopersicon esculentum,TENDER,il,ANNUAL,,
+sweet-pepper,Peperone,Sweet pepper,Capsicum annuum,Solanaceae,Q1380,618,,TENDER,il,ANNUAL,,
+chili-pepper,Peperoncino,Chili pepper,Capsicum annuum / C. frutescens,Solanaceae,Q1380,621,C. frutescens,TENDER,il,ANNUAL,,
+eggplant,Melanzana,Eggplant,Solanum melongena,Solanaceae,Q7540,1965,,TENDER,la,ANNUAL,,
+potato,Patata,Potato,Solanum tuberosum,Solanaceae,Q10998,1971,,HARDY,la,ANNUAL,,
+zucchini,Zucchina,Zucchini,Cucurbita pepo,Cucurbitaceae,Q7229863,821,,TENDER,la,ANNUAL,,
+cucumber,Cetriolo,Cucumber,Cucumis sativus,Cucurbitaceae,Q23425,817,,TENDER,il,ANNUAL,,
+melon,Melone,Melon,Cucumis melo,Cucurbitaceae,Q81602,815,,TENDER,il,ANNUAL,,
+watermelon,Anguria,Watermelon,Citrullus lanatus,Cucurbitaceae,Q17507129,708,,TENDER,l’,ANNUAL,,
+winter-squash,Zucca,Winter squash,Cucurbita maxima / C. moschata,Cucurbitaceae,Q161180,819,C. maxima,TENDER,la,ANNUAL,,
+bean,Fagiolo,Bean,Phaseolus vulgaris,Fabaceae,Q42339,1668,,TENDER,il,ANNUAL,,
+basil,Basilico,Basil,Ocimum basilicum,Lamiaceae,Q38859,1547,,TENDER,il,ANNUAL,,
+cauliflower,Cavolfiore,Cauliflower,Brassica oleracea var. botrytis,Brassicaceae,Q7537,553,,AUTUMN,il,ANNUAL,,
+broccoli,Broccolo,Broccoli,Brassica oleracea var. italica,Brassicaceae,Q47722,556,,AUTUMN,il,ANNUAL,,
+tuscan-kale,Cavolo nero,Tuscan kale,Brassica oleracea var. palmifolia,Brassicaceae,Q2048275,3867,kale (var. acephala),AUTUMN,il,ANNUAL,,
+savoy-cabbage,Cavolo verza,Savoy cabbage,Brassica oleracea var. sabauda,Brassicaceae,Q154013,554,cabbage (var. capitata),AUTUMN,il,ANNUAL,,
+cabbage,Cavolo cappuccio,Cabbage,Brassica oleracea var. capitata,Brassicaceae,Q35051,554,,HARDY,il,ANNUAL,,
+turnip-tops,Cime di rapa,Turnip tops,Brassica rapa,Brassicaceae,Q3384,3881,turnip (var. rapifera),AUTUMN,le,ANNUAL,,
+fennel,Finocchio,Florence fennel,Foeniculum vulgare var. azoricum,Apiaceae,Q41777547,1107,,AUTUMN,il,ANNUAL,,
+radicchio,Radicchio,Radicchio,Cichorium intybus,Asteraceae,Q2544599,694,,AUTUMN,il,ANNUAL,,
+endive,Indivia e scarola,Endive and escarole,Cichorium endivia,Asteraceae,Q178547,693,,AUTUMN,l’,ANNUAL,,
+leek,Porro,Leek,Allium porrum,Amaryllidaceae,Q21870138,363,Allium ampeloprasum,HARDY,il,ANNUAL,,
+spinach,Spinacio,Spinach,Spinacia oleracea,Amaranthaceae,Q81464,1997,,OVERWINTER,lo,ANNUAL,,
+lambs-lettuce,Valerianella (songino),Lamb's lettuce,Valerianella locusta,Caprifoliaceae,Q158954,,,OVERWINTER,la,ANNUAL,,
+broad-bean,Fava,Broad bean,Vicia faba,Fabaceae,Q131342,2146,,OVERWINTER,la,ANNUAL,,
+pea,Pisello,Pea,Pisum sativum,Fabaceae,Q25237,1721,,OVERWINTER,il,ANNUAL,,
+garlic,Aglio,Garlic,Allium sativum,Amaryllidaceae,Q23400,367,,OVERWINTER,l’,ANNUAL,,
+onion,Cipolla,Onion,Allium cepa,Amaryllidaceae,Q23485,364,,OVERWINTER,la,ANNUAL,,
+artichoke,Carciofo,Artichoke,Cynara cardunculus var. scolymus,Asteraceae,Q23043615,847,Cynara scolymus,OVERWINTER,il,PERENNIAL,-5,rootology-editorial
+strawberry,Fragola,Strawberry,Fragaria x ananassa,Rosaceae,Q13158,1112,,OVERWINTER,la,PERENNIAL,-12,rootology-editorial
+lettuce,Lattuga,Lettuce,Lactuca sativa,Asteraceae,Q83193,1313,var. capitata,LONG,la,ANNUAL,,
+rocket,Rucola,Rocket,Eruca vesicaria,Brassicaceae,Q5395935,5794,Eruca sativa,LONG,la,ANNUAL,,
+radish,Ravanello,Radish,Raphanus sativus,Brassicaceae,Q7224565,1839,,LONG,il,ANNUAL,,
+carrot,Carota,Carrot,Daucus carota,Apiaceae,Q30056,871,,LONG,la,ANNUAL,,
+chard,Bietola,Chard,Beta vulgaris var. cicla,Amaranthaceae,Q50884896,2474,var. cicla,LONG,la,ANNUAL,,
+celery,Sedano,Celery,Apium graveolens,Apiaceae,Q28298,432,var. dulce,HARDY,il,ANNUAL,,
+parsley,Prezzemolo,Parsley,Petroselinum crispum,Apiaceae,Q25284,1661,,LONG,il,ANNUAL,,
+rosemary,Rosmarino,Rosemary,Salvia rosmarinus,Lamiaceae,Q102240169,9326,Rosmarinus officinalis,OVERWINTER,il,PERENNIAL,-10,rootology-editorial
+sage,Salvia,Sage,Salvia officinalis,Lamiaceae,Q1111359,2412,,OVERWINTER,la,PERENNIAL,-15,rootology-editorial
+beetroot,Barbabietola,Beetroot,Beta vulgaris (Conditiva group),Amaranthaceae,Q165437,514,Beta vulgaris,LONG,la,ANNUAL,,
+turnip,Rapa,Turnip,Brassica rapa var. rapa,Brassicaceae,Q3916957,3881,var. rapifera,AUTUMN,la,ANNUAL,,
+parsnip,Pastinaca,Parsnip,Pastinaca sativa,Apiaceae,Q188614,1642,,HARDY,la,ANNUAL,,
+celeriac,Sedano rapa,Celeriac,Apium graveolens var. rapaceum,Apiaceae,Q575174,3289,,HARDY,il,ANNUAL,,
+sweet-potato,Patata dolce,Sweet potato,Ipomoea batatas,Convolvulaceae,Q37937,1265,,TENDER,la,ANNUAL,,
+brussels-sprouts,Cavolini di Bruxelles,Brussels sprouts,Brassica oleracea var. gemmifera,Brassicaceae,Q150463,555,,AUTUMN,i,ANNUAL,,
+kohlrabi,Cavolo rapa,Kohlrabi,Brassica oleracea var. gongylodes,Brassicaceae,Q147202,2220,,LONG,il,ANNUAL,,
+borage,Borragine,Borage,Borago officinalis,Boraginaceae,Q147075,3761,,LONG,la,ANNUAL,,
+purslane,Portulaca,Purslane,Portulaca oleracea,Portulacaceae,Q158015,1784,,TENDER,la,ANNUAL,,
+shallot,Scalogno,Shallot,Allium cepa var. aggregatum,Amaryllidaceae,Q193498,1096,,OVERWINTER,lo,ANNUAL,,
+spring-onion,Cipollotto,Spring onion,Allium cepa,Amaryllidaceae,Q774278,364,Allium cepa,LONG,il,ANNUAL,,
+chickpea,Cece,Chickpea,Cicer arietinum,Fabaceae,Q81375,2479,,HARDY,il,ANNUAL,,
+lentil,Lenticchia,Lentil,Lens culinaris,Fabaceae,Q131226,7209,,HARDY,la,ANNUAL,,
+grass-pea,Cicerchia,Grass pea,Lathyrus sativus,Fabaceae,Q162093,7164,,HARDY,la,ANNUAL,,
+cowpea,Fagiolo dall’occhio,Cowpea,Vigna unguiculata,Fabaceae,Q498940,2153,,TENDER,il,ANNUAL,,
+runner-bean,Fagiolo di Spagna,Runner bean,Phaseolus coccineus,Fabaceae,Q159753,1665,,TENDER,il,ANNUAL,,
+sweet-corn,Mais dolce,Sweet corn,Zea mays (Saccharata group),Poaceae,Q18966,10981,,TENDER,il,ANNUAL,,
+okra,Okra,Okra,Abelmoschus esculentus,Malvaceae,Q80531,289,,TENDER,l’,ANNUAL,,
+dill,Aneto,Dill,Anethum graveolens,Apiaceae,Q26686,2192,,LONG,l’,ANNUAL,,
+coriander,Coriandolo,Coriander,Coriandrum sativum,Apiaceae,Q41611,784,,LONG,il,ANNUAL,,
+chervil,Cerfoglio,Chervil,Anthriscus cerefolium,Apiaceae,Q218462,3265,,LONG,il,ANNUAL,,
+physalis,Alchechengi,Cape gooseberry,Physalis peruviana,Solanaceae,Q165227,1686,,TENDER,l’,ANNUAL,,

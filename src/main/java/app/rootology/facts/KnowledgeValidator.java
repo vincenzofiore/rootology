@@ -48,6 +48,15 @@ public final class KnowledgeValidator {
             }
             oneOf(c.frostGroup(), FrostShiftRule.GROUPS, "crop " + c.id() + ": frost_group", problems);
             oneOf(c.italianArticle(), Crop.ITALIAN_ARTICLES, "crop " + c.id() + ": italian_article", problems);
+            oneOf(c.lifecycle(), Crop.LIFECYCLES, "crop " + c.id() + ": lifecycle", problems);
+            if (c.frostHardiness() != null || c.hardinessSource() != null) {
+                if (!c.perennial()) {
+                    problems.add("crop " + c.id() + ": frost_hardiness is for perennials only");
+                } else if (c.frostHardiness() == null || c.frostHardiness() < -40 || c.frostHardiness() > 15) {
+                    problems.add("crop " + c.id() + ": frost_hardiness must be between -40 and 15 °C");
+                }
+                source(sources, c.hardinessSource(), "crop " + c.id() + ": hardiness_source", problems);
+            }
         }
         for (NeedRow n : k.needs()) {
             String where = "needs of " + n.cropId();

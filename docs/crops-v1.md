@@ -119,10 +119,27 @@ to be added as global names through knowledge enrichment (#24).
 | Cerfoglio | Chervil | *Anthriscus cerefolium* | Apiaceae | Sow Feb-Apr and Aug-Sep | Apr-Jun, Oct-Dec |
 | Alchechengi | Cape gooseberry | *Physalis peruviana* | Solanaceae | Seedbed Feb-Mar, transplant May | Aug-Oct |
 
+## Perennials (#139)
+
+`lifecycle` in `crops-v1.csv` marks the crops that stay in place for years: artichoke, strawberry, rosemary and
+sage. They are left out of the rotation rule, and from their second year the frost alert judges them on
+`frost_hardiness`, the lowest air temperature an established plant stands (ECOCROP's "killing temperature during
+rest" is missing for most of them, and its absolute minimum is where growth stops). The first values are
+editorial, to be reviewed by the owner:
+
+| Crop | Frost hardiness | Source |
+|---|---|---|
+| Carciofo | -5 °C | rootology-editorial |
+| Fragola | -12 °C | rootology-editorial |
+| Rosmarino | -10 °C | rootology-editorial |
+| Salvia | -15 °C | rootology-editorial |
+
+Pruning (`PRUNE`) is planned with the first group that needs it (citrus), together with its question kind.
+
 ## Notes
 
 - 61 crops in 16 families (39 from 2026-11-03, 22 annuals from 2026-11-18).
-- Candidates for later: the perennials, fruit, flowers and green manures of #139.
+- Candidates for later: citrus, perennial herbs, berries, fruit trees, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

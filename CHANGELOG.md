@@ -13,6 +13,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).
 - The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
 
 ### Security

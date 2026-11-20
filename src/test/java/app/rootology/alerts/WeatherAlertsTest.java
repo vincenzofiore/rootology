@@ -123,6 +123,27 @@ class WeatherAlertsTest {
     }
 
     @Test
+    void anEstablishedPerennialIsJudgedOnItsOwnHardinessAYoungOneOnItsYoungPlants() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        spaces.signedIn("ottavio");
+        long space = app.rootology.TestSpaces.personal(spaces, "ottavio");
+        var garden = gardens.saveGarden(space, "ottavio", null, "Orto di ottavio", null, new BigDecimal("44.49"),
+                new BigDecimal("11.34"), "IT");
+        var old = gardens.savePlot(space, "ottavio", garden.id(), null, "Aiuola vecchia", PlotKind.GROUND, Soil.LOAMY, null);
+        var young = gardens.savePlot(space, "ottavio", garden.id(), null, "Aiuola nuova", PlotKind.GROUND, Soil.LOAMY, null);
+        // Artichoke: young plants die at 0 °C (ECOCROP), an established plant stands -5 °C (crops-v1.csv).
+        gardens.plant(space, "ottavio", old.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2025, 4, 1), null);
+        gardens.plant(space, "ottavio", young.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
+        when(weather.around(eq(new BigDecimal("44.49")), eq(new BigDecimal("11.34")), any()))
+                .thenReturn(steady(-2.0, 80.0));
+
+        alerts.check();
+
+        assertThat(weatherOf("ottavio")).singleElement().satisfies(n -> assertThat(n.body())
+                .contains("A rischio: Carciofo (Aiuola nuova)").doesNotContain("Aiuola vecchia"));
+    }
+
+    @Test
     void frostInAGreenhouseSaysTheOutdoorMinimumWasUsed() {
         when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden(PlotKind.GREENHOUSE, "rita", "sara", "45.07", "7.69", "lettuce");

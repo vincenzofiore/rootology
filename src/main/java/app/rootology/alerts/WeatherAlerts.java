@@ -94,13 +94,13 @@ public class WeatherAlerts {
                 continue; // no weather today: no alert, never a guess
             }
             Forecast f = forecast.get();
-            alerts += frost(garden, f) + blight(garden, f, today) + heat(garden, f, today)
+            alerts += frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
                     + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
         }
         return alerts;
     }
 
-    private int frost(GrowingGarden garden, Forecast forecast) {
+    private int frost(GrowingGarden garden, Forecast forecast, LocalDate today) {
         Optional<ForecastHour> coldest = FrostRule.coldest(forecast, clock.instant(), HORIZON);
         if (coldest.isEmpty()) {
             return 0;
@@ -111,7 +111,7 @@ public class WeatherAlerts {
         List<String> unknown = new ArrayList<>();
         boolean greenhouse = false;
         for (PlantingSummary p : garden.growing()) {
-            Double kill = killing.get(p.cropId());
+            Double kill = tolerance(p, killing, today);
             if (kill == null) {
                 unknown.add(name(p) + " (" + p.plotName() + ")");
             } else if (FrostRule.tooCold(minimum, kill)) {
@@ -134,6 +134,21 @@ public class WeatherAlerts {
                 + (unknownWorthIt ? " Tolleranza al gelo non nota: " + String.join(", ", unknown) + "." : "")
                 + (greenhouse ? " In serra o tunnel il rischio è minore: la minima è quella all’aperto." : "");
         return alerted(garden, "frost:" + garden.garden().id() + ":" + day, "Rischio gelo " + DAY.format(day), body);
+    }
+
+    /**
+     * The temperature a planting stands: ECOCROP's killing temperature of young plants, or, for a perennial
+     * planted at least a year ago, its own frost hardiness (#139), null when not known. ECOCROP's absolute
+     * minimum is not used: it is where growth stops, not where the plant dies.
+     */
+    private Double tolerance(PlantingSummary p, Map<String, Double> killing, LocalDate today) {
+        return established(p, today) ? crops.byId(p.cropId()).map(c -> c.frostHardiness()).orElse(null)
+                : killing.get(p.cropId());
+    }
+
+    private boolean established(PlantingSummary p, LocalDate today) {
+        return crops.byId(p.cropId()).map(c -> c.perennial()).orElse(false) && p.plantedOn() != null
+                && !p.plantedOn().isAfter(today.minusYears(1));
     }
 
     private int blight(GrowingGarden garden, Forecast forecast, LocalDate today) {
