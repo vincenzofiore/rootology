@@ -1233,6 +1233,7 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-grow-chip {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--lumo-space-xs);
     min-height: 1.75rem;
@@ -1349,6 +1350,22 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-grow-days {
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
+}
+/* When a crop growing now is usually harvested here (#131): the basket and its months, the sentence as
+   tooltip and aria label; nothing at all when the site has no harvest window for it. */
+.rootology-grow-harvest {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.15rem;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    white-space: nowrap;
+}
+.rootology-harvest-icon {
+    flex: none;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
 }
 /* The harvest on a chip (#85): a small icon button that never makes the chip taller. */
 .rootology-grow-chip vaadin-button {

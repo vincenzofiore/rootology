@@ -12,6 +12,7 @@ import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.RouteParameters;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.CropCatalog;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
@@ -60,13 +61,16 @@ class AreasSunHoursTest {
     @Autowired
     ClimateCells climateCells;
 
+    @Autowired
+    ClimateWindows climateWindows;
+
     @Test
     void theDialogSavesTheHoursAndTheCardShowsThemBesideTheSun() {
         String login = "areas-sun-" + Long.toString(System.nanoTime(), 36);
         spaces.signedIn(login);
         long space = personalSpace(login);
         long garden = gardens.saveGarden(space, login, null, "Balcone", null, null, null).id();
-        AreasView view = new AreasView(gardens, crops, geoNames, weather, climateCells,
+        AreasView view = new AreasView(gardens, crops, geoNames, weather, climateCells, climateWindows,
                 new CurrentUser(spaces, login));
         view.beforeEnter(entering(space, garden));
 

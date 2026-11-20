@@ -24,6 +24,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
+import app.rootology.facts.ClimateWindows.ClimateWindow;
 import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenService;
@@ -77,6 +79,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     private final GardenService gardens;
     private final ClimateCells climateCells;
+    private final ClimateWindows climateWindows;
     private final WeatherService weather;
     private final NotificationService notifications;
     private final GardenPipeline pipeline;
@@ -94,11 +97,12 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long spaceId;
     private long gardenId;
 
-    public GardenHomeView(GardenService gardens, ClimateCells climateCells, WeatherService weather,
-                          NotificationService notifications, GardenPipeline pipeline, RunHistory history,
-                          CurrentUser currentUser) {
+    public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
+                          WeatherService weather, NotificationService notifications, GardenPipeline pipeline,
+                          RunHistory history, CurrentUser currentUser) {
         this.gardens = gardens;
         this.climateCells = climateCells;
+        this.climateWindows = climateWindows;
         this.weather = weather;
         this.notifications = notifications;
         this.pipeline = pipeline;
@@ -171,7 +175,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         weatherCard(garden);
         alertsCard();
         questionsCard();
-        growingCard(growing, plots, contributor);
+        growingCard(growing, plots, contributor, harvest(garden));
         climateCard(garden);
     }
 
@@ -278,11 +282,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         grid.add(card);
     }
 
+    /** The harvest months of every crop at this garden's site (#131), by crop id; empty when it has none. */
+    private Map<String, List<ClimateWindow>> harvest(GardenSummary garden) {
+        return HarvestText.site(garden, climateCells)
+                .map(site -> HarvestText.harvest(site, climateWindows)).orElse(Map.of());
+    }
+
     /**
      * What grows in this garden today, area by area (#130): every area, with a plus beside its name to sow or
      * plant there, and under the areas the way to add one and the link to the areas page (#133).
      */
-    private void growingCard(List<PlantingSummary> growing, List<PlotSummary> plots, boolean contributor) {
+    private void growingCard(List<PlantingSummary> growing, List<PlotSummary> plots, boolean contributor,
+                             Map<String, List<ClimateWindow>> harvest) {
         Card card = new Card(drawing(SPROUT), getTranslation("home.growing"));
         if (growing.isEmpty() && (plots.isEmpty() || !contributor)) {
             card.content().add(new EmptyState(getTranslation("home.growing.none")));
@@ -310,7 +321,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             if (!crops.isEmpty()) {
                 Div chips = new Div();
                 chips.addClassName("rootology-chips");
-                crops.forEach(planting -> chips.add(growChip(planting)));
+                crops.forEach(planting -> chips.add(growChip(planting, harvest.get(planting.cropId()))));
                 group.add(chips);
             }
             card.content().add(group);
@@ -351,9 +362,10 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /**
      * A crop growing now (#130): its name, then how and when it went into the ground, "semina 3 mar" or
-     * "trapianto 10 apr" (nouns, so no agreement with the crop's gender).
+     * "trapianto 10 apr" (nouns, so no agreement with the crop's gender), then when it is usually harvested at
+     * this site (#131), when the site has a HARVEST window for it.
      */
-    private Span growChip(PlantingSummary planting) {
+    private Span growChip(PlantingSummary planting, List<ClimateWindow> harvest) {
         Span name = new Span(planting.cropName());
         Span chip = new Span(name);
         chip.addClassName("rootology-grow-chip");
@@ -363,6 +375,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             when.addClassName("rootology-grow-when");
             chip.add(when);
         }
+        HarvestText.value(harvest, this::getTranslation, NoteText.locale(this)).ifPresent(chip::add);
         return chip;
     }
 

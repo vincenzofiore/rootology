@@ -11,6 +11,7 @@ import com.vaadin.flow.router.Route;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.experiments.ExperimentRunner;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.garden.GardenService;
@@ -65,6 +66,9 @@ class ViewsTest {
 
     @Autowired
     ClimateCells cells;
+
+    @Autowired
+    ClimateWindows climateWindows;
 
     @Autowired
     app.rootology.weather.WeatherService weatherService;
@@ -155,12 +159,13 @@ class ViewsTest {
     @Test
     void historySpaceAndCuratorViewsBuild() {
         assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, climateWindows, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, STYLE, "")
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
-        assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
+        assertThat(new GardenHomeView(gardens, cells, climateWindows, weatherService, notificationService, pipeline, history,
+                        viewer()).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();

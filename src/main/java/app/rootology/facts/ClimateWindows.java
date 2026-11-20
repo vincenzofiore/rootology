@@ -39,7 +39,12 @@ public class ClimateWindows {
 
     /** The windows of a crop at a site, curated ones for a named NORD or SUD zone included. */
     public List<ClimateWindow> windows(String cropId, SiteProfile site) {
-        return all(site).stream().filter(w -> w.window().cropId().equals(cropId)).toList();
+        return windows(site).stream().filter(w -> w.window().cropId().equals(cropId)).toList();
+    }
+
+    /** Every window of a site, by crop and activity: the derived ones, then the curated rows of a named zone. */
+    public List<ClimateWindow> windows(SiteProfile site) {
+        return all(site);
     }
 
     /**
