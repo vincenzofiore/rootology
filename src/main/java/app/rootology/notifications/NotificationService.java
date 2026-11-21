@@ -284,9 +284,11 @@ public class NotificationService {
 
     /**
      * One email per person with every question still waiting that is at least group-window old and not yet
-     * emailed; skipped during their quiet hours (it goes at the next run after them). Returns the emails sent.
+     * emailed; skipped during their quiet hours (it goes at the next run after them). Each email is sent
+     * synchronously (the job already runs in the background) and its rows are marked only when it went out,
+     * so a failed send is picked up by the next run. No transaction around it: a slow SMTP server must not hold
+     * one open, and a later failure must not roll back the marks of emails already sent. Returns the emails sent.
      */
-    @Transactional
     public int digest() {
         Instant now = clock.instant();
         Map<String, List<Pending>> byRecipient = pending(EMAIL_MARK, now.minus(groupWindow));
@@ -298,14 +300,19 @@ public class NotificationService {
             }
             List<Pending> wanted = e.getValue().stream()
                     .filter(p -> p.weather() ? prefs.emailWeather() : prefs.emailEscalations()).toList();
-            if (!wanted.isEmpty() && prefs.email() != null) {
-                mail.sendLater(digestMail(prefs.email(), wanted));
+            // Not wanted, or no address: handled without sending, as always.
+            List<Pending> unwanted = e.getValue().stream().filter(p -> !wanted.contains(p)).toList();
+            markEmailed(unwanted, now);
+            if (wanted.isEmpty() || prefs.email() == null) {
+                markEmailed(wanted, now);
+                continue;
+            }
+            // Sent synchronously (#153): the rows are marked only once the email went out; a failed send
+            // leaves them unmarked and the next run tries again.
+            if (mail.sendNow(digestMail(prefs.email(), wanted))) {
+                markEmailed(wanted, now);
                 sent++;
             }
-            // Handled: sent, or not wanted, or no address. Never emailed twice.
-            jdbc.sql("UPDATE notification SET emailed_at = :at WHERE id IN (:ids)")
-                    .param("at", Timestamp.from(now)).param("ids", e.getValue().stream().map(Pending::id).toList())
-                    .update();
         }
         if (sent > 0) {
             log.info("Sent {} notification emails", sent);
@@ -359,6 +366,14 @@ public class NotificationService {
             log.info("Sent {} Telegram messages", sent);
         }
         return sent;
+    }
+
+    private void markEmailed(List<Pending> rows, Instant now) {
+        if (rows.isEmpty()) {
+            return;
+        }
+        jdbc.sql("UPDATE notification SET emailed_at = :at WHERE id IN (:ids)")
+                .param("at", Timestamp.from(now)).param("ids", rows.stream().map(Pending::id).toList()).update();
     }
 
     private void markTelegramed(List<Pending> rows, Instant now) {

@@ -13,7 +13,11 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.List;
 
-/** Sends email in the background, retrying a few times; the caller never waits and never fails because of it. */
+/**
+ * Sends email, retrying a few times. `sendLater` does it in the background and never fails the caller;
+ * `sendNow` sends on the caller's thread and reports whether it went out, for a caller that must know
+ * before it marks something as sent (the digest, #153).
+ */
 @Service
 public class MailService {
 
@@ -31,16 +35,28 @@ public class MailService {
 
     @Async
     public void sendLater(OutgoingMail mail) {
+        sendWithRetry(mail);
+    }
+
+    /**
+     * Sends now, on the caller's thread, retrying a few times; true when it went out. For a caller that must
+     * know the outcome before it records the email as sent (#153).
+     */
+    public boolean sendNow(OutgoingMail mail) {
+        return sendWithRetry(mail);
+    }
+
+    private boolean sendWithRetry(OutgoingMail mail) {
         for (int attempt = 0; ; attempt++) {
             try {
                 send(mail);
                 log.info("Sent \"{}\" to {}", mail.subject(), mask(mail.to()));
-                return;
+                return true;
             } catch (MailException | MessagingException e) {
                 if (attempt >= BACKOFF.size()) {
                     log.warn("Could not send \"{}\" to {} after {} attempts: {}", mail.subject(), mask(mail.to()),
                             attempt + 1, e.getMessage());
-                    return;
+                    return false;
                 }
                 sleep(BACKOFF.get(attempt));
             }
