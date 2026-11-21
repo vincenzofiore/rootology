@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -35,6 +36,18 @@ public class JevDecisionLayer implements DecisionLayer {
             "CURATED", "From the curated garden dataset.",
             "UNCONFIRMED", "From a single unverified report. It may be wrong.",
             "INFERRED", "Derived from curated facts by the rule named in `derivedBy`. As reliable as that rule.");
+
+    /**
+     * What each rule of the app derives, said to Jev for the knowledge base only (#69): "as reliable as that rule"
+     * left Jev at about 0.75 on every derived calendar fact, so long lists escalated with the right values.
+     */
+    static final Map<String, String> DERIVED_BY = Map.of(
+            "frost-shift-v1", "`frost-shift-v1` gives the calendar of the question's site: the curated calendar "
+                    + "(sowIn, seedbedIn, transplantIn, plantIn, harvestIn, pruneIn) moved to the site's own frost dates.",
+            "frost-season-v1", "`frost-season-v1` gives the site's frost-safe months from its measured frost dates.",
+            "family-rotation-v1", "`family-rotation-v1` gives avoidIn: a crop of the same botanical family as the "
+                    + "plot's previous crop.",
+            "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.");
 
     /** Added only when some reading is proposed (#24), so other requests stay exactly as they were. */
     static final Map<String, Object> PROPOSED = ordered(
@@ -79,6 +92,22 @@ public class JevDecisionLayer implements DecisionLayer {
             extended.putAll(DECLARED);
         }
         return extended;
+    }
+
+    /** As {@link #sources}, with the derived facts' rules described (#69); the suite's requests never get it. */
+    static Map<String, Object> knowledgeBaseSources(GraphFacts facts, boolean anyProposed, boolean anyForecast,
+                                                    boolean anyDeclared) {
+        List<String> rules = facts.readings().stream().map(Reading::derivedBy).filter(Objects::nonNull)
+                .distinct().sorted().toList();
+        Map<String, Object> sources = new LinkedHashMap<>(sources(!rules.isEmpty(), anyProposed, anyForecast,
+                anyDeclared));
+        if (!rules.isEmpty()) {
+            sources.put("INFERRED", "Derived from curated facts by a deterministic rule of the app, named in "
+                    + "`derivedBy`. " + String.join(" ", rules.stream().map(r -> DERIVED_BY.getOrDefault(r,
+                    "`" + r + "` is a rule of the app.")).toList())
+                    + " A derived fact is the knowledge base's own answer for this site, not a guess.");
+        }
+        return sources;
     }
 
     /** Jev's raw yes-probabilities, before any threshold is applied. */
@@ -164,7 +193,8 @@ public class JevDecisionLayer implements DecisionLayer {
                 // Field by field, so the language (not needed to decide) never changes what Jev sees.
                 "intent", intent(intent),
                 "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
-                "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
+                "sources", knowledgeBase ? knowledgeBaseSources(facts, anyProposed, anyForecast, anyDeclared)
+                        : sources(anyInferred, anyProposed, anyForecast, anyDeclared),
                 "facts", stateFacts);
         Map<String, Object> request = ordered("model", model, "state", state, "questions", questions);
 
@@ -323,12 +353,13 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "no repels facts, so no pest is excluded for being repelled.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
-                    + "such as frost or too little light. " + SITE;
+                    + "such as frost or too little light. " + SITE + PLANTING;
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
-                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE;
+                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE + PLANTING;
             case SOWING_TIME -> "The answer is every month M such that "
-                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE;
+                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE
+                    + PLANTING;
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
             case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact. " + SITE;
             default -> rule(kind);
@@ -341,6 +372,10 @@ public class JevDecisionLayer implements DecisionLayer {
      */
     static final String SITE = "The calendar facts are already those of the question's site, with its frost "
             + "dates taken into account.";
+
+    /** Trees, bulbs and young plants are planted, not sown: the question still means them (#69). */
+    static final String PLANTING = " Planting (plantIn: trees, shrubs, bulbs, cloves, young plants) counts as "
+            + "sowing for this question.";
 
     /** The domain rule for each question shape, stated in plain words for Jev. */
     static String rule(QueryKind kind) {

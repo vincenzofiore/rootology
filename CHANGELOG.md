@@ -18,6 +18,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- Questions about what to sow or plant now are answered directly far more often instead of waiting for a person: the decision layer is told what the app's calendar rules derive, and that planting counts as sowing (#69).
 - A winter pruning now moves later only where spring comes later than at Vasto, so it stays in January at Vasto; in colder places the pruning months of thyme and bay laurel move later than before (#139).
 - Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).
 - The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
