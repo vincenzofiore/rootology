@@ -22,6 +22,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 - Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).
 - The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
 
+### Fixed
+
+- "Cosa semino nell’aiuola?" with no plot name is read as a question about one of the garden’s plots, which the app then asks for, and no longer answered with the whole garden’s list without the plot’s rotation check (#149).
+
 ### Security
 
 - Spring Boot 4.1.3 (Spring Framework 7.0.11, Spring Security 7.1.3) for the Spring advisories of 2026-11-19; none of them reached Rootology's configuration (#145).
