@@ -318,6 +318,28 @@ public class GardenPipeline {
                 .filter(s -> s.review().context().gardenId() == gardenId)
                 .orElseThrow(() -> new NoSuchElementException("No review waiting for process " + processId
                         + " in this space and garden"));
+        // Taken before anything is phrased (#152): two people answering at once never both get through.
+        if (!pending.claim(processId, human.reviewer())) {
+            throw new AlreadyAnsweredException(processId);
+        }
+        PendingReview review = stored.review();
+        Run run;
+        try {
+            run = finish(processId, spaceId, stored, human);
+        } catch (RuntimeException e) {
+            pending.release(processId);
+            throw e;
+        }
+        transaction.executeWithoutResult(status -> {
+            pending.resolve(processId, human.reviewer(), Instant.now());
+            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
+                    review.context().startedBy(), human.reviewer(), Instant.now()));
+        });
+        return run.answer();
+    }
+
+    /** Lets the paused agent, or a new one after a restart, finish with the person's answer. */
+    private Run finish(String processId, long spaceId, PendingEscalations.Stored stored, HumanAnswer human) {
         PendingReview review = stored.review();
         AgentProcess paused = agentPlatform.getAgentProcess(processId);
         AgentProcess process;
@@ -349,12 +371,7 @@ public class GardenPipeline {
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }
-        transaction.executeWithoutResult(status -> {
-            pending.resolve(processId, human.reviewer(), Instant.now());
-            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
-                    review.context().startedBy(), human.reviewer(), Instant.now()));
-        });
-        return run.answer();
+        return run;
     }
 
     private Run settle(AgentProcess process, Question question, RunContext context) {

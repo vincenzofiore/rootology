@@ -72,6 +72,22 @@ class PendingEscalations {
         return gardenId > 0 ? gardenId : null;
     }
 
+    /**
+     * Takes a waiting question for one person before the answer is phrased (#152): one statement, so two people
+     * answering at once cannot both pass. False when someone else holds it or it is already answered.
+     */
+    boolean claim(String processId, String by) {
+        return jdbc.sql("UPDATE pending_escalation SET resolved_by = ? "
+                        + "WHERE process_id = ? AND resolved_at IS NULL AND resolved_by IS NULL")
+                .params(by, processId).update() == 1;
+    }
+
+    /** Gives a claimed question back when its answer could not be finished, so it can be answered again. */
+    void release(String processId) {
+        jdbc.sql("UPDATE pending_escalation SET resolved_by = NULL WHERE process_id = ? AND resolved_at IS NULL")
+                .param(processId).update();
+    }
+
     void resolve(String processId, String by, Instant at) {
         jdbc.sql("UPDATE pending_escalation SET resolved_at = ?, resolved_by = ? WHERE process_id = ?")
                 .params(Timestamp.from(at), by, processId).update();

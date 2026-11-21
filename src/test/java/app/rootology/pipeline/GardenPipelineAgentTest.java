@@ -492,6 +492,56 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(history.recent(run.spaceId(), 0, run.startedBy())).isEmpty();
     }
 
+    @Autowired
+    PendingEscalations escalations;
+
+    @Test
+    void aQuestionSomeoneElseIsAnsweringIsNotAnsweredTwice() {
+        RunContext run = signedIn("ugo");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of guava?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "guava"));
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
+                && prompt.contains("companions of guava")).thenReturn("answered once");
+        String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of guava?"), run)
+                .pending().processId();
+
+        // Another member got there first and is still phrasing: this answer is refused before any call.
+        assertThat(escalations.claim(processId, "rival")).isTrue();
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Basilico"), "", "ugo"))).isInstanceOf(AlreadyAnsweredException.class);
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).hasSize(1);
+
+        // The rival's answer failed: the question is free again and the next answer goes through.
+        escalations.release(processId);
+        PipelineAnswer answer = pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Basilico"), "", "ugo"));
+        assertThat(answer.text()).isEqualTo("answered once");
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).isEmpty();
+    }
+
+    @Test
+    void anAnswerThatCannotBeFinishedLeavesTheQuestionWaiting() {
+        RunContext run = signedIn("vito");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lychee?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lychee"));
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
+                && prompt.contains("companions of lychee")).thenReturn("answered later");
+        String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of lychee?"), run)
+                .pending().processId();
+        agentPlatform.killAgentProcess(processId); // a restart: finishing needs Claude again
+        for (int i = 0; i < app.rootology.resilience.CircuitBreaker.FAILURE_THRESHOLD; i++) {
+            claude.breaker.failure();
+        }
+
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Menta"), "", "vito")))
+                .isInstanceOf(app.rootology.resilience.ServiceUnavailableException.class);
+
+        claude.breaker.success();
+        assertThat(pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Menta"), "", "vito")).text()).as("released, not stuck").isEqualTo("answered later");
+    }
+
     @Test
     void aWaitingQuestionSurvivesTheLossOfItsAgentAndCanStillBeAnswered() {
         RunContext run = signedIn("zeno");

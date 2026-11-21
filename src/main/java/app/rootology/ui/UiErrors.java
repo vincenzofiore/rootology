@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
+import app.rootology.pipeline.AlreadyAnsweredException;
 import app.rootology.spaces.SpaceAccessException;
 import app.rootology.usage.UsageLimitException;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ final class UiErrors {
         }
         if (failure instanceof SpaceAccessException) {
             return in.getTranslation("error.refused");
+        }
+        if (failure instanceof AlreadyAnsweredException) {
+            return in.getTranslation("escalations.alreadyanswered");
         }
         if (failure instanceof IllegalArgumentException) {
             return in.getTranslation("error.invalid");

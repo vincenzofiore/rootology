@@ -24,6 +24,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- Two people answering the same waiting question at the same moment no longer both get through: the second is told that someone else is answering it, and an answer that fails leaves the question waiting (#152).
 - "Cosa semino nell’aiuola?" with no plot name is read as a question about one of the garden’s plots, which the app then asks for, and no longer answered with the whole garden’s list without the plot’s rotation check (#149).
 
 ### Security
