@@ -160,7 +160,7 @@ class GoldenLiveRecordingTest {
         report.put("results", results);
 
         Files.createDirectories(RUNS);
-        Path file = RUNS.resolve("golden-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm")
+        Path file = RUNS.resolve("golden-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss")
                 .withZone(ZoneOffset.UTC).format(startedAt) + ".json");
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValue(file.toFile(), report);
         System.out.println("Live golden run: " + summary + " -> " + file);

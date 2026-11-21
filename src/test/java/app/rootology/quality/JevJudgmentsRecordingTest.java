@@ -112,7 +112,7 @@ class JevJudgmentsRecordingTest {
                     j.answerable(), new LinkedHashMap<>(j.candidates()),
                     JevDecisionLayer.decide(j, JevDecisionLayer.MIN_CONFIDENCE).toString()));
         }
-        Path file = GoldenLiveRecordingTest.RUNS.resolve("jev-judgments-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm")
+        Path file = GoldenLiveRecordingTest.RUNS.resolve("jev-judgments-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss")
                 .withZone(ZoneOffset.UTC).format(startedAt) + ".json");
         Files.createDirectories(GoldenLiveRecordingTest.RUNS);
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValue(file.toFile(),
