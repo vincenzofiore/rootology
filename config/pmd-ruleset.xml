@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Rootology's PMD ruleset (#151): complexity and size of classes and methods, plus the
+  error-prone bug patterns. Deliberately small: the point is to stop regressions, not to
+  relitigate style. Only src/main/java is analysed; tests are out of scope.
+  A violation that exists today is listed in config/pmd-baseline.properties and does not
+  fail the build; a new one does. See docs/testing.md.
+-->
+<ruleset name="rootology"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>Rootology: design size and complexity, and error-prone bug patterns.</description>
+
+    <!-- Generated sources and tests are never analysed, whichever way the plugin is invoked. -->
+    <exclude-pattern>.*/target/.*</exclude-pattern>
+    <exclude-pattern>.*/src/test/.*</exclude-pattern>
+
+    <!-- Design: size and complexity, all at PMD's default thresholds. -->
+    <rule ref="category/java/design.xml/GodClass"/>
+    <rule ref="category/java/design.xml/NcssCount"/>
+    <rule ref="category/java/design.xml/CyclomaticComplexity"/>
+    <rule ref="category/java/design.xml/CognitiveComplexity"/>
+
+    <!-- Error prone: the whole category, minus the rules that are noise in this codebase. -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="AvoidCatchingGenericException"/>
+        <!-- Resilience code (circuit breakers, failed external calls) deliberately catches
+             Exception and wraps it: that is the point of the class, not a bug. -->
+
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Flagged on i18n keys, Cypher fragments and repeated path segments. CPD, below,
+             is the rule that finds duplication worth fixing. -->
+
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+        <exclude name="AvoidFieldNameMatchingTypeName"/>
+        <!-- Records and Lombok accessors match their field by construction:
+             `record Name(String name)` is readable, not an error. -->
+
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <!-- A number in a condition is a threshold here (0.5 confidence, 14 sun hours,
+             limit per day) and naming it twice adds nothing. GodClass and the complexity
+             rules catch what actually hurts. -->
+
+        <exclude name="ConstructorCallsOverridableMethod"/>
+        <!-- Vaadin views build their layout in the constructor through inherited methods
+             (add, setWidthFull); PMD's advice cannot be followed without breaking the view. -->
+
+        <exclude name="MissingSerialVersionUID"/>
+        <exclude name="NonSerializableClass"/>
+        <!-- Vaadin views and Spring beans inherit Serializable but are never serialised by
+             us; the two rules would flag most of the ui package. -->
+
+        <exclude name="JUnitJupiterTestNoPrivateModifier"/>
+        <exclude name="JUnitSpelling"/>
+        <exclude name="JUnitStaticSuite"/>
+        <exclude name="DetachedTestCase"/>
+        <exclude name="TestClassWithoutTestCases"/>
+        <exclude name="UnnecessaryBooleanAssertion"/>
+        <exclude name="WrongTestAnnotation"/>
+        <!-- Rules about JUnit test classes; tests are not analysed. -->
+    </rule>
+
+</ruleset>

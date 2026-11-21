@@ -22,3 +22,5 @@ Headless runs started by the orchestrator (Claude Code, see "Agent orchestration
 - If you started the app (`./mvnw spring-boot:run`), stop it before you finish and remove its containers and its database volume with `docker compose down -v` in the worktree. Docker Compose names them after the worktree's folder (`goose-<issue>-postgres-1`, volume `goose-<issue>-postgres`), and they would outlive the worktree. Run it only in your worktree: in the main checkout it would delete the owner's local data. Never stop or remove other containers.
 - Leave the changes uncommitted in the worktree; the orchestrator reviews the diff and the owner decides on the commit.
 - `ArchitectureTest` encodes the conventions; its failure message says what to do instead. Fix the code: never edit `src/test/resources/archunit-store` or `archunit.properties` to make it pass.
+
+- Code quality (#151): `./mvnw verify` runs PMD, CPD and JaCoCo; `config/pmd-baseline.properties` and `config/cpd-baseline.txt` only shrink (never add an entry to make a build pass), see `docs/testing.md`.

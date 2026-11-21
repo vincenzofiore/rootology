@@ -1,6 +1,8 @@
-# Offline build and tests on every push and pull request (#13), and the release image (#12).
-# No secrets: a plain `./mvnw test` makes no paid call (live-api tests are excluded),
-# and the Testcontainers tests (Postgres, Neo4j) use the runner's Docker.
+# Offline build, tests and code quality gates on every push and pull request (#13, #151), and
+# the release image (#12). No secrets: a plain `./mvnw verify` makes no paid call (live-api tests
+# are excluded), and the Testcontainers tests (Postgres, Neo4j) use the runner's Docker.
+# `verify` also runs PMD and CPD against their frozen baselines (config/) and JaCoCo's coverage
+# minimums; their reports are attached to the run.
 name: build
 
 on:
@@ -25,8 +27,19 @@ jobs:
           distribution: temurin
           java-version-file: .java-version
           cache: maven
-      - name: Build and test
-        run: ./mvnw -B -ntp test
+      - name: Build, test and check
+        run: ./mvnw -B -ntp verify
+      - name: Keep the code quality reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: code-quality-reports
+          path: |
+            target/reports/pmd.html
+            target/reports/cpd.html
+            target/pmd.xml
+            target/cpd.xml
+            target/site/jacoco/
       - name: Keep test reports when something fails
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

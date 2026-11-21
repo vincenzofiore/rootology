@@ -3,6 +3,34 @@
 `./mvnw test` is offline and free: no test calls Claude, Jev or MET Norway. It needs Docker, because
 `TestcontainersConfiguration` starts the real databases and a mail catcher.
 
+## Code quality gates (#151)
+
+`./mvnw verify` also runs PMD, CPD and JaCoCo, so CI runs them with the tests:
+
+| Tool | What it checks | Where the report is |
+|---|---|---|
+| PMD | design (GodClass, NcssCount, CyclomaticComplexity, CognitiveComplexity) and the error-prone bug patterns, on `src/main/java` only | `target/reports/pmd.html`, `target/pmd.xml` |
+| CPD | copy-paste: duplicated blocks of 100 tokens or more | `target/reports/cpd.html`, `target/cpd.xml` |
+| JaCoCo | line coverage, with a floor on `pipeline`, `facts`, `decision` and `garden` | `target/site/jacoco/index.html`, `jacoco.csv` |
+
+The ruleset is `config/pmd-ruleset.xml`; it says in a comment which error-prone rules are
+excluded and why. The violations that existed when the gates were introduced are frozen in
+`config/pmd-baseline.properties` (per class and rule) and `config/cpd-baseline.txt` (per
+duplicated block): the build fails on a violation that is not in them. The baseline is a
+freezer, not a permission slip: **it only shrinks**. When a hotspot is fixed, remove its
+entry from the baseline in the same commit — a class that disappears from the report leaves a
+line that no longer matches anything, and a rule no longer violated must be dropped so it
+cannot come back unnoticed. Never add an entry to make a build pass: fix the code, or open an
+issue for the hotspot and leave the build failing until it is agreed.
+
+Coverage minimums live in the `jacoco-maven-plugin` configuration in `pom.xml`, one per module,
+set at the value measured when the gate was introduced rounded down to the whole percent: they
+can only rise. When coverage of a module rises well above its floor, raise the floor in the same
+commit.
+
+To reproduce what CI checks without the browsers: `./mvnw verify`, then open the reports above.
+`-Dpmd.skip=true -Djacoco.skip=true` skips the gates for a quick local loop; CI never does.
+
 ## One set of containers per JVM (#98)
 
 `src/test/java/app/rootology/TestcontainersConfiguration.java` holds Postgres 17, Neo4j and Mailpit as
