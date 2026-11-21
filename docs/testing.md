@@ -25,7 +25,10 @@ issue for the hotspot and leave the build failing until it is agreed.
 
 Coverage minimums live in the `jacoco-maven-plugin` configuration in `pom.xml`, one per module,
 set at the value measured when the gate was introduced rounded down to the whole percent: they
-can only rise. When coverage of a module rises well above its floor, raise the floor in the same
+can only rise. Measure them as CI does: `./mvnw clean verify` without the `ROOTOLOGY_*` keys in the
+environment (`unset -m 'ROOTOLOGY_*'` in zsh). With a TypeSafe key the application context builds the
+real Jev client, and without `clean` JaCoCo adds the data of earlier runs (live runs included): both
+raise `decision` above what CI measures (about 90–95 % against 87 %). When coverage of a module rises well above its floor, raise the floor in the same
 commit.
 
 To reproduce what CI checks without the browsers: `./mvnw verify`, then open the reports above.
