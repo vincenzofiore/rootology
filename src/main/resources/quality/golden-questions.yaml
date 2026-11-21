@@ -196,6 +196,24 @@ cases:
       answer: [NOVEMBER, DECEMBER]
       activities: {NOVEMBER: [PLANT], DECEMBER: [PLANT]}
 
+  # Other fruit trees (#139): kiwi from the Abruzzo integrated production rules, the rest editorial.
+  - id: harvest-olive
+    question: Quando si raccolgono le olive a Vasto?
+    intent: {kind: HARVEST_TIME, subject: olive, language: it, place: Vasto}
+    expect: {answer: [OCTOBER, NOVEMBER, DECEMBER]}
+
+  - id: prune-kiwi
+    question: Quando si pota il kiwi a Vasto?
+    intent: {kind: PRUNING_TIME, subject: kiwi, language: it, place: Vasto}
+    expect: {answer: [JANUARY, FEBRUARY, JUNE, JULY]}
+
+  - id: plant-fig-en
+    question: When can I plant a fig tree in Vasto?
+    intent: {kind: SOWING_TIME, subject: fig tree, language: en, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH]
+      activities: {FEBRUARY: [PLANT], MARCH: [PLANT]}
+
   # A crop with no pruning window: nothing is guessed, the question waits for a person.
   - id: prune-tomato
     question: Quando si pota il pomodoro a Vasto?
@@ -207,7 +225,7 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Vasto}
     expect: {answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
                       Uva spina, Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno,
-                      Melo, Nettarina, Pero, Pesco, Susino]}
+                      Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]}
 
   - id: sow-in-march-en
     question: What can I sow in March in Vasto?
@@ -217,8 +235,13 @@ cases:
                Cape gooseberry, Carrot, Celeriac, Celery, Chard, Chervil, Chickpea, Chili pepper, Chives,
                Coriander, Dill, Eggplant, Goji, Gooseberry, Grass pea, Kohlrabi, Lavender, Leek, Lentil, Lettuce,
                Mint, Okra, Onion, Oregano, Parsley, Parsnip, Pea, Potato, Radish, Raspberry, Red currant, Rocket,
-               Rosemary, Sage, Shallot, Spinach, Spring onion, Sweet pepper, Thyme, Tomato]
+               Rosemary, Sage, Shallot, Spinach, Spring onion, Sweet pepper, Thyme, Tomato, Fig, Pomegranate, Loquat, Olive, Table grape]
       activities:
+        Fig: [PLANT]
+        Pomegranate: [PLANT]
+        Loquat: [PLANT]
+        Olive: [PLANT]
+        Table grape: [PLANT]
         Aronia: [PLANT]
         Basil: [SOW]
         Bay laurel: [PLANT]
@@ -276,8 +299,10 @@ cases:
       answer: [Alchechengi, Aronia, Carota, Cece, Cerfoglio, Cicerchia, Cipolla, Cipollotto, Lampone, Lattuga,
                Lenticchia, Melanzana, Mirtillo, Mora, Peperoncino, Peperone, Pisello, Pomodoro, Porro,
                Prezzemolo, Ravanello, Ribes nero, Ribes rosso, Scalogno, Sedano, Sedano rapa, Spinacio,
-               Uva spina]
+               Uva spina, Fico, Uva da tavola]
       activities:
+        Fico: [PLANT]
+        Uva da tavola: [PLANT]
         Alchechengi: [SOW_SEEDBED]
         Aronia: [PLANT]
         Carota: [SOW]
@@ -350,7 +375,7 @@ cases:
     weather: missing
     expect: {answer: [Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
                       Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
-                      Pero, Pesco, Susino]}
+                      Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]}
 
   # Local weather (#18): frost-risk-v1 with ECOCROP's killing temperature for young plants.
   - id: frost-rules-out-pea
@@ -359,7 +384,7 @@ cases:
     garden: rome
     weather: frost
     expect:
-      answer: [Fava, Aglio, Aronia, Goji, Mora, Rosmarino, Salvia, Scalogno, Amarena, Nettarina, Pero, Pesco]
+      answer: [Fava, Aglio, Aronia, Goji, Mora, Rosmarino, Salvia, Scalogno, Amarena, Nettarina, Pero, Pesco, Giuggiolo]
       notes: [frost-risk-v1, Pisello]
 
   - id: forecast-missing-answers-anyway
@@ -370,7 +395,7 @@ cases:
     expect:
       answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
                Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
-               Pero, Pesco, Susino]
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available]
 
   # Facts added by a space (#24): visible only there.
@@ -464,7 +489,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available]
 
   - id: sow-now-in-the-southern-garden
@@ -475,7 +500,7 @@ cases:
     expect:
       answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
                Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
-               Pero, Pesco, Susino]
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available, on the coast]
 
   - id: growing-now-in-one-of-two-gardens
@@ -509,7 +534,7 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Torino}
     weather: missing
     expect:
-      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available]
 
   - id: sow-now-in-palermo-place
@@ -519,7 +544,7 @@ cases:
     expect:
       answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
                Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
-               Pero, Pesco, Susino]
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available]
 
   - id: sow-now-in-a-place-named-inside-a-garden
@@ -528,7 +553,7 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [names the place Torino]
 
   - id: place-named-matching-several
@@ -548,7 +573,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [not available, Xyzville named in the question was not found]
 
   # A question that needs no garden and no place is still answered at the space level: no choice.
@@ -597,7 +622,7 @@ cases:
     expect:
       answer: [Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
                Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
-               Pero, Pesco, Susino]
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola]
       notes: [names zone NORD, but the garden is in zone CENTRO]
 
   - id: plot-not-in-the-garden
@@ -628,7 +653,7 @@ cases:
     garden: balcony
     weather: missing
     expect:
-      answer: [Aglio, Aronia, Goji, Mirtillo, Mora, Scalogno]
+      answer: [Aglio, Aronia, Goji, Mirtillo, Mora, Scalogno, Giuggiolo]
       notes: [light-need-v1, on the coast]
 
   - id: calendar-abroad

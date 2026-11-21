@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Nine more fruit trees: olive, table grape, fig, persimmon, pomegranate, kiwi, loquat, black mulberry and jujube, with planting and pruning months from the Abruzzo integrated production rules for kiwi, grape and olive, editorial months for the others, and their FAO ECOCROP needs and frost hardiness (#139).
 - Nine pome and stone fruit trees: apple, pear, quince, peach, nectarine, apricot, plum, cherry and sour cherry, with planting and pruning months from the Abruzzo integrated production rules, their harvest months and their FAO ECOCROP needs (#139).
 - Eight berries: blueberry, raspberry, blackberry, red and black currant, gooseberry, goji and aronia, with their planting, harvest and pruning months and, where FAO ECOCROP has them, their needs (#139).
 - Seven perennial herbs: thyme, oregano, mint, marjoram, chives, bay laurel and lavender, with their planting, harvest and pruning months and their FAO ECOCROP needs (#139).
@@ -18,6 +19,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A crop named with its plant form is found: "fig tree", "albero di fico", "piante di limoni" (#139).
 - Questions about what to sow or plant now are answered directly far more often instead of waiting for a person: the decision layer is told what the app's calendar rules derive, and that planting counts as sowing (#69).
 - A winter pruning now moves later only where spring comes later than at Vasto, so it stays in January at Vasto; in colder places the pruning months of thyme and bay laurel move later than before (#139).
 - Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).

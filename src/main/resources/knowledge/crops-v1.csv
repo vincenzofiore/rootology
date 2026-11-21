@@ -1,4 +1,4 @@
-# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20, 8 berries 2026-11-21, 9 pome and stone fruit 2026-11-21 (#139).
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20, 8 berries 2026-11-21, 9 pome and stone fruit 2026-11-21, 9 other fruit trees 2026-11-21 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -99,3 +99,12 @@ apricot,Albicocco,Apricot,Prunus armeniaca,Rosaceae,Q37453,2398,,OVERWINTER,l’
 plum,Susino,Plum,Prunus domestica,Rosaceae,Q44120,16203,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
 cherry,Ciliegio,Cherry,Prunus avium,Rosaceae,Q165137,8965,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
 sour-cherry,Amarena,Sour cherry,Prunus cerasus,Rosaceae,Q131517,8970,,OVERWINTER,l’,PERENNIAL,-30,rootology-editorial
+olive,Olivo,Olive,Olea europaea,Oleaceae,Q37083,1553,,HARDY,l’,PERENNIAL,-10,fao-ecocrop
+table-grape,Uva da tavola,Table grape,Vitis vinifera,Vitaceae,Q30046,2160,,OVERWINTER,l’,PERENNIAL,-20,fao-ecocrop
+fig,Fico,Fig,Ficus carica,Moraceae,Q36146,1071,,HARDY,il,PERENNIAL,-12,fao-ecocrop
+persimmon,Kaki,Persimmon,Diospyros kaki,Ebenaceae,Q158482,945,,OVERWINTER,il,PERENNIAL,-18,fao-ecocrop
+pomegranate,Melograno,Pomegranate,Punica granatum,Lythraceae,Q13188,1829,,HARDY,il,PERENNIAL,-10,fao-ecocrop
+kiwi,Kiwi,Kiwi,Actinidia deliciosa,Actinidiaceae,Q343300,889,Actinidia chinensis,OVERWINTER,il,PERENNIAL,-9,fao-ecocrop
+loquat,Nespolo del Giappone,Loquat,Eriobotrya japonica,Rosaceae,Q41505,1002,,HARDY,il,PERENNIAL,-10,fao-ecocrop
+black-mulberry,Gelso nero,Black mulberry,Morus nigra,Moraceae,Q161040,2349,,OVERWINTER,il,PERENNIAL,-15,rootology-editorial
+jujube,Giuggiolo,Jujube,Ziziphus jujuba,Rhamnaceae,Q11181633,,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial

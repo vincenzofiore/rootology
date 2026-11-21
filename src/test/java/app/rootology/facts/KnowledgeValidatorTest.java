@@ -27,11 +27,11 @@ class KnowledgeValidatorTest {
     @Test
     void theCuratedFilesAreValid() {
         assertThat(KnowledgeValidator.validate(real)).isEmpty();
-        assertThat(real.crops()).hasSize(90);
-        assertThat(real.needs()).hasSize(86);
+        assertThat(real.crops()).hasSize(99);
+        assertThat(real.needs()).hasSize(94);
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
-        assertThat(real.windows()).hasSize(263);
+        assertThat(real.windows()).hasSize(292);
     }
 
     @Test

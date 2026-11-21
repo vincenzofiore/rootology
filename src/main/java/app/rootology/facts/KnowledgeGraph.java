@@ -138,8 +138,17 @@ public class KnowledgeGraph {
         }
         String n = name.trim().toLowerCase(java.util.Locale.ROOT);
         java.util.Optional<Entity> exact = resolveAny(List.of(n), spaceId);
-        return exact.isPresent() ? exact : resolveAny(List.copyOf(Singulars.of(n)), spaceId);
+        if (exact.isPresent()) {
+            return exact;
+        }
+        java.util.Optional<Entity> singular = resolveAny(List.copyOf(Singulars.of(n)), spaceId);
+        String bare = PLANT_FORM.matcher(n).replaceAll("").trim();
+        return singular.isPresent() || bare.equals(n) || bare.isEmpty() ? singular : resolve(bare, spaceId);
     }
+
+    /** The plant's form around a crop's name: "fig tree", "lemon plants", "albero di fico", "pianta del limone". */
+    static final java.util.regex.Pattern PLANT_FORM = java.util.regex.Pattern.compile(
+            "^(?:alber[oi]|piant[ae]) d(?:ell['’]|ello|ella|elle|egli|el|ei|i)\\s*|\\s+(?:trees?|plants?|bush(?:es)?)$");
 
     /** The first of the names (in their order) that is a crop or an organism; italian when it matched the Italian name. */
     private java.util.Optional<Entity> resolveAny(List<String> names, Long spaceId) {

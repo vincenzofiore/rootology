@@ -20,7 +20,7 @@ What the knowledge base needs: crops with taxonomy (family, for rotation rules) 
 
 ## Gaps
 
-- **Italian sowing and harvest calendars**: no open dataset found. For fruit trees, the regional integrated production rules (Regione Abruzzo, DPI 2024 Allegato A) give planting and pruning periods, cited as facts (#139); their reuse licence was not confirmed, so no text is reused. The curated calendar is central Italy's (Vasto), reviewed by hand; it is moved to each garden by `frost-shift-v1` from the garden's own climate profile (#62), and refined with the forecast (#18). Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
+- **Italian sowing and harvest calendars**: no open dataset found. For fruit trees, the regional integrated production rules (Regione Abruzzo, DPI 2024 Allegato A) give planting and pruning periods (pome and stone fruit, kiwi, table grape, olive), cited as facts (#139); their reuse licence was not confirmed, so no text is reused. The curated calendar is central Italy's (Vasto), reviewed by hand; it is moved to each garden by `frost-shift-v1` from the garden's own climate profile (#62), and refined with the forecast (#18). Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
 - **Companion and antagonist pairs**: evidence is uneven and often folk knowledge. Keep each pair with its source and a confidence, so Jev can weigh it and the UI can show it; prefer pairs backed by cited studies.
 
 ## Proposed first set

@@ -26,8 +26,8 @@ class KnowledgeGraphTest {
 
     @Test
     void holdsTheCuratedKnowledge() {
-        assertThat(knowledge.count("Crop")).isEqualTo(90);
-        assertThat(knowledge.count("Family")).isEqualTo(20);
+        assertThat(knowledge.count("Crop")).isEqualTo(99);
+        assertThat(knowledge.count("Family")).isEqualTo(27);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         // Only curated windows are written now (#62): CENTRO and the one NORD row; SUD is derived.
         assertThat(knowledge.count("Zone")).isEqualTo(2);
@@ -63,6 +63,11 @@ class KnowledgeGraphTest {
         assertThat(knowledge.resolve("peperoni")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("sweet-pepper");
         assertThat(knowledge.resolve("tomatoes")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("tomato");
         assertThat(knowledge.resolve("pomodori").orElseThrow().italian()).isTrue();
+        // The plant's form around the name (#139): "fig tree", "albero di fico", "piante di limoni".
+        assertThat(knowledge.resolve("fig tree")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("fig");
+        assertThat(knowledge.resolve("albero di fico")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("fig");
+        assertThat(knowledge.resolve("piante di limoni")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("lemon");
+        assertThat(knowledge.resolve("albero dell’olivo")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("olive");
         assertThat(climate.windowFacts("pomodori", ReferenceSite.CENTRO.profile(cells), null)).isNotEmpty()
                 .allSatisfy(f -> assertThat(f.fact().subject()).isEqualTo("pomodori"));
         assertThat(knowledge.resolve("cavalli")).isEmpty();

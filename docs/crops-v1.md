@@ -221,10 +221,34 @@ moves only by how much a site's first safe month is later than Vasto's (March), 
 and moves to March–May at Aosta. The same change moves thyme's light trim to August–September at Aosta.
 Late frosts on the flowers (March–April), the real risk for fruit trees, are not modelled yet.
 
+### Other fruit trees (2026-11-21)
+
+Nine more fruit trees. From the Abruzzo integrated production rules (`abruzzo-dpi-2024`, cited as facts): kiwi
+(actinidia) planting "in autunno inoltrato o inizio inverno" and winter pruning "da dicembre fino a febbraio"; table
+grape planting in autumn, winter or spring and dry pruning "dalla caduta foglie fino a prima del pianto"; olive
+planting preferably in spring (in autumn only near the sea, left out since the rule cannot tell the coast). The other
+months are editorial. Winter prunings are January–February, inside the DPI's ranges: a window starting in December
+would move to November at cold sites. Frost hardiness is ECOCROP's killing temperature during rest (`fao-ecocrop`),
+except black mulberry (ECOCROP's -5 °C is not credible) and jujube (no ECOCROP record), editorial. Olive, fig,
+pomegranate and loquat are `HARDY` (planted from a month before the site's first safe month); the others
+`OVERWINTER`. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Group | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|---|
+| Olivo | Q37083 | 1553 | HARDY | Mar–Apr | Oct–Dec | Feb–Apr | -10 °C |
+| Uva da tavola | Q30046 | 2160 | OVERWINTER | Nov–Mar | Aug–Oct | Jan–Feb, May–Jun | -20 °C |
+| Fico | Q36146 | 1071 | HARDY | Feb–Mar | Jun–Sep | Feb–Mar | -12 °C |
+| Kaki | Q158482 | 945 | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Feb | -18 °C |
+| Melograno | Q13188 | 1829 | HARDY | Mar–Apr | Sep–Nov | Feb–Mar | -10 °C |
+| Kiwi | Q343300 | 889 (*Actinidia chinensis*) | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Feb, Jun–Jul | -9 °C |
+| Nespolo del Giappone | Q41505 | 1002 | HARDY | Mar–Apr | May–Jun | Jun–Jul | -10 °C |
+| Gelso nero | Q161040 | 2349 | OVERWINTER | Nov–Dec | Jun–Aug | Jan–Feb | -15 °C |
+| Giuggiolo | Q11181633 | — | OVERWINTER | Nov–Dec | Sep–Oct | Jan–Feb | -25 °C |
+
 ## Notes
 
-- 90 crops in 20 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries and 9 pome and stone fruit from 2026-11-21).
-- Candidates for later: the other fruit trees (olive, table grape, fig, persimmon, pomegranate, kiwi, loquat, mulberry, jujube), nuts, flowers and green manures of #139.
+- 99 crops in 27 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21).
+- Candidates for later: nuts (almond, walnut, hazelnut, chestnut), flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

@@ -10,7 +10,7 @@ class CropCatalogTest {
 
     @Test
     void loadsTheApprovedCrops() {
-        assertThat(catalog.all()).hasSize(90);
+        assertThat(catalog.all()).hasSize(99);
         assertThat(catalog.byId("tomato")).hasValueSatisfying(c -> {
             assertThat(c.italianName()).isEqualTo("Pomodoro");
             assertThat(c.family()).isEqualTo("Solanaceae");

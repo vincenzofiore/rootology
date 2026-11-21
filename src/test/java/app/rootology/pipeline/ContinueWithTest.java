@@ -89,7 +89,8 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(answered.answer()).isNotNull();
         assertThat(answered.answer().answer()).as("Turin in November").containsExactly("Aglio", "Albicocco",
-                "Amarena", "Ciliegio", "Cotogno", "Melo", "Nettarina", "Pero", "Pesco", "Scalogno", "Susino");
+                "Amarena", "Ciliegio", "Cotogno", "Gelso nero", "Giuggiolo", "Kaki", "Kiwi", "Melo", "Nettarina", "Pero",
+                "Pesco", "Scalogno", "Susino", "Uva da tavola");
         assertThat(answered.answer().context().placeName()).isEqualTo("Torino");
         assertThat(answered.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.PLACE);
         // One understanding call for the question, none for the continuation.
