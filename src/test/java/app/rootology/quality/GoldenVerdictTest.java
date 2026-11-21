@@ -39,6 +39,13 @@ class GoldenVerdictTest {
                 .isEqualTo(GoldenVerdict.CORRECT_ESCALATION);
     }
 
+    @Test
+    void theExpectedNoteIsFoundIgnoringCase() {
+        assertThat(GoldenVerdict.of(expected(List.of("INSIDE ONE OF THE SPACE'S GARDENS")),
+                escalated(List.of(Note.of(Note.Kind.NO_GARDEN_FOR_QUESTION)))))
+                .isEqualTo(GoldenVerdict.CORRECT_ESCALATION);
+    }
+
     /** An off-domain case: refused, with no values and no escalation expected (#53). */
     private static GoldenQuestions.Case offDomain() {
         return new GoldenQuestions.Case("off-1", "Come si fa il punto zig-zag a macchina?",

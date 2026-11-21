@@ -607,7 +607,8 @@ cases:
     weather: missing
     expect:
       escalate: the plot is not in this garden
-      notes: [no plot named "Aiuola C"]
+      # Claude may keep or drop the kind word ("Aiuola C" or "C"): both resolve the same plot (#159).
+      notes: [no plot named]
 
   - id: plot-name-matching-two-plots
     question: Cosa posso seminare nell'aiuola?

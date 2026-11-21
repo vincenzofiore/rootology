@@ -102,9 +102,10 @@ enum GoldenVerdict {
         return expected.stream().allMatch(e -> offered.contains(e.toLowerCase(Locale.ROOT)));
     }
 
-    /** Every expected note, as English text, is part of one of the notes the run produced. */
+    /** Every expected note, as English text and ignoring case, is part of one of the notes the run produced (#159). */
     private static boolean hasNotes(GoldenQuestions.Case c, List<String> produced) {
-        return c.notes().stream().allMatch(expected -> produced.stream().anyMatch(note -> note.contains(expected)));
+        return c.notes().stream().allMatch(expected -> produced.stream().anyMatch(note ->
+                note.toLowerCase(Locale.ROOT).contains(expected.toLowerCase(Locale.ROOT))));
     }
 
     private static List<String> notesOf(List<Note> notes) {
