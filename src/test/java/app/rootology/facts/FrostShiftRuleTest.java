@@ -63,7 +63,7 @@ class FrostShiftRuleTest {
     void vastoKeepsEveryWindowAsItIs() {
         List<InferredWindow> inferred = at(42.11, 14.71, 2);
 
-        counts(inferred, 191, 0, 0);
+        counts(inferred, 226, 0, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "garlic", "PLANT", 10)).isEqualTo("10-12");
         assertThat(window(inferred, "cauliflower", "HARVEST", 10)).isEqualTo("10-2");
@@ -74,7 +74,7 @@ class FrostShiftRuleTest {
     void torinoMovesOnlyWhatItsFrostDatesMakeImpossible() {
         List<InferredWindow> inferred = at(45.07, 7.69, 205);
 
-        counts(inferred, 113, 67, 11);
+        counts(inferred, 123, 92, 11);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "basil", "HARVEST", 6)).isEqualTo("7-10");
@@ -96,7 +96,7 @@ class FrostShiftRuleTest {
     void milanoMovesTheSpringSowingsAndTheLateHarvests() {
         List<InferredWindow> inferred = at(45.46, 9.19, 108);
 
-        counts(inferred, 160, 31, 0);
+        counts(inferred, 183, 43, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "cabbage", "HARVEST", 6)).isEqualTo("6-11");
@@ -109,7 +109,7 @@ class FrostShiftRuleTest {
     void palermoKeepsEveryWindowAsVasto() {
         List<InferredWindow> inferred = at(38.12, 13.36, 13);
 
-        counts(inferred, 191, 0, 0);
+        counts(inferred, 226, 0, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
     }
 
@@ -117,7 +117,7 @@ class FrostShiftRuleTest {
     void aostaMovesTheTenderCropsTwoMonthsAndLosesTheWinterHarvests() {
         List<InferredWindow> inferred = at(45.74, 7.32, 585);
 
-        counts(inferred, 40, 131, 20);
+        counts(inferred, 40, 166, 20);
         assertThat(tomatoTransplant(inferred)).isEqualTo("5-6");
         assertThat(window(inferred, "potato", "PLANT", 3)).isEqualTo("4-5");
         assertThat(window(inferred, "potato", "HARVEST", 6)).isEqualTo("7-8");
@@ -141,7 +141,7 @@ class FrostShiftRuleTest {
     void lyonMovesLikeTheOtherNorthernPlains() {
         List<InferredWindow> inferred = at(45.76, 4.84, 171);
 
-        counts(inferred, 160, 31, 0);
+        counts(inferred, 183, 43, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "cabbage", "HARVEST", 6)).isEqualTo("6-11");

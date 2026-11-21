@@ -196,3 +196,38 @@ lavender,CENTRO,PLANT,3,5,spring; perennial,rootology-editorial,no
 lavender,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
 lavender,CENTRO,HARVEST,6,7,flowers,rootology-editorial,no
 lavender,CENTRO,PRUNE,8,9,after flowering,rootology-editorial,no
+blueberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+blueberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+blueberry,CENTRO,HARVEST,6,8,,rootology-editorial,no
+blueberry,CENTRO,PRUNE,2,3,late winter; still dormant,rootology-editorial,no
+raspberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+raspberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+raspberry,CENTRO,HARVEST,6,7,,rootology-editorial,no
+raspberry,CENTRO,HARVEST,9,10,everbearing varieties,rootology-editorial,no
+raspberry,CENTRO,PRUNE,8,8,canes that fruited,rootology-editorial,no
+raspberry,CENTRO,PRUNE,2,3,thin the canes,rootology-editorial,no
+blackberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+blackberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+blackberry,CENTRO,HARVEST,7,9,,rootology-editorial,no
+blackberry,CENTRO,PRUNE,9,10,canes that fruited,rootology-editorial,no
+blackberry,CENTRO,PRUNE,2,3,shorten the side shoots,rootology-editorial,no
+red-currant,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+red-currant,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+red-currant,CENTRO,HARVEST,6,7,,rootology-editorial,no
+red-currant,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+black-currant,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+black-currant,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+black-currant,CENTRO,HARVEST,6,7,,rootology-editorial,no
+black-currant,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+gooseberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+gooseberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+gooseberry,CENTRO,HARVEST,6,7,,rootology-editorial,no
+gooseberry,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+aronia,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+aronia,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+aronia,CENTRO,HARVEST,8,9,,rootology-editorial,no
+aronia,CENTRO,PRUNE,2,3,light; the oldest stems,rootology-editorial,no
+goji,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+goji,CENTRO,PLANT,3,4,spring,rootology-editorial,no
+goji,CENTRO,HARVEST,7,10,,rootology-editorial,no
+goji,CENTRO,PRUNE,2,3,,rootology-editorial,no

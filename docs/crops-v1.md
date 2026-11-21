@@ -172,10 +172,32 @@ Lavender, mint and thyme used to be the tests' examples of an unknown crop; papa
 place. The experiment's case hard-3 ("Which plants are companions of Lavender?") is unchanged: it reads the
 suite's own graph, which never sees this catalog.
 
+### Berries (2026-11-21)
+
+Eight berry shrubs, all `OVERWINTER`, planted in autumn or at the end of winter, with two new families (Ericaceae,
+Grossulariaceae). Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Mirtillo | Q468695 | 10704 (Vaccinium corymbosum) | Oct–Nov, Feb–Mar | Jun–Aug | Feb–Mar (still dormant) | -25 °C |
+| Lampone | Q12252383 | 1877 (ssp. idaeus) | Oct–Nov, Feb–Mar | Jun–Jul, Sep–Oct (everbearing) | Aug (canes that fruited), Feb–Mar (thinning) | -25 °C |
+| Mora | Q13541716 | none (9359 is empty) | Oct–Nov, Feb–Mar | Jul–Sep | Sep–Oct (canes that fruited), Feb–Mar (side shoots) | -20 °C |
+| Ribes rosso | Q146661 | 9285 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Ribes nero | Q146604 | 9282 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Uva spina | Q41503 | 9290 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Goji | Q196332 | none (7443 is empty) | Oct–Nov, Mar–Apr | Jul–Oct | Feb–Mar | -20 °C |
+| Aronia | Q162774 | none (3116 is *Amelanchier alnifolia*) | Oct–Nov, Feb–Mar | Aug–Sep | Feb–Mar (light, the oldest stems) | -30 °C |
+
+Blueberry and aronia were first proposed with a January–February pruning; `frost-shift-v1` moves an `OVERWINTER`
+window that starts before Vasto's first safe month minus one, so Vasto itself would have moved it. Their pruning
+is February–March, still in dormancy. Without an ECOCROP record, blackberry, goji and aronia cannot be judged
+by the frost and light rules: they stay in the answers with the "not known" notes. Currants and gooseberry
+suffer Vasto's summer heat (part shade): a gardening tip, not a fact of the base.
+
 ## Notes
 
-- 73 crops in 18 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20).
-- Candidates for later: berries, fruit trees, flowers and green manures of #139.
+- 81 crops in 20 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries from 2026-11-21).
+- Candidates for later: fruit trees, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

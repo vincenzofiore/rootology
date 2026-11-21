@@ -1,4 +1,4 @@
-# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20 (#139).
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20, 8 berries 2026-11-21 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -82,3 +82,11 @@ marjoram,Maggiorana,Marjoram,Origanum majorana,Lamiaceae,Q22694,2368,,TENDER,la,
 chives,Erba cipollina,Chives,Allium schoenoprasum,Amaryllidaceae,Q51148,810,,OVERWINTER,l’,PERENNIAL,-25,rootology-editorial
 bay-laurel,Alloro,Bay laurel,Laurus nobilis,Lauraceae,Q26006,1333,,OVERWINTER,l’,PERENNIAL,-10,rootology-editorial
 lavender,Lavanda,Lavender,Lavandula angustifolia,Lamiaceae,Q42081,7172,,OVERWINTER,la,PERENNIAL,-15,rootology-editorial
+blueberry,Mirtillo,Blueberry,Vaccinium corymbosum,Ericaceae,Q468695,10704,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+raspberry,Lampone,Raspberry,Rubus idaeus,Rosaceae,Q12252383,1877,Rubus idaeus ssp. idaeus,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+blackberry,Mora,Blackberry,Rubus fruticosus,Rosaceae,Q13541716,,,OVERWINTER,la,PERENNIAL,-20,rootology-editorial
+red-currant,Ribes rosso,Red currant,Ribes rubrum,Grossulariaceae,Q146661,9285,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+black-currant,Ribes nero,Black currant,Ribes nigrum,Grossulariaceae,Q146604,9282,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+gooseberry,Uva spina,Gooseberry,Ribes uva-crispa,Grossulariaceae,Q41503,9290,,OVERWINTER,l’,PERENNIAL,-25,rootology-editorial
+goji,Goji,Goji,Lycium barbarum,Solanaceae,Q196332,,,OVERWINTER,il,PERENNIAL,-20,rootology-editorial
+aronia,Aronia,Aronia,Aronia melanocarpa,Rosaceae,Q162774,,,OVERWINTER,l’,PERENNIAL,-30,rootology-editorial
