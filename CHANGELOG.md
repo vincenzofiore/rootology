@@ -22,6 +22,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 ### Security
 
 - Spring Boot 4.1.3 (Spring Framework 7.0.11, Spring Security 7.1.3) for the Spring advisories of 2026-11-19; none of them reached Rootology's configuration (#145).
+- Java 25.0.5.1 in the server image (Temurin `25.0.5.1_2-jre-resolute`) for Java4Shell (CVE-2026-114938); the current server's CPU could not reach the vulnerable path (#146).
 
 ## [0.5.0] - 2026-11-17
 
