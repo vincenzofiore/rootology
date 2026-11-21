@@ -85,17 +85,23 @@ public class WeatherAlerts {
         LocalDate today = LocalDate.now(clock);
         int alerts = 0;
         for (GrowingGarden garden : gardens.locatedGardensGrowing(today)) {
-            if (garden.growing().isEmpty()) {
-                continue;
+            try {
+                if (garden.growing().isEmpty()) {
+                    continue;
+                }
+                Optional<Forecast> forecast = weather.around(garden.garden().latitude(),
+                        garden.garden().longitude(), garden.garden().elevationM());
+                if (forecast.isEmpty()) {
+                    continue; // no weather today: no alert, never a guess
+                }
+                Forecast f = forecast.get();
+                alerts += frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
+                        + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
+            } catch (RuntimeException e) {
+                // The type only: a message may carry the garden's coordinates (no personal data in the logs).
+                log.warn("Weather alerts failed for garden {}: {}", garden.garden().id(), e.getClass().getSimpleName());
+                log.debug("Weather alerts failure for garden {}", garden.garden().id(), e);
             }
-            Optional<Forecast> forecast = weather.around(garden.garden().latitude(),
-                    garden.garden().longitude(), garden.garden().elevationM());
-            if (forecast.isEmpty()) {
-                continue; // no weather today: no alert, never a guess
-            }
-            Forecast f = forecast.get();
-            alerts += frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
-                    + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
         }
         return alerts;
     }

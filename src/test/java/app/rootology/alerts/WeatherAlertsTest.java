@@ -263,6 +263,23 @@ class WeatherAlertsTest {
     }
 
     @Test
+    void aFailingGardenDoesNotStopTheAlertsOfTheOthers() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("bianca", "carlo", "45.00", "9.00", "lettuce");
+        garden("dario", "elena", "46.00", "10.00", "lettuce");
+        when(weather.around(eq(new BigDecimal("45.00")), eq(new BigDecimal("9.00")), any()))
+                .thenThrow(new IllegalStateException("forecast unavailable"));
+        when(weather.around(eq(new BigDecimal("46.00")), eq(new BigDecimal("10.00")), any()))
+                .thenReturn(steady(-2.0, 80.0));
+
+        assertThat(alerts.check()).as("the garden that did not fail still gets its alert").isEqualTo(1);
+
+        assertThat(weatherOf("dario")).singleElement()
+                .satisfies(n -> assertThat(n.title()).startsWith("Rischio gelo"));
+        assertThat(weatherOf("bianca")).as("the failing garden writes nothing").isEmpty();
+    }
+
+    @Test
     void weatherEmailsFollowTheirOwnPreference() {
         when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("olga", "pino", "43.77", "11.25", "lettuce");
