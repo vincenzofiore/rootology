@@ -3,6 +3,13 @@
 What is built, module by module, with the issue that built it. Moved verbatim from CLAUDE.md (#128): read the
 part the work touches. The module boundaries are checked by `ModularityTest`, which also writes the module
 diagram and each module's dependencies to `target/spring-modulith-docs/` (`components.puml`, `module-*.adoc`).
+The project's conventions are checked by `ArchitectureTest` (#150): "now" and the time zone only from the `Clock`
+bean, no `getStyle()` in the UI, the UI only through services, the quality suite isolated from the real
+knowledge base, a circuit breaker on every external HTTP call, no `System.getenv`, no standard streams,
+`printStackTrace` or field injection, `java.util.Random` only in `NoisyFacts`. Violations that existed when a
+rule came in are frozen in `src/test/resources/archunit-store` (ArchUnit's `FreezingArchRule`): only new ones
+fail, and the store shrinks as they are fixed. A new rule's store is created once by hand
+(`freeze.store.default.allowStoreCreation=true` in `archunit.properties`, then back to `false`).
 
 - Stack: Spring Boot 4.1.3, Java 25, Maven (`./mvnw`), Spring Modulith 2.1.2 (boundaries verified by `ModularityTest`, which must keep passing), Apache Jena 6.2.0, Embabel 1.5.4 (`embabel-agent-starter-anthropic`, default LLM `claude-sonnet-5-5`), Vaadin Flow 25.3, Spring Security OAuth2 client, Postgres 17 with Flyway, Neo4j 2026.10 (Java driver, Cypher). The unused Initializr starters (cache, validation, REST Docs with Asciidoctor, the Modulith actuator endpoint) went in #10; Spring Cache was dropped because nothing needs it (GeoNames, weather, Telegram and the curated files keep their own copies).
 - Modules (base package `app.rootology`):

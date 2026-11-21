@@ -2212,3 +2212,20 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
 .rootology-name-row vaadin-text-field {
     flex: 1 1 14rem;
 }
+
+/* QA view: the experiment's arms, one card each (ComparisonView) */
+.rootology-qa-arms {
+  gap: 1rem;
+}
+
+.rootology-qa-card {
+  border: 1px solid var(--lumo-contrast-20pct);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  width: 15rem;
+}
+
+.rootology-qa-card p {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}

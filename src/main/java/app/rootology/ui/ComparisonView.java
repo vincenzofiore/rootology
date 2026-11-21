@@ -71,7 +71,7 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
         controls.setWrap(true);
 
         arms.setFlexWrap(FlexLayout.FlexWrap.WRAP);
-        arms.getStyle().set("gap", "1rem");
+        arms.addClassName("rootology-qa-arms");
         add(new PageHeader(getTranslation("qa.title")));
         add(new H3(getTranslation("qa.experiment")), controls, new Paragraph(getTranslation("qa.experiment.intro")),
                 arms);
@@ -163,11 +163,9 @@ public class ComparisonView extends VerticalLayout implements HasDynamicTitle {
         Div card = new Div(new H3(title), new Span(value));
         for (String detail : details) {
             Paragraph p = new Paragraph(detail);
-            p.getStyle().set("font-size", "0.85rem").set("margin", "0.4rem 0 0");
             card.add(p);
         }
-        card.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)")
-                .set("border-radius", "8px").set("padding", "0.8rem 1rem").set("width", "15rem");
+        card.addClassName("rootology-qa-card");
         return card;
     }
 
