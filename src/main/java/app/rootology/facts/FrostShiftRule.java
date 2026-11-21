@@ -19,7 +19,9 @@ import java.util.Set;
  *   <li>HARDY: the same with firstSafe - 1.</li>
  *   <li>AUTUMN: d = clamp(lastSafe - 11, -2, 0) for every window (October -1, September or earlier -2).</li>
  *   <li>OVERWINTER: harvests d = clamp(firstSafe - 4, 0, 2); windows starting August or later
- *       d = clamp(lastSafe - 11, -1, 0); other windows d = clamp(firstSafe - 1 - start, 0, 2).</li>
+ *       d = clamp(lastSafe - 11, -1, 0); pruning windows starting earlier d = clamp(firstSafe - Vasto's
+ *       first safe month, 0, 2), so a January pruning stays in January at Vasto; other windows
+ *       d = clamp(firstSafe - 1 - start, 0, 2).</li>
  *   <li>LONG: sowing windows become max(start, firstSafe - 1) .. min(end, lastSafe - 1); harvests start
  *       plus d = max(0, firstSafe - 1 - start of the crop's sowing window) and end at most at lastSafe.</li>
  * </ul>
@@ -34,6 +36,9 @@ public final class FrostShiftRule {
     public static final String ID = "frost-shift-v1";
 
     public static final Set<String> GROUPS = Set.of("TENDER", "HARDY", "AUTUMN", "OVERWINTER", "LONG");
+
+    /** Vasto's first safe month, the base of the curated windows; FrostShiftRuleTest checks it against the cells. */
+    static final int VASTO_FIRST_SAFE = 3;
 
     /** A window derived by this rule, with the curated window it comes from. */
     public record InferredWindow(WindowRow window, WindowRow from) {
@@ -93,6 +98,9 @@ public final class FrostShiftRule {
                 d = clamp(firstSafe - 4, 0, 2);
             } else if (from >= 8) {
                 d = clamp(lastSafe - 11, -1, 0);
+            } else if (row.activity().equals("PRUNE")) {
+                // a winter pruning waits for the end of the hard frosts only as much as the site's spring is later than Vasto's
+                d = clamp(firstSafe - VASTO_FIRST_SAFE, 0, 2);
             } else {
                 d = clamp(firstSafe - 1 - from, 0, 2);
             }

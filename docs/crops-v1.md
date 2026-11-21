@@ -194,10 +194,37 @@ is February–March, still in dormancy. Without an ECOCROP record, blackberry, g
 by the frost and light rules: they stay in the answers with the "not known" notes. Currants and gooseberry
 suffer Vasto's summer heat (part shade): a gardening tip, not a fact of the base.
 
+### Pome and stone fruit (2026-11-21)
+
+Nine fruit trees, all `OVERWINTER`, in the Rosaceae family. Planting and pruning come from the Abruzzo integrated
+production rules (`abruzzo-dpi-2024`, Allegato A, chapters "Drupacee" p. 110 and "Pomacee" p. 124: planting "in
+autunno inoltrato o inizio inverno"; winter pruning "in settembre-ottobre o da gennaio fino alla fioritura", not in
+late autumn; summer pruning in July), cited as facts, no text reused. The September–October winter pruning is left
+out to keep one clear answer. Harvest months are editorial (`rootology-editorial`): the CREA variety lists give
+ripening per variety in days from a reference cultivar (Redhaven ripens 5–10 July in central Italy), not months
+per crop. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Melo | Q18674606 | 1407 | Nov–Dec | Aug–Oct | Jan–Mar, Jul | -25 °C |
+| Pero | Q146281 | 1832 | Nov–Dec | Jul–Oct | Jan–Mar, Jul | -25 °C |
+| Cotogno | Q43300 | 5117 | Nov–Dec | Sep–Oct | Jan–Mar, Jul | -20 °C |
+| Pesco | Q13189 | 1796 | Nov–Dec | Jun–Sep | Jan–Mar, Jul | -20 °C |
+| Nettarina | Q3408651 | 1796 (peach, same species) | Nov–Dec | Jun–Sep | Jan–Mar, Jul | -20 °C |
+| Albicocco | Q37453 | 2398 | Nov–Dec | Jun–Jul | Jan–Mar, Jul | -20 °C |
+| Susino | Q44120 | 16203 | Nov–Dec | Jul–Sep | Jan–Mar, Jul | -25 °C |
+| Ciliegio | Q165137 | 8965 | Nov–Dec | May–Jun | Jan–Mar, Jul | -25 °C |
+| Amarena | Q131517 | 8970 | Nov–Dec | Jun–Jul | Jan–Mar, Jul | -30 °C |
+
+A January pruning needed a change to `frost-shift-v1`: an `OVERWINTER` pruning window that starts before August now
+moves only by how much a site's first safe month is later than Vasto's (March), so it stays in January at Vasto
+and moves to March–May at Aosta. The same change moves thyme's light trim to August–September at Aosta.
+Late frosts on the flowers (March–April), the real risk for fruit trees, are not modelled yet.
+
 ## Notes
 
-- 81 crops in 20 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries from 2026-11-21).
-- Candidates for later: fruit trees, flowers and green manures of #139.
+- 90 crops in 20 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries and 9 pome and stone fruit from 2026-11-21).
+- Candidates for later: the other fruit trees (olive, table grape, fig, persimmon, pomegranate, kiwi, loquat, mulberry, jujube), nuts, flowers and green manures of #139.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

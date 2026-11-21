@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Nine pome and stone fruit trees: apple, pear, quince, peach, nectarine, apricot, plum, cherry and sour cherry, with planting and pruning months from the Abruzzo integrated production rules, their harvest months and their FAO ECOCROP needs (#139).
 - Eight berries: blueberry, raspberry, blackberry, red and black currant, gooseberry, goji and aronia, with their planting, harvest and pruning months and, where FAO ECOCROP has them, their needs (#139).
 - Seven perennial herbs: thyme, oregano, mint, marjoram, chives, bay laurel and lavender, with their planting, harvest and pruning months and their FAO ECOCROP needs (#139).
 - Five citrus, the first fruit trees: lemon, sweet orange, mandarin, clementine and kumquat, with their planting, harvest and pruning months and their FAO ECOCROP needs; questions such as "Quando si pota il limone?" are now answered from the pruning months, and nothing is guessed for a crop that has none (#139).
@@ -17,6 +18,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A winter pruning now moves later only where spring comes later than at Vasto, so it stays in January at Vasto; in colder places the pruning months of thyme and bay laurel move later than before (#139).
 - Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).
 - The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
 

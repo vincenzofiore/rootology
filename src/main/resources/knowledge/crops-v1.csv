@@ -1,4 +1,4 @@
-# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20, 8 berries 2026-11-21 (#139).
+# Crops of the knowledge base (docs/crops-v1.md): 39 approved 2026-11-03, 22 annuals added 2026-11-18, 5 citrus 2026-11-20, 7 perennial herbs 2026-11-20, 8 berries 2026-11-21, 9 pome and stone fruit 2026-11-21 (#139).
 # Families checked against Wikidata on 2026-11-03: all match (current APG classification).
 # ecocrop: the FAO ECOCROP record used for environmental needs; ecocrop_match notes when it is a
 # synonym or a close relative rather than the exact crop. Empty when ECOCROP has no record.
@@ -90,3 +90,12 @@ black-currant,Ribes nero,Black currant,Ribes nigrum,Grossulariaceae,Q146604,9282
 gooseberry,Uva spina,Gooseberry,Ribes uva-crispa,Grossulariaceae,Q41503,9290,,OVERWINTER,l’,PERENNIAL,-25,rootology-editorial
 goji,Goji,Goji,Lycium barbarum,Solanaceae,Q196332,,,OVERWINTER,il,PERENNIAL,-20,rootology-editorial
 aronia,Aronia,Aronia,Aronia melanocarpa,Rosaceae,Q162774,,,OVERWINTER,l’,PERENNIAL,-30,rootology-editorial
+apple,Melo,Apple,Malus domestica,Rosaceae,Q18674606,1407,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+pear,Pero,Pear,Pyrus communis,Rosaceae,Q146281,1832,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+quince,Cotogno,Quince,Cydonia oblonga,Rosaceae,Q43300,5117,,OVERWINTER,il,PERENNIAL,-20,rootology-editorial
+peach,Pesco,Peach,Prunus persica,Rosaceae,Q13189,1796,,OVERWINTER,il,PERENNIAL,-20,rootology-editorial
+nectarine,Nettarina,Nectarine,Prunus persica var. nucipersica,Rosaceae,Q3408651,1796,Prunus persica (same species),OVERWINTER,la,PERENNIAL,-20,rootology-editorial
+apricot,Albicocco,Apricot,Prunus armeniaca,Rosaceae,Q37453,2398,,OVERWINTER,l’,PERENNIAL,-20,rootology-editorial
+plum,Susino,Plum,Prunus domestica,Rosaceae,Q44120,16203,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+cherry,Ciliegio,Cherry,Prunus avium,Rosaceae,Q165137,8965,,OVERWINTER,il,PERENNIAL,-25,rootology-editorial
+sour-cherry,Amarena,Sour cherry,Prunus cerasus,Rosaceae,Q131517,8970,,OVERWINTER,l’,PERENNIAL,-30,rootology-editorial

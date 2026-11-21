@@ -178,6 +178,24 @@ cases:
       answer: [MARCH, APRIL, OCTOBER, NOVEMBER]
       activities: {MARCH: [PLANT], APRIL: [PLANT], OCTOBER: [PLANT], NOVEMBER: [PLANT]}
 
+  # Pome and stone fruit (#139): planting and pruning from the Abruzzo integrated production rules.
+  - id: prune-apple
+    question: Quando si pota il melo a Vasto?
+    intent: {kind: PRUNING_TIME, subject: melo, language: it, place: Vasto}
+    expect: {answer: [JANUARY, FEBRUARY, MARCH, JULY]}
+
+  - id: harvest-apricot-en
+    question: When are apricots harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: apricots, language: en, place: Vasto}
+    expect: {answer: [JUNE, JULY]}
+
+  - id: plant-cherry
+    question: Quando si pianta il ciliegio a Vasto?
+    intent: {kind: SOWING_TIME, subject: ciliegio, language: it, place: Vasto}
+    expect:
+      answer: [NOVEMBER, DECEMBER]
+      activities: {NOVEMBER: [PLANT], DECEMBER: [PLANT]}
+
   # A crop with no pruning window: nothing is guessed, the question waits for a person.
   - id: prune-tomato
     question: Quando si pota il pomodoro a Vasto?
@@ -187,8 +205,9 @@ cases:
   - id: sow-now-november
     question: Cosa posso seminare adesso a Vasto?
     intent: {kind: SOW_NOW, language: it, place: Vasto}
-    expect: {answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina, Pisello,
-                       Rosmarino, Salvia, Scalogno]}
+    expect: {answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+                      Uva spina, Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno,
+                      Melo, Nettarina, Pero, Pesco, Susino]}
 
   - id: sow-in-march-en
     question: What can I sow in March in Vasto?
@@ -329,8 +348,9 @@ cases:
     intent: {kind: SOW_IN_PLOT, subject: Aiuola B, language: it}
     garden: rome
     weather: missing
-    expect: {answer: [Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina, Rosmarino, Salvia,
-                       Scalogno]}
+    expect: {answer: [Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
+                      Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+                      Pero, Pesco, Susino]}
 
   # Local weather (#18): frost-risk-v1 with ECOCROP's killing temperature for young plants.
   - id: frost-rules-out-pea
@@ -339,7 +359,7 @@ cases:
     garden: rome
     weather: frost
     expect:
-      answer: [Fava, Aglio, Aronia, Goji, Mora, Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Aglio, Aronia, Goji, Mora, Rosmarino, Salvia, Scalogno, Amarena, Nettarina, Pero, Pesco]
       notes: [frost-risk-v1, Pisello]
 
   - id: forecast-missing-answers-anyway
@@ -348,8 +368,9 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina, Pisello,
-               Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
+               Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino]
       notes: [not available]
 
   # Facts added by a space (#24): visible only there.
@@ -443,7 +464,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio, Scalogno]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
       notes: [not available]
 
   - id: sow-now-in-the-southern-garden
@@ -452,8 +473,9 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
-               Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino]
       notes: [not available, on the coast]
 
   - id: growing-now-in-one-of-two-gardens
@@ -487,7 +509,7 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Torino}
     weather: missing
     expect:
-      answer: [Aglio, Scalogno]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
       notes: [not available]
 
   - id: sow-now-in-palermo-place
@@ -495,8 +517,9 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Palermo}
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
-               Rosmarino, Salvia, Scalogno]
+      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino]
       notes: [not available]
 
   - id: sow-now-in-a-place-named-inside-a-garden
@@ -505,7 +528,7 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Aglio, Scalogno]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
       notes: [names the place Torino]
 
   - id: place-named-matching-several
@@ -525,7 +548,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio, Scalogno]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino]
       notes: [not available, Xyzville named in the question was not found]
 
   # A question that needs no garden and no place is still answered at the space level: no choice.
@@ -572,8 +595,9 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina, Rosmarino,
-               Salvia, Scalogno]
+      answer: [Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino]
       notes: [names zone NORD, but the garden is in zone CENTRO]
 
   - id: plot-not-in-the-garden

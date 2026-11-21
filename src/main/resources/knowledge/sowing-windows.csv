@@ -231,3 +231,39 @@ goji,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
 goji,CENTRO,PLANT,3,4,spring,rootology-editorial,no
 goji,CENTRO,HARVEST,7,10,,rootology-editorial,no
 goji,CENTRO,PRUNE,2,3,,rootology-editorial,no
+apple,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+apple,CENTRO,HARVEST,8,10,depends on the variety,rootology-editorial,no
+apple,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+apple,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+pear,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+pear,CENTRO,HARVEST,7,10,depends on the variety,rootology-editorial,no
+pear,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+pear,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+quince,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+quince,CENTRO,HARVEST,9,10,depends on the variety,rootology-editorial,no
+quince,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+quince,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+peach,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+peach,CENTRO,HARVEST,6,9,depends on the variety,rootology-editorial,no
+peach,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+peach,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+nectarine,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+nectarine,CENTRO,HARVEST,6,9,depends on the variety,rootology-editorial,no
+nectarine,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+nectarine,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+apricot,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+apricot,CENTRO,HARVEST,6,7,depends on the variety,rootology-editorial,no
+apricot,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+apricot,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+plum,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+plum,CENTRO,HARVEST,7,9,depends on the variety,rootology-editorial,no
+plum,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+plum,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+cherry,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+cherry,CENTRO,HARVEST,5,6,depends on the variety,rootology-editorial,no
+cherry,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+cherry,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,HARVEST,6,7,depends on the variety,rootology-editorial,no
+sour-cherry,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no

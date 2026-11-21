@@ -26,12 +26,12 @@ class KnowledgeGraphTest {
 
     @Test
     void holdsTheCuratedKnowledge() {
-        assertThat(knowledge.count("Crop")).isEqualTo(81);
+        assertThat(knowledge.count("Crop")).isEqualTo(90);
         assertThat(knowledge.count("Family")).isEqualTo(20);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         // Only curated windows are written now (#62): CENTRO and the one NORD row; SUD is derived.
         assertThat(knowledge.count("Zone")).isEqualTo(2);
-        assertThat(knowledge.count("Source")).isEqualTo(14);
+        assertThat(knowledge.count("Source")).isEqualTo(15);
     }
 
     @Test
