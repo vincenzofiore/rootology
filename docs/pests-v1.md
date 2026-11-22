@@ -45,4 +45,28 @@ Approved by the owner on 2026-11-03; curated data in `src/main/resources/knowled
 - 24 organisms: 16 insects, mites and molluscs, 8 diseases.
 - Lamb's lettuce, fennel, chard, spinach, artichoke, the herbs and some others have no listed pest yet: the list covers the most common problems, not every crop. Missing ones can be added through knowledge enrichment (#24).
 - The relation "pest affects crop in these months" is what the "relevant pests this week" question (#17) will use, together with the weather.
+- Control methods (#140) are in `pest-controls.csv`, see below.
 - Sources used: EPPO codes (identity; EPPO Codes Open Data Licence, commercial use allowed, attribution to EPPO with the download date); editorial practice for hosts and months (to verify, `verified=no`).
+
+## Control methods (#140, 2026-11-22)
+
+`pest-controls.csv` lists what a home gardener can do against each of the 24 organisms: 89 methods, at least one
+per organism. A method belongs to the pest, not to a pest-crop pair: aphids are handled the same way on lettuce or on
+broad beans (owner, 2026-11-22). A column for crop-specific exceptions can be added when a source gives one.
+
+- `kind`: PRACTICE (cultural measures, mesh, rotation, cultivars), NATURAL_ENEMY (to encourage, or released as
+  biological control: the agent's scientific name in `agent`), SERVICE_PLANT (a service crop sown nearby, its id in
+  `agent`; none yet, they come with the service plants), SUBSTANCE, MICROORGANISM, TRAP.
+- Substances and microorganisms are only those allowed in organic production by Regulation (EU) 2021/1165, Annex I
+  (`eu-2021-1165`, consolidated text of 2026-01-01): copper compounds (at most 28 kg/ha over 7 years), sulphur,
+  fatty acids, azadirachtin, spinosad, ferric phosphate, potassium hydrogen carbonate, and approved microorganisms
+  such as *Bacillus thuringiensis*. The validator refuses a substance or microorganism that does not cite it. No
+  synthetic product, no brand; the answer always says to read the label.
+- Natural enemies released as biological control are those of EPPO Standard PM 6/3(5) (`eppo-pm6-3`), with the
+  target pests the standard gives; the EPPO database itself is not imported (its licence is unclear).
+- Practices come from RHS advice pages (UK) and UC IPM guidelines (California), cited as facts; months and
+  thresholds specific to those climates are left out. A few long-standing practices without a source we could
+  check (Colorado beetle, *Tuta absoluta* traps) are editorial and `traditional`.
+- `evidence`: `study` where the source reports its own trials (carrot fly mesh), `extension` for advisory services,
+  `traditional` otherwise. Ferric phosphate is `traditional` here: the RHS advises against any slug pellets for
+  wildlife, and none of our sources measures it.

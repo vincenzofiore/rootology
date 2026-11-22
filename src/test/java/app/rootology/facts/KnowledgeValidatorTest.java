@@ -1,5 +1,6 @@
 package app.rootology.facts;
 
+import app.rootology.facts.CuratedKnowledge.ControlRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
 import app.rootology.facts.CuratedKnowledge.PairRow;
@@ -32,6 +33,9 @@ class KnowledgeValidatorTest {
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
         assertThat(real.windows()).hasSize(337);
+        assertThat(real.controls()).hasSize(89);
+        assertThat(real.controls()).extracting(ControlRow::organismId).containsAll(
+                real.organisms().stream().map(OrganismRow::id).toList());
     }
 
     @Test
@@ -39,7 +43,7 @@ class KnowledgeValidatorTest {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
                         "Caricaceae", "Q34887", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null)),
-                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
                 "crop papaya: frost_group must be one of " + FrostShiftRule.GROUPS + ", not NOT_A_GROUP");
@@ -50,7 +54,7 @@ class KnowledgeValidatorTest {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
                         "Caricaceae", "Q34887", null, "TENDER", "una", "PERENNIAL", null, null)),
-                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop papaya: italian_article"));
     }
@@ -64,7 +68,7 @@ class KnowledgeValidatorTest {
                         "PERENNIAL", -15.0, "a-blog"),
                 new Crop("feijoa", "Feijoa", "Feijoa", "Acca sellowiana", "Myrtaceae", "Q1092496", null, "HARDY", "la",
                         "EVERGREEN", null, null)),
-                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts());
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
                 "crop papaya: frost_hardiness is for perennials only",
@@ -89,7 +93,7 @@ class KnowledgeValidatorTest {
     void refusesASourceThatDoesNotAllowCommercialUse() {
         var k = new CuratedKnowledge(plus(real.sources(), new SourceRow("pfaf", "PFAF", "https://pfaf.org",
                 "CC BY-NC-SA", false, "2026-11-03")), real.crops(), real.needs(), real.windows(), real.pairs(),
-                real.organisms(), real.hosts());
+                real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains("source pfaf does not allow commercial use");
     }
@@ -100,7 +104,7 @@ class KnowledgeValidatorTest {
                 plus(real.windows(), new WindowRow("papaya", "CENTRO", "SOW", 3, 4, "", "rootology-editorial", false)),
                 plus(real.pairs(), new PairRow("tomato", "basil", "COMPANION", "x", "traditional", List.of("blog"))),
                 real.organisms(),
-                plus(real.hosts(), new HostRow("XXXXXX", "tomato", 5, 6, "", "rootology-editorial", false)));
+                plus(real.hosts(), new HostRow("XXXXXX", "tomato", 5, 6, "", "rootology-editorial", false)), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
                 "window papaya SOW: unknown crop papaya",
@@ -109,10 +113,29 @@ class KnowledgeValidatorTest {
     }
 
     @Test
+    void refusesControlsWithoutKnownPestKindSourceOrOrganicListing() {
+        var k = new CuratedKnowledge(real.sources(), real.crops(), real.needs(), real.windows(), real.pairs(),
+                real.organisms(), real.hosts(), plus(real.controls(),
+                new ControlRow("XXXXXX", "Hand-pick", "PRACTICE", "", "traditional", List.of("rootology-editorial")),
+                new ControlRow("1APHIF", "Spray", "POTION", "", "folklore", List.of("blog")),
+                new ControlRow("1APHIF", "Pyrethrins", "SUBSTANCE", "", "extension", List.of("rhs-aphids")),
+                new ControlRow("1APHIF", "Sow marigolds", "SERVICE_PLANT", "papaya", "traditional",
+                        List.of("rootology-editorial"))));
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "control XXXXXX \"Hand-pick\": unknown organism XXXXXX",
+                "control 1APHIF \"Spray\": unknown source blog",
+                "control 1APHIF \"Pyrethrins\": a substance or microorganism must cite eu-2021-1165",
+                "control 1APHIF \"Sow marigolds\": unknown crop papaya")
+                .anyMatch(p -> p.startsWith("control 1APHIF \"Spray\": kind"))
+                .anyMatch(p -> p.startsWith("control 1APHIF \"Spray\": evidence"));
+    }
+
+    @Test
     void refusesAPairThatIsBothCompanionAndAntagonist() {
         var k = new CuratedKnowledge(real.sources(), real.crops(), real.needs(), real.windows(),
                 plus(real.pairs(), new PairRow("basil", "tomato", "ANTAGONIST", "x", "traditional",
-                        List.of("cornell-1999"))), real.organisms(), real.hosts());
+                        List.of("cornell-1999"))), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.endsWith("is both companion and antagonist"));
     }
@@ -123,7 +146,7 @@ class KnowledgeValidatorTest {
                 plus(real.windows(), new WindowRow("tomato", "CENTRO", "HARVEST", 13, 2, "", "rootology-editorial", false)),
                 real.pairs(),
                 plus(real.organisms(), new OrganismRow("aphid", "x", "x", "x", "BIRD", "eppo-codes")),
-                real.hosts());
+                real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
                 "window tomato HARVEST: month 13 is not between 1 and 12",

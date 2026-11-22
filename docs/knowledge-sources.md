@@ -68,3 +68,15 @@ values (`last_frost_p80`, `first_frost_p20`); the altitude correction is 6.5 °C
 capped at 500 m, skipped on the coast (land fraction below 0.9) and when the altitude is unknown; the window
 rule `frost-shift-v1` never moves a window earlier in spring than Vasto; the south is not moved earlier because
 frost dates do not justify it (temperature would be needed, in a later issue).
+
+## Pest control methods (#140), checked 2026-11-22
+
+| Source | What it gives | License (as found) | Notes |
+|---|---|---|---|
+| [Regulation (EU) 2021/1165, Annex I](https://eur-lex.europa.eu/eli/reg_impl/2021/1165/2026-01-01/eng) | Active substances allowed in organic production, by category | © European Union, reuse authorised with citation (Decision 2011/833/EU) | The list every substance or microorganism must be in. |
+| [EPPO Standard PM 6/3(5)](https://gd.eppo.int/download/standard/124/pm6-3-5-2026-en.pdf) | Biological control agents used safely in the EPPO region, with their target pests | Citation of facts, no text reused | The EPPO Global Database "BCA" data is not imported: its licence for commercial reuse is unclear (ask EPPO). |
+| RHS advice pages (rhs.org.uk) | Practices, mesh, natural enemies, traps per pest | Citation of facts, no text reused | UK climate: months are not reused. |
+| UC IPM (ipm.ucanr.edu) | Practices and organic options per pest | Citation of facts, no text reused | California: months and thresholds are not reused. |
+| EU Pesticides Database | Approval status of substances | Legal notice not found | Not used: nothing is imported. |
+
+Each page is a separate source in `sources.csv`, so a method points to the page it comes from.

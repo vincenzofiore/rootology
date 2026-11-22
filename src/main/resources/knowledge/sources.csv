@@ -16,3 +16,29 @@ agera5,AgERA5 v2.0 - Agrometeorological indicators from 1979 to present (Coperni
 copernicus-dem-90m,Copernicus DEM GLO-90 (produced using Copernicus WorldDEM-90; the full notice is in the climate cells file header),https://doi.org/10.5270/ESA-c5d3d65,Copernicus DEM licence (free; commercial use allowed; attribution required),yes,2026-11-10
 geonames-gtopo30,GeoNames GTOPO30 elevation (USGS GTOPO30; public domain),https://www.geonames.org/export/web-services.html,CC BY 4.0 (attribution to GeoNames),yes,2026-11-10
 abruzzo-dpi-2024,Regione Abruzzo - Disciplinari di produzione integrata 2024 Allegato A Tecniche agronomiche (planting and pruning periods of fruit trees),https://agroambiente.regione.abruzzo.it/sites/default/files/DPI%202024%20Tecniche%20agronomiche%20Abruzzo-Allegato%20A.pdf,citation of facts (no text reused),yes,2026-11-21
+eu-2021-1165,Commission Implementing Regulation (EU) 2021/1165 Annex I - active substances allowed in organic production (consolidated 2026-01-01),https://eur-lex.europa.eu/eli/reg_impl/2021/1165/2026-01-01/eng,© European Union; reuse authorised with citation (Commission Decision 2011/833/EU),yes,2026-11-22
+eppo-pm6-3,EPPO Standard PM 6/3(5) - Biological control agents safely used in the EPPO region (2026),https://gd.eppo.int/download/standard/124/pm6-3-5-2026-en.pdf,citation of facts (no text reused),yes,2026-11-22
+rhs-aphids,RHS Advice - Aphids,https://www.rhs.org.uk/biodiversity/aphids,citation of facts (no text reused),yes,2026-11-22
+rhs-cabbage-caterpillars,RHS Advice - Cabbage caterpillars,https://www.rhs.org.uk/biodiversity/cabbage-caterpillars,citation of facts (no text reused),yes,2026-11-22
+rhs-carrot-fly,RHS Advice - Carrot fly,https://www.rhs.org.uk/biodiversity/carrot-fly,citation of facts (no text reused),yes,2026-11-22
+rhs-onion-fly,RHS Advice - Onion fly,https://www.rhs.org.uk/biodiversity/onion-fly,citation of facts (no text reused),yes,2026-11-22
+rhs-thrips,RHS Advice - Thrips,https://www.rhs.org.uk/biodiversity/thrips,citation of facts (no text reused),yes,2026-11-22
+rhs-glasshouse-whitefly,RHS Advice - Glasshouse whitefly,https://www.rhs.org.uk/biodiversity/glasshouse-whitefly,citation of facts (no text reused),yes,2026-11-22
+rhs-red-spider-mite,RHS Advice - Glasshouse red spider mite,https://www.rhs.org.uk/biodiversity/glasshouse-red-spider-mite,citation of facts (no text reused),yes,2026-11-22
+rhs-slugs,RHS Advice - Slugs and snails,https://www.rhs.org.uk/biodiversity/slugs-and-snails,citation of facts (no text reused),yes,2026-11-22
+rhs-wireworms,RHS Advice - Wireworms,https://www.rhs.org.uk/biodiversity/wireworms,citation of facts (no text reused),yes,2026-11-22
+rhs-potato-blight,RHS Advice - Potato blight,https://www.rhs.org.uk/disease/potato-blight,citation of facts (no text reused),yes,2026-11-22
+rhs-powdery-mildews,RHS Advice - Powdery mildews,https://www.rhs.org.uk/disease/powdery-mildews,citation of facts (no text reused),yes,2026-11-22
+rhs-downy-mildews,RHS Advice - Downy mildews,https://www.rhs.org.uk/disease/downy-mildews,citation of facts (no text reused),yes,2026-11-22
+rhs-lettuce-downy-mildew,RHS Advice - Lettuce downy mildew,https://www.rhs.org.uk/disease/lettuce-downy-mildew,citation of facts (no text reused),yes,2026-11-22
+rhs-grey-mould,RHS Advice - Grey mould,https://www.rhs.org.uk/disease/grey-mould,citation of facts (no text reused),yes,2026-11-22
+rhs-leek-rust,RHS Advice - Leek rust,https://www.rhs.org.uk/disease/leek-rust,citation of facts (no text reused),yes,2026-11-22
+rhs-club-root,RHS Advice - Club root,https://www.rhs.org.uk/disease/club-root,citation of facts (no text reused),yes,2026-11-22
+ucipm-flea-beetles,UC IPM Home and Landscape - Flea beetles,https://ipm.ucanr.edu/home-and-landscape/flea-beetles/,citation of facts (no text reused),yes,2026-11-22
+ucipm-imported-cabbageworm,UC IPM Pest Management Guidelines - Imported cabbageworm (cole crops),https://ipm.ucanr.edu/agriculture/cole-crops/imported-cabbageworm/,citation of facts (no text reused),yes,2026-11-22
+ucipm-diamondback-moth,UC IPM Pest Management Guidelines - Diamondback moth (cole crops),https://ipm.ucanr.edu/agriculture/cole-crops/diamondback-moth/,citation of facts (no text reused),yes,2026-11-22
+ucipm-tomato-fruitworm,UC IPM Pest Management Guidelines - Tomato fruitworm,https://ipm.ucanr.edu/agriculture/tomato/tomato-fruitworm/,citation of facts (no text reused),yes,2026-11-22
+ucipm-whiteflies-tomato,UC IPM Pest Management Guidelines - Whiteflies (tomato),https://ipm.ucanr.edu/agriculture/tomato/whiteflies/,citation of facts (no text reused),yes,2026-11-22
+ucipm-early-blight,UC IPM Pest Management Guidelines - Early blight (tomato),https://ipm.ucanr.edu/agriculture/tomato/early-blight/,citation of facts (no text reused),yes,2026-11-22
+ucipm-cucurbit-powdery,UC IPM Pest Management Guidelines - Powdery mildew (cucurbits),https://ipm.ucanr.edu/agriculture/cucurbits/powdery-mildew/,citation of facts (no text reused),yes,2026-11-22
+ucipm-cucurbit-downy,UC IPM Pest Management Guidelines - Downy mildew (cucurbits),https://ipm.ucanr.edu/agriculture/cucurbits/downy-mildew/,citation of facts (no text reused),yes,2026-11-22

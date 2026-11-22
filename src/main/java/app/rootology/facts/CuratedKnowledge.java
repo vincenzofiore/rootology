@@ -8,7 +8,7 @@ import java.util.List;
  */
 public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<NeedRow> needs,
                                List<WindowRow> windows, List<PairRow> pairs, List<OrganismRow> organisms,
-                               List<HostRow> hosts) {
+                               List<HostRow> hosts, List<ControlRow> controls) {
 
     public record SourceRow(String id, String title, String url, String license, boolean commercial,
                             String retrievedOn) {
@@ -35,6 +35,14 @@ public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<N
     /** A pest or disease, identified by its EPPO code; kind: INSECT, MITE, MOLLUSC or DISEASE. */
     public record OrganismRow(String id, String italianName, String englishName, String scientificName,
                               String kind, String source) {
+    }
+
+    /**
+     * A control method against a pest or disease (#140); kind: PRACTICE, NATURAL_ENEMY, SERVICE_PLANT, SUBSTANCE,
+     * MICROORGANISM or TRAP; agent: a scientific name, or the service crop's id; evidence as in {@link PairRow}.
+     */
+    public record ControlRow(String organismId, String method, String kind, String agent, String evidence,
+                             List<String> sources) {
     }
 
     public record HostRow(String organismId, String cropId, int fromMonth, int toMonth, String note, String source,

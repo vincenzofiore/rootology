@@ -1,5 +1,6 @@
 package app.rootology.facts;
 
+import app.rootology.facts.CuratedKnowledge.ControlRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.NeedRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
@@ -28,6 +29,10 @@ public final class KnowledgeValidator {
     static final Set<String> RELATIONS = Set.of("COMPANION", "ANTAGONIST");
     static final Set<String> EVIDENCE = Set.of("study", "extension", "traditional");
     static final Set<String> KINDS = Set.of("INSECT", "MITE", "MOLLUSC", "DISEASE");
+    static final Set<String> CONTROL_KINDS = Set.of("PRACTICE", "NATURAL_ENEMY", "SERVICE_PLANT", "SUBSTANCE",
+            "MICROORGANISM", "TRAP");
+    /** Substances and microorganisms must be allowed in organic production (#140). */
+    static final String ORGANIC_LIST = "eu-2021-1165";
 
     public static List<String> validate(CuratedKnowledge k) {
         List<String> problems = new ArrayList<>();
@@ -124,7 +129,40 @@ public final class KnowledgeValidator {
         Set<String> withHosts = k.hosts().stream().map(HostRow::organismId).collect(Collectors.toSet());
         organisms.keySet().stream().filter(id -> !withHosts.contains(id))
                 .forEach(id -> problems.add("organism " + id + " affects no crop"));
+        controls(k.controls(), sources, crops, organisms, problems);
         return problems;
+    }
+
+    private static void controls(List<ControlRow> controls, Map<String, SourceRow> sources, Map<String, Crop> crops,
+                                 Map<String, OrganismRow> organisms, List<String> problems) {
+        Set<String> seen = new HashSet<>();
+        for (ControlRow c : controls) {
+            String where = "control " + c.organismId() + " \"" + c.method() + "\"";
+            if (!organisms.containsKey(c.organismId())) {
+                problems.add(where + ": unknown organism " + c.organismId());
+            }
+            if (c.method() == null || c.method().isBlank()) {
+                problems.add(where + ": no method");
+            }
+            if (!seen.add(c.organismId() + "|" + c.method())) {
+                problems.add(where + ": duplicate");
+            }
+            oneOf(c.kind(), CONTROL_KINDS, where + ": kind", problems);
+            oneOf(c.evidence(), EVIDENCE, where + ": evidence", problems);
+            c.sources().forEach(s -> source(sources, s, where, problems));
+            if (("SUBSTANCE".equals(c.kind()) || "MICROORGANISM".equals(c.kind()))
+                    && !c.sources().contains(ORGANIC_LIST)) {
+                problems.add(where + ": a substance or microorganism must cite " + ORGANIC_LIST);
+            }
+            if ("SERVICE_PLANT".equals(c.kind())) {
+                if (c.agent() == null || c.agent().isBlank()) {
+                    problems.add(where + ": a service plant names its crop in agent");
+                } else {
+                    java.util.Arrays.stream(c.agent().split(";")).map(String::trim)
+                            .forEach(id -> crop(crops, id, where, problems));
+                }
+            }
+        }
     }
 
     /**
