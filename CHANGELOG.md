@@ -28,6 +28,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Fixed
 
+- The weather alert cards of the garden home and the gardens overview no longer miss alerts once a person has received fifty newer notifications of any kind: they read every weather alert of that space, or garden, of the last three days (#155).
 - A digest email whose send fails is no longer lost: the notifications stay pending and the next run sends them (#153).
 - A garden whose weather check fails no longer stops the morning alerts for the other gardens: the failure is logged with the garden's id and the check moves on (#154).
 - Two people answering the same waiting question at the same moment no longer both get through: the second is told that someone else is answering it, and an answer that fails leaves the question waiting (#152).

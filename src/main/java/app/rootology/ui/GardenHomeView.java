@@ -45,7 +45,6 @@ import jakarta.annotation.security.PermitAll;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -198,10 +197,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /** The weather alerts (#37) of this garden in the last three days, coloured by severity. */
     private void alertsCard() {
-        Instant since = Instant.now().minus(ALERT_DAYS, ChronoUnit.DAYS);
-        List<NotificationView> alerts = notifications.of(currentUser.login(), 50).stream()
-                .filter(n -> n.weather() && n.spaceId() == spaceId && n.gardenId() == gardenId
-                        && n.createdAt().isAfter(since)).toList();
+        List<NotificationView> alerts = notifications.weatherAlerts(currentUser.login(), spaceId, gardenId,
+                ALERT_DAYS);
         if (alerts.isEmpty()) {
             return;
         }

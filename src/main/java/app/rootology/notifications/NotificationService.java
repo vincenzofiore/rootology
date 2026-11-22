@@ -51,6 +51,10 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
+    /** The columns of a notification as its recipient sees it, in the order {@link #view} reads them. */
+    private static final String COLUMNS = "id, space_id, garden_id, kind, process_id, title, body, created_at, "
+            + "read_at, resolved_at, resolved_by, dedup_key, asked_by, event, space_name";
+
     /** The delivery mark of each channel, on the same rows: a notification can go out by both (#38). */
     private static final String EMAIL_MARK = "emailed_at";
     private static final String TELEGRAM_MARK = "telegramed_at";
@@ -174,23 +178,30 @@ public class NotificationService {
     /** The latest notifications of a person, newest first. */
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
-        return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
-                        + "resolved_at, resolved_by, dedup_key, asked_by, event, space_name FROM notification "
-                        + "WHERE recipient = ? "
+        return jdbc.sql("SELECT " + COLUMNS + " FROM notification WHERE recipient = ? "
                         + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
-                .query((rs, i) -> {
-                    long gardenId = rs.getLong(3);
-                    if (rs.wasNull()) {
-                        gardenId = 0;
-                    }
-                    return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
-                            rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
-                            rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
-                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12), rs.getString(13),
-                            rs.getString(14), rs.getString(15));
-                })
+                .query(NotificationService::view)
                 .list();
+    }
+
+    /**
+     * The weather alerts (#37) a person got in a space's gardens in the last {@code days}, newest first: every
+     * one of them, however many other notifications arrived meanwhile (#155). {@code gardenId} 0 asks for every
+     * garden of the space, a garden id for that one alone, as the garden home does.
+     */
+    @Transactional(readOnly = true)
+    public List<NotificationView> weatherAlerts(String login, long spaceId, long gardenId, int days) {
+        Instant since = clock.instant().minus(Duration.ofDays(days));
+        var query = jdbc.sql("SELECT " + COLUMNS + " FROM notification "
+                + "WHERE recipient = ? AND kind = 'WEATHER_ALERT' AND space_id = ?"
+                + (gardenId > 0 ? " AND garden_id = ?" : "") + " AND created_at > ? "
+                + "ORDER BY created_at DESC, id DESC")
+                .param(normalize(login)).param(spaceId);
+        if (gardenId > 0) {
+            query = query.param(gardenId);
+        }
+        return query.param(Timestamp.from(since)).query(NotificationService::view).list();
     }
 
     @Transactional(readOnly = true)
@@ -621,6 +632,14 @@ public class NotificationService {
     private static long gardenOf(java.sql.ResultSet rs, int column) throws java.sql.SQLException {
         long gardenId = rs.getLong(column);
         return rs.wasNull() ? 0 : gardenId;
+    }
+
+    /** One row as the recipient sees it, from the columns of {@link #COLUMNS}. */
+    private static NotificationView view(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new NotificationView(rs.getLong(1), rs.getLong(2), gardenOf(rs, 3), rs.getString(4),
+                rs.getString(5), rs.getString(6), rs.getString(7), rs.getTimestamp(8).toInstant(),
+                instant(rs.getTimestamp(9)), instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12),
+                rs.getString(13), rs.getString(14), rs.getString(15));
     }
 
     private static Instant instant(Timestamp t) {
