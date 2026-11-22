@@ -186,8 +186,8 @@ class KnowledgeEnrichmentTest {
     @Test
     void approvedFactsComeBackWhenTheGraphIsRebuilt() {
         long space = spaceOf("walt");
-        Host host = new Host("PIERBR", "asparagus", 5, 9);
-        assertThat(contributions.problems(host, space)).containsExactly("unknown crop asparagus");
+        Host host = new Host("PIERBR", "breadfruit", 5, 9);
+        assertThat(contributions.problems(host, space)).containsExactly("unknown crop breadfruit");
         Host onRocket = new Host("PIERBR", "rocket", 5, 9);
         enrichment.propose(space, "walt", ProposalScope.SPACE, onRocket, null);
         assertThat(contributions.problems(onRocket, space)).isNotEmpty();

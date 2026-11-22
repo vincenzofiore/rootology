@@ -1,14 +1,18 @@
 # Environmental needs of the crops, from FAO ECOCROP (CC BY 4.0), retrieved by EcocropImportTool.
 # Temperatures in degrees C, rainfall in mm per year; empty when ECOCROP gives no value.
 # temp_kill_early: ECOCROP's killing temperature during early growth (frost tolerance of young plants).
+# An absolute limit that falls inside the optimal range is a slip of the sheet and is left empty.
 crop_id,ecocrop_id,temp_opt_min,temp_opt_max,temp_abs_min,temp_abs_max,rain_opt_min,rain_opt_max,ph_opt_min,ph_opt_max,ph_abs_min,ph_abs_max,cycle_min_days,cycle_max_days,soil_texture_opt,soil_drainage_opt,light_opt,temp_kill_early,source
+almond,2397,12,35,10,40,600,900,6.5,7,5.5,8,150,240,medium,well (dry spells),very bright,-1,fao-ecocrop
 apple,1407,14,27,8,33,700,2500,6,7,4.5,8,180,320,medium; light,well (dry spells),very bright,-2,fao-ecocrop
 apricot,2398,14,35,7,40,900,1300,6.5,7,5,8,180,240,medium,well (dry spells),very bright,-1,fao-ecocrop
 artichoke,847,15,25,5,30,900,1200,6,6.5,5.5,8.3,210,270,medium; light,well (dry spells),clear skies,0,fao-ecocrop
+asparagus,468,15,30,6,38,800,1200,6,6.7,4.5,8.2,210,270,medium; organic,well (dry spells),very bright,-1,fao-ecocrop
 basil,1547,18,27,7,36,1000,1600,6,7,4.3,8.2,80,270,medium,well (dry spells),very bright,,fao-ecocrop
 bay-laurel,1333,17,25,8,30,600,1000,5,6.5,4.5,8.2,120,180,medium; light,well (dry spells),very bright,-1,fao-ecocrop
 bean,1668,16,25,7,32,500,2000,5.5,7.5,4,9,50,270,medium; organic,well (dry spells),very bright,,fao-ecocrop
 beetroot,514,15,25,4,35,600,800,6,7,5.5,7.5,160,240,heavy; medium,well (dry spells),very bright,0,fao-ecocrop
+bergamot,205644,20,28,12,37,1200,1500,5,6.5,,8,140,365,medium,well (dry spells),very bright,,fao-ecocrop
 black-currant,9282,17,25,5,30,700,900,6.5,7.5,6,8,150,180,medium,well (dry spells),very bright,-1,fao-ecocrop
 black-mulberry,2349,15,25,10,38,700,1500,5.5,7,4.3,8.3,180,330,medium,well (dry spells),very bright,-1,fao-ecocrop
 blueberry,10704,18,30,7,42,900,1100,4,5,3,5.5,160,200,medium; organic,well (dry spells),clear skies,-1,fao-ecocrop
@@ -17,6 +21,7 @@ broad-bean,2146,18,28,5,32,650,1000,6,7,4.5,8.6,100,150,medium; organic,well (dr
 broccoli,556,15,24,3,35,900,1500,6,6.8,5.5,8.5,80,120,medium; organic,well (dry spells),cloudy skies,-1,fao-ecocrop
 brussels-sprouts,555,12,20,7,25,900,1600,6,7,4.5,7.8,100,130,medium; organic,well (dry spells),very bright,-5,fao-ecocrop
 cabbage,554,15,24,7,32,500,1000,6,7.5,5,8.3,60,200,medium; organic,well (dry spells),clear skies,-1,fao-ecocrop
+cardoon,5138,14,28,7,38,550,800,5.5,7,5,7.5,,,heavy; medium; organic,well (dry spells),clear skies,-2,fao-ecocrop
 carrot,871,15,24,3,30,600,1200,5.8,6.8,4.2,8.7,40,150,medium; organic,well (dry spells),clear skies,0,fao-ecocrop
 cauliflower,553,10,25,5,30,600,1100,6,7,5.5,8.5,60,120,medium,well (dry spells),cloudy skies,-5,fao-ecocrop
 celeriac,3289,15,25,7,26,1000,1200,6,6.8,5.3,8.3,80,270,medium; organic,well (dry spells),very bright,-5,fao-ecocrop
@@ -24,9 +29,11 @@ celery,432,18,25,4,28,1000,1300,5.8,6.8,4.5,8.3,80,160,medium; organic,well (dry
 chard,2474,15,25,5,35,800,800,6,6.5,5.5,8.3,50,150,medium,well (dry spells),very bright,,fao-ecocrop
 cherry,8965,18,28,6,40,500,900,5.5,6.5,4.5,7,180,240,heavy; medium,well (dry spells),very bright,0,fao-ecocrop
 chervil,3265,7,21,4,25,600,1100,6,7,5.5,8.2,60,95,heavy; medium; light,well (dry spells),cloudy skies,,fao-ecocrop
+chestnut,2234,15,25,7,30,900,1300,5,6,4,7,150,210,medium; light,well (dry spells),very bright,,fao-ecocrop
 chickpea,2479,15,29,7,35,600,1000,6,8.5,4.7,9.5,90,180,heavy; medium,well (dry spells),very bright,0,fao-ecocrop
 chili-pepper,621,18,30,7,40,600,1500,5.5,6.8,4.3,8.3,120,180,medium; organic,well (dry spells),very bright,,fao-ecocrop
 chives,810,10,20,2,35,450,1600,6,6.6,5,8.2,70,100,medium; organic,well (dry spells),very bright,,fao-ecocrop
+citron,716,21,27,12,35,1200,1400,6.5,7,5.5,8,210,365,medium; light,well (dry spells),very bright,-1,fao-ecocrop
 clementine,718,23,34,12,38,1200,1800,6,6.8,5.5,8.3,60,365,medium; light,well (dry spells),very bright,,fao-ecocrop
 coriander,784,15,25,4,32,500,1400,5.5,7.5,4,8,35,140,medium,well (dry spells),clear skies,0,fao-ecocrop
 cowpea,2153,25,35,15,40,500,1500,5.5,7.5,4,8.8,30,240,medium; light,well (dry spells),clear skies,-1,fao-ecocrop
@@ -38,15 +45,21 @@ fennel,1107,15,25,6,32,700,1500,6.5,7.5,4.8,8.2,30,110,medium,well (dry spells),
 fig,1071,16,26,4,38,700,1500,6,7,4.3,8.6,120,300,medium,well (dry spells),very bright,-1,fao-ecocrop
 garlic,367,18,30,7,35,750,1600,6,6.6,5,8.5,90,120,medium; light,well (dry spells),clear skies,-5,fao-ecocrop
 gooseberry,9290,15,25,3,40,900,1300,6,7,5,7.5,150,180,heavy,well (dry spells),very bright,0,fao-ecocrop
+grapefruit,717,18,32,13,42,1500,2300,6.5,7.3,6,8.3,60,365,medium; light,well (dry spells),very bright,,fao-ecocrop
 grass-pea,7164,10,28,4,32,500,1300,6,7.5,4.5,8.3,100,190,heavy; medium; light,well (dry spells),very bright,,fao-ecocrop
+hazelnut,2246,10,24,5,35,900,1100,6,6.5,5.5,7.5,150,210,medium,well (dry spells),very bright,-3,fao-ecocrop
+jerusalem-artichoke,1193,15,27,7,30,700,1500,6,6.6,4.5,8.3,80,150,medium; organic,well (dry spells),clear skies,,fao-ecocrop
 kiwi,889,21,30,8,35,900,1300,6,7,5.5,7.5,210,330,light; organic,well (dry spells),very bright,-1,fao-ecocrop
 kohlrabi,2220,12,18,5,25,900,1300,6,6.5,5.5,8.5,50,70,medium,well (dry spells),very bright,-1,fao-ecocrop
 kumquat,1110,26,35,12,40,1100,1500,6.5,7.5,6,8,210,365,medium,well (dry spells),very bright,0,fao-ecocrop
 lavender,7172,15,24,7,28,500,1000,6.5,7.5,5.8,8.3,180,365,medium; light,well (dry spells); excessive (dry/moderately dry),very bright,-20,fao-ecocrop
 leek,363,18,24,6,27,750,1000,6,6.5,4.5,7.5,120,150,medium; organic,well (dry spells),clear skies,-5,fao-ecocrop
 lemon,714,15,28,12,36,1000,2300,6.5,7,5.5,8,210,365,medium; light,well (dry spells),very bright,-2,fao-ecocrop
+lemon-balm,2340,14,25,6,30,800,1000,5,6,4.5,7.8,60,140,medium,well (dry spells),very bright,0,fao-ecocrop
+lemon-verbena,3048,18,28,14,33,600,1800,5.5,7,5,7.5,365,365,medium,well (dry spells),clear skies,0,fao-ecocrop
 lentil,7209,15,29,5,32,600,1000,5.5,7.5,4.5,8.2,70,240,heavy; medium,well (dry spells),very bright,,fao-ecocrop
 lettuce,1313,12,21,5,30,1100,1400,6,7,4.2,7.5,35,85,medium; light,well (dry spells),clear skies,0,fao-ecocrop
+lime,4631,20,28,12,32,1200,1500,5.5,6.5,5,7.5,365,365,medium; light,well (dry spells),very bright,,fao-ecocrop
 loquat,1002,21,27,9,36,600,1600,5.5,6.5,4.5,8,150,210,medium; light,well (dry spells),clear skies,-1,fao-ecocrop
 mandarin,718,23,34,12,38,1200,1800,6,6.8,5.5,8.3,60,365,medium; light,well (dry spells),very bright,,fao-ecocrop
 marjoram,2368,20,26,10,30,800,1000,5.5,7,4.9,8.7,90,180,medium,well (dry spells),very bright,0,fao-ecocrop
@@ -88,11 +101,14 @@ sweet-corn,10981,16,24,12,38,800,1500,5.5,6.8,4.5,7.5,65,100,medium; organic,wel
 sweet-pepper,618,17,30,8,35,600,1250,5.5,6.8,4.5,7,60,180,medium; organic,well (dry spells),very bright,,fao-ecocrop
 sweet-potato,1265,18,28,10,38,750,2000,5,7,4,8.7,80,170,,,very bright,5,fao-ecocrop
 table-grape,2160,18,30,10,38,700,850,5.5,7.5,4.5,8.5,160,270,medium; organic,well (dry spells),very bright,-3,fao-ecocrop
+tarragon,3402,12,22,4,26,500,1000,5.5,7,4.9,7.5,120,210,medium; light,well (dry spells),very bright,-5,fao-ecocrop
 thyme,2441,16,25,4,30,700,1500,5.5,6.5,4.5,8,100,200,medium,well (dry spells); excessive (dry/moderately dry),very bright,,fao-ecocrop
 tomato,1379,20,27,7,35,600,1300,5.5,6.8,5,7.5,70,150,medium; organic,well (dry spells),clear skies,,fao-ecocrop
 turnip,3881,10,17,7,30,900,1400,6,6.8,4.3,7.5,40,80,medium; light,well (dry spells),clear skies,-4,fao-ecocrop
 turnip-tops,3881,10,17,7,30,900,1400,6,6.8,4.3,7.5,40,80,medium; light,well (dry spells),clear skies,-4,fao-ecocrop
 tuscan-kale,3867,15,22,7,30,450,1000,5.4,6,4.5,8.3,60,85,heavy; medium; light; organic,well (dry spells),clear skies,0,fao-ecocrop
+walnut,2315,15,30,7,40,800,1700,5.5,6.5,4.5,8.3,150,180,medium,well (dry spells),very bright,-2,fao-ecocrop
 watermelon,708,20,35,15,40,500,700,6,7,5.5,7.5,,,medium,well (dry spells),clear skies,,fao-ecocrop
+winter-savory,9584,13,30,6,40,1000,1400,6.5,7,6,7.5,210,270,light,well (dry spells),very bright,-1,fao-ecocrop
 winter-squash,819,20,30,9,38,600,1000,5.5,7.5,5,8.5,80,140,heavy; medium; light; organic,well (dry spells),very bright,,fao-ecocrop
 zucchini,821,17,30,6,40,600,1500,5.5,6.8,4.5,8.3,40,100,medium; organic,well (dry spells),very bright,,fao-ecocrop

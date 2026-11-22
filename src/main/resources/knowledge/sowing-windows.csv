@@ -296,3 +296,48 @@ black-mulberry,CENTRO,PRUNE,1,2,still dormant,rootology-editorial,no
 jujube,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
 jujube,CENTRO,HARVEST,9,10,,rootology-editorial,no
 jujube,CENTRO,PRUNE,1,2,still dormant,rootology-editorial,no
+almond,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+almond,CENTRO,HARVEST,8,9,,rootology-editorial,no
+almond,CENTRO,PRUNE,1,2,winter pruning,rootology-editorial,no
+walnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+walnut,CENTRO,HARVEST,9,10,,rootology-editorial,no
+walnut,CENTRO,PRUNE,7,7,green pruning; winter cuts heal badly,abruzzo-dpi-2024,no
+hazelnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+hazelnut,CENTRO,HARVEST,8,9,,rootology-editorial,no
+hazelnut,CENTRO,PRUNE,1,2,winter pruning; remove the suckers,rootology-editorial,no
+chestnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+chestnut,CENTRO,HARVEST,10,11,,rootology-editorial,no
+chestnut,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+chestnut,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+grapefruit,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+grapefruit,CENTRO,HARVEST,11,3,,rootology-editorial,no
+grapefruit,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+citron,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+citron,CENTRO,HARVEST,10,12,,rootology-editorial,no
+citron,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+bergamot,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+bergamot,CENTRO,HARVEST,11,1,,rootology-editorial,no
+bergamot,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+lime,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lime,CENTRO,HARVEST,9,12,,rootology-editorial,no
+lime,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+lemon-balm,CENTRO,PLANT,3,4,spring,rootology-editorial,no
+lemon-balm,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+lemon-balm,CENTRO,HARVEST,5,9,perennial,rootology-editorial,no
+lemon-balm,CENTRO,PRUNE,6,6,after flowering,rootology-editorial,no
+tarragon,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+tarragon,CENTRO,HARVEST,5,9,perennial,rootology-editorial,no
+tarragon,CENTRO,PRUNE,3,3,cut back at the end of winter,rootology-editorial,no
+winter-savory,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+winter-savory,CENTRO,HARVEST,6,9,perennial,rootology-editorial,no
+winter-savory,CENTRO,PRUNE,3,4,end of winter,rootology-editorial,no
+lemon-verbena,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lemon-verbena,CENTRO,HARVEST,6,9,perennial,rootology-editorial,no
+lemon-verbena,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+asparagus,CENTRO,PLANT,2,4,crowns; perennial,rootology-editorial,no
+asparagus,CENTRO,HARVEST,4,5,from the third year,rootology-editorial,no
+asparagus,CENTRO,PRUNE,11,11,cut the dry stems,rootology-editorial,no
+cardoon,CENTRO,PLANT,4,5,perennial,rootology-editorial,no
+cardoon,CENTRO,HARVEST,10,12,after blanching,rootology-editorial,no
+jerusalem-artichoke,CENTRO,PLANT,2,4,tubers; perennial,rootology-editorial,no
+jerusalem-artichoke,CENTRO,HARVEST,10,3,,rootology-editorial,no

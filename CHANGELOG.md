@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- Fifteen more perennials: almond, walnut, hazelnut and chestnut; grapefruit, citron, bergamot and lime; lemon balm, tarragon, winter savory and lemon verbena; asparagus, cardoon and Jerusalem artichoke, with chestnut's planting and pruning and walnut's summer pruning from the Abruzzo integrated production rules, editorial months for the others, and their FAO ECOCROP needs and frost hardiness (#139).
 - Nine more fruit trees: olive, table grape, fig, persimmon, pomegranate, kiwi, loquat, black mulberry and jujube, with planting and pruning months from the Abruzzo integrated production rules for kiwi, grape and olive, editorial months for the others, and their FAO ECOCROP needs and frost hardiness (#139).
 - Nine pome and stone fruit trees: apple, pear, quince, peach, nectarine, apricot, plum, cherry and sour cherry, with planting and pruning months from the Abruzzo integrated production rules, their harvest months and their FAO ECOCROP needs (#139).
 - Eight berries: blueberry, raspberry, blackberry, red and black currant, gooseberry, goji and aronia, with their planting, harvest and pruning months and, where FAO ECOCROP has them, their needs (#139).

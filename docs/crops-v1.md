@@ -245,10 +245,45 @@ pomegranate and loquat are `HARDY` (planted from a month before the site's first
 | Gelso nero | Q161040 | 2349 | OVERWINTER | Nov–Dec | Jun–Aug | Jan–Feb | -15 °C |
 | Giuggiolo | Q11181633 | — | OVERWINTER | Nov–Dec | Sep–Oct | Jan–Feb | -25 °C |
 
+### Nuts, citrus, perennial herbs and perennial vegetables (2026-11-22)
+
+Fifteen more perennials. The Abruzzo integrated production rules (`abruzzo-dpi-2024`) give months only for chestnut
+(planting "in autunno inoltrato o inizio inverno", winter pruning "da gennaio fino alla fioritura", summer pruning in
+July, the same text as apple and cherry) and for walnut's green pruning in July. Their citrus chapter repeats the
+autumn planting of the other fruit trees: left out, since spring planting is the practice and the five citrus already
+in the base. Almond, hazelnut and walnut follow apple's months, editorial; everything else is editorial too. Frost
+hardiness is ECOCROP's killing temperature during rest (`fao-ecocrop`) where the sheet has a credible value, editorial
+otherwise (almond and hazelnut: ECOCROP's -5 and -10 °C are not credible; asparagus: -5 °C is for the fern, not the
+crowns; chestnut, Jerusalem artichoke: no value). Lemon balm, tarragon and winter savory are `OVERWINTER` like the
+other perennial herbs (a `HARDY` crop moves every window by the same months, so lemon balm's autumn planting would
+move into winter); lemon verbena and the citrus `TENDER`; asparagus, cardoon and Jerusalem artichoke `HARDY`.
+Artichoke was already in the base. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Group | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|---|
+| Mandorlo | Q39918 | 2397 (*Prunus amygdalus*) | OVERWINTER | Nov–Dec | Aug–Sep | Jan–Feb | -15 °C |
+| Noce | Q46871 | 2315 | OVERWINTER | Nov–Dec | Sep–Oct | Jul (green) | -24 °C |
+| Nocciolo | Q124969 | 2246 | OVERWINTER | Nov–Dec | Aug–Sep | Jan–Feb | -25 °C |
+| Castagno | Q22699 | 2234 | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Mar, Jul | -25 °C |
+| Pompelmo | Q41350 | 717 | TENDER | Apr–May | Nov–Mar | Mar–Apr | -4 °C |
+| Cedro | Q150064 | 716 | TENDER | Apr–May | Oct–Dec | Mar–Apr | -2 °C |
+| Bergamotto | Q109196 | 205644 (*C. aurantium* ssp. *bergamia*) | TENDER | Apr–May | Nov–Jan | Mar–Apr | -3 °C |
+| Lime | Q1520920 | 4631 | TENDER | Apr–May | Sep–Dec | Mar–Apr | -2 °C |
+| Melissa | Q148396 | 2340 | OVERWINTER | Mar–Apr, Sep–Oct | May–Sep | Jun | -20 °C |
+| Dragoncello | Q155814 | 3402 | OVERWINTER | Mar–Apr | May–Sep | Mar | -15 °C |
+| Santoreggia montana | Q160186 | 9584 | OVERWINTER | Mar–Apr | Jun–Sep | Mar–Apr | -20 °C |
+| Cedrina | Q206532 | 3048 (*Aloysia triphylla*) | TENDER | Apr–May | Jun–Sep | Mar–Apr | -8 °C |
+| Asparago | Q28367 | 468 | HARDY | Feb–Apr (crowns) | Apr–May (from the third year) | Nov (dry stems) | -20 °C |
+| Cardo | Q7186137 | 5138 | HARDY | Apr–May | Oct–Dec | — | -10 °C |
+| Topinambur | Q146190 | 1193 | HARDY | Feb–Apr (tubers) | Oct–Mar | — | -25 °C |
+
+Bergamot's ECOCROP sheet gives an absolute minimum pH (6) above the optimal one (5): `EcocropImportTool` leaves an
+absolute limit inside the optimal range empty.
+
 ## Notes
 
-- 99 crops in 27 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21).
-- Candidates for later: nuts (almond, walnut, hazelnut, chestnut), flowers and green manures of #139.
+- 114 crops in 32 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21, 4 nuts, 4 citrus, 4 perennial herbs and 3 perennial vegetables from 2026-11-22).
+- Candidates for later: flowers, service plants and green manures of #139 (they need a service use, with #140).
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)
