@@ -8,6 +8,7 @@ import app.rootology.facts.ClimateCells;
 import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.ReferenceSite;
 import app.rootology.facts.SiteProfile;
+import app.rootology.garden.GardenClimate;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlotLookup;
@@ -118,13 +119,16 @@ class ContextResolver {
     private final SpaceService spaces;
     private final GardenService gardens;
     private final ClimateCells cells;
+    private final GardenClimate sites;
     private final GeoNames geoNames;
     private final Clock clock;
 
-    ContextResolver(SpaceService spaces, GardenService gardens, ClimateCells cells, GeoNames geoNames, Clock clock) {
+    ContextResolver(SpaceService spaces, GardenService gardens, ClimateCells cells, GardenClimate sites,
+                    GeoNames geoNames, Clock clock) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.cells = cells;
+        this.sites = sites;
         this.geoNames = geoNames;
         this.clock = clock;
     }
@@ -334,14 +338,13 @@ class ContextResolver {
             return ReferenceSite.of(askedZone).map(site -> site.profile(cells)).orElse(null);
         }
         if (garden != null && garden.latitude() != null && garden.longitude() != null) {
-            return cells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
-                    .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null)).orElse(null);
+            return sites.profile(garden).orElse(null);
         }
         if (abroad(garden)) {
             // No coordinates abroad: no profile, and the calendars do not cover it.
             return null;
         }
-        return ReferenceSite.CENTRO.profile(cells);
+        return sites.defaultProfile();
     }
 
     /**

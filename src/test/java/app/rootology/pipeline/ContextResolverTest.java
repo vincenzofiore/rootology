@@ -45,7 +45,7 @@ class ContextResolverTest {
     app.rootology.geocoding.GeoNames geoNames;
 
     private ContextResolver resolver() {
-        return new ContextResolver(spaces, gardens, cells, geoNames, CLOCK);
+        return new ContextResolver(spaces, gardens, cells, new app.rootology.garden.GardenClimate(cells), geoNames, CLOCK);
     }
 
     private long spaceOf(String login) {

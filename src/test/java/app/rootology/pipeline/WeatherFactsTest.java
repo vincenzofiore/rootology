@@ -80,7 +80,7 @@ class WeatherFactsTest {
     /** The context the pipeline resolves for that run, before the facts are gathered (#55). */
     private QuestionContext context(RunContext run, app.rootology.decision.QueryKind kind,
                                     String month) {
-        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, geoNames, CLOCK);
+        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, new app.rootology.garden.GardenClimate(cells), geoNames, CLOCK);
         return resolver.resolve(new app.rootology.decision.Intent(kind, null, null, "it", null, month),
                 run);
     }
@@ -123,7 +123,7 @@ class WeatherFactsTest {
         when(weather.around(any(), any(), any())).thenReturn(Optional.of(steady(-2.0, 80.0)));
         RunContext run = space("bruna", true);
         gardens.savePlot(run.spaceId(), "bruna", run.gardenId(), null, "Tunnel", PlotKind.GREENHOUSE, Soil.LOAMY, null);
-        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, geoNames, CLOCK);
+        ContextResolver resolver = new ContextResolver(spaces, gardens, cells, new app.rootology.garden.GardenClimate(cells), geoNames, CLOCK);
 
         WeatherFacts.Result tunnel = facts().frost(resolver.resolve(new app.rootology.decision.Intent(
                 app.rootology.decision.QueryKind.SOW_IN_PLOT, "Tunnel", null, "it", null, "NOVEMBER"), run), SOWABLE);

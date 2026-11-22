@@ -130,7 +130,7 @@ public class ClimateWindows {
     }
 
     /** The sources of a window: the site's own for a derived one, the curated file's for a declared one. */
-    private static List<String> sources(ClimateWindow w, SiteProfile site) {
+    public static List<String> sources(ClimateWindow w, SiteProfile site) {
         if (!w.derived()) {
             return List.of(w.window().source());
         }

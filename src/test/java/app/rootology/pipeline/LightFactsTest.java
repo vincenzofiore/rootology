@@ -74,7 +74,7 @@ class LightFactsTest {
 
     /** The context of a question that names a month, which chooses the season of the sun hours (#89). */
     private QuestionContext context(RunContext run, QueryKind kind, String plotName, String month) {
-        return new ContextResolver(spaces, gardens, cells, geoNames, java.time.Clock.systemDefaultZone())
+        return new ContextResolver(spaces, gardens, cells, new app.rootology.garden.GardenClimate(cells), geoNames, java.time.Clock.systemDefaultZone())
                 .resolve(new Intent(kind, plotName, null, "it", null, month), run);
     }
 
