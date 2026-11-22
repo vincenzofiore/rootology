@@ -337,6 +337,7 @@ vaadin-grid {
 .rootology-signin-provider { font-weight: 600; min-width: 5rem; }
 
 /* The public welcome page (#47): the title, Ask, Know, Grow drawn in a circle (#87), and the ways in. */
+.rootology-welcome-scope { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
 .rootology-welcome-cycle { width: min(100%, 24rem); margin: var(--lumo-space-m) auto; }
 .rootology-welcome-cycle svg { display: block; width: 100%; height: auto; }
 .rootology-cycle { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }

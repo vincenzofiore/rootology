@@ -45,7 +45,10 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
         signedOut.addClassName("rootology-welcome-signed-out");
         signedOut.setVisible(false);
         add(denied, signedOut);
-        add(new H2(getTranslation("welcome.title")), cycle(), new Paragraph(getTranslation("welcome.lead")));
+        // The scope is said up front (#164): calendars, pests and rules are those of an Italian garden.
+        Paragraph scope = new Paragraph(getTranslation("welcome.scope"));
+        scope.addClassName("rootology-welcome-scope");
+        add(new H2(getTranslation("welcome.title")), cycle(), new Paragraph(getTranslation("welcome.lead")), scope);
 
         // What the app does, each feature drawn in the brand's line style (#87).
         Div features = new Div(feature("sources"), feature("unsure"), feature("warns"), feature("spaces"));
