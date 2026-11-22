@@ -26,6 +26,8 @@ public enum QueryKind {
     PEST_RISK,
     /** My garden: crops that can be sown in a plot (the subject) in a month, minus those against rotation. */
     SOW_IN_PLOT,
+    /** Knowledge base: what a home gardener can do against a pest or disease (the subject), #140. */
+    CONTROL_METHODS,
     /** Anything that does not fit the shapes above. Always escalated. */
     OTHER
 }

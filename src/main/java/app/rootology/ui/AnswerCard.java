@@ -163,7 +163,7 @@ class AnswerCard extends Div {
         }
         // The values in the page's language (#110), without those the sentence already says: a badge repeating
         // a word just read adds nothing. An answer with no value keeps its "no values" badge.
-        List<String> words = values.stream().map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
+        List<String> words = values.stream().filter(ValueText::badge).map(v -> ValueText.of(v, this)).filter(v -> !ValueText.says(text, v))
                 .toList();
         if ((values.isEmpty() && sayNoValues) || !words.isEmpty()) {
             Div chips = new Div();

@@ -218,6 +218,29 @@ public class KnowledgeGraph {
         return dedup(facts);
     }
 
+    /**
+     * What can be done against a pest or disease (#140): (pest, controlledBy, method) for each method, with
+     * (method, controlKind, kind) and (method, evidence, level) beside it, all with the method's sources. The
+     * methods are written in English. Empty when the name is not a known pest or disease.
+     */
+    public List<SourcedFact> controlFacts(String name, Long spaceId) {
+        return resolve(name, spaceId).filter(e -> e.kind().equals("ORGANISM")).map(e -> {
+            List<SourcedFact> facts = new java.util.ArrayList<>();
+            String self = name.trim();
+            list("MATCH (:Kb:Organism {id: $id})-[:CONTROLLED_BY]->(c:Kb:Control) "
+                            + "RETURN c.method AS method, c.kind AS kind, c.evidence AS evidence, c.sources AS sources "
+                            + "ORDER BY c.kind, c.method",
+                    Map.of("id", e.id()), r -> r).forEach(r -> {
+                String method = r.get("method").asString();
+                List<String> sources = r.get("sources").asList(v -> v.asString());
+                facts.add(new SourcedFact(new Fact(self, "controlledBy", method), sources, null, false));
+                facts.add(new SourcedFact(new Fact(method, "controlKind", r.get("kind").asString()), sources, null, false));
+                facts.add(new SourcedFact(new Fact(method, "evidence", r.get("evidence").asString()), sources, null, false));
+            });
+            return facts;
+        }).orElse(List.of());
+    }
+
     private List<SourcedFact> organismFacts(Entity organism, String self, Long spaceId) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
         list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) WHERE (a.spaceId IS NULL OR a.spaceId = $space) "

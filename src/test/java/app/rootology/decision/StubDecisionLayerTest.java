@@ -25,4 +25,24 @@ class StubDecisionLayerTest {
         assertThat(decision.answer()).containsExactly("Aglio");
         assertThat(decision.reason()).contains("frost");
     }
+
+    @Test
+    void controlMethodsAreTheDeclaredOnesOrGoToAPerson() {
+        GraphFacts facts = GraphFacts.curated(List.of(new Fact("afidi", "controlledBy", "Spray with water"),
+                new Fact("Spray with water", "controlKind", "PRACTICE"), new Fact("cavolaia", "affects", "Cavolo")));
+
+        assertThat(new StubDecisionLayer().decide(Intent.of(QueryKind.CONTROL_METHODS, "afidi"), facts).answer())
+                .containsExactly("Spray with water");
+        assertThat(new StubDecisionLayer().decide(Intent.of(QueryKind.CONTROL_METHODS, "cavolaia"), facts).escalate())
+                .isTrue();
+    }
+
+    @Test
+    void jevGetsTheMethodsAsCandidatesAndTheirRule() {
+        GraphFacts facts = GraphFacts.curated(List.of(new Fact("afidi", "controlledBy", "Spray with water"),
+                new Fact("Spray with water", "evidence", "traditional")));
+
+        assertThat(JevDecisionLayer.candidates(QueryKind.CONTROL_METHODS, facts)).containsExactly("Spray with water");
+        assertThat(JevDecisionLayer.knowledgeBaseRule(QueryKind.CONTROL_METHODS)).contains("controlledBy");
+    }
 }

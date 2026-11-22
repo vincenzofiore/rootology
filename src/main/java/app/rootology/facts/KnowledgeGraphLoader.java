@@ -74,6 +74,14 @@ final class KnowledgeGraphLoader {
                 rows(k.hosts().stream().map(h -> map("organismId", h.organismId(), "cropId", h.cropId(),
                         "fromMonth", h.fromMonth(), "toMonth", h.toMonth(), "note", h.note(),
                         "source", h.source(), "verified", h.verified())).toList())).consume();
+
+        // Control methods (#140): one node per method, under the pest or disease it is used against.
+        tx.run("UNWIND $rows AS c MATCH (o:Kb:Organism {id: c.organismId}) "
+                + "CREATE (o)-[:CONTROLLED_BY]->(:Kb:Control {method: c.method, kind: c.kind, agent: c.agent, "
+                + "evidence: c.evidence, sources: c.sources})",
+                rows(k.controls().stream().map(c -> map("organismId", c.organismId(), "method", c.method(),
+                        "kind", c.kind(), "agent", c.agent(), "evidence", c.evidence(),
+                        "sources", c.sources())).toList())).consume();
     }
 
     private static Map<String, Object> window(CuratedKnowledge.WindowRow w, String provenance, String derivedBy) {

@@ -15,10 +15,20 @@ public class OrganismCatalog {
     public record Organism(String id, String italianName, String englishName) {
     }
 
-    private final List<Organism> organisms = CuratedKnowledgeReader.read(new CropCatalog()).organisms().stream()
+    private final CuratedKnowledge knowledge = CuratedKnowledgeReader.read(new CropCatalog());
+
+    private final List<Organism> organisms = knowledge.organisms().stream()
             .map(o -> new Organism(o.id(), o.italianName(), o.englishName())).toList();
+
+    private final java.util.Set<String> methods = knowledge.controls().stream()
+            .map(CuratedKnowledge.ControlRow::method).collect(java.util.stream.Collectors.toUnmodifiableSet());
 
     public List<Organism> all() {
         return organisms;
+    }
+
+    /** Whether a value is a control method (#140): a sentence in English, which the answer's text says instead. */
+    public boolean isControlMethod(String value) {
+        return methods.contains(value);
     }
 }

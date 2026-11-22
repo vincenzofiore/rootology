@@ -60,6 +60,8 @@ public record Note(Kind kind, List<String> args) {
         /** args: plot as asked, garden, the plots matching (comma-separated). */
         PLOT_AMBIGUOUS,
         /** The windows were derived from the garden's climate profile (#62). */
+        /** The answer names a substance or a microorganism: read the label, follow the rules (#140). */
+        READ_THE_LABEL,
         WINDOWS_FROM_CLIMATE,
         /** The garden has coordinates but no climate cell within reach (#62). */
         NO_CLIMATE_PROFILE,
@@ -127,6 +129,8 @@ public record Note(Kind kind, List<String> args) {
             case PLOT_NOT_FOUND -> "There is no plot named \"" + arg(0) + "\" in " + arg(1)
                     + ": what grows there and its rotation were not checked.";
             case PLOT_AMBIGUOUS -> "More than one plot in " + arg(1) + " matches \"" + arg(0) + "\": " + arg(2) + ".";
+            case READ_THE_LABEL -> "Substances and microorganisms allowed in organic farming are still plant "
+                    + "protection products: read the label, follow it, and check the rules for home gardeners.";
             case WINDOWS_FROM_CLIMATE -> "The sowing and harvest windows are those of central Italy, derived "
                     + "for the garden's climate profile (AgERA5 1996-2025).";
             case NO_CLIMATE_PROFILE -> "There is no climate profile for this garden's position: its sowing and "

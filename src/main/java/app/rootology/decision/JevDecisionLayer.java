@@ -333,6 +333,11 @@ public class JevDecisionLayer implements DecisionLayer {
                         result.add(f.subject());
                     }
                 }
+                case CONTROL_METHODS -> {
+                    if (f.predicate().equals("controlledBy")) {
+                        result.add(f.object());
+                    }
+                }
                 case OTHER -> { }
             }
         }
@@ -405,6 +410,8 @@ public class JevDecisionLayer implements DecisionLayer {
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
                     + "(X, avoidNow, frost) is a fact.";
+            case CONTROL_METHODS -> "The answer is every method M such that (subject, controlledBy, M) is a fact, "
+                    + "whatever its controlKind and evidence. Methods are never inferred from other pests.";
             case OTHER -> "";
         };
     }

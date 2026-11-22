@@ -43,7 +43,7 @@ final class NoteText {
 
     static Tone tone(Note note) {
         return switch (note.kind()) {
-            case FROST_EXCLUDED, SMITH_PERIOD, OUTSIDE_ITALY, LIGHT_IN_PLOT, LIGHT_ANYWHERE -> Tone.RISK;
+            case FROST_EXCLUDED, SMITH_PERIOD, OUTSIDE_ITALY, LIGHT_IN_PLOT, LIGHT_ANYWHERE, READ_THE_LABEL -> Tone.RISK;
             case FORECAST_MINIMUM, GREENHOUSE_OUTDOOR_MINIMUM, NO_SMITH_PERIOD, ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS,
                  WINDOWS_FROM_CLIMATE, GARDEN_OF_QUESTION, PLACE_OF_QUESTION -> Tone.INFO;
             default -> Tone.MISSING;
@@ -69,7 +69,7 @@ final class NoteText {
                     VaadinIcon.SUN_O;
             case NO_COORDINATES_FROST, NO_COORDINATES_RISK -> VaadinIcon.MAP_MARKER;
             case ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS -> VaadinIcon.COMPASS;
-            case GARDEN_GONE, NO_GARDEN_FOR_QUESTION -> VaadinIcon.WARNING;
+            case GARDEN_GONE, NO_GARDEN_FOR_QUESTION, READ_THE_LABEL -> VaadinIcon.WARNING;
             case GARDEN_OF_QUESTION, GARDEN_NOT_FOUND -> VaadinIcon.HOME_O;
             case PLACE_OF_QUESTION, PLACE_NOT_FOUND -> VaadinIcon.MAP_MARKER;
             case PLOT_NOT_FOUND, PLOT_AMBIGUOUS -> VaadinIcon.GRID;
