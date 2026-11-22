@@ -45,12 +45,13 @@ public class CropCatalog {
             List<String> lines = reader.lines().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
             for (String line : lines.subList(1, lines.size())) {
                 String[] f = line.split(",", -1);
-                if (f.length != 13) {
+                if (f.length != 14) {
                     throw new IllegalStateException("Malformed line in " + RESOURCE + ": " + line);
                 }
                 Crop crop = new Crop(f[0].trim(), f[1].trim(), f[2].trim(), f[3].trim(), f[4].trim(),
                         f[5].trim(), f[6].isBlank() ? null : f[6].trim(), f[8].trim(), f[9].trim(), f[10].trim(),
-                        f[11].isBlank() ? null : Double.valueOf(f[11].trim()), f[12].isBlank() ? null : f[12].trim());
+                        f[11].isBlank() ? null : Double.valueOf(f[11].trim()), f[12].isBlank() ? null : f[12].trim(),
+                        f[13].trim());
                 if (result.put(crop.id(), crop) != null) {
                     throw new IllegalStateException("Duplicate crop id in " + RESOURCE + ": " + crop.id());
                 }

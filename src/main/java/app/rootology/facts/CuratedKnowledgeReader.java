@@ -41,7 +41,9 @@ final class CuratedKnowledgeReader {
                         r.get("relation"), r.get("effect"), r.get("evidence"),
                         Arrays.asList(r.get("sources").split(";")))).toList(),
                 rows("pests.csv").stream().map(r -> new OrganismRow(r.get("id"), r.get("italian"),
-                        r.get("english"), r.get("scientific"), r.get("kind"), r.get("source"))).toList(),
+                        r.get("english"), r.get("scientific"), r.get("kind"), r.get("source"),
+                        r.get("other_names").isBlank() ? List.<String>of()
+                                : Arrays.asList(r.get("other_names").split(";")))).toList(),
                 rows("pest-hosts.csv").stream().map(r -> new HostRow(r.get("pest_id"), r.get("crop_id"),
                         month(r, "from_month"), month(r, "to_month"), r.get("note"), r.get("source"),
                         "yes".equals(r.get("verified")))).toList(),

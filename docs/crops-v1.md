@@ -280,10 +280,42 @@ Artichoke was already in the base. Months for Vasto:
 Bergamot's ECOCROP sheet gives an absolute minimum pH (6) above the optimal one (5): `EcocropImportTool` leaves an
 absolute limit inside the optimal range empty.
 
+## Service plants and green manures (#140)
+
+Eight crops grown for what they do, not for what they yield: five companion flowers that feed or shelter the natural
+enemies of pests, and three green manures that cover and feed the soil. They are modelled exactly as the other crops
+(names, family checked against Wikidata, ECOCROP record, frost group, Italian article, lifecycle, and a sowing window
+in `sowing-windows.csv`, editorial and `verified=no`). Only their `use` is new: SERVICE instead of FOOD, so they are
+never in a "what can I sow now" answer while their own calendar still answers ("Quando semino la facelia?").
+Borage stays a FOOD crop: it is eaten, and its companion role is already declared in `crop-pairs.csv`.
+
+| Italian | English | Scientific name | Family | Family checked on Wikidata | Wikidata | ECOCROP | Group | Sowing |
+|---|---|---|---|---|---|---|---|---|
+| Tagete | French marigold | *Tagetes patula* | Asteraceae | Q644934 (*Tagetes*: Q147552, Asteraceae) | Q644934 | — | TENDER | Apr–May |
+| Calendula | Pot marigold | *Calendula officinalis* | Asteraceae | Q145930 (*Calendula*: Q147281, Asteraceae) | Q145930 | 4040 | HARDY | Mar–May |
+| Nasturzio | Nasturtium | *Tropaeolum majus* | Tropaeolaceae (new family) | Q156288 (*Tropaeolum*: Q158271, Tropaeolaceae: Q163937) | Q156288 | 2119 (no environmental data) | TENDER | Apr–Jun |
+| Facelia | Phacelia | *Phacelia tanacetifolia* | Boraginaceae | Q158942 (Wikidata also lists Hydrophyllaceae, a family that APG IV places in Boraginaceae) | Q158942 | — | HARDY | Mar–Jun |
+| Alisso | Sweet alyssum | *Lobularia maritima* | Brassicaceae | Q2094356 (*Lobularia*: Q2593152, Anastaticeae, Brassicaceae) | Q2094356 | — | HARDY | Mar–May |
+| Senape bianca | White mustard | *Sinapis alba* | Brassicaceae | Q146202 (*Sinapis*: Q150072, Brassiceae, Brassicaceae) | Q146202 | 9787 | HARDY | Mar–Aug |
+| Veccia | Common vetch | *Vicia sativa* | Fabaceae | Q157071 (*Vicia*: Q147337, Fabeae, Fabaceae) | Q157071 | 238003 (*V. sativa* ssp. *sativa*) | OVERWINTER | Mar–Apr, Sep–Oct |
+| Trifoglio incarnato | Crimson clover | *Trifolium incarnatum* | Fabaceae | Q161361 (*Trifolium*: Q101538, Trifolieae, Fabaceae) | Q161361 | 10534 | OVERWINTER | Aug–Sep |
+
+Environmental needs come from FAO ECOCROP through `EcocropImportTool` for the four crops whose sheet has values
+(pot marigold, white mustard, common vetch, crimson clover). Nasturtium keeps its ECOCROP id 2119 but has no needs
+row, since its sheet gives no environmental data, and *Tagetes*, *Phacelia* and *Lobularia* have no ECOCROP record at
+all (their `ecocrop` is empty). Months are editorial. The three green manures are sown in autumn where they overwinter
+(vetch, crimson clover) and in spring where they are destroyed before the next crop (white mustard), which is why
+vetch carries two sowing windows. The rotation rule treats them like any other annual: a service plant in a plot
+counts through its family, and four of the eight share one with a vegetable (vetch and crimson clover: Fabaceae, like
+pea and broad bean; sweet alyssum and white mustard: Brassicaceae).
+
+Where they act as pest control, they are declared in `pest-controls.csv` with kind SERVICE_PLANT and their id in
+`agent` (see `docs/pests-v1.md`).
+
 ## Notes
 
-- 114 crops in 32 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21, 4 nuts, 4 citrus, 4 perennial herbs and 3 perennial vegetables from 2026-11-22).
-- Candidates for later: flowers, service plants and green manures of #139 (they need a service use, with #140).
+- 122 crops in 33 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21, 4 nuts, 4 citrus, 4 perennial herbs and 3 perennial vegetables from 2026-11-22, 8 service plants and green manures from 2026-11-22).
+- Candidates for later: ornamental flowers that are not service plants.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

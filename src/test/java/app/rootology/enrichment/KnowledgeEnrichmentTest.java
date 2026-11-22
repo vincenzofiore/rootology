@@ -194,7 +194,7 @@ class KnowledgeEnrichmentTest {
 
         try (var session = driver.session()) {
             session.executeWrite(tx -> tx.run("MATCH ()-[r]->() WHERE r.proposalId IS NOT NULL DELETE r").consume());
-            session.executeWrite(tx -> tx.run("MATCH (a:Alias) DETACH DELETE a").consume());
+            session.executeWrite(tx -> tx.run("MATCH (a:Alias) WHERE a.proposalId IS NOT NULL DETACH DELETE a").consume());
         }
         assertThat(contributions.problems(onRocket, space)).isEmpty();
 

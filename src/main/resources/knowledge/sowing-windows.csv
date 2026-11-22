@@ -341,3 +341,13 @@ cardoon,CENTRO,PLANT,4,5,perennial,rootology-editorial,no
 cardoon,CENTRO,HARVEST,10,12,after blanching,rootology-editorial,no
 jerusalem-artichoke,CENTRO,PLANT,2,4,tubers; perennial,rootology-editorial,no
 jerusalem-artichoke,CENTRO,HARVEST,10,3,,rootology-editorial,no
+# Service plants and green manures (#140): sown for their flowers or as green manure, never harvested.
+french-marigold,CENTRO,SOW,4,5,,rootology-editorial,no
+pot-marigold,CENTRO,SOW,3,5,,rootology-editorial,no
+nasturtium,CENTRO,SOW,4,6,,rootology-editorial,no
+phacelia,CENTRO,SOW,3,6,,rootology-editorial,no
+sweet-alyssum,CENTRO,SOW,3,5,,rootology-editorial,no
+white-mustard,CENTRO,SOW,3,8,,rootology-editorial,no
+common-vetch,CENTRO,SOW,3,4,,rootology-editorial,no
+common-vetch,CENTRO,SOW,9,10,,rootology-editorial,no
+crimson-clover,CENTRO,SOW,8,9,,rootology-editorial,no

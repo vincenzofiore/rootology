@@ -19,11 +19,13 @@ PIERBR,Parasitoid wasp common in gardens: tolerate light attacks,NATURAL_ENEMY,C
 PIERBR,Bacillus thuringiensis ssp. kurstaki on young caterpillars,MICROORGANISM,Bacillus thuringiensis ssp. kurstaki,extension,ucipm-imported-cabbageworm;eu-2021-1165
 PIERBR,Spinosad,SUBSTANCE,,extension,ucipm-imported-cabbageworm;eu-2021-1165
 PLUTMA,Cover with fine netting or fleece that does not touch the plants,PRACTICE,,extension,rhs-cabbage-caterpillars
+PLUTMA,Plant insectary flowers nearby (sweet alyssum; phacelia) to attract its natural enemies,SERVICE_PLANT,sweet-alyssum;phacelia,extension,ucipm-diamondback-moth;rootology-editorial
 PLUTMA,Do not grow brassicas in the same plot in consecutive years; and plant them all at once,PRACTICE,,extension,ucipm-diamondback-moth
 PLUTMA,Bacillus thuringiensis ssp. kurstaki,MICROORGANISM,Bacillus thuringiensis ssp. kurstaki,extension,ucipm-diamondback-moth;eu-2021-1165
 PLUTMA,Spinosad,SUBSTANCE,,extension,ucipm-diamondback-moth;eu-2021-1165
 PLUTMA,Egg parasitoid released as biological control,NATURAL_ENEMY,Trichogramma pintoi,extension,eppo-pm6-3
 1PHYEG,Cover seedlings with fine mesh until about the sixth leaf,PRACTICE,,extension,ucipm-flea-beetles
+1PHYEG,Sow white mustard at the edge of the bed as a trap crop and destroy it with the beetles on it,SERVICE_PLANT,white-mustard,traditional,rootology-editorial
 1PHYEG,Clear plant debris in autumn; where the adults overwinter,PRACTICE,,extension,ucipm-flea-beetles
 1PHYEG,White sticky traps to monitor and catch the adults,TRAP,,extension,ucipm-flea-beetles
 1PHYEG,Sulphur; which may repel them,SUBSTANCE,,extension,ucipm-flea-beetles;eu-2021-1165
@@ -41,6 +43,7 @@ FRANOC,Predatory bug; which also occurs naturally,NATURAL_ENEMY,Orius laevigatus
 FRANOC,Predatory mite released under cover,NATURAL_ENEMY,Amblyseius swirskii,extension,eppo-pm6-3
 FRANOC,Blue sticky traps; in greenhouses only,TRAP,,extension,rhs-thrips
 TRIAVA,Parasitoid wasp released early under cover,NATURAL_ENEMY,Encarsia formosa,extension,rhs-glasshouse-whitefly;eppo-pm6-3
+TRIAVA,Grow French marigolds beside the crop against glasshouse whitefly,SERVICE_PLANT,french-marigold,traditional,rootology-editorial
 TRIAVA,Predatory bug released under cover (it can damage cherry tomatoes),NATURAL_ENEMY,Macrolophus pygmaeus,extension,eppo-pm6-3
 TRIAVA,Quarantine new plants before bringing them in,PRACTICE,,extension,rhs-glasshouse-whitefly
 TRIAVA,Yellow sticky traps; to monitor rather than control,TRAP,,extension,rhs-glasshouse-whitefly

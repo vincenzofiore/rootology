@@ -50,13 +50,13 @@ Approved by the owner on 2026-11-03; curated data in `src/main/resources/knowled
 
 ## Control methods (#140, 2026-11-22)
 
-`pest-controls.csv` lists what a home gardener can do against each of the 24 organisms: 89 methods, at least one
+`pest-controls.csv` lists what a home gardener can do against each of the 24 organisms: 92 methods, at least one
 per organism. A method belongs to the pest, not to a pest-crop pair: aphids are handled the same way on lettuce or on
 broad beans (owner, 2026-11-22). A column for crop-specific exceptions can be added when a source gives one.
 
 - `kind`: PRACTICE (cultural measures, mesh, rotation, cultivars), NATURAL_ENEMY (to encourage, or released as
   biological control: the agent's scientific name in `agent`), SERVICE_PLANT (a service crop sown nearby, its id in
-  `agent`; none yet, they come with the service plants), SUBSTANCE, MICROORGANISM, TRAP.
+  `agent`, checked against `crops-v1.csv`), SUBSTANCE, MICROORGANISM, TRAP.
 - Substances and microorganisms are only those allowed in organic production by Regulation (EU) 2021/1165, Annex I
   (`eu-2021-1165`, consolidated text of 2026-01-01): copper compounds (at most 28 kg/ha over 7 years), sulphur,
   fatty acids, azadirachtin, spinosad, ferric phosphate, potassium hydrogen carbonate, and approved microorganisms
@@ -70,3 +70,28 @@ broad beans (owner, 2026-11-22). A column for crop-specific exceptions can be ad
 - `evidence`: `study` where the source reports its own trials (carrot fly mesh), `extension` for advisory services,
   `traditional` otherwise. Ferric phosphate is `traditional` here: the RHS advises against any slug pellets for
   wildlife, and none of our sources measures it.
+
+### Service plants (#140, 2026-11-22)
+
+Three service plants of `docs/crops-v1.md` are declared as control methods, where a cited source names them or where
+the practice is old enough to be recorded as editorial. They are the first SERVICE_PLANT rows of the file, and the
+validator refuses an `agent` that is not a crop id (`a;b` for several).
+
+| Organism | Method | Service plant (`agent`) | Evidence | Source |
+|---|---|---|---|---|
+| PLUTMA Diamondback moth | Insectary flowers nearby to attract its natural enemies | sweet-alyssum; phacelia | extension | `ucipm-diamondback-moth` (the UC IPM page says "consider planting insectary plants to attract natural enemies"; which flowers is editorial, hence the second source) |
+| 1PHYEG Flea beetles | White mustard at the edge of the bed as a trap crop, destroyed with the beetles on it | white-mustard | traditional | `rootology-editorial` |
+| TRIAVA Glasshouse whitefly | French marigolds beside the crop | french-marigold | traditional | `rootology-editorial` |
+
+The evidence levels are deliberately low. No source we may cite measures these effects in a home garden: the marigold
+against whitefly and the mustard trap crop are long-standing advice, not trials, and the "attract the natural enemies"
+advice of UC IPM does not name a flower. No service plant is declared against aphids, cabbage white butterflies or
+slugs: no source we may cite names one for them, and their recorded methods stay as they are.
+
+## Common names (#140, 2026-11-22)
+
+`pests.csv` has an `other_names` column: the names a question may use instead of the listed ones, in lower
+case, editorial. Plurals are also found through the singular forms ("limacce" finds "limaccia"). A name that
+here means more than one pest or disease is left out on purpose: "mosca bianca" (two whiteflies), "tripidi"
+(two thrips), "peronospora" and "oidio" alone (several diseases). "Lumache" points to the grey field slug: in
+everyday Italian it covers slugs too, and the knowledge base has no snail.

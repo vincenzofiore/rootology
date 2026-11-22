@@ -38,11 +38,11 @@ final class KnowledgeGraphLoader {
                 "retrievedOn", s.retrievedOn())).toList())).consume();
 
         tx.run("UNWIND $rows AS c CREATE (n:Kb:Crop {id: c.id, italianName: c.italianName, englishName: c.englishName, "
-                + "scientificName: c.scientificName, wikidataId: c.wikidataId, ecocropId: c.ecocropId}) "
+                + "scientificName: c.scientificName, wikidataId: c.wikidataId, ecocropId: c.ecocropId, use: c.use}) "
                 + "MERGE (f:Kb:Family {name: c.family}) CREATE (n)-[:BELONGS_TO {sources: ['wikidata']}]->(f)",
                 rows(k.crops().stream().map(c -> map("id", c.id(), "italianName", c.italianName(),
                         "englishName", c.englishName(), "scientificName", c.scientificName(), "family", c.family(),
-                        "wikidataId", c.wikidataId(), "ecocropId", c.ecocropId())).toList())).consume();
+                        "wikidataId", c.wikidataId(), "ecocropId", c.ecocropId(), "use", c.use())).toList())).consume();
 
         tx.run("UNWIND $rows AS n MATCH (c:Kb:Crop {id: n.cropId}) SET c += n.needs",
                 rows(k.needs().stream().map(n -> map("cropId", n.cropId(), "needs", needs(n))).toList())).consume();
@@ -67,6 +67,12 @@ final class KnowledgeGraphLoader {
                 rows(k.organisms().stream().map(o -> map("id", o.id(), "italianName", o.italianName(),
                         "englishName", o.englishName(), "scientificName", o.scientificName(), "kind", o.kind(),
                         "source", o.source())).toList())).consume();
+
+        // Common names of a pest (#140): global aliases, found by resolve like a space's own names.
+        tx.run("UNWIND $rows AS a MATCH (o:Kb:Organism {id: a.organismId}) "
+                + "CREATE (:Kb:Alias {name: a.name, curated: true})-[:NAME_OF]->(o)",
+                rows(k.organisms().stream().flatMap(o -> o.otherNames().stream()
+                        .map(n -> map("organismId", o.id(), "name", n))).toList())).consume();
 
         tx.run("UNWIND $rows AS h MATCH (o:Kb:Organism {id: h.organismId}), (c:Kb:Crop {id: h.cropId}) "
                 + "CREATE (o)-[:AFFECTS {fromMonth: h.fromMonth, toMonth: h.toMonth, note: h.note, "

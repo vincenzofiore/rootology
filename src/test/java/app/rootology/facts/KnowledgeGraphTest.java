@@ -26,8 +26,8 @@ class KnowledgeGraphTest {
 
     @Test
     void holdsTheCuratedKnowledge() {
-        assertThat(knowledge.count("Crop")).isEqualTo(114);
-        assertThat(knowledge.count("Family")).isEqualTo(32);
+        assertThat(knowledge.count("Crop")).isEqualTo(122);
+        assertThat(knowledge.count("Family")).isEqualTo(33);
         assertThat(knowledge.count("Organism")).isEqualTo(24);
         // Only curated windows are written now (#62): CENTRO and the one NORD row; SUD is derived.
         assertThat(knowledge.count("Zone")).isEqualTo(2);
@@ -64,6 +64,10 @@ class KnowledgeGraphTest {
         assertThat(knowledge.resolve("tomatoes")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("tomato");
         assertThat(knowledge.resolve("pomodori").orElseThrow().italian()).isTrue();
         // The plant's form around the name (#139): "fig tree", "albero di fico", "piante di limoni".
+        // A pest's common names (#140), and their plurals through the singular forms.
+        assertThat(knowledge.resolve("lumache")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("DERORE");
+        assertThat(knowledge.resolve("Tuta absoluta")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("GNORAB");
+        assertThat(knowledge.resolve("ferretti")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("1AGRIG");
         assertThat(knowledge.resolve("fig tree")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("fig");
         assertThat(knowledge.resolve("albero di fico")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("fig");
         assertThat(knowledge.resolve("piante di limoni")).get().extracting(KnowledgeGraph.Entity::id).isEqualTo("lemon");

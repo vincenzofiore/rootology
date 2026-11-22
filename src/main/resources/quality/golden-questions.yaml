@@ -123,6 +123,13 @@ cases:
     intent: {kind: HARVEST_TIME, subject: aglio, language: it, place: Vasto}
     expect: {answer: [JUNE, JULY]}
 
+  # A service plant (#140): not food, so it is never in a "what can I sow now" answer, but its own calendar
+  # still answers. Phacelia's curated windows are March to June.
+  - id: sowing-time-phacelia
+    question: Quando semino la facelia a Vasto?
+    intent: {kind: SOWING_TIME, subject: facelia, language: it, place: Vasto}
+    expect: {answer: [MARCH, APRIL, MAY, JUNE]}
+
   # Citrus and pruning (#139): perennials with a planting, a harvest and a pruning window.
   - id: plant-lemon
     question: Quando si pianta il limone a Vasto?
@@ -401,9 +408,9 @@ cases:
                "Bacillus thuringiensis ssp. kurstaki on young caterpillars", "Spinosad"]
       notes: [read the label]
 
-  - id: control-grey-field-slug
-    question: Come mi difendo dalla limaccia grigia?
-    intent: {kind: CONTROL_METHODS, subject: limaccia grigia, language: it}
+  - id: control-slugs-common-name
+    question: Come mi difendo dalle lumache?
+    intent: {kind: CONTROL_METHODS, subject: lumache, language: it}
     expect:
       answer: ["Hand-pick slugs on mild; damp evenings", "Water in the morning rather than in the evening",
                "Beer traps or upturned fruit skins; emptied every morning",
@@ -419,6 +426,20 @@ cases:
                "Destroy leftover tubers and volunteer potatoes",
                "Early potato cultivars; harvested before the disease peaks",
                "Copper compounds slow the spread (at most 28 kg of copper per hectare over 7 years)"]
+      notes: [read the label]
+
+  # A service plant as a control method (#140): the methods of the glasshouse whitefly include the French
+  # marigold, a traditional companion (weak evidence, so it is listed as traditional).
+  - id: control-glasshouse-whitefly
+    question: Cosa posso fare contro la mosca bianca delle serre?
+    intent: {kind: CONTROL_METHODS, subject: mosca bianca delle serre, language: it}
+    expect:
+      answer: ["Parasitoid wasp released early under cover",
+               "Predatory bug released under cover (it can damage cherry tomatoes)",
+               "Quarantine new plants before bringing them in",
+               "Yellow sticky traps; to monitor rather than control",
+               "Fatty acids (insecticidal soap)", "Azadirachtin (neem extract)",
+               "Grow French marigolds beside the crop against glasshouse whitefly"]
       notes: [read the label]
 
   - id: control-unknown-pest

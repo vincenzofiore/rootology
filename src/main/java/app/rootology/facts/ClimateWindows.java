@@ -65,8 +65,9 @@ public class ClimateWindows {
     }
 
     /**
-     * The crops that can be sown or planted in a month at a site, as facts (crop, sowIn|seedbedIn|transplantIn|plantIn, MONTH),
-     * named in the given language ("it" for Italian, otherwise English).
+     * The food crops that can be sown or planted in a month at a site, as facts (crop,
+     * sowIn|seedbedIn|transplantIn|plantIn, MONTH), named in the given language ("it" for Italian, otherwise
+     * English). Service plants and green manures are left out (#140).
      */
     public List<SourcedFact> sowingFacts(String month, SiteProfile site, String language) {
         int m = KnowledgeGraph.MONTHS.indexOf(month) + 1;
@@ -77,6 +78,10 @@ public class ClimateWindows {
         List<ClimateWindow> all = all(site);
         List<SourcedFact> facts = new ArrayList<>();
         for (Crop crop : crops.all()) {
+            // Service plants and green manures are not food (#140): their own calendar answers, this question does not.
+            if (crop.service()) {
+                continue;
+            }
             for (ClimateWindow w : all) {
                 if (!w.window().cropId().equals(crop.id())
                         || !Set.of("SOW", "SOW_SEEDBED", "PLANT", "TRANSPLANT").contains(w.window().activity())

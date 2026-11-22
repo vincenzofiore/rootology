@@ -34,7 +34,13 @@ public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<N
 
     /** A pest or disease, identified by its EPPO code; kind: INSECT, MITE, MOLLUSC or DISEASE. */
     public record OrganismRow(String id, String italianName, String englishName, String scientificName,
-                              String kind, String source) {
+                              String kind, String source, List<String> otherNames) {
+
+        /** The row without other names, as tests build it. */
+        public OrganismRow(String id, String italianName, String englishName, String scientificName, String kind,
+                           String source) {
+            this(id, italianName, englishName, scientificName, kind, source, List.of());
+        }
     }
 
     /**

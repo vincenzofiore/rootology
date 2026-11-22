@@ -54,6 +54,7 @@ public final class KnowledgeValidator {
             oneOf(c.frostGroup(), FrostShiftRule.GROUPS, "crop " + c.id() + ": frost_group", problems);
             oneOf(c.italianArticle(), Crop.ITALIAN_ARTICLES, "crop " + c.id() + ": italian_article", problems);
             oneOf(c.lifecycle(), Crop.LIFECYCLES, "crop " + c.id() + ": lifecycle", problems);
+            oneOf(c.use(), Crop.USES, "crop " + c.id() + ": use", problems);
             if (c.frostHardiness() != null || c.hardinessSource() != null) {
                 if (!c.perennial()) {
                     problems.add("crop " + c.id() + ": frost_hardiness is for perennials only");
@@ -85,9 +86,11 @@ public final class KnowledgeValidator {
         for (Crop c : k.crops()) {
             Set<String> activities = k.windows().stream().filter(w -> w.cropId().equals(c.id()))
                     .map(WindowRow::activity).collect(Collectors.toSet());
-            if (!activities.contains("HARVEST")
-                    || activities.stream().noneMatch(a -> Set.of("SOW", "SOW_SEEDBED", "PLANT").contains(a))) {
-                problems.add("crop " + c.id() + " needs a sowing or planting window and a harvest window");
+            // A service plant or green manure is not harvested for food (#140): it needs only its sowing window.
+            if (activities.stream().noneMatch(a -> Set.of("SOW", "SOW_SEEDBED", "PLANT").contains(a))) {
+                problems.add("crop " + c.id() + " needs a sowing or planting window");
+            } else if (!c.service() && !activities.contains("HARVEST")) {
+                problems.add("crop " + c.id() + " needs a harvest window");
             }
         }
         Set<String> declared = new HashSet<>();
@@ -116,6 +119,7 @@ public final class KnowledgeValidator {
             oneOf(o.kind(), KINDS, "organism " + o.id() + ": kind", problems);
             source(sources, o.source(), "organism " + o.id(), problems);
         }
+        otherNames(k, problems);
         for (HostRow h : k.hosts()) {
             String where = "host " + h.organismId() + "-" + h.cropId();
             if (!organisms.containsKey(h.organismId())) {
@@ -265,5 +269,27 @@ public final class KnowledgeValidator {
     }
 
     private KnowledgeValidator() {
+    }
+
+    /**
+     * Common names of a pest (#140), in lower case as questions are matched: each says one pest only, so none
+     * may be the name of a crop, of another pest or another pest's common name.
+     */
+    private static void otherNames(CuratedKnowledge k, List<String> problems) {
+        Map<String, String> taken = new java.util.HashMap<>();
+        k.crops().forEach(c -> java.util.stream.Stream.of(c.id(), c.italianName(), c.englishName())
+                .forEach(n -> taken.put(n.toLowerCase(java.util.Locale.ROOT), "crop " + c.id())));
+        k.organisms().forEach(o -> java.util.stream.Stream.of(o.id(), o.italianName(), o.englishName(), o.scientificName())
+                .forEach(n -> taken.put(n.toLowerCase(java.util.Locale.ROOT), "organism " + o.id())));
+        for (OrganismRow o : k.organisms()) {
+            for (String name : o.otherNames()) {
+                String owner = taken.putIfAbsent(name, "organism " + o.id());
+                if (name.isBlank() || !name.equals(name.toLowerCase(java.util.Locale.ROOT)) || name.contains(",")) {
+                    problems.add("organism " + o.id() + ": other name '" + name + "' is not a lower-case name");
+                } else if (owner != null) {
+                    problems.add("organism " + o.id() + ": other name '" + name + "' is already the name of " + owner);
+                }
+            }
+        }
     }
 }

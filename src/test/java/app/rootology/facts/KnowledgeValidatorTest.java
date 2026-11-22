@@ -28,12 +28,12 @@ class KnowledgeValidatorTest {
     @Test
     void theCuratedFilesAreValid() {
         assertThat(KnowledgeValidator.validate(real)).isEmpty();
-        assertThat(real.crops()).hasSize(114);
-        assertThat(real.needs()).hasSize(109);
+        assertThat(real.crops()).hasSize(122);
+        assertThat(real.needs()).hasSize(113);
         assertThat(real.pairs()).hasSize(66);
         assertThat(real.organisms()).hasSize(24);
-        assertThat(real.windows()).hasSize(337);
-        assertThat(real.controls()).hasSize(89);
+        assertThat(real.windows()).hasSize(346);
+        assertThat(real.controls()).hasSize(92);
         assertThat(real.controls()).extracting(ControlRow::organismId).containsAll(
                 real.organisms().stream().map(OrganismRow::id).toList());
     }
@@ -42,7 +42,7 @@ class KnowledgeValidatorTest {
     void refusesACropWithoutAValidFrostGroup() {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
-                        "Caricaceae", "Q34887", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null)),
+                        "Caricaceae", "Q34887", null, "NOT_A_GROUP", "la", "PERENNIAL", null, null, "FOOD")),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
@@ -53,21 +53,32 @@ class KnowledgeValidatorTest {
     void refusesACropWithoutAKnownItalianArticle() {
         var k = new CuratedKnowledge(real.sources(),
                 plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
-                        "Caricaceae", "Q34887", null, "TENDER", "una", "PERENNIAL", null, null)),
+                        "Caricaceae", "Q34887", null, "TENDER", "una", "PERENNIAL", null, null, "FOOD")),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).anyMatch(p -> p.startsWith("crop papaya: italian_article"));
     }
 
     @Test
+    void refusesACropWhoseUseIsNeitherFoodNorService() {
+        var k = new CuratedKnowledge(real.sources(),
+                plus(real.crops(), new Crop("papaya", "Papaya", "Papaya", "Carica papaya",
+                        "Caricaceae", "Q34887", null, "TENDER", "la", "PERENNIAL", null, null, "FLOWER")),
+                real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "crop papaya: use must be one of " + Crop.USES + ", not FLOWER");
+    }
+
+    @Test
     void keepsFrostHardinessForPerennialsWithAKnownSource() {
         var k = new CuratedKnowledge(real.sources(), plus(real.crops(),
                 new Crop("papaya", "Papaya", "Papaya", "Carica papaya", "Caricaceae", "Q34887", null,
-                        "HARDY", "la", "ANNUAL", -15.0, "rootology-editorial"),
+                        "HARDY", "la", "ANNUAL", -15.0, "rootology-editorial", "FOOD"),
                 new Crop("mango", "Mango", "Mango", "Mangifera indica", "Anacardiaceae", "Q3919027", null, "HARDY", "il",
-                        "PERENNIAL", -15.0, "a-blog"),
+                        "PERENNIAL", -15.0, "a-blog", "FOOD"),
                 new Crop("feijoa", "Feijoa", "Feijoa", "Acca sellowiana", "Myrtaceae", "Q1092496", null, "HARDY", "la",
-                        "EVERGREEN", null, null)),
+                        "EVERGREEN", null, null, "FOOD")),
                 real.needs(), real.windows(), real.pairs(), real.organisms(), real.hosts(), real.controls());
 
         assertThat(KnowledgeValidator.validate(k)).contains(
@@ -153,5 +164,18 @@ class KnowledgeValidatorTest {
                 "organism aphid is not an EPPO code",
                 "organism aphid: kind must be one of " + KnowledgeValidator.KINDS + ", not BIRD",
                 "organism aphid affects no crop");
+    }
+
+    @Test
+    void refusesACommonNameThatIsAlreadyAnotherName() {
+        var k = new CuratedKnowledge(real.sources(), real.crops(), real.needs(), real.windows(), real.pairs(),
+                plus(real.organisms(), new OrganismRow("ABCDEF", "x", "x", "x", "INSECT", "eppo-codes",
+                        java.util.List.of("pomodoro", "lumache", "Mosca"))),
+                real.hosts(), real.controls());
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "organism ABCDEF: other name 'pomodoro' is already the name of crop tomato",
+                "organism ABCDEF: other name 'lumache' is already the name of organism DERORE",
+                "organism ABCDEF: other name 'Mosca' is not a lower-case name");
     }
 }
