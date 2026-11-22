@@ -281,6 +281,13 @@ class ContextResolver {
                 }
             }
         }
+        if (intent.kind() == QueryKind.PEST_RISK && !gone) {
+            // A pest question has no calendar, but its months follow the crop's own calendar at the
+            // garden's site (#162): the profile is read, with no note about windows.
+            climate = climate(null, garden);
+            climateFrom = climate == null ? null
+                    : climate.fromGarden() ? ContextSnapshot.ClimateFrom.GARDEN : ContextSnapshot.ClimateFrom.DEFAULT;
+        }
 
         boolean asksZone = NEEDS_ZONE.contains(intent.kind());
         String gardenZone = garden == null ? null : GardenService.zone(garden).orElse(null);

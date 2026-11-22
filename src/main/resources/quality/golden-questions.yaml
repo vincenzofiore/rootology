@@ -606,6 +606,17 @@ cases:
     weather: missing
     expect: {answer: [Aglio]}
 
+  # Pest months follow the garden's climate (#162, rule pest-shift-v1): the pest rows move as the crop's
+  # own calendar moves. Garlic's latest-ending window (PLANT 10-12) ends a month earlier at Torino (9-11),
+  # so the rows that end with it move: onion fly 8-9 -> 8-8 and onion thrips 5-9 -> 5-8, while leek rust
+  # 9-10 -> 9-9 still covers September. Vasto's curated months would name all three in September.
+  - id: pest-risk-in-the-northern-garden
+    question: Cosa minaccia il mio orto a settembre?
+    intent: {kind: PEST_RISK, language: it, month: SEPTEMBER}
+    garden: two-gardens-north
+    weather: missing
+    expect: {answer: [Ruggine dell'aglio e del porro]}
+
   # A calendar question outside a garden, with no place and no zone: the person picks one of the gardens'
   # towns (#107). The choices replace the old default-zone answer and the old escalation.
   - id: sow-now-outside-a-garden-uses-no-garden

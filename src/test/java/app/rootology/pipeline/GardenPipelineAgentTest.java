@@ -392,8 +392,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aPestQuestionInAGardenAbroadUsesThePestMonthsAndNoItalianCalendar() {
         RunContext space = signedIn("gina");
+        // The garden's altitude is known (Lyon, 171 m), so its lettuce still has November in its season and
+        // the pest months moved with it keep November too (#162).
         var lyon = gardens.saveGarden(space.spaceId(), "gina", null, "Jardin", "Lyon",
-                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR", 171);
         var plot = gardens.savePlot(space.spaceId(), "gina", lyon.id(), null, "Planche", PlotKind.GROUND,
                 Soil.LOAMY, null);
         gardens.plant(space.spaceId(), "gina", plot.id(), "lettuce", PlantingMethod.SOWN,

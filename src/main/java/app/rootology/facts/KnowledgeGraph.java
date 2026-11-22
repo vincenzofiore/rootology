@@ -107,14 +107,23 @@ public class KnowledgeGraph {
 
     /** As {@link #affecting(String, int)}, plus the facts this space added (null: none). */
     public List<Affecting> affecting(String cropId, int month, Long spaceId) {
+        return hosts(cropId, spaceId).stream().filter(a -> PestShiftRule.covers(a.fromMonth(), a.toMonth(), month))
+                .toList();
+    }
+
+    /**
+     * The pests and diseases declared on this crop, every month (#162): the rows a rule such as
+     * pest-shift-v1 moves before the month is chosen. Periods may wrap over the new year; the facts this
+     * space added are included (null: only global ones).
+     */
+    public List<Affecting> hosts(String cropId, Long spaceId) {
         return list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
-                        + "WHERE (a.spaceId IS NULL OR a.spaceId = $space) AND ((a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
-                        + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth))) "
+                        + "WHERE (a.spaceId IS NULL OR a.spaceId = $space) "
                         + "RETURN o.id AS id, o.italianName AS name, o.englishName AS en, o.kind AS kind, "
                         + "a.fromMonth AS f, a.toMonth AS t, "
                         + "a.sources + o.sources AS sources, a.verified AS verified, "
                         + "a.spaceId IS NOT NULL AS proposed ORDER BY o.id",
-                Map.of("id", cropId, "m", month, "space", space(spaceId)),
+                Map.of("id", cropId, "space", space(spaceId)),
                 r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("en").asString(),
                         r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),

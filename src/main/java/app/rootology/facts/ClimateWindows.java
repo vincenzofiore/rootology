@@ -47,6 +47,16 @@ public class ClimateWindows {
         return all(site);
     }
 
+    /** The curated CENTRO windows, the calendars a rule such as pest-shift-v1 moves (#162). */
+    public List<WindowRow> curatedWindows() {
+        return curated.stream().filter(w -> w.zone().equals("CENTRO")).toList();
+    }
+
+    /** The windows the site's frost dates derive from the curated ones (frost-shift-v1); empty without a site. */
+    public List<FrostShiftRule.InferredWindow> derivedWindows(SiteProfile site) {
+        return site == null ? List.of() : FrostShiftRule.infer(curated, groups, site);
+    }
+
     /**
      * The sowing, planting and harvest months of a crop at a site, as facts (crop, sowIn|seedbedIn|transplantIn|plantIn|harvestIn,
      * MONTH) named as the question named it. Derived facts keep the rule in derivedBy and the sources of the

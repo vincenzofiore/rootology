@@ -2,8 +2,11 @@ package app.rootology.pipeline;
 
 import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.CropCatalog;
+import app.rootology.facts.CuratedKnowledge.WindowRow;
 import app.rootology.facts.Fact;
+import app.rootology.facts.FrostShiftRule;
 import app.rootology.facts.KnowledgeGraph;
+import app.rootology.facts.PestShiftRule;
 import app.rootology.facts.SourcedFact;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.PlantingSummary;
@@ -51,10 +54,23 @@ class GardenFacts {
         List<PlantingSummary> growing = now(context, run);
         List<SourcedFact> facts = new ArrayList<>(growing(context, run, language));
         int m = Month.valueOf(context.intent().month()).getValue();
-        growing.stream().map(PlantingSummary::cropId).distinct().forEach(cropId ->
-                knowledge.affecting(cropId, m, context.spaceId()).forEach(a -> facts.add(new SourcedFact(new Fact(
-                        "it".equals(language) ? a.italianName() : a.englishName(), "threatens", name(cropId, language)),
-                        a.sources(), null, a.proposed()))));
+        // The pest months follow the crop's calendar at the garden's site (#162); without a profile they stay curated.
+        List<WindowRow> curated = climate.curatedWindows();
+        List<FrostShiftRule.InferredWindow> derived = climate.derivedWindows(context.climate());
+        for (String cropId : growing.stream().map(PlantingSummary::cropId).distinct().toList()) {
+            for (KnowledgeGraph.Affecting host : knowledge.hosts(cropId, context.spaceId())) {
+                // A member's proposed row stays as written, so it keeps its PROPOSED reading for Jev and the person.
+                PestShiftRule.Shifted months = host.proposed()
+                        ? new PestShiftRule.Shifted(host.fromMonth(), host.toMonth(), null)
+                        : PestShiftRule.shift(cropId, host.fromMonth(), host.toMonth(), curated, derived);
+                if (!PestShiftRule.covers(months.fromMonth(), months.toMonth(), m)) {
+                    continue;
+                }
+                facts.add(new SourcedFact(new Fact(
+                        "it".equals(language) ? host.italianName() : host.englishName(), "threatens",
+                        name(cropId, language)), host.sources(), months.derivedBy(), host.proposed()));
+            }
+        }
         return facts;
     }
 

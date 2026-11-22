@@ -48,6 +48,17 @@ Approved by the owner on 2026-11-03; curated data in `src/main/resources/knowled
 - Control methods (#140) are in `pest-controls.csv`, see below.
 - Sources used: EPPO codes (identity; EPPO Codes Open Data Licence, commercial use allowed, attribution to EPPO with the download date); editorial practice for hosts and months (to verify, `verified=no`).
 
+## Pest months follow the garden's climate (#162, 2026-11-22)
+
+The months of `pest-hosts.csv` are written for central Italy, so on their own they would say the same thing in
+Palermo and in Turin. Rule `pest-shift-v1` (`PestShiftRule`) moves them as the crop's own calendar moves under
+`frost-shift-v1`: a pest or disease active on a crop follows that crop. For a garden with a climate profile the
+row's start moves by as much as the crop's earliest-starting window moved, and its end by as much as the
+crop's latest-ending window moved (two months at most); Vasto and Palermo keep the curated months, rows that
+wrap over the new year or cover 11 months or more stay as they are, and a moved row is inferred, not curated.
+A first approximation: the months follow the frost-free season, not the temperature (#147), and the knowledge
+base's answers without a garden (`factsAbout`, the seasons of a pest) keep the curated months.
+
 ## Control methods (#140, 2026-11-22)
 
 `pest-controls.csv` lists what a home gardener can do against each of the 24 organisms: 92 methods, at least one

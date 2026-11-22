@@ -24,6 +24,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 ### Changed
 
 - The welcome page says up front that Rootology is designed for vegetable gardens in Italy, and the garden dialog says what that means for a garden abroad (#164).
+- The months when a pest or disease threatens a crop follow the garden's climate: "what threatens my garden this month" moves them as that crop's own sowing and harvest windows move, so a garden in Turin no longer sees a pest in the months its crop's season has left behind, while Vasto and Palermo keep the months written for central Italy (#162).
 - A crop named with its plant form is found: "fig tree", "albero di fico", "piante di limoni" (#139).
 - Questions about what to sow or plant now are answered directly far more often instead of waiting for a person: the decision layer is told what the app's calendar rules derive, and that planting counts as sowing (#69).
 - A winter pruning now moves later only where spring comes later than at Vasto, so it stays in January at Vasto; in colder places the pruning months of thyme and bay laurel move later than before (#139).

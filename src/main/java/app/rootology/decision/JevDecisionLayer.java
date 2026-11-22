@@ -47,7 +47,9 @@ public class JevDecisionLayer implements DecisionLayer {
             "frost-season-v1", "`frost-season-v1` gives the site's frost-safe months from its measured frost dates.",
             "family-rotation-v1", "`family-rotation-v1` gives avoidIn: a crop of the same botanical family as the "
                     + "plot's previous crop.",
-            "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.");
+            "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.",
+            "pest-shift-v1", "`pest-shift-v1` gives threatens: the curated months a pest or disease is active on a "
+                    + "crop, moved as that crop's own calendar moves at the site.");
 
     /** Added only when some reading is proposed (#24), so other requests stay exactly as they were. */
     static final Map<String, Object> PROPOSED = ordered(
