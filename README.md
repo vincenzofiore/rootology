@@ -276,6 +276,12 @@ is to gather first-hand, concrete observations — not to build a reusable
 tool — to inform a broader reflection on providing domain context to AI
 systems.
 
+## Contributing
+
+Issues are welcome: bugs, wrong or missing facts (with their source), ideas. Pull requests come after the
+maintainer has accepted the issue. See [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md); security problems go through [SECURITY.md](SECURITY.md).
+
 ## License
 
 License

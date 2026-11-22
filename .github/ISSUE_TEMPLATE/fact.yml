@@ -1,0 +1,28 @@
+name: Wrong or missing fact
+description: A fact in the knowledge base is wrong, or one is missing.
+labels: [knowledge]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Rootology answers only from facts that have a source, so a correction needs one too.
+  - type: input
+    id: fact
+    attributes:
+      label: The fact
+      description: For example "chard is sown from March to June in the centre".
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: What is wrong, or what is missing
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Title, link, and its license if you know it.
+    validations:
+      required: true
