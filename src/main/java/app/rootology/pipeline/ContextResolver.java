@@ -56,7 +56,8 @@ class ContextResolver {
 
     /** The kinds that read the Italian calendars: only these get a climate profile and a month. */
     static final java.util.Set<QueryKind> NEEDS_ZONE = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT,
+            QueryKind.PROPOSE_IN_AREA);
 
     /** The kinds a place named in the question applies to (#107). */
     static final java.util.Set<QueryKind> NEEDS_PLACE = java.util.Set.of(QueryKind.SOWING_TIME,
@@ -64,11 +65,12 @@ class ContextResolver {
 
     /** The kinds that need a month: the calendars and the pest months, which apply abroad too (#58). */
     static final java.util.Set<QueryKind> NEEDS_MONTH = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK,
+            QueryKind.PROPOSE_IN_AREA);
 
     /** The kinds about the run's garden: they cannot be answered outside one. */
     static final java.util.Set<QueryKind> NEEDS_GARDEN = java.util.Set.of(QueryKind.GROWING_NOW,
-            QueryKind.PEST_RISK, QueryKind.SOW_IN_PLOT);
+            QueryKind.PEST_RISK, QueryKind.SOW_IN_PLOT, QueryKind.PROPOSE_IN_AREA);
 
     /** The reasons of the escalations decided before the decision layer (#55); ReasonText translates them. */
     static final String GARDEN_GONE_REASON = "the garden no longer exists";
@@ -302,7 +304,7 @@ class ContextResolver {
         }
 
         QuestionContext.Plot plot = null;
-        if (intent.kind() == QueryKind.SOW_IN_PLOT && !gone) {
+        if ((intent.kind() == QueryKind.SOW_IN_PLOT || intent.kind() == QueryKind.PROPOSE_IN_AREA) && !gone) {
             plot = plot(intent.subject(), garden, run, notes);
             if (plot.outcome() == QuestionContext.Plot.Outcome.FOUND) {
                 // The question is about the plot as it is really called, so the facts and the decision layer agree.

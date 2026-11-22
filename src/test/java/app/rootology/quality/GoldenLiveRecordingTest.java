@@ -117,7 +117,10 @@ class GoldenLiveRecordingTest {
             Double domain = domainProbability(c.question());
             long start = System.nanoTime();
             try {
-                GardenPipeline.Run r = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
+                GardenPipeline.Run r = c.intent().kind() == app.rootology.decision.QueryKind.PROPOSE_IN_AREA
+                        // A proposal is built by the app with its intent (#141): no understanding to check.
+                        ? pipeline.propose(new Question(c.id(), c.question()), c.intent(), run)
+                        : pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
                 // A choice (#107) is neither an answer nor an escalation: it is recorded as what it asked for.
                 var decision = r.answer() != null || r.choice() != null ? null : r.pending().decision();
                 GoldenVerdict verdict = GoldenVerdict.of(c, r, false);

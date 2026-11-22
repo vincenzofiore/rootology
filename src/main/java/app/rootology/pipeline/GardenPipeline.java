@@ -91,11 +91,18 @@ public class GardenPipeline {
     private final DecisionLayer decisionLayer;
     private final DomainFilter domainFilter;
     private final PipelineMetrics metrics;
+    private final app.rootology.garden.CropProposalService proposals;
+    private final java.time.Clock clock;
+
+    /** Today's proposal runs (#141), so the same area, month, goals and crops cost no second call the same day. */
+    private final java.util.Map<String, Run> proposalRuns = new java.util.concurrent.ConcurrentHashMap<>();
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
                    SpaceService spaces, GardenService gardens, UsageService usage, DecisionLayer decisionLayer,
                    DomainFilter domainFilter, PendingEscalations pending, PlatformTransactionManager transactions,
-                   PipelineMetrics metrics) {
+                   PipelineMetrics metrics, app.rootology.garden.CropProposalService proposals, java.time.Clock clock) {
+        this.proposals = proposals;
+        this.clock = clock;
         this.agentPlatform = agentPlatform;
         this.pending = pending;
         this.transaction = new TransactionTemplate(transactions);
@@ -191,6 +198,57 @@ public class GardenPipeline {
             if (context.hasSpace()) {
                 usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
             }
+        }
+    }
+
+    /**
+     * The proposal for one free area of a garden (#141): a question the app builds from the proposal screen,
+     * with its intent already known (PROPOSE_IN_AREA, the area as subject, the month and one or two goals), so
+     * Claude only phrases it. Jev judges the crops of crop-proposal-v1 and, when unsure, the question waits
+     * for a person like any other. It counts as a question; the same area, month, goals and proposed crops
+     * are answered from today's run instead of a new one.
+     */
+    public Run propose(Question question, Intent intent, RunContext context) {
+        if (intent.kind() != QueryKind.PROPOSE_IN_AREA || intent.subject() == null || intent.month() == null
+                || !context.hasGarden()) {
+            throw new IllegalArgumentException("A proposal needs a garden, an area and a month");
+        }
+        if (question.text() == null || question.text().isBlank() || question.text().length() > Question.MAX_LENGTH) {
+            throw new IllegalArgumentException("A question needs between 1 and " + Question.MAX_LENGTH + " characters");
+        }
+        List<app.rootology.garden.CropProposalRule.Goal> goals = intent.goals().stream()
+                .map(app.rootology.garden.CropProposalRule.Goal::valueOf).toList();
+        app.rootology.garden.CropProposalRule.checkGoals(goals);
+        spaces.requireContributor(context.spaceId(), context.startedBy());
+        java.time.Month month = java.time.Month.valueOf(intent.month());
+        String crops = proposals.propose(context.spaceId(), context.startedBy(), context.gardenId(), month, goals)
+                .areas().stream().filter(a -> a.areaName().equals(intent.subject()))
+                .flatMap(a -> a.proposals().stream()).map(app.rootology.garden.CropProposalRule.Proposal::cropId)
+                .collect(java.util.stream.Collectors.joining(","));
+        String today = clock.instant().atZone(GardenPipelineAgent.ITALY).toLocalDate().toString();
+        String key = String.join("|", today, String.valueOf(context.spaceId()), String.valueOf(context.gardenId()),
+                intent.subject(), intent.month(), String.join(",", intent.goals()), crops);
+        Run cached = proposalRuns.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        usage.requireQuestionAvailable(context.startedBy());
+        requireClaude();
+        Timer.Sample timing = metrics.start();
+        AgentProcess process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, question,
+                intent.bounded(), NoiseProfile.NONE, ReviewMode.HUMAN, FactScope.KNOWLEDGE_BASE, context,
+                QuestionContext.Pinned.NONE);
+        try {
+            Run result = settle(process.run(), question, context);
+            metrics.finished(timing, FactScope.KNOWLEDGE_BASE, result);
+            proposalRuns.keySet().removeIf(k -> !k.startsWith(today + "|"));
+            proposalRuns.put(key, result);
+            return result;
+        } catch (RuntimeException e) {
+            metrics.failed(timing, FactScope.KNOWLEDGE_BASE);
+            throw e;
+        } finally {
+            usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
         }
     }
 

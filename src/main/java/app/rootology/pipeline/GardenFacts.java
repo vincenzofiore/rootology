@@ -33,10 +33,12 @@ class GardenFacts {
     private final ClimateWindows climate;
     private final CropCatalog crops;
     private final java.time.Clock clock;
+    private final app.rootology.garden.CropProposalService proposals;
 
     GardenFacts(GardenService gardens, KnowledgeGraph knowledge, ClimateWindows climate, CropCatalog crops,
-                java.time.Clock clock) {
+                java.time.Clock clock, app.rootology.garden.CropProposalService proposals) {
         this.clock = clock;
+        this.proposals = proposals;
         this.gardens = gardens;
         this.knowledge = knowledge;
         this.climate = climate;
@@ -47,6 +49,36 @@ class GardenFacts {
     List<SourcedFact> growing(QuestionContext context, RunContext run, String language) {
         return now(context, run).stream().map(p -> new SourcedFact(new Fact(p.plotName(), "grows",
                 name(p.cropId(), language)), List.of(SOURCE))).toList();
+    }
+
+    /**
+     * The proposal of crop-proposal-v1 for the free area the question names (#141): for each proposed crop
+     * (crop, sowIn|transplantIn|plantIn, MONTH) with its window's rule, and (crop, proposedFor, area),
+     * (crop, meetsGoal, GOAL) and (crop, uncertainty, KIND) derived by crop-proposal-v1. Empty when the
+     * area is not found or not free: nothing is proposed, and the decision layer escalates.
+     */
+    List<SourcedFact> proposals(QuestionContext context, RunContext run, String language) {
+        if (!context.hasSpace() || context.plot() == null || context.plot().found() == null) {
+            return List.of();
+        }
+        var area = context.plot().found();
+        List<app.rootology.garden.CropProposalRule.Goal> goals = context.intent().goals().stream()
+                .map(app.rootology.garden.CropProposalRule.Goal::valueOf).toList();
+        String rule = app.rootology.garden.CropProposalRule.ID;
+        List<SourcedFact> facts = new ArrayList<>();
+        proposals.propose(run.spaceId(), run.startedBy(), context.gardenId(), Month.valueOf(context.intent().month()), goals)
+                .areas().stream().filter(a -> a.areaId() == area.id()).flatMap(a -> a.proposals().stream())
+                .forEach(p -> {
+                    String crop = name(p.cropId(), language);
+                    facts.add(new SourcedFact(new Fact(crop, app.rootology.facts.SowingActivity.valueOf(p.activity()).predicate(),
+                            Month.of(p.month()).name()), p.sources(), p.derived() ? app.rootology.facts.FrostShiftRule.ID : null));
+                    facts.add(new SourcedFact(new Fact(crop, "proposedFor", area.name()), p.sources(), rule));
+                    p.goals().stream().sorted().forEach(g -> facts.add(
+                            new SourcedFact(new Fact(crop, "meetsGoal", g.name()), p.sources(), rule)));
+                    p.uncertainties().forEach(u -> facts.add(
+                            new SourcedFact(new Fact(crop, "uncertainty", u.name()), p.sources(), rule)));
+                });
+        return facts;
     }
 
     /** What grows today, plus (organism, threatens, crop) for the pests and diseases active on it in the month. */

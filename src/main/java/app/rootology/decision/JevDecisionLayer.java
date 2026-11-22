@@ -49,7 +49,9 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "plot's previous crop.",
             "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.",
             "pest-shift-v1", "`pest-shift-v1` gives threatens: the curated months a pest or disease is active on a "
-                    + "crop, moved as that crop's own calendar moves at the site.");
+                    + "crop, moved as that crop's own calendar moves at the site.",
+            "crop-proposal-v1", "`crop-proposal-v1` gives proposedFor, meetsGoal and uncertainty: the crops that "
+                    + "can go in a free area this month, ranked by the person's goals, and what is not known about them.");
 
     /** Added only when some reading is proposed (#24), so other requests stay exactly as they were. */
     static final Map<String, Object> PROPOSED = ordered(
@@ -155,6 +157,10 @@ public class JevDecisionLayer implements DecisionLayer {
                 can the question described by `intent` be answered? Answer no if `intent.subject` \
                 does not appear in any fact. If it appears but no fact declares the relation the \
                 question asks about, answer yes: the answer is that there is none."""
+                : knowledgeBase && intent.kind() == QueryKind.PROPOSE_IN_AREA ? """
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? `intent.subject` is a free area of \
+                the garden. Answer no if no crop is proposed for it."""
                 : knowledgeBase && intent.kind() == QueryKind.SOW_IN_PLOT ? """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
                 can the question described by `intent` be answered? `intent.subject` is a plot of the \
@@ -267,13 +273,16 @@ public class JevDecisionLayer implements DecisionLayer {
     static final Set<QueryKind> SUBJECTLESS = Set.of(QueryKind.SOW_NOW, QueryKind.GROWING_NOW, QueryKind.PEST_RISK);
 
     /** Kind, subject and season as always; zone and month only when set, so suite requests are unchanged. */
-    private static Map<String, Object> intent(Intent intent) {
+    static Map<String, Object> intent(Intent intent) {
         Map<String, Object> map = ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season());
         if (intent.zone() != null) {
             map.put("zone", intent.zone());
         }
         if (intent.month() != null) {
             map.put("month", intent.month());
+        }
+        if (!intent.goals().isEmpty()) {
+            map.put("goals", intent.goals());
         }
         return map;
     }
@@ -340,6 +349,11 @@ public class JevDecisionLayer implements DecisionLayer {
                         result.add(f.object());
                     }
                 }
+                case PROPOSE_IN_AREA -> {
+                    if (f.predicate().equals("proposedFor")) {
+                        result.add(f.subject());
+                    }
+                }
                 case OTHER -> { }
             }
         }
@@ -369,6 +383,7 @@ public class JevDecisionLayer implements DecisionLayer {
                     + PLANTING;
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
             case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact. " + SITE;
+            case PROPOSE_IN_AREA -> rule(kind);
             default -> rule(kind);
         };
     }
@@ -414,6 +429,14 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "(X, avoidNow, frost) is a fact.";
             case CONTROL_METHODS -> "The answer is every method M such that (subject, controlledBy, M) is a fact, "
                     + "whatever its controlKind and evidence. Methods are never inferred from other pests.";
+            case PROPOSE_IN_AREA -> "The answer is every crop X such that (X, proposedFor, `intent.subject`) is a fact: "
+                    + "`crop-proposal-v1` proposed it for that free area of the garden, from the site's calendar "
+                    + "(sowIn, transplantIn or plantIn in `intent.month`), the area's rotation and light, and the goals "
+                    + "in `intent.goals` it meets (meetsGoal). An (X, uncertainty, U) fact says what is not known "
+                    + "about X: LIGHT_UNKNOWN (its light need or the area's sun), CYCLE_UNKNOWN (its growing time), "
+                    + "EDITORIAL_WINDOW (its months are editorial, not verified) or TRADITIONAL_EVIDENCE (its help "
+                    + "to beneficial insects is only traditional). A crop is part of the answer only if the facts "
+                    + "support proposing it there.";
             case OTHER -> "";
         };
     }

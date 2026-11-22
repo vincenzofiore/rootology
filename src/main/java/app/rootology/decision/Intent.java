@@ -13,9 +13,21 @@ package app.rootology.decision;
  *                 context resolver reads it, never the decision layer
  * @param place    the name of a town or place as written in the question (#107), or null; only the context
  *                 resolver reads it, never the decision layer
+ * @param goals    the goals of a {@link QueryKind#PROPOSE_IN_AREA} proposal (#141), chosen by the person on the
+ *                 screen, never by Claude; empty for every other kind
  */
 public record Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
-                     String garden, String place) {
+                     String garden, String place, java.util.List<String> goals) {
+
+    public Intent {
+        goals = goals == null ? java.util.List.of() : java.util.List.copyOf(goals);
+    }
+
+    /** Without goals: every intent but a proposal's (#141). */
+    public Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
+                  String garden, String place) {
+        this(kind, subject, season, language, zone, month, garden, place, java.util.List.of());
+    }
 
     /** Without a place: every intent before #107, and the suite's. */
     public Intent(QueryKind kind, String subject, String season, String language, String zone, String month,
@@ -42,17 +54,22 @@ public record Intent(QueryKind kind, String subject, String season, String langu
     }
 
     public Intent withZoneAndMonth(String zone, String month) {
-        return new Intent(kind, subject, season, language, zone, month, garden, place);
+        return new Intent(kind, subject, season, language, zone, month, garden, place, goals);
     }
 
     /** The same intent naming no garden: what Claude returns when it was given no garden names (#57). */
     public Intent withoutGarden() {
-        return garden == null ? this : new Intent(kind, subject, season, language, zone, month, null, place);
+        return garden == null ? this : new Intent(kind, subject, season, language, zone, month, null, place, goals);
+    }
+
+    /** The same intent with the goals of a proposal (#141). */
+    public Intent withGoals(java.util.List<String> goals) {
+        return new Intent(kind, subject, season, language, zone, month, garden, place, goals);
     }
 
     /** The same intent about another subject, for example the plot a question named as it is really called. */
     public Intent withSubject(String subject) {
-        return new Intent(kind, subject, season, language, zone, month, garden, place);
+        return new Intent(kind, subject, season, language, zone, month, garden, place, goals);
     }
 
     /**
@@ -62,7 +79,7 @@ public record Intent(QueryKind kind, String subject, String season, String langu
      */
     public Intent bounded() {
         return new Intent(kind, bound(subject, 100), bound(season, 20), bound(language, 5), bound(zone, 20),
-                bound(month, 20), bound(garden, 100), bound(place, 100));
+                bound(month, 20), bound(garden, 100), bound(place, 100), goals);
     }
 
     private static String bound(String text, int max) {

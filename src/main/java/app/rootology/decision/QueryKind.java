@@ -28,6 +28,11 @@ public enum QueryKind {
     SOW_IN_PLOT,
     /** Knowledge base: what a home gardener can do against a pest or disease (the subject), #140. */
     CONTROL_METHODS,
+    /**
+     * My garden: crops to put in a free area (the subject) in a month, for the intent's goals (#141). Built by the
+     * app from the proposal screen, never read from a question by Claude.
+     */
+    PROPOSE_IN_AREA,
     /** Anything that does not fit the shapes above. Always escalated. */
     OTHER
 }

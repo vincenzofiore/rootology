@@ -213,6 +213,16 @@ class CropProposalRuleTest {
     }
 
     @Test
+    void aCropWithSolidFactsComesBeforeOneWithUnknownsOfTheSameScore() {
+        CropFacts unknownLight = crop("artichoke", "Asteraceae", false, 60.0, null, List.of(window()), false,
+                false, false, false, List.of());
+        CropFacts known = crop("zucchini", "Cucurbitaceae");
+        List<Proposal> proposals = CropProposalRule.propose(SUNNY, List.of(unknownLight, known), List.of(Goal.VARIETY));
+
+        assertThat(proposals).extracting(Proposal::cropId).containsExactly("zucchini", "artichoke");
+    }
+
+    @Test
     void aCropThatScoresNothingIsNotProposed() {
         List<Proposal> proposals = CropProposalRule.propose(SUNNY, List.of(
                 crop("pea", "Fabaceae")), List.of(Goal.BENEFICIALS));

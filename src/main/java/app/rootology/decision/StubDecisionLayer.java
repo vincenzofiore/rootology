@@ -59,6 +59,9 @@ public class StubDecisionLayer implements DecisionLayer {
             case HARVEST_TIME -> months(subject, facts, List.of("harvestIn"), "harvest");
             case PRUNING_TIME -> months(subject, facts, List.of("pruneIn"), "pruning");
             case SOW_IN_PLOT -> sowInPlot(subject, intent.month(), facts);
+            case PROPOSE_IN_AREA -> facts.subjects("proposedFor", subject).isEmpty()
+                    ? Decision.escalated("nothing is proposed for " + subject)
+                    : Decision.certain(facts.subjects("proposedFor", subject), "crops proposed for " + subject);
             case CONTROL_METHODS -> facts.objects(subject, "controlledBy").isEmpty()
                     ? Decision.escalated("no control method of " + subject + " is declared")
                     : Decision.certain(facts.objects(subject, "controlledBy"), "declared control methods of " + subject);

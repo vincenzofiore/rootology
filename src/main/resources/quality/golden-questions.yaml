@@ -455,6 +455,23 @@ cases:
     weather: missing
     expect: {answer: [Pomodoro, Lattuga]}
 
+  # Proposals for a free area (#141): built by the app with the goals the person chose; Jev judges the crops
+  # of crop-proposal-v1. Aiuola B had peas until June (rotation: no legumes); garlic and shallot are a family the
+  # garden lacks, and annuals come before the almond tree. Aiuola A is not free: nothing is proposed for it.
+  - id: propose-free-area-variety
+    question: "Cosa metto in Aiuola B a novembre? Obiettivi: varietà"
+    intent: {kind: PROPOSE_IN_AREA, subject: Aiuola B, language: it, month: NOVEMBER, goals: [VARIETY]}
+    garden: rome
+    weather: missing
+    expect: {answer: [Aglio, Scalogno, Mandorlo]}
+
+  - id: propose-area-not-free
+    question: "Cosa metto in Aiuola A a novembre? Obiettivi: suolo"
+    intent: {kind: PROPOSE_IN_AREA, subject: Aiuola A, language: it, month: NOVEMBER, goals: [SOIL]}
+    garden: rome
+    weather: missing
+    expect: {escalate: not in the dataset}
+
   - id: pest-risk-november
     question: Cosa minaccia il mio orto questo mese?
     intent: {kind: PEST_RISK, language: it}

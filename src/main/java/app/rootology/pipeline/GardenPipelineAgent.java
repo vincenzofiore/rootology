@@ -172,6 +172,11 @@ public class GardenPipelineAgent {
             ContextResolver.Names names = contexts.names(run);
             Intent intent = context.ai().withDefaultLlm()
                     .createObject(understandPrompt(question, names, run.hasSpace()), Intent.class).bounded();
+            // Goals and proposals come only from the proposal screen (#141), never from a question's text.
+            intent = intent.kind() == QueryKind.PROPOSE_IN_AREA
+                    ? new Intent(QueryKind.OTHER, intent.subject(), intent.season(), intent.language(), intent.zone(),
+                            intent.month(), intent.garden(), intent.place())
+                    : intent.withGoals(java.util.List.of());
             if (names.gardens().isEmpty()) {
                 // Claude was given no garden to name: whatever it put there is not one of ours (#57).
                 intent = intent.withoutGarden();
@@ -269,6 +274,7 @@ public class GardenPipelineAgent {
             case PEST_RISK -> garden.threats(context, run, full.languageOrDefault());
             case SOW_IN_PLOT -> garden.sowableIn(context, run, full.languageOrDefault());
             case CONTROL_METHODS -> knowledge.controlFacts(full.subject(), space);
+            case PROPOSE_IN_AREA -> garden.proposals(context, run, full.languageOrDefault());
             default -> knowledge.factsAbout(full.subject(), full.languageOrDefault(), space);
         };
         // The local forecast (#18) for questions about now: frost for sowing, blight for pest risk.

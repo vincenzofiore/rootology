@@ -25,7 +25,7 @@ import java.util.Set;
  * BENEFICIALS gives 1 when the crop is the agent of a SERVICE_PLANT row of `pest-controls.csv`;
  * SOIL gives 1 when the crop's family is Fabaceae, the only family that fixes nitrogen in v1.
  *
- * <p>Order: score descending, then annual before perennial (a free area of the garden is filled for a season; a perennial takes it for years), then FOOD before SERVICE, then crop id; a crop scoring 0 is not proposed, and
+ * <p>Order: score descending, then annual before perennial (a free area of the garden is filled for a season; a perennial takes it for years), then fewer uncertainties (solid facts first), then FOOD before SERVICE, then crop id; a crop scoring 0 is not proposed, and
  * at most three proposals are kept per area. A window the curated file did not verify adds the uncertainty
  * EDITORIAL_WINDOW, and BENEFICIALS met only through traditional rows adds TRADITIONAL_EVIDENCE.
  */
@@ -134,6 +134,8 @@ public final class CropProposalRule {
         static final Comparator<Ranked> ORDER = Comparator
                 .comparingDouble((Ranked r) -> -r.proposal().score())
                 .thenComparing(r -> r.crop().perennial())
+            // Solid facts first: a verified window and a known light before editorial or unknown ones.
+            .thenComparingInt(r -> r.proposal().uncertainties().size())
                 .thenComparing(r -> r.crop().service())
                 .thenComparing(r -> r.proposal().cropId());
     }
