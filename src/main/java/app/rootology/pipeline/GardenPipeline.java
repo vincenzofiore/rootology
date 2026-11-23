@@ -200,7 +200,7 @@ public class GardenPipeline {
         }
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context,
-                QuestionContext.Pinned.NONE);
+                unjudged ? QuestionContext.Pinned.DOMAIN_UNJUDGED : QuestionContext.Pinned.NONE);
         try {
             Run run = settle(process.run(), question, context);
             metrics.finished(timing, scope, run);
@@ -300,7 +300,7 @@ public class GardenPipeline {
         Timer.Sample timing = metrics.start();
         AgentProcess process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, question,
                 understood, NoiseProfile.NONE, ReviewMode.HUMAN, FactScope.KNOWLEDGE_BASE, run,
-                new QuestionContext.Pinned(place));
+                new QuestionContext.Pinned(place, false));
         try {
             Run result = settle(process.run(), question, run);
             metrics.finished(timing, FactScope.KNOWLEDGE_BASE, result);
@@ -332,7 +332,7 @@ public class GardenPipeline {
             usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, new RunUsage(0, 0, 0, 0.0, 1));
         }
         events.publishEvent(new PipelineRunFinished(UUID.randomUUID().toString(), context, question,
-                NoiseProfile.NONE, decision, answer, true, Instant.now()));
+                NoiseProfile.NONE, decision, answer, true, false, Instant.now()));
         metrics.refused(timing, FactScope.KNOWLEDGE_BASE);
         return new Run(answer, null, null, true, null, null, null);
     }
@@ -484,8 +484,11 @@ public class GardenPipeline {
         // The garden the question was answered for, which may be the one it named (#57), owns the history row.
         RunContext owner = answered == null || !answered.hasSpace() ? context
                 : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
+        // #165: the question context says whether the domain filter could not judge the question and let it
+        // through (#161); a run the filter never saw carries false.
+        boolean domainUnjudged = answered != null && answered.domainUnjudged();
         events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
-                process.last(Decision.class), answer, false, Instant.now()));
+                process.last(Decision.class), answer, false, domainUnjudged, Instant.now()));
         return new Run(answer, null, intentOf(process), false, null, process.getId(), answeredPlace(process));
     }
 

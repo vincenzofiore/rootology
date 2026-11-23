@@ -63,6 +63,9 @@ public class PipelineRunRecord {
     /** The domain filter refused the question (#53): it has no values and no reviewer. */
     private boolean offDomain;
 
+    /** The domain filter could not judge the question (Jev unreachable) and let it through (#161, #165). */
+    private boolean domainUnjudged;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> jenaAnswer;
     private Boolean matchesJena;
@@ -79,7 +82,8 @@ public class PipelineRunRecord {
                       long noiseSeed, List<String> decisionAnswer, double decisionConfidence,
                       boolean decisionEscalated, String decisionReason, List<String> answer,
                       boolean answeredByHuman, String reviewer, String answerText, String contextJson,
-                      String notesJson, List<String> sources, String activitiesJson, boolean offDomain, List<String> jenaAnswer,
+                      String notesJson, List<String> sources, String activitiesJson, boolean offDomain,
+                      boolean domainUnjudged, List<String> jenaAnswer,
                       Boolean matchesJena, Instant finishedAt) {
         this.processId = processId;
         this.spaceId = spaceId;
@@ -105,6 +109,7 @@ public class PipelineRunRecord {
         this.sources = sources;
         this.activitiesJson = activitiesJson;
         this.offDomain = offDomain;
+        this.domainUnjudged = domainUnjudged;
         this.jenaAnswer = jenaAnswer;
         this.matchesJena = matchesJena;
         this.finishedAt = finishedAt;
@@ -135,6 +140,7 @@ public class PipelineRunRecord {
     public List<String> getSources() { return sources; }
     public String getActivitiesJson() { return activitiesJson; }
     public boolean isOffDomain() { return offDomain; }
+    public boolean isDomainUnjudged() { return domainUnjudged; }
     public List<String> getJenaAnswer() { return jenaAnswer; }
     public Boolean getMatchesJena() { return matchesJena; }
     public Instant getFinishedAt() { return finishedAt; }

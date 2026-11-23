@@ -21,6 +21,8 @@ import java.util.List;
  * question asked outside a garden, a garden that no longer exists, a plot not found or ambiguous); it is
  * null when the question can go to the decision layer. The snapshot is null when there is nothing true to
  * show: a run that belongs to no space, a garden that no longer exists, and a run that only asks a choice.
+ * domainUnjudged says the domain filter could not judge the question and let it through (#161, #165), so the
+ * run's history can say it went on unscreened; it is false for a run the filter never saw.
  */
 public record QuestionContext(
         long spaceId,
@@ -33,7 +35,8 @@ public record QuestionContext(
         String refusal,
         List<Note> notes,
         Choice choice,
-        Choice.Place place) {
+        Choice.Place place,
+        boolean domainUnjudged) {
 
     /** What a SOW_IN_PLOT question asked for, and what the run's garden answered. */
     public record Plot(String askedName, Outcome outcome, PlotSummary found, List<String> matches) {
@@ -104,11 +107,15 @@ public record QuestionContext(
 
     /**
      * The place the person chose for a continued question (#107), on the blackboard so the context resolver
-     * reads it instead of looking the place up again; {@link #NONE} for every other run.
+     * reads it instead of looking the place up again, and whether the domain filter could not judge the
+     * question (#165, {@link #DOMAIN_UNJUDGED}); {@link #NONE} for every other run.
      */
-    public record Pinned(Choice.Place place) {
+    public record Pinned(Choice.Place place, boolean domainUnjudged) {
 
-        public static final Pinned NONE = new Pinned(null);
+        public static final Pinned NONE = new Pinned(null, false);
+
+        /** The question went on unscreened: the filter was asked but could not judge it (#161). */
+        public static final Pinned DOMAIN_UNJUDGED = new Pinned(null, true);
 
         boolean isNone() {
             return place == null;
@@ -121,15 +128,21 @@ public record QuestionContext(
 
     /** For a run that belongs to no space: no garden, no notes, no context shown (the suite's runs). */
     static QuestionContext none(Intent intent) {
-        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null, null);
+        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null, null, false);
     }
 
     /** The context of a question whose agent was lost: only what was stored, never recomputed. */
     static QuestionContext stored(ContextSnapshot snapshot) {
-        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null, null);
+        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null, null, false);
     }
 
     boolean hasSpace() {
         return spaceId > 0;
+    }
+
+    /** The same context, saying the domain filter could not judge the question (#165). */
+    QuestionContext markDomainUnjudged() {
+        return new QuestionContext(spaceId, gardenId, intent, plot, weather, climate, snapshot, refusal, notes,
+                choice, place, true);
     }
 }

@@ -58,7 +58,7 @@ public class RunHistory {
                 answer.notes() == null ? null : JSON.writeValueAsString(answer.notes()),
                 answer.sources() == null ? null : List.copyOf(answer.sources()),
                 answer.activities().isEmpty() ? null : JSON.writeValueAsString(answer.activities()),
-                run.offDomain(), jena, matches, run.finishedAt()));
+                run.offDomain(), run.domainUnjudged(), jena, matches, run.finishedAt()));
     }
 
     /**

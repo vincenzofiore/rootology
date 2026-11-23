@@ -243,7 +243,9 @@ public class GardenPipelineAgent {
     @Action(description = "Resolve the context of the question once")
     public QuestionContext resolveContext(Intent intent, RunContext run, QuestionContext.Pinned pinned) {
         // A place the person chose for a continued question is already resolved (#107).
-        return contexts.resolve(intent, run, pinned.isNone() ? null : pinned.place());
+        QuestionContext context = contexts.resolve(intent, run, pinned.isNone() ? null : pinned.place());
+        // The domain filter could not judge the question (#161): the context the run gets says so (#165).
+        return pinned.domainUnjudged() ? context.markDomainUnjudged() : context;
     }
 
     /**

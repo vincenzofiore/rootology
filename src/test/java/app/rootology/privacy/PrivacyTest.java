@@ -163,7 +163,7 @@ class PrivacyTest {
         spaces.signedIn("exp-gus");
         long gusSpace = personalSpace("exp-gus");
         spaces.addMember(gusSpace, "exp-gus", "exp-fay", app.rootology.spaces.Role.MEMBER);
-        run(gusSpace, "exp-fay", "fay asks about basil", Instant.now());
+        run(gusSpace, "exp-fay", "fay asks about basil", Instant.now(), true);
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
@@ -191,6 +191,8 @@ class PrivacyTest {
                         "\"sun_declared_by\" : \"exp-gus\"", "\"sun_declared_at\"",
                         // #56: the garden a question belongs to is part of the export, like its space.
                         "\"garden_id\"",
+                        // #165: whether the domain filter could not judge the question.
+                        "\"domain_unjudged\" : true",
                         // #38: the Telegram chat the person linked.
                         "\"telegramLinks\"", "\"chat_id\" : 6002")
                 .doesNotContain("gus asks about leeks");
@@ -238,13 +240,19 @@ class PrivacyTest {
     }
 
     private void run(long space, String login, String question, Instant at) {
+        run(space, login, question, at, false);
+    }
+
+    private void run(long space, String login, String question, Instant at, boolean domainUnjudged) {
         jdbc.sql("""
                 insert into pipeline_run (process_id, question_id, question, noise_dropout, noise_spurious, noise_mislabel,
                     noise_near_subject, noise_seed, decision_answer, decision_confidence, decision_escalated,
-                    decision_reason, answer, answered_by_human, answer_text, finished_at, space_id, started_by)
+                    decision_reason, answer, answered_by_human, answer_text, finished_at, space_id, started_by,
+                    domain_unjudged)
                 values (gen_random_uuid()::text, 'free', :q, 0, 0, 0, false, 0, '{}', 1, false, 'test', '{}', false,
-                    'an answer', :at, :s, :l)""")
-                .param("q", question).param("at", Timestamp.from(at)).param("s", space).param("l", login).update();
+                    'an answer', :at, :s, :l, :u)""")
+                .param("q", question).param("at", Timestamp.from(at)).param("s", space).param("l", login)
+                .param("u", domainUnjudged).update();
     }
 
     private void notification(String recipient, long space) {

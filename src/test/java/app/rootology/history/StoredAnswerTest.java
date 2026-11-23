@@ -52,7 +52,7 @@ class StoredAnswerTest {
                 "Oggi sì: pomodoro.", List.of("rootology-editorial", "agera5"), notes, null);
         history.on(new PipelineRunFinished("stored-answer-1", new RunContext(space, 0, "stored-answer"),
                 new Question("ask", "Cosa semino?"), NoiseProfile.NONE,
-                new Decision(List.of("tomato"), 0.82, false, "certain"), given, false, Instant.now()));
+                new Decision(List.of("tomato"), 0.82, false, "certain"), given, false, false, Instant.now()));
 
         PipelineAnswer read = history.answerOf(history.recent(space, 0, "stored-answer").getFirst());
 
@@ -74,7 +74,7 @@ class StoredAnswerTest {
                 "In semenzaio a febbraio, trapianto ad aprile.", List.of(), List.of(), null, activities);
         history.on(new PipelineRunFinished("stored-activities-1", new RunContext(space, 0, "stored-activities"),
                 new Question("ask", "Quando pianto i pomodori?"), NoiseProfile.NONE,
-                new Decision(List.of("FEBRUARY", "APRIL"), 0.9, false, "certain"), given, false, Instant.now()));
+                new Decision(List.of("FEBRUARY", "APRIL"), 0.9, false, "certain"), given, false, false, Instant.now()));
 
         PipelineAnswer read = history.answerOf(history.recent(space, 0, "stored-activities").getFirst());
 

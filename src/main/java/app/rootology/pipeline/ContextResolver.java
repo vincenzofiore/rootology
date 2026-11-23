@@ -241,7 +241,7 @@ class ContextResolver {
             }
         }
         if (choice != null) {
-            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null);
+            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null, false);
         }
         if (place != null && effective.zone() != null) {
             // The place wins over the zone the question also names: the zone plays no part (#107).
@@ -327,7 +327,7 @@ class ContextResolver {
         return new QuestionContext(run.spaceId(), garden == null ? 0 : garden.id(), effective, plot,
                 place != null ? new QuestionContext.Location(place.latitude(), place.longitude(), place.elevationM())
                         : location(garden),
-                climate, snapshot, refusal, notes, null, place);
+                climate, snapshot, refusal, notes, null, place, false);
     }
 
     /**
