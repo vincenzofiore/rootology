@@ -275,4 +275,39 @@ class PrivacyTest {
     private long count(String sql) {
         return jdbc.sql(sql).query(Long.class).single();
     }
+
+    @Test
+    void theExportHoldsTheBlockOfTheAccount() {
+        spaces.signedIn("blk-exp-fay");
+        jdbc.sql("""
+                        update app_user set blocked_at = now() - interval '2 days', blocked_by = 'blk-exp-admin',
+                               blocked_reason = 'domande fuori tema'
+                        where login = 'blk-exp-fay'""").update();
+
+        String json = new String(export.export("blk-exp-fay"), StandardCharsets.UTF_8);
+
+        assertThat(json).contains("\"blocked_by\" : \"blk-exp-admin\"",
+                "\"blocked_reason\" : \"domande fuori tema\"", "\"blocked_at\"");
+    }
+
+    @Test
+    void deletingABlockedAccountRemovesItsBlockAndNamesNoOne() {
+        spaces.signedIn("blk-del-ada");
+        spaces.signedIn("blk-del-bob");
+        jdbc.sql("""
+                        update app_user set blocked_at = now(), blocked_by = 'blk-del-bob', blocked_reason = 'spam'
+                        where login = 'blk-del-ada'""").update();
+
+        // Bob, the admin who blocked Ada, deletes his own account: Ada's block stays, and names no one.
+        deletion.delete("blk-del-bob");
+
+        assertThat(count("select count(*) from app_user where login = 'blk-del-bob'")).isZero();
+        assertThat(jdbc.sql("select blocked_by from app_user where login = 'blk-del-ada'").query(String.class).single())
+                .isEqualTo(AccountDeletion.DELETED_USER);
+
+        // Ada deletes hers: the block goes with the account.
+        deletion.delete("blk-del-ada");
+
+        assertThat(count("select count(*) from app_user where login = 'blk-del-ada'")).isZero();
+    }
 }

@@ -11,6 +11,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import app.rootology.access.AccountBlockService;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
@@ -25,19 +26,27 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
 
     private final Anchor back;
     private final SignInMenu signIn;
+    private final AccountBlockService blocks;
     private final boolean signedIn;
     private final ServiceLinks footer = new ServiceLinks();
 
     public PublicLayout(
-            @Value("${spring.security.oauth2.client.registration.google.client-id:not-set}") String googleClientId) {
+            @Value("${spring.security.oauth2.client.registration.google.client-id:not-set}") String googleClientId,
+            AccountBlockService blocks) {
+        this.blocks = blocks;
         boolean pending = PendingAccess.isPending();
+        // The authority of a sign-in that was blocked, or the account's state, so that a session blocked
+        // meanwhile can sign out from these pages too (#165).
+        String login = BlockedAccess.login();
+        boolean blocked = BlockedAccess.isBlocked() || login != null && blocks.isBlocked(login);
+        boolean leaving = pending || blocked;
         boolean principal = VaadinRequest.getCurrent() != null && VaadinRequest.getCurrent().getUserPrincipal() != null;
-        signedIn = principal || pending;
+        signedIn = principal || leaving;
         // A plain link, not a RouterLink: "/" leads a signed-in person into the app.
-        back = new Anchor(pending ? "/" + WelcomeView.ROUTE : "/", "");
-        back.setRouterIgnore(pending);
-        back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(pending ? "public.leave" : "public.back")));
-        if (pending) {
+        back = new Anchor(leaving ? "/" + WelcomeView.ROUTE : "/", "");
+        back.setRouterIgnore(leaving);
+        back.add(VaadinIcon.ARROW_LEFT.create(), new Span(getTranslation(leaving ? "public.leave" : "public.back")));
+        if (leaving) {
             back.getElement().addEventListener("click", e -> leave()).preventDefault();
         }
         back.addClassName("rootology-public-back");
@@ -55,7 +64,7 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
         add(bar, footer);
     }
 
-    /** Signs a pending person out and reloads the welcome page, where they are a visitor again (Vaadin's logout). */
+    /** Signs a pending or blocked person out and reloads the welcome page, where they are a visitor again. */
     private static void leave() {
         com.vaadin.flow.component.UI.getCurrent().getPage().setLocation("/" + WelcomeView.ROUTE);
         new org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler().logout(
@@ -70,7 +79,7 @@ public class PublicLayout extends Div implements RouterLayout, BeforeEnterObserv
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // Signed-in people never see the welcome page (WelcomeView sends them Home); elsewhere they go back.
+        // People in the app never see the welcome page (WelcomeView sends them Home); elsewhere they go back.
         back.setVisible(signedIn);
         signIn.setVisible(!signedIn);
     }

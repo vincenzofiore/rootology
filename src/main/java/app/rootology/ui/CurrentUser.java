@@ -32,7 +32,7 @@ public class CurrentUser {
         this(spaces, authentication.getAuthenticatedUser(OAuth2User.class)
                 .map(user -> user.<String>getAttribute(SignedIn.LOGIN_ATTRIBUTE))
                 .orElseThrow(() -> new IllegalStateException("No signed-in user")),
-                PendingAccess.isPending());
+                PendingAccess.isPending() || BlockedAccess.isBlocked());
     }
 
     CurrentUser(SpaceService spaces, String login) {
@@ -40,20 +40,24 @@ public class CurrentUser {
     }
 
     /**
-     * A pending person (#65) signed in but is not admitted: nothing is written for them, and they are a
-     * member of nothing. They only ever reach their request page, which does not use this class.
+     * A pending person (#65) or a blocked account (#165) is a member of nothing: no space, no paid call. A
+     * pending person only reaches their request page, a blocked one only their block, and neither uses this
+     * class beyond being turned away.
      */
-    private CurrentUser(SpaceService spaces, String login, boolean pending) {
+    CurrentUser(SpaceService spaces, String login, boolean restricted) {
         this.spaces = spaces;
         this.login = SpaceService.normalizeLogin(login);
-        this.pending = pending;
-        if (!pending) {
+        this.pending = restricted;
+        if (!restricted) {
             spaces.signedIn(this.login);
             this.spaceId = spaces.spacesOf(login).getFirst().id();
         }
     }
 
-    /** True for someone signed in but not admitted (#65): no space, no role, nothing to see. */
+    /**
+     * True for someone signed in but not admitted (#65), and for a blocked account (#165): no space, no role,
+     * nothing to see.
+     */
     public boolean pending() {
         return pending;
     }

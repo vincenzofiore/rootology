@@ -60,8 +60,9 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // A person waiting for an invitation (#65) may come back here: Home would only send them to their request.
-        if (authentication.isAuthenticated() && !PendingAccess.isPending()) {
+        // A person waiting for an invitation (#65) or a blocked one (#165) may come back here: Home would only
+        // send them to their own page instead.
+        if (authentication.isAuthenticated() && !PendingAccess.isPending() && !BlockedAccess.isBlocked()) {
             event.rerouteTo(StartView.class);
             return;
         }

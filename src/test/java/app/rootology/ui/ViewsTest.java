@@ -95,6 +95,9 @@ class ViewsTest {
     app.rootology.access.AccessRequestService accessRequests;
 
     @Autowired
+    app.rootology.access.AccountBlockService blocks;
+
+    @Autowired
     app.rootology.geocoding.GeoNames geoNames;
 
     @Autowired
@@ -325,7 +328,7 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {
-        assertThat(new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+        assertThat(new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests, blocks).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
     }
 
     @Test

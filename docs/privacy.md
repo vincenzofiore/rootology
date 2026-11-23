@@ -25,6 +25,7 @@ The controller is the owner of the deployment, named on the privacy page through
 | Usage records (who, when, calls, tokens, cost) and personal limits | `usage_record`, `usage_limit` | fair use, cost control | legitimate interest | 12 months |
 | Knowledge proposals (who proposed, who reviewed, source, note) | `knowledge_proposal`, Neo4j | attribution of contributed facts | legitimate interest | as long as the fact is in use; the login is replaced when the account is deleted |
 | App roles with who granted and revoked them | `app_role_grant` | accountability of administration | legitimate interest | kept; the login is replaced when the account is deleted |
+| Block of a whole account (#165): when an admin blocked it, the admin's login, and the reason when they wrote one (free text, optional) | `app_user` (`blocked_at`, `blocked_by`, `blocked_reason`) | stopping an account that creates only useless traffic, with a human deciding and the person told how to ask for a review | legitimate interest | until an admin unblocks the account, or with the account on deletion; the login of the admin who blocked it is replaced by "deleted user" when that account is deleted |
 | Invitation requests from people who are not users yet: provider, the provider's stable id, the login we would give them, the verified email address, the motivation (free text), the dates, and who decided | `access_request` | deciding whether to admit a person, and telling the admins that a request waits | legitimate interest | a rejected one 30 days after the decision (the waiting time before asking again), a waiting or approved-but-unused one 90 days; an approved one is deleted at the person's first sign-in |
 | Weather forecasts and recent past hours for a rounded position | `weather_location`, `weather_hour` | weather in answers and alerts | contract | 30 days |
 | Application logs (logins in security events: invitations, joins; masked email addresses; a random id per request; never questions, prompts or coordinates) | the host's logs | security, troubleshooting | legitimate interest | set by the host (#12) |
@@ -85,6 +86,8 @@ and the person's IP and nothing about the gardens. The browser's position
   `RolePersonalData`, `AccessPersonalData`); space facts leave
   the Neo4j graph after the commit. An approved global fact proposed in a deleted space keeps no space (Flyway `V18`).
 - `privacy.DataExport` builds the JSON file from the same classes. The My account page (`/account`) offers both.
+- A block (#165) is part of the account row of the export (`SpacePersonalData`) and goes with the account on
+  deletion; who unblocked an account and when are only in the log, never in the table.
 
 ## Rights
 
@@ -96,6 +99,9 @@ and the person's IP and nothing about the gardens. The browser's position
   in what stays in shared spaces (questions, answers, reviewed proposals, role history) the login
   is replaced by "deleted user". Not possible while they are the only owner of a space with other
   members (hand it over first) or the last admin.
+- **Review of a block**: an account blocked by an admin (#165) reads the reason, when one was given, on
+  its page, and how to ask for a review (the contact above, or the email it received); an admin then
+  unblocks it. The decision is always a person's, never automated.
 - **Rectification**: gardens, preferences and proposals are editable in the app.
 - **Objection, restriction, complaint**: by email to the contact on the privacy page; complaints
   to the Italian supervisory authority (Garante per la protezione dei dati personali).

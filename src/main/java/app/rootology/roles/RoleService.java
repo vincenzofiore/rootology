@@ -86,6 +86,14 @@ public class RoleService {
         grant.revoke(SpaceService.normalizeLogin(admin), Instant.now());
     }
 
+    /** True when this person is the only active admin: nobody else may take their access away (#165). */
+    @Transactional(readOnly = true)
+    public boolean isLastAdmin(String login) {
+        return grants.countByRoleAndRevokedAtIsNull(AppRole.ADMIN) == 1
+                && grants.existsByGithubLoginAndRoleAndRevokedAtIsNull(SpaceService.normalizeLogin(login),
+                AppRole.ADMIN);
+    }
+
     /** Every grant and revocation, newest first. */
     @PreAuthorize("hasRole(\'ADMIN\')")
     @Transactional(readOnly = true)

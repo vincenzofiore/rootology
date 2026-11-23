@@ -58,6 +58,9 @@ class GoogleSignInTest {
     app.rootology.access.AccessRequestService accessRequests;
 
     @Autowired
+    app.rootology.access.AccountBlockService blocks;
+
+    @Autowired
     JdbcClient jdbc;
 
     private static OidcUser googleUser(String sub, String email, Map<String, Object> extra) {
@@ -79,7 +82,7 @@ class GoogleSignInTest {
 
     private GoogleOidcUserService service(String... allowedEmails) {
         return new GoogleOidcUserService(Set.of(allowedEmails),
-                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), spaces, identities, invitations);
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks), spaces, identities, invitations);
     }
 
     private long count(String sql) {
@@ -224,7 +227,7 @@ class GoogleSignInTest {
         service("gsi-gina@example.org").signIn(googleUser("google-110", "gsi-gina@example.org"), null);
 
         AllowListOAuth2UserService github = new AllowListOAuth2UserService(Set.of("gsi-gina"), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), null);
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks), null);
 
         assertThatThrownBy(() -> github.signIn(githubUser(111, "gsi-gina"), GitHubEmails.Verified.NONE, null))
                 .isInstanceOf(OAuth2AuthenticationException.class);

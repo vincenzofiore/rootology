@@ -19,7 +19,7 @@ interface SpaceMemberRepository extends JpaRepository<SpaceMember, Long> {
 
     Optional<SpaceMember> findBySpaceIdAndUserLogin(Long spaceId, String login);
 
-    Optional<SpaceMember> findBySpaceIdAndUserLoginAndBlockedAtIsNull(Long spaceId, String login);
+    Optional<SpaceMember> findBySpaceIdAndUserLoginAndBlockedAtIsNullAndUserBlockedAtIsNull(Long spaceId, String login);
 
     long countBySpaceIdAndRoleAndBlockedAtIsNull(Long spaceId, Role role);
 

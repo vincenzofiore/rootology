@@ -24,6 +24,11 @@ class AppUser {
     private String displayName;
     /** When the person saw the first-sign-in prompt for a name, chose or skipped it (#106). */
     private Instant nameAskedAt;
+    /** When an admin blocked the whole account (#165), and who; both null while the account is open. */
+    private Instant blockedAt;
+    private String blockedBy;
+    /** Why the admin blocked it, when they wrote a reason (#165): shown to the person, never to anyone else. */
+    private String blockedReason;
 
     protected AppUser() {
     }
@@ -72,5 +77,20 @@ class AppUser {
         if (nameAskedAt == null) {
             nameAskedAt = now;
         }
+    }
+
+    /** True while an admin blocks the whole account (#165): it may sign in, but only to see the block. */
+    boolean isBlocked() {
+        return blockedAt != null;
+    }
+
+    void block(String by, String reason, Instant now) {
+        this.blockedAt = now;
+        this.blockedBy = by;
+        this.blockedReason = reason;
+    }
+
+    AccountBlock accountBlock() {
+        return new AccountBlock(blockedAt, blockedBy, blockedReason);
     }
 }

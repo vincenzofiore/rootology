@@ -4,6 +4,7 @@ import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import com.vaadin.flow.spring.security.UidlRedirectStrategy;
 import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
 import app.rootology.access.AccessRequestService;
+import app.rootology.access.AccountBlockService;
 import app.rootology.notifications.NotificationService;
 import app.rootology.roles.RoleService;
 import app.rootology.spaces.IdentityProvider;
@@ -71,8 +72,8 @@ class SecurityConfiguration {
     @Bean
     SignInSteps signInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations,
                             RoleService roles, NotificationService notifications,
-                            AccessRequestService accessRequests) {
-        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests);
+                            AccessRequestService accessRequests, AccountBlockService blocks) {
+        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks);
     }
 
     @Bean

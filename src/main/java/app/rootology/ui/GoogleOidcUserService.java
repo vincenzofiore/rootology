@@ -86,6 +86,10 @@ class GoogleOidcUserService extends OidcUserService {
         String login;
         if (known.isPresent()) {
             login = known.get();
+            if (steps.blocked(login)) {
+                // #165: an admin blocked the account. It signs in to read its block, and nothing is written.
+                return blocked(user, login);
+            }
             if (!requireKnownAllowed(login, email, invitation, emails, subject)) {
                 return pending(user, subject, login, emails);
             }
@@ -108,6 +112,12 @@ class GoogleOidcUserService extends OidcUserService {
     OidcUser pending(OidcUser user, String subject, String login, Set<String> emails) {
         OidcUserInfo info = new OidcUserInfo(steps.pendingAttributes(IdentityProvider.GOOGLE, subject, login, emails));
         return new DefaultOidcUser(SignInSteps.pendingAuthorities(), user.getIdToken(), info, SignedIn.LOGIN_ATTRIBUTE);
+    }
+
+    /** The principal of a blocked account (#165): ROLE_BLOCKED alone, and only the internal login. */
+    OidcUser blocked(OidcUser user, String login) {
+        OidcUserInfo info = new OidcUserInfo(steps.blockedAttributes(login));
+        return new DefaultOidcUser(BlockedAccess.authorities(), user.getIdToken(), info, SignedIn.LOGIN_ATTRIBUTE);
     }
 
     /**

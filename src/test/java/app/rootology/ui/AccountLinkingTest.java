@@ -67,6 +67,9 @@ class AccountLinkingTest {
     app.rootology.access.AccessRequestService accessRequests;
 
     @Autowired
+    app.rootology.access.AccountBlockService blocks;
+
+    @Autowired
     JdbcClient jdbc;
 
     private MockHttpServletRequest request;
@@ -91,7 +94,7 @@ class AccountLinkingTest {
     }
 
     private SignInSteps steps() {
-        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests);
+        return new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks);
     }
 
     private static OAuth2User githubUser(long id, String login) {

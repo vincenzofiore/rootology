@@ -19,6 +19,12 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
   person is a member of no space and `CurrentUser` never treats them as one. The motivation they write is only
   read by admins: never sent to Claude or Jev, never logged, and shown as text (never markup) in the
   Administration page. Tested by `PendingAccessTest`.
+- A whole account can be blocked by an admin (#165): its principal carries `ROLE_BLOCKED` alone, nothing is
+  written for it at sign-in, `AccessRouting` sends it from any route to `/blocked` and lets it read only the
+  public pages, and it reads the account's state on every navigation, so an open session stops at its next
+  page. `CurrentUser` treats it as a member of nothing, so no question reaches Claude or Jev; only an admin
+  blocks or unblocks, nobody blocks themselves, and the last admin is never blocked. Tested by
+  `BlockedAccountTest`, `AccountBlockServiceTest`.
 
 ### A02 Security misconfiguration
 - In place: only `/logged-out`, `/invite/**`, `/sources`, `/privacy`, weather icons and styles are public; everything else needs sign-in. Spring's default headers (nosniff, `X-Frame-Options: DENY`, no-store cache control).
