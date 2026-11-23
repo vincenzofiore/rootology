@@ -172,7 +172,8 @@ class GoldenLiveRecordingTest {
     /** Jev's probability that the question is about gardens, or null when the filter could not judge it. */
     private Double domainProbability(String question) {
         try {
-            return domainFilter.judge(question).probability();
+            DomainFilter.Verdict verdict = domainFilter.judge(question);
+            return verdict.judged() ? verdict.probability() : null;
         } catch (RuntimeException e) {
             return null;
         }

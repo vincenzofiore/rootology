@@ -123,6 +123,24 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
+    void aQuestionTheFilterCouldNotJudgeGoesOnAndSaysSo() {
+        whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9102"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+        when(domainFilter.judge("How do I change a car tyre? 9102")).thenReturn(DomainFilter.Verdict.unjudged());
+        when(domainFilter.judge("How do I change a car tyre? 9103")).thenReturn(DomainFilter.Verdict.allowing(0.9));
+        whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9103"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+        RunContext run = signedIn("piero");
+
+        GardenPipeline.Run unscreened = pipeline.askKnowledgeBase(new Question("ask", "How do I change a car tyre? 9102"), run);
+        GardenPipeline.Run screened = pipeline.askKnowledgeBase(new Question("ask", "How do I change a car tyre? 9103"), run);
+
+        assertThat(unscreened.offDomain()).isFalse();
+        assertThat(unscreened.domainUnjudged()).as("an outage of the filter is kept with the run (#161)").isTrue();
+        assertThat(screened.domainUnjudged()).isFalse();
+    }
+
+    @Test
     void askAnywayTakesTheNormalPathAndNeverAsksTheFilter() {
         whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9101"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));

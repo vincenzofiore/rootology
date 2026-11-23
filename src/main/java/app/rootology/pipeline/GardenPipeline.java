@@ -66,14 +66,26 @@ public class GardenPipeline {
      * processId: the agent process of the run, which is also the id its history row is stored with, so the UI
      *            can open the answer of a question continued in another garden (#107); null when no agent ran.
      * place: the place the question used, named in it or chosen by the person (#107); null when it used none.
+     * domainUnjudged: the domain filter was asked but could not judge the question (Jev unreachable), so it
+     *                 went on unscreened (#161); false when it was judged or not screened at all.
      */
     public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
-                      QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place) {
+                      QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place,
+                      boolean domainUnjudged) {
+
+        public Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
+                   QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place) {
+            this(answer, pending, intent, offDomain, choice, processId, place, false);
+        }
 
         /** A run with no agent process of its own (a refusal) and no place: what the suite and the tests build. */
         public Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
                    QuestionContext.Choice choice) {
             this(answer, pending, intent, offDomain, choice, null, null);
+        }
+
+        Run withDomainUnjudged() {
+            return new Run(answer, pending, intent, offDomain, choice, processId, place, true);
         }
     }
 
@@ -178,11 +190,13 @@ public class GardenPipeline {
         Timer.Sample timing = metrics.start();
         // The domain filter (#53) runs before the agent, so a question that is clearly not about gardens
         // costs no Claude call. Only real questions are screened, and "Ask anyway" skips it once.
+        boolean unjudged = false;
         if (scope == FactScope.KNOWLEDGE_BASE && !askAnyway) {
             DomainFilter.Verdict verdict = domainFilter.judge(question.text());
             if (verdict.refused()) {
                 return refuse(question, context, verdict, timing);
             }
+            unjudged = !verdict.judged();
         }
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context,
@@ -190,7 +204,7 @@ public class GardenPipeline {
         try {
             Run run = settle(process.run(), question, context);
             metrics.finished(timing, scope, run);
-            return run;
+            return unjudged ? run.withDomainUnjudged() : run;
         } catch (RuntimeException e) {
             metrics.failed(timing, scope);
             throw e;

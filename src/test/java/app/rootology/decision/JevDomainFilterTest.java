@@ -65,13 +65,17 @@ class JevDomainFilterTest {
 
         assertThat(verdict.refused()).isFalse();
         assertThat(verdict.probability()).isEqualTo(JevDomainFilter.REFUSE_BELOW);
+        assertThat(verdict.judged()).isTrue();
     }
 
     @Test
     void aFailingCallLetsTheQuestionThroughAndOpensTheCircuit() {
         server.expect(requestTo("https://jev.test/v1/systemone")).andRespond(withServerError());
 
-        assertThat(filter.judge("Cosa posso seminare adesso?").refused()).isFalse();
+        DomainFilter.Verdict verdict = filter.judge("Cosa posso seminare adesso?");
+
+        assertThat(verdict.refused()).isFalse();
+        assertThat(verdict.judged()).as("an outage is told apart from a pass (#161)").isFalse();
         assertThat(breaker.failing()).isTrue();
     }
 
@@ -84,11 +88,15 @@ class JevDomainFilterTest {
         DomainFilter.Verdict verdict = filter.judge("Come si fa il punto zig-zag a macchina?");
 
         assertThat(verdict.refused()).isFalse();
+        assertThat(verdict.judged()).isFalse();
         server.verify(); // no request was made
     }
 
     @Test
     void withoutAKeyNothingIsJudged() {
-        assertThat(new PassThroughDomainFilter().judge("How do I file my tax return?").refused()).isFalse();
+        DomainFilter.Verdict verdict = new PassThroughDomainFilter().judge("How do I file my tax return?");
+
+        assertThat(verdict.refused()).isFalse();
+        assertThat(verdict.judged()).isFalse();
     }
 }
