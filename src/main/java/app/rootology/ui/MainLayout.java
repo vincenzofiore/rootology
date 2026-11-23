@@ -84,8 +84,12 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         skip.setRouterIgnore(true);
         skip.getElement().setAttribute("href", "#main-content");
         // In the browser, not through the server: the hash alone would leave the focus on the link.
+        // The tabindex lives only while the content has the focus: a shadow host with tabindex -1 takes all of
+        // its content out of the Tab order.
         skip.getElement().executeJs("this.addEventListener('click', e => { e.preventDefault();"
-                + " const main = document.getElementById('main-content'); if (main) { main.focus(); } })");
+                + " const main = document.getElementById('main-content'); if (main) {"
+                + " main.setAttribute('tabindex', '-1'); main.focus();"
+                + " main.addEventListener('blur', () => main.removeAttribute('tabindex'), { once: true }); } })");
         // The name always comes with the slogan (#87).
         back.addClassName("rootology-back");
         addToNavbar(skip, back, Wordmark.withSlogan(title), where);
@@ -221,14 +225,13 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
     }
 
     /**
-     * The way in for the skip link (#88): the page's own element gets an id to jump to, and it may take the
-     * focus even though it is not part of the Tab order.
+     * The way in for the skip link (#88): the page's own element gets an id to jump to; the link makes it
+     * focusable only while it has the focus.
      */
     private void focusTarget() {
         Component content = getContent();
         if (content != null) {
             content.getElement().setAttribute("id", "main-content");
-            content.getElement().setAttribute("tabindex", "-1");
         }
     }
 
