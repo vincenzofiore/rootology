@@ -54,7 +54,7 @@ class GardenFacts {
     /**
      * The proposal of crop-proposal-v1 for the free area the question names (#141): for each proposed crop
      * (crop, sowIn|transplantIn|plantIn, MONTH) with its window's rule, and (crop, proposedFor, area),
-     * (crop, meetsGoal, GOAL) and (crop, uncertainty, KIND) derived by crop-proposal-v1. Empty when the
+     * (crop, meetsGoal, GOAL) and (crop, uncertainty, KIND) derived by crop-proposal-v1, but EDITORIAL_WINDOW. Empty when the
      * area is not found or not free: nothing is proposed, and the decision layer escalates.
      */
     List<SourcedFact> proposals(QuestionContext context, RunContext run, String language) {
@@ -75,7 +75,10 @@ class GardenFacts {
                     facts.add(new SourcedFact(new Fact(crop, "proposedFor", area.name()), p.sources(), rule));
                     p.goals().stream().sorted().forEach(g -> facts.add(
                             new SourcedFact(new Fact(crop, "meetsGoal", g.name()), p.sources(), rule)));
-                    p.uncertainties().forEach(u -> facts.add(
+                    // An editorial window is said by its source (rootology-editorial), as for SOW_IN_PLOT: flagged
+                    // again it made Jev doubt nearly every proposal (#141). The screen still shows it.
+                    p.uncertainties().stream().filter(u -> u != app.rootology.garden.CropProposalRule.Uncertainty.EDITORIAL_WINDOW)
+                            .forEach(u -> facts.add(
                             new SourcedFact(new Fact(crop, "uncertainty", u.name()), p.sources(), rule)));
                 });
         return facts;

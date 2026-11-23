@@ -2230,3 +2230,103 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
   font-size: 0.85rem;
   margin: 0.4rem 0 0;
 }
+
+/* Free areas on the garden home (#141): the count, then "Propose"; the count is not a warning, so no violet. */
+.rootology-home-free {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lumo-space-m);
+}
+.rootology-home-free .rootology-count { color: var(--lumo-body-text-color); }
+
+/* What to put in the free areas (#141): goal chips, then one card per area. Green only where one acts. */
+.rootology-goal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+}
+.rootology-goal-chip {
+    margin: 0;
+    border-radius: 999px;
+    border: 1px solid var(--lumo-contrast-20pct);
+    background: transparent;
+    color: var(--lumo-body-text-color);
+    min-height: 2.75rem;
+}
+.rootology-goal-chip-on {
+    border-color: var(--lumo-success-color-50pct);
+    background: var(--lumo-success-color-10pct);
+    color: var(--lumo-success-text-color);
+}
+.rootology-goal-chip vaadin-icon, .rootology-goal-chip svg { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+.rootology-goal-hint {
+    margin: 0;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-proposal-areas {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-m);
+    width: 100%;
+    max-width: 40rem;
+}
+.rootology-proposal-area {
+    box-sizing: border-box;
+    padding: var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+/* Jev is not sure: the waiting violet edge, as every question waiting for a person (#113). */
+.rootology-proposal-area-waiting { border-inline-start: 3px solid var(--rootology-waiting); }
+.rootology-proposal-area-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--lumo-space-m);
+}
+.rootology-proposal-area-name {
+    margin: 0;
+    font-family: var(--rootology-display-font);
+    font-size: var(--lumo-font-size-l);
+}
+.rootology-proposal-area-facts, .rootology-proposal-crop-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-proposal-fact {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+}
+.rootology-proposal-fact vaadin-icon, .rootology-proposal-fact svg, .rootology-proposal-fact img {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+.rootology-proposal-confidence { width: 4rem; margin: var(--lumo-space-xs) 0 0; flex: none; }
+.rootology-proposal-thinking { margin: var(--lumo-space-m) 0 0; }
+.rootology-proposal-crop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--lumo-space-m);
+    padding-block: var(--lumo-space-s);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+}
+.rootology-proposal-area-head + .rootology-proposal-crop { margin-top: var(--lumo-space-s); }
+.rootology-proposal-crop-name { font-weight: 600; }
+.rootology-proposal-crop vaadin-button { min-height: 2.75rem; color: var(--lumo-success-text-color); }
+.rootology-proposal-waiting {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    margin-top: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+}

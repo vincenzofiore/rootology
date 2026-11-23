@@ -174,6 +174,9 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         weatherCard(garden);
         alertsCard();
         questionsCard();
+        if (contributor) {
+            freeAreasCard(plots, growing);
+        }
         growingCard(growing, plots, contributor, harvest(garden));
         climateCard(garden);
     }
@@ -276,6 +279,29 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         all.addClassName("rootology-home-see-all");
         links.add(all);
         card.content().add(links);
+        grid.add(card);
+    }
+
+    /**
+     * Free areas (#141): how many areas have nothing growing today, and "Propose" to the crops for them. Only
+     * when one is free, and only for a contributor, since a proposal is a question.
+     */
+    private void freeAreasCard(List<PlotSummary> plots, List<PlantingSummary> growing) {
+        java.util.Set<Long> busy = growing.stream().map(PlantingSummary::plotId).collect(Collectors.toSet());
+        long free = plots.stream().filter(p -> !busy.contains(p.id())).count();
+        if (free == 0) {
+            return;
+        }
+        Card card = new Card(MainLayout.PLOTS_ICON, getTranslation("home.free"));
+        Span count = new Span(String.valueOf(free));
+        count.addClassName("rootology-count");
+        count.getElement().setAttribute("aria-label", getTranslation("home.free.count", free));
+        Button propose = new Button(getTranslation("home.free.propose"), drawing(SPROUT),
+                e -> UI.getCurrent().navigate(ProposalsView.class, gardenParameters()));
+        propose.addThemeName("primary");
+        Div row = new Div(count, propose);
+        row.addClassName("rootology-home-free");
+        card.content().add(row);
         grid.add(card);
     }
 

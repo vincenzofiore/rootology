@@ -60,7 +60,7 @@ class StubDecisionLayerTest {
     @Test
     void jevGetsTheProposedCropsTheRuleAndTheGoals() {
         GraphFacts facts = GraphFacts.curated(List.of(new Fact("Aglio", "proposedFor", "Aiuola B"),
-                new Fact("Aglio", "uncertainty", "EDITORIAL_WINDOW")));
+                new Fact("Aglio", "uncertainty", "LIGHT_UNKNOWN")));
 
         assertThat(JevDecisionLayer.candidates(QueryKind.PROPOSE_IN_AREA, facts)).containsExactly("Aglio");
         assertThat(JevDecisionLayer.knowledgeBaseRule(QueryKind.PROPOSE_IN_AREA)).contains("proposedFor", "uncertainty");

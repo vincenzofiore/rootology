@@ -185,7 +185,7 @@ class CropProposalServiceTest {
     void theFirstDayOfTheMonthIsItsNextOccurrence() {
         LocalDate november = LocalDate.of(2026, 11, 22);
 
-        assertThat(CropProposalService.firstDayOf(Month.NOVEMBER, november)).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(CropProposalService.firstDayOf(Month.NOVEMBER, november)).isEqualTo(november);
         assertThat(CropProposalService.firstDayOf(Month.MARCH, november)).isEqualTo(LocalDate.of(2027, 3, 1));
         assertThat(CropProposalService.firstDayOf(Month.DECEMBER, november)).isEqualTo(LocalDate.of(2026, 12, 1));
     }

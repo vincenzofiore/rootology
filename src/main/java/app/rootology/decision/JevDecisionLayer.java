@@ -433,8 +433,8 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "`crop-proposal-v1` proposed it for that free area of the garden, from the site's calendar "
                     + "(sowIn, transplantIn or plantIn in `intent.month`), the area's rotation and light, and the goals "
                     + "in `intent.goals` it meets (meetsGoal). An (X, uncertainty, U) fact says what is not known "
-                    + "about X: LIGHT_UNKNOWN (its light need or the area's sun), CYCLE_UNKNOWN (its growing time), "
-                    + "EDITORIAL_WINDOW (its months are editorial, not verified) or TRADITIONAL_EVIDENCE (its help "
+                    + "about X: LIGHT_UNKNOWN (its light need or the area's sun), CYCLE_UNKNOWN (its growing time) "
+                    + "or TRADITIONAL_EVIDENCE (its help "
                     + "to beneficial insects is only traditional). A crop is part of the answer only if the facts "
                     + "support proposing it there.";
             case OTHER -> "";

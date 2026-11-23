@@ -176,8 +176,14 @@ public class CropProposalService {
         return LocalDate.ofInstant(clock.instant(), clock.getZone());
     }
 
-    /** The first day of the month's next occurrence (this month's when it is the current one). */
+    /**
+     * The day the proposal is for: today in the current month, so an area planted this month is not free
+     * (#141: after "Plant" the area leaves the list); otherwise the first day of the month's next occurrence.
+     */
     static LocalDate firstDayOf(Month month, LocalDate today) {
+        if (today.getMonth() == month) {
+            return today;
+        }
         LocalDate day = today.withDayOfMonth(1).withMonth(month.getValue());
         return day.isBefore(today.withDayOfMonth(1)) ? day.plusYears(1) : day;
     }
