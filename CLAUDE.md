@@ -67,7 +67,7 @@ which order it was built, is in `docs/roadmap.md`.
 
 Phase 1, a personal assistant for a few invited users, still open:
 
-- Before the first users outside the owner's circle: #70 off-server backups, a production restore test and the domain email; #71 TypeSafe zero data retention; #125 after the next release, the root's redirect in production and Search Console.
+- Before the first users outside the owner's circle: #70 off-server backups, a production restore test and the domain email; #71 TypeSafe zero data retention; #125 after the next release, the root's redirect in production and Search Console; #165 flag accounts that only create useless traffic, blocked by an admin.
 - Quality: #69 Jev's confidence around the 0.5 threshold; #27 observability, part 2 (traces, a place for metrics).
 - Knowledge (census, not started): #139 crop list v2 (vegetables, herbs, fruit, flowers, perennials); #140 biological and integrated pest control per pest; #141 proposal of crops for the free areas.
 - Later: #52 review policy per space and second opinions; #34 more collaborator roles; #99 support the project; #90 layout of areas in the garden (blocked: its value is being evaluated; step 1 on `feature/90-garden-plan`).
