@@ -3,7 +3,6 @@ package app.rootology.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
@@ -13,6 +12,7 @@ import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
+import app.rootology.notifications.NotificationView;
 import app.rootology.officialwarnings.OfficialWarning;
 import app.rootology.officialwarnings.OfficialWarnings;
 import app.rootology.pipeline.GardenPipeline;
@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -51,9 +54,8 @@ class OfficialWarningsCardTest {
 
         Div card = card(garden("IT", ABRUZZO), official);
 
-        assertThat(all(card).filter(H4.class::isInstance).map(Component::getElement)
-                .map(element -> element.getTextRecursively()).toList())
-                .as("the card's title").singleElement().asString().contains("!{home.official}!");
+        assertThat(dialog(garden("IT", ABRUZZO), official).getHeaderTitle()).as("the dialog's title")
+                .isEqualTo("!{home.official}!");
         Div row = all(card).filter(Div.class::isInstance).map(Div.class::cast)
                 .filter(div -> div.getClassNames().contains("rootology-official-warning"))
                 .findFirst().orElseThrow();
@@ -107,7 +109,7 @@ class OfficialWarningsCardTest {
     }
 
     @Test
-    void aGardenAbroadOrWithoutARegionHasNoCard() {
+    void aGardenAbroadOrWithoutARegionHasNoOfficialWarning() {
         OfficialWarnings official = mock(OfficialWarnings.class);
         when(official.stale()).thenReturn(true);
 
@@ -127,33 +129,113 @@ class OfficialWarningsCardTest {
                         text -> text.contains("home.official"));
     }
 
-    /** A card of the home, built by the page for one garden: the page itself needs a browser router. */
+    @Test
+    void theRowGroupsTheOfficialWarningsByLevelTheHighestFirstThenTheComputedAlertsInOneGroup() {
+        OfficialWarnings official = mock(OfficialWarnings.class);
+        when(official.stale()).thenReturn(false);
+        when(official.active(ABRUZZO_ZONE)).thenReturn(List.of(
+                warning(2, 10, "2026-11-25T23:59:00Z"), warning(), warning(2, 1, "2026-11-26T10:00:00Z")));
+        NotificationService notifications = mock(NotificationService.class);
+        when(notifications.weatherAlerts(any(), anyLong(), anyLong(), anyInt())).thenReturn(List.of(
+                alert("frost:1:2026-11-24"), alert("frost:1:2026-11-25"), alert("wind:1:2026-11-24")));
+        GardenHomeView view = view(official, notifications);
+
+        view.alerts(garden("IT", ABRUZZO));
+
+        Div row = row(view);
+        assertThat(row.isVisible()).isTrue();
+        List<Component> groups = row.getChildren().toList();
+        assertThat(groups).as("orange, yellow, then the computed alerts").hasSize(3)
+                .allMatch(group -> "button".equals(group.getElement().getAttribute("role"))
+                        && "0".equals(group.getElement().getAttribute("tabindex")));
+        assertThat(groups.get(0).getClassNames()).contains("rootology-official-orange");
+        assertThat(groups.get(1).getClassNames()).contains("rootology-official-yellow");
+        assertThat(groups.get(1).getElement().getAttribute("aria-label"))
+                .as("the level, each phenomenon once and when the last one ends")
+                .isEqualTo("!{home.official}!, !{warning.level.yellow}!: !{warning.type.rain}!, "
+                        + "!{warning.type.wind}!, !{home.official.until}!");
+        assertThat(all(groups.get(1)).filter(SvgIcon.class::isInstance).map(icon -> ((SvgIcon) icon).getSrc()))
+                .containsExactly("icons/alerts/warning.svg", "icons/alerts/rain.svg", "icons/alerts/wind.svg");
+        assertThat(groups.get(2).getClassNames()).contains("rootology-alerts-computed");
+        assertThat(groups.get(2).getElement().getAttribute("aria-label"))
+                .as("each kind of computed alert once").isEqualTo("!{home.alerts}!: !{alert.frost}!, !{alert.wind}!");
+        assertThat(all(row).filter(SvgIcon.class::isInstance))
+                .as("the drawings say nothing more than the group's name")
+                .allMatch(icon -> "true".equals(icon.getElement().getAttribute("aria-hidden")));
+
+        List<com.vaadin.flow.component.dialog.Dialog> dialogs = view.alertDialogs();
+        assertThat(dialogs).as("one dialog per group").hasSize(3);
+        assertThat(all(dialogs.get(1)).filter(div -> div.getClassNames().contains("rootology-official-warning")))
+                .as("the yellow group's dialog has its two warnings only").hasSize(2);
+        assertThat(dialogs.get(2).getHeaderTitle()).isEqualTo("!{home.alerts}!");
+        assertThat(all(dialogs.get(2)).filter(div -> div.getClassNames().contains("rootology-alert")))
+                .as("every computed alert in its dialog, not one per kind").hasSize(3);
+    }
+
+    @Test
+    void aStaleFeedStillShowsTheRowSayingTheWarningsAreNotAvailable() {
+        OfficialWarnings official = mock(OfficialWarnings.class);
+        when(official.stale()).thenReturn(true);
+        GardenHomeView view = view(official, mock(NotificationService.class));
+
+        view.alerts(garden("IT", ABRUZZO));
+
+        assertThat(row(view).isVisible()).as("not knowing is not the same as no warning").isTrue();
+        assertThat(spans(row(view))).containsExactly("!{home.official.unavailable.short}!");
+    }
+
+    @Test
+    void noRowWithoutAnyWarningOrAlert() {
+        OfficialWarnings calm = mock(OfficialWarnings.class);
+        when(calm.stale()).thenReturn(false);
+        GardenHomeView view = view(calm, mock(NotificationService.class));
+
+        view.alerts(garden("IT", ABRUZZO));
+
+        assertThat(row(view).isVisible()).isFalse();
+        assertThat(row(view).getChildren()).isEmpty();
+    }
+
+    private static Div row(GardenHomeView view) {
+        return view.getChildren().filter(Div.class::isInstance).map(Div.class::cast)
+                .filter(div -> div.getClassNames().contains("rootology-alerts-row")).findFirst().orElseThrow();
+    }
+
+    private static NotificationView alert(String dedupKey) {
+        return new NotificationView(1, 4, 1, "WEATHER", null, "Titolo", "Testo",
+                Instant.parse("2026-11-24T06:00:00Z"), null, null, null, dedupKey, null);
+    }
+
+    /** What the first group's dialog shows, built by the page for one garden: the page needs a router. */
     private static Div card(GardenSummary garden, OfficialWarnings official) {
-        return all(page(garden, official)).filter(Div.class::isInstance).map(Div.class::cast)
-                .filter(OfficialWarningsCardTest::isCard).findFirst().orElseThrow();
+        return all(dialog(garden, official)).filter(Div.class::isInstance).map(Div.class::cast)
+                .filter(div -> div.getClassNames().contains("rootology-alerts-detail")).findFirst().orElseThrow();
     }
 
-    private static GardenHomeView page(GardenSummary garden, OfficialWarnings official) {
-        GardenHomeView view = view(official);
-        view.officialWarningsCard(garden);
-        return view;
+    private static com.vaadin.flow.component.dialog.Dialog dialog(GardenSummary garden, OfficialWarnings official) {
+        GardenHomeView view = view(official, mock(NotificationService.class));
+        view.alerts(garden);
+        return view.alertDialogs().getFirst();
     }
 
-    private static GardenHomeView view(OfficialWarnings official) {
+    /** The page and its dialogs, so a search sees them all. */
+    private static Div page(GardenSummary garden, OfficialWarnings official) {
+        GardenHomeView view = view(official, mock(NotificationService.class));
+        view.alerts(garden);
+        Div page = new Div(view);
+        view.alertDialogs().forEach(page::add);
+        return page;
+    }
+
+    private static GardenHomeView view(OfficialWarnings official, NotificationService notifications) {
         return new GardenHomeView(mock(GardenService.class), mock(ClimateCells.class), mock(ClimateWindows.class),
-                mock(app.rootology.facts.CropCatalog.class), mock(WeatherService.class), mock(NotificationService.class), official, mock(GardenPipeline.class),
-                mock(RunHistory.class), mock(CurrentUser.class));
+                mock(app.rootology.facts.CropCatalog.class), mock(WeatherService.class), notifications, official,
+                mock(GardenPipeline.class), mock(RunHistory.class), mock(CurrentUser.class));
     }
 
     private static GardenSummary garden(String country, String region) {
         return new GardenSummary(1, "Orto", "Pescara", new BigDecimal("42.46"), new BigDecimal("14.21"),
                 country, region, 20);
-    }
-
-    private static boolean isCard(Component component) {
-        return component.getClassNames().contains("rootology-card")
-                && all(component).filter(H4.class::isInstance).map(Component::getElement)
-                        .anyMatch(element -> element.getTextRecursively().contains("home.official"));
     }
 
     /** An orange wind warning of Abruzzo, as the feed and its CAP document give it. */
@@ -164,6 +246,15 @@ class OfficialWarningsCardTest {
                 "Servizio Meteorologico dell’Aeronautica Militare", HEADLINE,
                 "Sono previsti fenomeni meteorologici di moderata intensità " + AREA
                         + " (DISCLAIMER: test)", "Restare in casa.");
+    }
+
+    /** A warning of Abruzzo of the given level and phenomenon, ending then. */
+    private static OfficialWarning warning(int level, int type, String expires) {
+        OfficialWarning warning = warning();
+        return new OfficialWarning("warning-" + level + "-" + type, warning.zone(), warning.areaDesc(), level, type,
+                warning.event(), warning.severity(), warning.sent(), warning.onset(), Instant.parse(expires),
+                warning.capUrl(), warning.senderName(), warning.headline(), warning.description(),
+                warning.instruction());
     }
 
     /** The same warning with a description that names no area: only the opening sentence. */

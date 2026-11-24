@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * The one line about MeteoAlarm's official warnings in the morning alert (#168): how many are active, the
  * highest level with its phenomenon, the source and where the detail is. It never repeats or rewrites a
- * warning's own text: the card on the garden home shows it unchanged, with the issuer, the time of issue,
+ * warning's own text: the garden home's dialog (#176) shows it unchanged, with the issuer, the time of issue,
  * the link and the disclaimer.
  */
 final class OfficialWarningLine {

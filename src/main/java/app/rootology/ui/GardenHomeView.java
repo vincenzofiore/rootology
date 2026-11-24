@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
@@ -53,6 +54,7 @@ import jakarta.annotation.security.PermitAll;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -102,6 +104,14 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final HorizontalLayout form = new HorizontalLayout();
     /** The first steps of #81, while they last; then the cards. */
     private final Div firstSteps = new Div();
+    /**
+     * Every warning of the garden in one compact row under the title (#176), in a few groups: one per level of the
+     * official warnings, the highest first, then one for the alerts the app computed. Each group opens its own
+     * detail in a dialog, so nothing risky is ever below the fold.
+     */
+    private final Div alertsRow = new Div();
+    /** The dialog of each group of the row, in the row's order (#176). */
+    private final List<Dialog> alertDialogs = new ArrayList<>();
     private final Div grid = new Div();
     /** The page's own context (#56), read from its route. */
     private long spaceId;
@@ -136,7 +146,22 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         weatherRow.addClassName("rootology-home-weather-row");
         place.addClassName("rootology-page-place");
         title.besideTitle(place);
-        add(title, firstSteps, grid);
+        alertsRow.addClassName("rootology-alerts-row");
+        alertsRow.setVisible(false);
+        // Enter and Space activate a group, as they activate a button (#176): the keydown stays in the browser.
+        alertsRow.getElement().executeJs("""
+                const row = this;
+                if (row.__rootologyKeys) return;
+                row.__rootologyKeys = true;
+                row.addEventListener('keydown', (event) => {
+                    const group = event.target;
+                    if ((event.key === 'Enter' || event.key === ' ') && group.classList.contains('rootology-alerts-item')) {
+                        event.preventDefault();
+                        group.click();
+                    }
+                });
+                """);
+        add(title, alertsRow, firstSteps, grid);
     }
 
     /** Hands the question to this garden's Ask page, which answers it as the page opens. */
@@ -175,6 +200,9 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         place.setText(garden.town() == null ? getTranslation("garden.notown")
                 : garden.town() + (garden.countryCode() == null ? "" : ", " + garden.countryCode()));
         firstSteps.removeAll();
+        alertsRow.removeAll();
+        alertsRow.setVisible(false);
+        alertDialogs.clear();
         grid.removeAll();
         weatherRow.removeAll();
         grid.add(weatherRow);
@@ -185,16 +213,16 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         if (!steps.allDone()) {
             firstSteps.add(new FirstStepsCard(steps, spaceId, gardenId));
         }
+        alerts(garden);
         weatherCard(garden);
-        alertsCard();
-        officialWarningsCard(garden);
+        // What grows comes right after the weather (#176), then the questions.
+        java.util.Optional<SiteProfile> site = HarvestText.site(garden, climateCells);
+        growingCard(growing, plots, contributor,
+                site.map(s -> HarvestText.harvest(s, climateWindows)).orElse(Map.of()), site.orElse(null));
         questionsCard();
         if (contributor) {
             freeAreasCard(plots, growing);
         }
-        java.util.Optional<SiteProfile> site = HarvestText.site(garden, climateCells);
-        growingCard(growing, plots, contributor,
-                site.map(s -> HarvestText.harvest(s, climateWindows)).orElse(Map.of()), site.orElse(null));
         climateCard(garden);
     }
 
@@ -215,16 +243,77 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         });
     }
 
-    /** The weather alerts (#37) of this garden in the last three days, coloured by severity. */
-    private void alertsCard() {
+    /**
+     * The row under the title and its dialogs (#176): the official warnings of the garden's region grouped by
+     * level, then the alerts the app computed in the last three days as one group. No row when there is neither.
+     */
+    void alerts(GardenSummary garden) {
+        officialWarnings(garden);
+        computedAlerts();
+        alertsRow.setVisible(!alertDialogs.isEmpty());
+    }
+
+    /** The dialog of each group, in the row's order: what a click on a group opens. */
+    List<Dialog> alertDialogs() {
+        return List.copyOf(alertDialogs);
+    }
+
+    /**
+     * One group of the row (#176): a control named by what it says, which opens its detail in a modal dialog,
+     * the page behind waiting until it is closed.
+     */
+    private Div alertGroup(List<Component> shown, String name, String heading, List<Component> detail,
+                           String... classNames) {
+        Div group = new Div();
+        shown.forEach(group::add);
+        group.addClassNames("rootology-alerts-item");
+        group.addClassNames(classNames);
+        group.getElement().setAttribute("role", "button");
+        group.getElement().setAttribute("tabindex", "0");
+        group.getElement().setAttribute("title", name);
+        group.getElement().setAttribute("aria-label", name);
+        Div content = new Div();
+        content.addClassName("rootology-alerts-detail");
+        detail.forEach(content::add);
+        Dialog dialog = new Dialog(heading);
+        dialog.addClassName("rootology-alerts-dialog");
+        dialog.add(content);
+        Button close = new Button(getTranslation("common.close"), e -> dialog.close());
+        close.addThemeName("primary");
+        dialog.getFooter().add(close);
+        group.addClickListener(e -> dialog.open());
+        alertDialogs.add(dialog);
+        alertsRow.add(group);
+        return group;
+    }
+
+    /**
+     * The weather alerts (#37) of this garden in the last three days as one neutral group, never mistaken for an
+     * official warning: each kind's drawing once, in its colour; every alert in the dialog.
+     */
+    private void computedAlerts() {
         List<NotificationView> alerts = notifications.weatherAlerts(currentUser.login(), spaceId, gardenId,
                 ALERT_DAYS);
         if (alerts.isEmpty()) {
             return;
         }
-        Card card = new Card(VaadinIcon.WARNING, getTranslation("home.alerts"));
-        alerts.forEach(a -> card.content().add(alert(a)));
-        grid.add(card);
+        List<AlertSeverity> kinds = alerts.stream().map(alert -> AlertSeverity.of(alert.dedupKey())).distinct()
+                .toList();
+        List<Component> shown = new ArrayList<>();
+        shown.add(new Span(getTranslation("home.alerts")));
+        kinds.forEach(severity -> {
+            Span drawn = new Span(quiet(severity.icon(), "rootology-alert-icon"));
+            drawn.addClassName(severity.className());
+            shown.add(drawn);
+        });
+        String name = getTranslation("home.alerts") + ": " + kinds.stream()
+                .map(severity -> getTranslation(severity.label())).collect(Collectors.joining(", "));
+        List<Component> detail = new ArrayList<>();
+        alerts.forEach(alert -> detail.add(alert(alert)));
+        Paragraph from = paragraph(getTranslation("home.alerts.computed"));
+        from.addClassName("rootology-alerts-note");
+        detail.add(from);
+        alertGroup(shown, name, getTranslation("home.alerts"), detail, "rootology-alerts-computed");
     }
 
     /**
@@ -251,29 +340,64 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     /**
      * The official warnings of the garden's region (#136), apart from the computed alerts and never mixed with
      * them: the regions of Italy only, nothing for a garden abroad or whose region is not known yet, and nothing
-     * when its region has no active warning. What is shown has the issuing service, the time of issue, the link
-     * and MeteoAlarm's disclaimer; when the feed could not be read for ten minutes the card only says so.
+     * when its region has no active warning. One group per level, the highest first (#176); its dialog has the
+     * issuing service, the time of issue, the link and MeteoAlarm's disclaimer. When the feed could not be read
+     * for ten minutes the one group only says so.
      */
-    void officialWarningsCard(GardenSummary garden) {
+    private void officialWarnings(GardenSummary garden) {
         Optional<String> zone = WarningZones.emmaId(garden.countryCode(), garden.regionCode());
         if (zone.isEmpty()) {
             return;
         }
         if (official.stale()) {
-            Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
-            card.content().add(paragraph(getTranslation("home.official.unavailable")), meteoAlarmLink());
-            grid.add(card);
+            // Not knowing is not "no warning": the row says so, never stays silent.
+            String unavailable = getTranslation("home.official.unavailable.short");
+            alertGroup(List.of(quiet(OfficialWarningLevel.of(0).icon(), "rootology-official-icon"),
+                            new Span(unavailable)), unavailable, getTranslation("home.official"),
+                    List.of(paragraph(getTranslation("home.official.unavailable")), meteoAlarmLink()),
+                    "rootology-official-item");
             return;
         }
-        List<OfficialWarning> warnings = official.active(zone.get());
-        if (warnings.isEmpty()) {
-            return;
+        Map<Integer, List<OfficialWarning>> byLevel = new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
+        official.active(zone.get()).forEach(warning ->
+                byLevel.computeIfAbsent(warning.level(), level -> new ArrayList<>()).add(warning));
+        byLevel.values().forEach(this::officialGroup);
+    }
+
+    /**
+     * The official warnings of one level (#176): the level's triangle, each phenomenon's drawing once, and when
+     * the last of them ends, all in the level's colour; the level, the phenomena and the end are its name.
+     */
+    private void officialGroup(List<OfficialWarning> warnings) {
+        OfficialWarningLevel level = OfficialWarningLevel.of(warnings.getFirst().level());
+        List<OfficialWarningType> types = warnings.stream().map(warning -> OfficialWarningType.of(warning.type()))
+                .distinct().toList();
+        List<Component> shown = new ArrayList<>();
+        shown.add(quiet(level.icon(), "rootology-official-icon"));
+        types.forEach(type -> shown.add(quiet(type.icon(), "rootology-official-icon")));
+        String name = getTranslation("home.official") + ", " + getTranslation(level.label()) + ": "
+                + types.stream().map(type -> getTranslation(type.label())).collect(Collectors.joining(", "));
+        Optional<Instant> last = warnings.stream().map(OfficialWarning::expires).filter(java.util.Objects::nonNull)
+                .max(Instant::compareTo);
+        if (last.isPresent()) {
+            String until = getTranslation("home.official.until", DateText.dateTime(last.get(), this));
+            shown.add(new Span(until));
+            name = name + ", " + until;
         }
-        Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
-        warnings.forEach(warning -> card.content().add(officialWarning(warning)));
-        card.content().add(meteoAlarmLink());
-        disclaimer().forEach(card.content()::add);
-        grid.add(card);
+        List<Component> detail = new ArrayList<>();
+        warnings.forEach(warning -> detail.add(officialWarning(warning)));
+        detail.add(meteoAlarmLink());
+        detail.addAll(disclaimer());
+        alertGroup(shown, name, getTranslation("home.official"), detail, "rootology-official-item",
+                level.className());
+    }
+
+    /** A drawing the row's name already says (#176): hidden from a screen reader. */
+    private static SvgIcon quiet(String drawing, String className) {
+        SvgIcon drawn = new SvgIcon(drawing);
+        drawn.addClassName(className);
+        drawn.getElement().setAttribute("aria-hidden", "true");
+        return drawn;
     }
 
     /**

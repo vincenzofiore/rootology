@@ -1187,8 +1187,9 @@ rootology-garden-map { display: block; width: 100%; }
 }
 
 /* An official warning of #136: the level's colour on the stripe and on the icons, the neutral one for green
-   or a level the warning does not state. */
-.rootology-official-warning {
+   or a level the warning does not state. An item of the row of #176 is of the same family, only smaller. */
+.rootology-official-warning,
+.rootology-official-item {
     --rootology-official: var(--lumo-secondary-text-color);
     display: flex;
     align-items: flex-start;
@@ -1229,6 +1230,55 @@ rootology-garden-map { display: block; width: 100%; }
 }
 /* MeteoAlarm's own words under our translation (#175): kept, quieter. */
 .rootology-official-disclaimer-original { font-style: italic; }
+
+/* Every warning of the garden in one row under the title (#176): a few groups, one per level of the official
+   warnings with the level's stripe, then one neutral group for the computed alerts with each kind in its own
+   colour; each group is a control, wrapping on a phone and never scrolling sideways. */
+.rootology-alerts-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-xs) var(--lumo-space-s);
+    width: 100%;
+    max-width: 100%;
+}
+.rootology-alerts-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+    min-width: 0;
+    max-width: 100%;
+    font-size: var(--lumo-font-size-s);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.rootology-alerts-item:hover { filter: brightness(0.97); }
+.rootology-alerts-item:focus-visible {
+    outline: 2px solid var(--lumo-primary-color);
+    outline-offset: 2px;
+}
+.rootology-alerts-computed {
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    border-inline-start: 3px solid var(--lumo-secondary-text-color);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-alerts-computed > span[class*="rootology-alert-"] { display: inline-flex; background: none; }
+/* The dialog of a group: the official warnings, then the computed alerts, each under its own heading. */
+.rootology-alerts-dialog::part(overlay) { max-width: min(40rem, 100vw - 2 * var(--lumo-space-m)); }
+.rootology-alerts-detail,
+.rootology-alerts-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+}
+.rootology-alerts-detail { gap: var(--lumo-space-l); }
+.rootology-alerts-section-title { margin: 0; }
+.rootology-alerts-note {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+}
 
 /* Questions waiting for a person: the count first, then up to three of them. */
 .rootology-waiting-summary {
