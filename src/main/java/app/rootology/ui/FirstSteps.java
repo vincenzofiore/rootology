@@ -22,4 +22,9 @@ public record FirstSteps(boolean located, boolean hasPlot, boolean hasPlanting, 
     public boolean allDone() {
         return located && hasPlot && hasPlanting && hasQuestion;
     }
+
+    /** The steps that are done, for the progress in the card's title (#177). */
+    public int doneCount() {
+        return (located ? 1 : 0) + (hasPlot ? 1 : 0) + (hasPlanting ? 1 : 0) + (hasQuestion ? 1 : 0);
+    }
 }

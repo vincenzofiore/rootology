@@ -36,6 +36,7 @@ class FirstStepsTest {
         assertThat(steps.hasPlanting()).isFalse();
         assertThat(steps.hasQuestion()).isFalse();
         assertThat(steps.allDone()).isFalse();
+        assertThat(steps.doneCount()).isZero();
     }
 
     @Test
@@ -44,6 +45,15 @@ class FirstStepsTest {
         assertThat(FirstSteps.of(UNLOCATED, List.of(PLOT), List.of(), false).hasPlot()).isTrue();
         assertThat(FirstSteps.of(UNLOCATED, List.of(), List.of(PLANTING), false).hasPlanting()).isTrue();
         assertThat(FirstSteps.of(UNLOCATED, List.of(), List.of(), true).hasQuestion()).isTrue();
+    }
+
+    @Test
+    void theCountOfDoneStepsIsTheProgressInTheTitle() {
+        assertThat(FirstSteps.of(UNLOCATED, List.of(), List.of(), false).doneCount()).isZero();
+        assertThat(FirstSteps.of(LOCATED, List.of(), List.of(), false).doneCount()).isEqualTo(1);
+        assertThat(FirstSteps.of(LOCATED, List.of(PLOT), List.of(), false).doneCount()).isEqualTo(2);
+        assertThat(FirstSteps.of(LOCATED, List.of(PLOT), List.of(PLANTING), false).doneCount()).isEqualTo(3);
+        assertThat(FirstSteps.of(LOCATED, List.of(PLOT), List.of(PLANTING), true).doneCount()).isEqualTo(4);
     }
 
     @Test

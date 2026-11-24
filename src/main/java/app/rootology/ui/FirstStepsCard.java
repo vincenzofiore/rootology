@@ -16,9 +16,13 @@ import java.util.Map;
  */
 public class FirstStepsCard extends Div {
 
+    /** The four steps of #81, for the progress in the title (#177). */
+    private static final int STEPS = 4;
+
     public FirstStepsCard(FirstSteps steps, long spaceId, long gardenId) {
         addClassName("rootology-firststeps");
-        add(new H4(getTranslation("firststeps.title")));
+        add(new H4(title(getTranslation("firststeps.title"),
+                getTranslation("firststeps.progress", steps.doneCount(), STEPS))));
         Div list = new Div();
         list.addClassName("rootology-firststeps-list");
         list.add(step(steps.located(), getTranslation("firststeps.location"), GardensView.class,
@@ -33,6 +37,11 @@ public class FirstStepsCard extends Div {
 
     private static Map<String, String> garden(long spaceId, long gardenId) {
         return Map.of(Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId));
+    }
+
+    /** The card's title, with the progress after it: "Primi passi · 2 di 4" (#177). */
+    static String title(String title, String progress) {
+        return title + " · " + progress;
     }
 
     private RouterLink step(boolean done, String text, Class<? extends com.vaadin.flow.component.Component> view,

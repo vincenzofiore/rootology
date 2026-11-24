@@ -832,11 +832,12 @@ rootology-garden-map { display: block; width: 100%; }
     font-size: var(--lumo-font-size-m);
 }
 
-/* The guided first steps of a garden (#81): a compact card, hidden once every step is done. */
+/* The guided first steps of a garden (#81), in one row on a wide screen (#177): four equal stages, the icon
+   above the text, two per row on a phone and one when there is no room; hidden once every step is done. */
 .rootology-firststeps {
     box-sizing: border-box;
     width: 100%;
-    max-width: 32rem;
+    max-width: 52rem;
     padding: var(--lumo-space-m);
     border: 1px solid var(--lumo-contrast-10pct);
     border-radius: var(--lumo-border-radius-l);
@@ -847,17 +848,19 @@ rootology-garden-map { display: block; width: 100%; }
     font-size: var(--lumo-font-size-m);
 }
 .rootology-firststeps-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--lumo-space-xs);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--lumo-space-s);
 }
 .rootology-firststeps-step {
     display: flex;
-    align-items: center;
-    gap: var(--lumo-space-s);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--lumo-space-xs);
     min-height: 2rem;
     color: var(--lumo-body-text-color);
     text-decoration: none;
+    overflow-wrap: anywhere;
 }
 .rootology-firststeps-step:hover { text-decoration: underline; }
 .rootology-firststeps-step:focus-visible {
@@ -873,6 +876,12 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-firststeps-done { color: var(--lumo-secondary-text-color); }
 .rootology-firststeps-done .rootology-firststeps-icon { color: var(--lumo-success-text-color); }
+@media (max-width: 640px) {
+    .rootology-firststeps-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 340px) {
+    .rootology-firststeps-list { grid-template-columns: minmax(0, 1fr); }
+}
 @media (pointer: coarse) {
     .rootology-firststeps-step { min-height: 2.75rem; }
 }

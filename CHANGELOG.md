@@ -6,6 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Changed
+
+- The first steps of a garden sit in one row on a wide screen, two per row on a phone, with the progress in the title ("Primi passi · 2 di 4") (#177).
+
 ## [0.6.0] - 2026-11-24
 
 ### Added
