@@ -20,10 +20,12 @@ This page describes the file, how it is made, both rules, what they produce in t
 | `last_frost_p50`, `last_frost_p80` | The last frost of the season, median and 80th percentile, as `MM-DD`. Empty when the cell has no such frost. |
 | `first_frost_p50`, `first_frost_p20` | The first frost of the season, median and 20th percentile, as `MM-DD`. Empty when the cell has no such frost. |
 | `frost_years` | How many of the 30 years have at least one frost. |
+| `winter_min_p20` | The lowest daily minimum of the winter, December to February, reached or passed in one winter out of five, °C, over 1996–2025. Empty when the cell has no value. |
 
 The two percentiles are the "1 year in 5" dates: in four years out of five the last frost is no later than
 `last_frost_p80`, and in four years out of five the first frost is no earlier than `first_frost_p20`. They are
-the cautious dates the app uses, not the medians.
+the cautious dates the app uses, not the medians. `winter_min_p20` is the same idea for how cold it gets: four
+winters out of five stay above it, one goes as low or lower.
 
 The file's own header carries the notices:
 
@@ -41,8 +43,10 @@ The tool is outside the Maven build and CI, and needs a CDS account (`~/.cdsapir
 
 - `agera5_frost.py years A B` downloads AgERA5 v2.0 day by day, month by month, and keeps per cell the yearly
   indices: frost days, growing season length, last and first frost. Global files: no area parameter.
+- `agera5_frost.py winters A B` downloads December to February of each winter (December of A-1 for winter A) and
+  keeps per cell the lowest daily minimum of the three months.
 - `combine A B --dem --out` writes the CSV: the median and 1-in-5-years dates, and, with `--dem`, the cell
-  elevation and land fraction.
+  elevation and land fraction. With `--winters` it adds `winter_min_p20`, from the winters' files.
 - `dem_cells.py tiles` reads the Copernicus DEM GLO-90 tiles from the public bucket `copernicus-dem-90m` with
   `rasterio`, and keeps per cell the mean land elevation and the land fraction.
 
