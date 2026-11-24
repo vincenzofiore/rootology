@@ -67,6 +67,22 @@ class MeteoAlarmFeedTest {
     }
 
     @Test
+    void anEntityInTheDescriptionComesOutDecoded() throws IOException {
+        byte[] cap = """
+                <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+                  <info>
+                    <language>it-IT</language>
+                    <description>Sono previsti fenomeni meteorologici di moderata intensità &gt;800 METRI ALPI</description>
+                  </info>
+                </alert>
+                """.getBytes(StandardCharsets.UTF_8);
+
+        assertThat(MeteoAlarmFeed.parseCap(cap).description())
+                .as("the area keeps its own character, never its entity (#171)")
+                .endsWith(">800 METRI ALPI");
+    }
+
+    @Test
     void aDocumentWithADoctypeIsRefused() {
         byte[] doctype = """
                 <?xml version="1.0" encoding="utf-8"?>

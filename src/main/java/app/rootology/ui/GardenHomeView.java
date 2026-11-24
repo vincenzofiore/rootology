@@ -40,6 +40,7 @@ import app.rootology.garden.PlotKind;
 import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
 import app.rootology.officialwarnings.OfficialWarning;
+import app.rootology.officialwarnings.OfficialWarningArea;
 import app.rootology.officialwarnings.OfficialWarnings;
 import app.rootology.officialwarnings.WarningZones;
 import app.rootology.notifications.NotificationView;
@@ -276,7 +277,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /**
      * One official warning: the level (its colour and name) and the phenomenon as two icons, then the headline
-     * exactly as MeteoAlarm wrote it in Italian, its period and who issued it when.
+     * exactly as MeteoAlarm wrote it in Italian, the part of the region it is about when the issuer names it
+     * (#171), its period and who issued it when.
      */
     private Div officialWarning(OfficialWarning warning) {
         OfficialWarningLevel level = OfficialWarningLevel.of(warning.level());
@@ -288,7 +290,13 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         period.addClassName("rootology-official-period");
         Span issued = new Span(issued(warning));
         issued.addClassName("rootology-official-issued");
-        Div text = new Div(headline, period, issued);
+        Div text = new Div(headline);
+        OfficialWarningArea.of(warning.description()).ifPresent(area -> {
+            Span span = new Span(getTranslation("home.official.area", area));
+            span.addClassName("rootology-official-period");
+            text.add(span);
+        });
+        text.add(period, issued);
         text.addClassName("rootology-official-text");
         Div line = new Div(icon(level.icon(), getTranslation(level.label())),
                 icon(type.icon(), getTranslation(type.label())), text);

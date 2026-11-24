@@ -41,9 +41,10 @@ class OfficialWarningsCardTest {
     private static final String ABRUZZO = "01";
     private static final String ABRUZZO_ZONE = "IT013";
     private static final String HEADLINE = "Allerta arancione per vento";
+    private static final String AREA = "APPENNINO E COSTE";
 
     @Test
-    void anOrangeWindWarningShowsTheHeadlineItsIssuerTheLinkAndTheDisclaimer() {
+    void anOrangeWindWarningShowsItsAreaTheHeadlineItsIssuerTheLinkAndTheDisclaimer() {
         OfficialWarnings official = mock(OfficialWarnings.class);
         when(official.stale()).thenReturn(false);
         when(official.active(ABRUZZO_ZONE)).thenReturn(List.of(warning()));
@@ -58,8 +59,9 @@ class OfficialWarningsCardTest {
                 .findFirst().orElseThrow();
         assertThat(row.getClassNames()).as("an orange warning").contains("rootology-official-orange");
         assertThat(spans(row))
-                .as("the headline as MeteoAlarm wrote it, its period and the issuer line")
-                .containsExactly(HEADLINE, "24 nov, 11:00 – 25 nov, 01:00", "!{home.official.issued}!");
+                .as("the headline, the area the issuer names under it, its period and the issuer line")
+                .containsExactly(HEADLINE, "!{home.official.area}!", "24 nov, 11:00 – 25 nov, 01:00",
+                        "!{home.official.issued}!");
         assertThat(all(row).filter(SvgIcon.class::isInstance).map(SvgIcon.class::cast)
                 .map(icon -> icon.getElement().getAttribute("aria-label") + " " + icon.getSrc()).toList())
                 .as("the warning triangle first, then the phenomenon's drawing, each named for a screen reader")
@@ -71,6 +73,21 @@ class OfficialWarningsCardTest {
         assertThat(paragraphs(card))
                 .as("and its disclaimer, unchanged in both languages")
                 .containsExactly("!{home.official.disclaimer}!");
+    }
+
+    @Test
+    void aWarningThatNamesNoAreaShowsNoAreaLine() {
+        OfficialWarnings official = mock(OfficialWarnings.class);
+        when(official.stale()).thenReturn(false);
+        when(official.active(ABRUZZO_ZONE)).thenReturn(List.of(withoutArea()));
+
+        Div row = all(card(garden("IT", ABRUZZO), official)).filter(Div.class::isInstance).map(Div.class::cast)
+                .filter(div -> div.getClassNames().contains("rootology-official-warning"))
+                .findFirst().orElseThrow();
+
+        assertThat(spans(row))
+                .as("only the headline, its period and the issuer line: the area is never guessed")
+                .containsExactly(HEADLINE, "24 nov, 11:00 – 25 nov, 01:00", "!{home.official.issued}!");
     }
 
     @Test
@@ -144,7 +161,18 @@ class OfficialWarningsCardTest {
         return new OfficialWarning("warning-1", ABRUZZO_ZONE, "Abruzzo", 3, 1, "Orange Wind Warning", "Severe",
                 Instant.parse("2026-11-24T09:30:00Z"), Instant.parse("2026-11-24T10:00:00Z"),
                 Instant.parse("2026-11-25T00:00:00Z"), "https://example.invalid/cap.xml",
-                "Servizio Meteorologico dell’Aeronautica Militare", HEADLINE, "Venti forti.", "Restare in casa.");
+                "Servizio Meteorologico dell’Aeronautica Militare", HEADLINE,
+                "Sono previsti fenomeni meteorologici di moderata intensità " + AREA
+                        + " (DISCLAIMER: test)", "Restare in casa.");
+    }
+
+    /** The same warning with a description that names no area: only the opening sentence. */
+    private static OfficialWarning withoutArea() {
+        OfficialWarning warning = warning();
+        return new OfficialWarning(warning.identifier(), warning.zone(), warning.areaDesc(), warning.level(),
+                warning.type(), warning.event(), warning.severity(), warning.sent(), warning.onset(),
+                warning.expires(), warning.capUrl(), warning.senderName(), warning.headline(),
+                "Sono previsti fenomeni meteorologici di moderata intensità", warning.instruction());
     }
 
     /** Every component under this one, the component itself first. */
