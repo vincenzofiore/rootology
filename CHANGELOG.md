@@ -6,6 +6,8 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
 ### Added
 
 - Perennials that do not stand the garden’s 1-in-5 winter minimum are now flagged: their chip on the garden home gets a snowflake with the verdict, and the answers about planting them say that in open ground they do not survive the winter there, while in a pot they can be sheltered, and a crop proposed for an area follows the same rule (#147).
@@ -364,7 +366,8 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.5.0...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.6.0...develop
+[0.6.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.6.0
 [0.5.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.5.0
 [0.4.1]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.1
 [0.4.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.0
