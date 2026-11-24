@@ -336,6 +336,36 @@ class ViewsTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
+    void aBlockedAccountWithoutUsageIsListedAndCanBeUnblocked() {
+        // #167: the usage grid lists only the last seven days, so a blocked account outside it would vanish.
+        String login = "views-blocked-nobody";
+        spaces.signedIn(login);
+        try {
+            blocks.block("views-test-user", login, "domande fuori tema");
+            AdminView admin = new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests, blocks, accountFlags);
+            assertThat(admin.blockedAccounts().getListDataView().getItems().map(java.util.Map.Entry::getKey))
+                    .contains(login);
+            assertThat(usage.report(7)).as("no usage row to act from").noneMatch(u -> u.login().equals(login));
+
+            blocks.unblock("views-test-user", login);
+            admin.refresh();
+            assertThat(admin.blockedAccounts().getListDataView().getItems().map(java.util.Map.Entry::getKey))
+                    .doesNotContain(login);
+        } finally {
+            if (blocks.blocked().containsKey(login)) {
+                blocks.unblock("views-test-user", login);
+            }
+        }
+
+        Translations translations = new Translations();
+        assertThat(translations.getTranslation("admin.blocked.none", java.util.Locale.ITALIAN))
+                .isEqualTo("Nessun account bloccato.");
+        assertThat(translations.getTranslation("admin.blocked.none", java.util.Locale.ENGLISH))
+                .isEqualTo("No blocked accounts.");
+    }
+
+    @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "CURATOR")
     void curatorViewBuildsAndIsForCuratorsOnly() {
         assertThat(new CuratorView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();

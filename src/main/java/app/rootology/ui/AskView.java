@@ -34,6 +34,7 @@ import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.history.RunHistory;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.resilience.ServiceUnavailableException;
+import app.rootology.spaces.SpaceAccessException;
 import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
@@ -594,10 +595,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
             } catch (RuntimeException ex) {
                 asking = false;
-                update(ui, () -> {
-                    clear(thinking);
-                    UiErrors.show(this, ex);
-                });
+                update(ui, () -> failedWith(thinking, ex));
             }
         });
     }
@@ -675,10 +673,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
             } catch (RuntimeException ex) {
                 asking = false;
-                update(ui, () -> {
-                    clear(thinking);
-                    UiErrors.show(this, ex);
-                });
+                update(ui, () -> failedWith(thinking, ex));
             }
         });
     }
@@ -707,6 +702,20 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private void failed(ThinkingCard thinking, String asked, String text, boolean mayAsk) {
         clear(thinking);
         stack(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
+    }
+
+    /**
+     * The question failed for a reason the person did not cause, or was refused. A refusal means the access changed
+     * while the page was open (#166): blocked, or no longer a member. Reading the page again goes through
+     * AccessRouting, which sends the person where they belong; the stack and the history are not read again.
+     */
+    private void failedWith(ThinkingCard thinking, RuntimeException ex) {
+        if (ex instanceof SpaceAccessException) {
+            getUI().ifPresent(u -> u.getPage().reload());
+            return;
+        }
+        clear(thinking);
+        UiErrors.show(this, ex);
     }
 
     /** The page is usable again: the thinking card goes, the button comes back and the count is re-read. */

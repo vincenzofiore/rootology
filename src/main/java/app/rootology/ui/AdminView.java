@@ -36,8 +36,8 @@ import java.util.Set;
  * App roles (#32), for admins only (Vaadin checks {@code @RolesAllowed}, the service {@code @PreAuthorize}):
  * everyone the app knows with their roles, grant and revoke, and the history of every change. A change
  * applies from the person's next sign-in. It also holds the invitation requests (#65), approved or rejected
- * here, with the motivation shown as plain text, the accounts the nightly signal flagged (#165), and the
- * usage with a block action per account.
+ * here, with the motivation shown as plain text, the accounts the nightly signal flagged (#165), every
+ * blocked account with an unblock action (#167), and the usage with a block action per account.
  */
 @Route(value = "admin", layout = MainLayout.class)
 @RolesAllowed("ADMIN")
@@ -53,6 +53,8 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
     private final AccountBlockService blocks;
     private final AccountFlagService accountFlags;
     private final Grid<AccountFlagView> flagged = new Grid<>();
+    /** Every blocked account, by login, so one outside the usage window can still be unblocked (#167). */
+    private final Grid<Map.Entry<String, AccountBlock>> blockedAccounts = new Grid<>();
     private final Grid<UsageService.PersonUsage> consumption = new Grid<>();
     /** The blocked accounts at the last refresh, so a row's action knows which way it goes (#165). */
     private Map<String, AccountBlock> blockedNow = Map.of();
@@ -102,6 +104,7 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         add(new H3(getTranslation("admin.roles")), new Paragraph(getTranslation("admin.roles.intro")),
                 people, new H4(getTranslation("admin.history")), history);
         add(flaggedSection());
+        add(blockedSection());
         add(usageSection());
         add(requestsSection());
         Button checkWeather = new Button(getTranslation("admin.weather.check"), e -> Toasts.info(
@@ -131,6 +134,27 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         flagged.setEmptyStateText(getTranslation("admin.flags.none"));
         return new VerticalLayout(new H3(getTranslation("admin.flags")),
                 new Paragraph(getTranslation("admin.flags.intro")), flagged);
+    }
+
+    /**
+     * Every blocked account (#167), above the usage: the usage lists only who was active in the last seven
+     * days, so a blocked account outside that window would otherwise have no unblock action at all. The
+     * unblock action is the one of the usage section, with the same confirmation.
+     */
+    private VerticalLayout blockedSection() {
+        blockedAccounts.addColumn(b -> person(b.getKey())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
+        blockedAccounts.addComponentColumn(b -> DateText.dateTimeSpan(b.getValue().blockedAt(), this))
+                .setHeader(getTranslation("admin.blocked.when")).setAutoWidth(true);
+        blockedAccounts.addColumn(b -> person(b.getValue().blockedBy()))
+                .setHeader(getTranslation("admin.blocked.by")).setAutoWidth(true);
+        blockedAccounts.addColumn(b -> b.getValue().reason() == null ? "" : b.getValue().reason())
+                .setHeader(getTranslation("admin.blocked.reason")).setFlexGrow(2);
+        blockedAccounts.addComponentColumn(b -> RowActions.unblock(getTranslation("admin.access.unblock"),
+                        e -> confirmUnblock(b.getKey())))
+                .setAutoWidth(true);
+        blockedAccounts.setAllRowsVisible(true);
+        blockedAccounts.setEmptyStateText(getTranslation("admin.blocked.none"));
+        return new VerticalLayout(new H3(getTranslation("admin.blocked")), blockedAccounts);
     }
 
     /** Blocking a flagged account: the reason arrives from the counts and the admin can change it (#165). */
@@ -336,14 +360,21 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         return name == null || name.equals(login) ? login : name + " (" + login + ")";
     }
 
-    private void refresh() {
+    /** Rebuilds every grid, so a block or an unblock from anywhere shows here at once (#167). */
+    void refresh() {
         people.setItems(roles.people(currentUser.login()).entrySet().stream().toList());
         blockedNow = blocks.blocked();
+        blockedAccounts.setItems(blockedNow.entrySet().stream().toList());
         flagged.setItems(accountFlags.open());
         consumption.setItems(usage.report(7));
         history.setItems(roles.history(currentUser.login()));
         waitingRequests.setItems(accessRequests.pending(currentUser.login()));
         decidedRequests.setItems(accessRequests.decided(currentUser.login()));
+    }
+
+    /** The blocked accounts grid, which the test reads to see a block outside the usage listed and unblocked (#167). */
+    Grid<Map.Entry<String, AccountBlock>> blockedAccounts() {
+        return blockedAccounts;
     }
 
     @Override
