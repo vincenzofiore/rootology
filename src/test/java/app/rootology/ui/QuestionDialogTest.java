@@ -90,6 +90,18 @@ class QuestionDialogTest {
     }
 
     @Test
+    void aQuestionOfTheGardensOverviewIsAnsweredAtTheSpaceLevel() {
+        when(user.canContribute(1)).thenReturn(true);
+        when(user.runContext(1, 0)).thenReturn(new RunContext(1, 0, "ada"));
+        when(pipeline.askKnowledgeBase(any(), eq(new RunContext(1, 0, "ada")), eq(false))).thenReturn(answered());
+
+        QuestionDialog dialog = dialogs().ask(1, 0, null, ASKED);
+
+        assertThat(all(dialog.body())).anyMatch(AnswerCard.class::isInstance);
+        assertThat(dialog.questionsQuery()).isEqualTo(Map.of(AskView.RUN, "p-9"));
+    }
+
+    @Test
     void theDailyLimitIsSaidInTheDialog() {
         when(pipeline.askKnowledgeBase(any(), any(), eq(false))).thenThrow(new UsageLimitException("limit", 20));
 
@@ -103,11 +115,14 @@ class QuestionDialogTest {
         when(user.canContribute(1)).thenReturn(true);
         when(user.runContext(1, 2)).thenReturn(new RunContext(1, 2, "ada"));
         when(user.login()).thenReturn("ada");
+        return dialogs().ask(1, 2, "Orto", ASKED);
+    }
+
+    private QuestionDialogs dialogs() {
         GeoNames noSearch = mock(GeoNames.class);
-        QuestionDialogs dialogs = new QuestionDialogs(pipeline, mock(SourceCatalog.class),
+        return new QuestionDialogs(pipeline, mock(SourceCatalog.class),
                 mock(KnowledgeEnrichment.class), user, mock(CropCatalog.class), mock(KnowledgeGraph.class),
                 mock(GardenService.class), noSearch, mock(ClimateCells.class), Runnable::run);
-        return dialogs.ask(1, 2, "Orto", ASKED);
     }
 
     private static GardenPipeline.Run answered() {

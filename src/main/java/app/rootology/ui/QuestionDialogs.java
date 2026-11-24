@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 @Component
 // One per view: CurrentUser belongs to the Vaadin session, so this cannot be a singleton.
 @Scope("prototype")
-class QuestionDialogs {
+public class QuestionDialogs {
 
     final GardenPipeline pipeline;
     final SourceCatalog sources;

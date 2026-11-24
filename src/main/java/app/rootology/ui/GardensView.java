@@ -18,7 +18,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.HasDynamicTitle;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import app.rootology.facts.ClimateCells;
@@ -89,13 +88,15 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private final Div split = new Div();
     private boolean contributor;
     /** The page's own space (#56), read from its route. */
+    /** The dialog a question of the overview is answered in (#179). */
+    private final QuestionDialogs questions;
     private long spaceId;
     /** The gardens on this page, in the list's order: the map and the list both read them. */
     private List<GardenSummary> shown = List.of();
 
     public GardensView(GardenService gardens, GeoNames geoNames, CurrentUser currentUser,
                        ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
-                       NotificationService notifications,
+                       NotificationService notifications, QuestionDialogs questions,
                        @Value("${rootology.map.style-url}") String styleUrl,
                        @Value("${rootology.map.dark-style-url:}") String darkStyleUrl) {
         this.gardens = gardens;
@@ -105,6 +106,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         this.pipeline = pipeline;
         this.weather = weather;
         this.notifications = notifications;
+        this.questions = questions;
         ask.setVisible(false);
         ask.setDefaultVerticalComponentAlignment(Alignment.END);
         ask.setWrap(true);
@@ -112,8 +114,11 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setMaxLength(Question.MAX_LENGTH);
         question.setWidth("32rem");
-        Button send = new Button(getTranslation("ask.button"),
-                e -> ask(question.getValue().trim()));
+        Button send = new Button(getTranslation("ask.button"), e -> {
+            String asked = question.getValue().trim();
+            question.clear();
+            ask(asked);
+        });
         send.addThemeName("primary");
         ask.add(question, send);
         // A guest only looks (#33): no garden is added; the role is known in beforeEnter.
@@ -202,14 +207,21 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         }
     }
 
-    /** With no garden there is no garden to ask in: the question goes to the space level, without a garden. */
+    /**
+     * With no garden there is no garden to ask in: the question is asked at the space level, and answered here in
+     * the dialog of the garden home (#179); once it is closed the overview is read again.
+     */
     private void ask(String text) {
         if (text.isEmpty()) {
             return;
         }
-        getUI().ifPresent(ui -> ui.navigate(AskView.class,
-                new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId))),
-                QueryParameters.simple(Map.of(AskView.QUESTION, text))));
+        QuestionDialog dialog = questions.ask(spaceId, 0, null, text);
+        dialog.addOpenedChangeListener(e -> {
+            if (!e.isOpened()) {
+                refresh();
+            }
+        });
+        dialog.open();
     }
 
     /**

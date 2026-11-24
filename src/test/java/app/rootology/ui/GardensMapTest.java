@@ -316,7 +316,7 @@ class GardensMapTest {
 
     private GardensView view(String login) {
         return new GardensView(gardens, geoNames, new CurrentUser(spaces, login), cells, pipeline,
-                weather, notificationService, STYLE, "");
+                weather, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "");
     }
 
     private long garden(long spaceId, String login, String name, String latitude, String longitude) {

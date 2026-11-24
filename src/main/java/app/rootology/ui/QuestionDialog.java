@@ -214,9 +214,12 @@ class QuestionDialog extends Dialog {
         toAsk(gardenId, query);
     }
 
+    /** The Questions page of the garden, or of the space for a question asked without one (#179). */
     private void toAsk(long garden, Map<String, String> query) {
-        UI.getCurrent().navigate(AskView.class, new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId),
-                Routed.GARDEN, String.valueOf(garden))), QueryParameters.simple(query));
+        Map<String, String> route = garden > 0
+                ? Map.of(Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(garden))
+                : Map.of(Routed.SPACE, String.valueOf(spaceId));
+        UI.getCurrent().navigate(AskView.class, new RouteParameters(route), QueryParameters.simple(query));
     }
 
     /** What the dialog shows now, for the tests. */
