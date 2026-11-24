@@ -1,9 +1,12 @@
-# Developer Certificate of Origin (CONTRIBUTING.md): every commit of a pull request is signed off by its
-# author ("Signed-off-by: Name <email>", from `git commit -s`). No third-party action: plain git.
+# Developer Certificate of Origin (CONTRIBUTING.md): every commit of a pull request to develop, where
+# contributions arrive, is signed off by its author ("Signed-off-by: Name <email>", from `git commit -s`).
+# Not on the release pull request develop -> main, whose commits were checked on their way in; bot commits
+# (Dependabot) cannot sign off and are skipped. No third-party action: plain git.
 name: dco
 
 on:
   pull_request:
+    branches: [develop]
 
 permissions:
   contents: read
@@ -25,6 +28,7 @@ jobs:
           missing=0
           for sha in $(git rev-list --no-merges "$BASE..$HEAD"); do
             email=$(git show -s --format='%ae' "$sha")
+            case "$email" in *'[bot]@users.noreply.github.com') continue ;; esac
             if ! git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" | grep -qiF "<$email>"; then
               echo "::error::Commit $sha has no Signed-off-by from its author. Sign off with: git rebase --signoff $BASE"
               missing=1

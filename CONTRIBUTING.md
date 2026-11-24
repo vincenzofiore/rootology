@@ -44,7 +44,7 @@ git commit -s -m "knowledge: correct the sowing months of chard (refs #123)"
 ```
 
 adds `Signed-off-by: Your Name <your@email>` with the name and address of your git configuration. A check
-on every pull request refuses commits without it. To add it afterwards: `git rebase --signoff develop`.
+on every pull request to `develop` refuses commits without it. To add it afterwards: `git rebase --signoff develop`.
 
 ## Facts need a source
 
