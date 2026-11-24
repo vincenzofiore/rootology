@@ -1227,6 +1227,8 @@ rootology-garden-map { display: block; width: 100%; }
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
 }
+/* MeteoAlarm's own words under our translation (#175): kept, quieter. */
+.rootology-official-disclaimer-original { font-style: italic; }
 
 /* Questions waiting for a person: the count first, then up to three of them. */
 .rootology-waiting-summary {

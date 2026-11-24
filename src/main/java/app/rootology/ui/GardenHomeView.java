@@ -271,7 +271,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
         warnings.forEach(warning -> card.content().add(officialWarning(warning)));
-        card.content().add(meteoAlarmLink(), disclaimer());
+        card.content().add(meteoAlarmLink());
+        disclaimer().forEach(card.content()::add);
         grid.add(card);
     }
 
@@ -341,11 +342,30 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         return link;
     }
 
-    /** The disclaimer MeteoAlarm requires, unchanged in both languages. */
-    private Paragraph disclaimer() {
-        Paragraph disclaimer = new Paragraph(getTranslation("home.official.disclaimer"));
-        disclaimer.addClassName("rootology-official-disclaimer");
-        return disclaimer;
+    /**
+     * MeteoAlarm's disclaimer, which its terms (section 5, updated 2024-03-15) ask every redistributor to publish
+     * as it is (#175): shown in English always, never translated or edited.
+     */
+    static final String METEOALARM_DISCLAIMER = "Time delays between this website and the www.meteoalarm.org"
+            + " website are possible. For the most up-to-date awareness information as published by the"
+            + " participating National Meteorological and Hydrological Services, please refer to www.meteoalarm.org.";
+
+    /**
+     * The disclaimer as MeteoAlarm wrote it, after our translation when the page is not in English (#175): the
+     * translation helps the reader, the original is what the terms require.
+     */
+    private List<Paragraph> disclaimer() {
+        Paragraph original = new Paragraph(METEOALARM_DISCLAIMER);
+        original.addClassName("rootology-official-disclaimer");
+        original.getElement().setAttribute("lang", "en");
+        String translated = getTranslation("home.official.disclaimer");
+        if (translated.equals(METEOALARM_DISCLAIMER)) {
+            return List.of(original);
+        }
+        Paragraph translation = new Paragraph(translated);
+        translation.addClassName("rootology-official-disclaimer");
+        original.addClassName("rootology-official-disclaimer-original");
+        return List.of(translation, original);
     }
 
     /**

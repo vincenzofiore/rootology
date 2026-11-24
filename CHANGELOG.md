@@ -9,6 +9,11 @@ What each version of Rootology brings, for the people who use it and run it. The
 ### Changed
 
 - The first steps of a garden sit in one row on a wide screen, two per row on a phone, with the progress in the title ("Primi passi · 2 di 4") (#177).
+- MeteoAlarm's disclaimer is shown in Italian too, with MeteoAlarm's original English text under it, as its terms ask (#175).
+
+### Fixed
+
+- MeteoAlarm's disclaimer reads exactly as its terms give it ("National Meteorological and Hydrological Services") (#175).
 
 ## [0.6.0] - 2026-11-24
 

@@ -71,8 +71,8 @@ class OfficialWarningsCardTest {
                 .map(Anchor::getHref).toList())
                 .as("MeteoAlarm asks for its link").containsExactly("https://meteoalarm.org");
         assertThat(paragraphs(card))
-                .as("and its disclaimer, unchanged in both languages")
-                .containsExactly("!{home.official.disclaimer}!");
+                .as("and its disclaimer: our translation, then MeteoAlarm's text as it is (#175)")
+                .containsExactly("!{home.official.disclaimer}!", GardenHomeView.METEOALARM_DISCLAIMER);
     }
 
     @Test
