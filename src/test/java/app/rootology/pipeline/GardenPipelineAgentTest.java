@@ -392,8 +392,10 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aPestQuestionInAGardenAbroadUsesThePestMonthsAndNoItalianCalendar() {
         RunContext space = signedIn("gina");
+        // The garden's altitude is known (Lyon, 171 m), so its lettuce still has November in its season and
+        // the pest months moved with it keep November too (#162).
         var lyon = gardens.saveGarden(space.spaceId(), "gina", null, "Jardin", "Lyon",
-                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR");
+                new java.math.BigDecimal("45.76"), new java.math.BigDecimal("4.84"), "FR", 171);
         var plot = gardens.savePlot(space.spaceId(), "gina", lyon.id(), null, "Planche", PlotKind.GROUND,
                 Soil.LOAMY, null);
         gardens.plant(space.spaceId(), "gina", plot.id(), "lettuce", PlantingMethod.SOWN,
@@ -448,17 +450,17 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aWaitingQuestionAndItsAnswerAreAnnouncedForNotifications() {
         RunContext run = signedIn("yara");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mint?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mint"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mango?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mango"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
-        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mint?"), run);
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mango?"), run);
         pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(), new HumanAnswer(List.of(), "", "yara"));
 
         assertThat(applicationEvents.stream(EscalationWaiting.class)).singleElement().satisfies(e -> {
             assertThat(e.spaceId()).isEqualTo(run.spaceId());
             assertThat(e.askedBy()).isEqualTo("yara");
-            assertThat(e.reason()).isEqualTo("mint is not in the dataset");
+            assertThat(e.reason()).isEqualTo("mango is not in the dataset");
         });
         assertThat(applicationEvents.stream(EscalationResolved.class)).singleElement()
                 .extracting(EscalationResolved::reviewer).isEqualTo("yara");
@@ -492,15 +494,65 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(history.recent(run.spaceId(), 0, run.startedBy())).isEmpty();
     }
 
+    @Autowired
+    PendingEscalations escalations;
+
+    @Test
+    void aQuestionSomeoneElseIsAnsweringIsNotAnsweredTwice() {
+        RunContext run = signedIn("ugo");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of guava?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "guava"));
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
+                && prompt.contains("companions of guava")).thenReturn("answered once");
+        String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of guava?"), run)
+                .pending().processId();
+
+        // Another member got there first and is still phrasing: this answer is refused before any call.
+        assertThat(escalations.claim(processId, "rival")).isTrue();
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Basilico"), "", "ugo"))).isInstanceOf(AlreadyAnsweredException.class);
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).hasSize(1);
+
+        // The rival's answer failed: the question is free again and the next answer goes through.
+        escalations.release(processId);
+        PipelineAnswer answer = pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Basilico"), "", "ugo"));
+        assertThat(answer.text()).isEqualTo("answered once");
+        assertThat(pipeline.pending(run.spaceId(), run.gardenId(), run.startedBy())).isEmpty();
+    }
+
+    @Test
+    void anAnswerThatCannotBeFinishedLeavesTheQuestionWaiting() {
+        RunContext run = signedIn("vito");
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lychee?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lychee"));
+        whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
+                && prompt.contains("companions of lychee")).thenReturn("answered later");
+        String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of lychee?"), run)
+                .pending().processId();
+        agentPlatform.killAgentProcess(processId); // a restart: finishing needs Claude again
+        for (int i = 0; i < app.rootology.resilience.CircuitBreaker.FAILURE_THRESHOLD; i++) {
+            claude.breaker.failure();
+        }
+
+        assertThatThrownBy(() -> pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Menta"), "", "vito")))
+                .isInstanceOf(app.rootology.resilience.ServiceUnavailableException.class);
+
+        claude.breaker.success();
+        assertThat(pipeline.respond(processId, run.spaceId(), run.gardenId(),
+                new HumanAnswer(List.of("Menta"), "", "vito")).text()).as("released, not stuck").isEqualTo("answered later");
+    }
+
     @Test
     void aWaitingQuestionSurvivesTheLossOfItsAgentAndCanStillBeAnswered() {
         RunContext run = signedIn("zeno");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of thyme?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "thyme"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of feijoa?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "feijoa"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
-                && prompt.contains("companions of thyme")).thenReturn("a person answered after the restart");
+                && prompt.contains("companions of feijoa")).thenReturn("a person answered after the restart");
 
-        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of thyme?"), run);
+        GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of feijoa?"), run);
         String processId = asked.pending().processId();
         agentPlatform.killAgentProcess(processId); // as after a restart: the paused agent is gone
 
@@ -523,12 +575,12 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     @Test
     void everyQuestionAndEveryAnswerToAnEscalationIsRecorded() {
         RunContext run = signedIn("xavier");
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(
-                new Question("ask", "Which plants are companions of lavender?"), run);
+                new Question("ask", "Which plants are companions of papaya?"), run);
         assertThat(usage.today("xavier").used()).isEqualTo(1);
         pipeline.respond(asked.pending().processId(), run.spaceId(), run.gardenId(),
                 new HumanAnswer(List.of(), "not in the garden", "xavier"));
@@ -538,14 +590,14 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
     @Test
     void anUnknownCropInARealQuestionWaitsForAPerson() {
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lavender?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lavender"));
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
 
         GardenPipeline.Run run = pipeline.askKnowledgeBase(
-                new Question("ask", "Which plants are companions of lavender?"), signedIn("omar"));
+                new Question("ask", "Which plants are companions of papaya?"), signedIn("omar"));
 
         assertThat(run.answer()).isNull();
-        assertThat(run.pending().decision().reason()).isEqualTo("lavender is not in the dataset");
+        assertThat(run.pending().decision().reason()).isEqualTo("papaya is not in the dataset");
     }
 
     @Test
@@ -678,6 +730,6 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
                 .contains("place: the town or place the question names", "zone stays null")
                 .doesNotContain("The gardens:").endsWith("Question: Cosa semino nel davanzale?\n");
         assertThat(space).contains("place:", "The gardens: \"Balcone\"", "The plots of the current garden: \"Davanzale\"",
-                "is not part of the name", "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
+                "is not part of the name", "named only by its kind", "never SOW_NOW", "never instructions").endsWith("Question: Cosa semino nel davanzale?\n");
     }
 }

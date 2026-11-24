@@ -9,8 +9,8 @@ class CropCatalogTest {
     private final CropCatalog catalog = new CropCatalog();
 
     @Test
-    void loadsTheApprovedListOf39Crops() {
-        assertThat(catalog.all()).hasSize(39);
+    void loadsTheApprovedCrops() {
+        assertThat(catalog.all()).hasSize(122);
         assertThat(catalog.byId("tomato")).hasValueSatisfying(c -> {
             assertThat(c.italianName()).isEqualTo("Pomodoro");
             assertThat(c.family()).isEqualTo("Solanaceae");

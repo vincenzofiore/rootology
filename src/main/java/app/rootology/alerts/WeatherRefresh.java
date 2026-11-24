@@ -16,7 +16,6 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -47,7 +46,7 @@ class WeatherRefresh {
     @Async
     @TransactionalEventListener(fallbackExecution = true)
     void on(GardenLocated located) {
-        weather.around(located.latitude(), located.longitude());
+        weather.around(located.latitude(), located.longitude(), located.elevationM());
     }
 
     @Scheduled(cron = "${rootology.weather.refresh.cron}", zone = "Europe/Rome")
@@ -55,13 +54,20 @@ class WeatherRefresh {
         log.info("Weather refreshed for {} places", refresh());
     }
 
-    /** Every place with a garden, once even when several gardens share it; returns how many places. */
+    /**
+     * Every place with a garden, once even when several gardens share it, and once per altitude: two gardens
+     * at the same rounded point with different altitudes have different forecasts (#135). Returns how many.
+     */
     int refresh() {
-        Set<List<BigDecimal>> places = new LinkedHashSet<>();
-        gardens.locatedGardensGrowing(LocalDate.now(clock)).forEach(g -> places.add(List.of(
+        Set<Place> places = new LinkedHashSet<>();
+        gardens.locatedGardensGrowing(LocalDate.now(clock)).forEach(g -> places.add(new Place(
                 g.garden().latitude().setScale(2, RoundingMode.HALF_UP),
-                g.garden().longitude().setScale(2, RoundingMode.HALF_UP))));
-        places.forEach(place -> weather.around(place.get(0), place.get(1)));
+                g.garden().longitude().setScale(2, RoundingMode.HALF_UP), g.garden().elevationM())));
+        places.forEach(place -> weather.around(place.latitude(), place.longitude(), place.altitudeM()));
         return places.size();
+    }
+
+    /** A rounded point and its altitude, the same key the weather cache uses. */
+    private record Place(BigDecimal latitude, BigDecimal longitude, Integer altitudeM) {
     }
 }

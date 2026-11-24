@@ -45,7 +45,10 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
         signedOut.addClassName("rootology-welcome-signed-out");
         signedOut.setVisible(false);
         add(denied, signedOut);
-        add(new H2(getTranslation("welcome.title")), cycle(), new Paragraph(getTranslation("welcome.lead")));
+        // The scope is said up front (#164): calendars, pests and rules are those of an Italian garden.
+        Paragraph scope = new Paragraph(getTranslation("welcome.scope"));
+        scope.addClassName("rootology-welcome-scope");
+        add(new H2(getTranslation("welcome.title")), cycle(), new Paragraph(getTranslation("welcome.lead")), scope);
 
         // What the app does, each feature drawn in the brand's line style (#87).
         Div features = new Div(feature("sources"), feature("unsure"), feature("warns"), feature("spaces"));
@@ -57,8 +60,9 @@ public class WelcomeView extends Div implements BeforeEnterObserver, HasDynamicT
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // A person waiting for an invitation (#65) may come back here: Home would only send them to their request.
-        if (authentication.isAuthenticated() && !PendingAccess.isPending()) {
+        // A person waiting for an invitation (#65) or a blocked one (#165) may come back here: Home would only
+        // send them to their own page instead.
+        if (authentication.isAuthenticated() && !PendingAccess.isPending() && !BlockedAccess.isBlocked()) {
             event.rerouteTo(StartView.class);
             return;
         }

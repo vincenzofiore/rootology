@@ -6,6 +6,58 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
+### Added
+
+- Perennials that do not stand the garden’s 1-in-5 winter minimum are now flagged: their chip on the garden home gets a snowflake with the verdict, and the answers about planting them say that in open ground they do not survive the winter there, while in a pot they can be sheltered, and a crop proposed for an area follows the same rule (#147).
+- The morning alert carries one line when the garden’s region has active official MeteoAlarm warnings: how many, the highest level and its phenomenon, and where the detail is, once per garden and day and never repeating the warning’s own text, which the card on the garden home keeps as it is (#168).
+- The official warnings show the part of the region the issuer names, such as the coasts or the Apennines (#171).
+- The garden home shows MeteoAlarm’s official warnings for the garden’s region in Italy, refreshed every few minutes (#136).
+- An admin can block a whole account that only creates useless traffic, with an optional short reason, and unblock it again: a blocked person keeps their gardens, questions and history, but cannot sign in or use the app (an open session stops at its next page), sees a page that says so and how to ask for a review, and is told by email; only an admin decides, nobody blocks themselves, and the last admin is never blocked (#165).
+- A nightly check flags an account that only creates useless traffic — signed in days ago, a member of no space with a garden, and its recent questions mostly outside gardening — and tells the admins in the app, by email and by Telegram, with the counts and never a question; the Administration page lists the flagged accounts above the usage, where an admin blocks the account (with the reason prefilled from the counts and editable) or dismisses the flag, and an account is never flagged twice (#165).
+- The garden home shows how many areas are free, and "Propose" suggests up to three crops for each one this month, for one or two goals (quick growth, variety, beneficial insects, soil), with how and when they go in, a question mark where something is not known, and "Plant" to record one after asking; an area the decision layer is not sure about goes to a person of the space instead (#141).
+- Questions such as "Cosa posso fare contro gli afidi?" are answered with the control methods of the pest or disease, grouped by kind and saying how well each is supported, with a reminder to read the label whenever a substance or a microorganism is named; an unknown pest goes to a person (#140).
+- Eight service plants and green manures: French marigold, pot marigold, nasturtium, phacelia, sweet alyssum, white mustard, common vetch and crimson clover, marked as service crops so they are left out of the "what can I sow now" answers while their own sowing months still answer, with their families, their FAO ECOCROP needs where ECOCROP has them, and three of them declared as control methods against glasshouse whitefly, diamondback moth and flea beetles, each with its evidence (#140).
+- Pests and diseases are found by their common names too, such as "lumache", "ferretti", "tuta absoluta" or "potato blight" (#140).
+- Fifteen more perennials: almond, walnut, hazelnut and chestnut; grapefruit, citron, bergamot and lime; lemon balm, tarragon, winter savory and lemon verbena; asparagus, cardoon and Jerusalem artichoke, with chestnut's planting and pruning and walnut's summer pruning from the Abruzzo integrated production rules, editorial months for the others, and their FAO ECOCROP needs and frost hardiness (#139).
+- Nine more fruit trees: olive, table grape, fig, persimmon, pomegranate, kiwi, loquat, black mulberry and jujube, with planting and pruning months from the Abruzzo integrated production rules for kiwi, grape and olive, editorial months for the others, and their FAO ECOCROP needs and frost hardiness (#139).
+- Nine pome and stone fruit trees: apple, pear, quince, peach, nectarine, apricot, plum, cherry and sour cherry, with planting and pruning months from the Abruzzo integrated production rules, their harvest months and their FAO ECOCROP needs (#139).
+- Eight berries: blueberry, raspberry, blackberry, red and black currant, gooseberry, goji and aronia, with their planting, harvest and pruning months and, where FAO ECOCROP has them, their needs (#139).
+- Seven perennial herbs: thyme, oregano, mint, marjoram, chives, bay laurel and lavender, with their planting, harvest and pruning months and their FAO ECOCROP needs (#139).
+- Five citrus, the first fruit trees: lemon, sweet orange, mandarin, clementine and kumquat, with their planting, harvest and pruning months and their FAO ECOCROP needs; questions such as "Quando si pota il limone?" are now answered from the pruning months, and nothing is guessed for a crop that has none (#139).
+- The garden home and the area cards say when each crop growing now is usually harvested, as the harvest months of the garden's own climate (a small basket with "lug–set", the whole sentence as tooltip), and say nothing where there is no such window (#131).
+- 22 more annual crops: beetroot, turnip, parsnip, celeriac, sweet potato, Brussels sprouts, kohlrabi, borage, purslane, shallot, spring onion, chickpea, lentil, grass pea, cowpea, runner bean, sweet corn, okra, dill, coriander, chervil and cape gooseberry (alchechengi), with their sowing and harvest months and FAO ECOCROP needs (#139).
+- The morning weather alerts grow from two rules to six: extreme heat (a day's maximum at or above a growing crop's ECOCROP limit, with the crops it cannot check named), heavy rain (30 mm in a day or 10 mm in an hour), a possible strong wind (11 m/s or more, worded as a possibility since MET Norway has no gusts and is unreliable in complex terrain) and a reminder to water after three dry and warm days, only where pots, planters and raised beds dry out first; each has its own colour and icon on the garden home (#137).
+
+### Changed
+
+- The weather alerts and the official warnings have their own drawings: a warning triangle in the level’s colour, a snowflake, a thermometer, a cloud with rain and lightning, a gust, a spotted leaf, a watering can (#169).
+- The notes under an answer use the same drawings: the snowflake for frost, the spotted leaf for late blight (#170).
+- The welcome page says up front that Rootology is designed for vegetable gardens in Italy, and the garden dialog says what that means for a garden abroad (#164).
+- The months when a pest or disease threatens a crop follow the garden's climate: "what threatens my garden this month" moves them as that crop's own sowing and harvest windows move, so a garden in Turin no longer sees a pest in the months its crop's season has left behind, while Vasto and Palermo keep the months written for central Italy (#162).
+- A crop named with its plant form is found: "fig tree", "albero di fico", "piante di limoni" (#139).
+- Questions about what to sow or plant now are answered directly far more often instead of waiting for a person: the decision layer is told what the app's calendar rules derive, and that planting counts as sowing (#69).
+- A winter pruning now moves later only where spring comes later than at Vasto, so it stays in January at Vasto; in colder places the pruning months of thyme and bay laurel move later than before (#139).
+- Perennial crops (artichoke, strawberry, rosemary, sage) are no longer part of the rotation advice, and once established, from their second year, the frost alert judges them on how much cold an adult plant stands instead of a seedling (#139).
+- The forecast is asked for at the garden's altitude when it is known, so MET Norway adjusts the temperatures to the garden's own elevation and a garden on a hill gets its minimum temperatures, and its frost alerts, closer to reality; two gardens at the same point with different altitudes now keep a forecast each (#135).
+
+### Fixed
+
+- A person whose account is blocked while the Ask page is open is taken to the blocked page at the next question, instead of a generic error (#166).
+- A blocked account with no usage in the last seven days is listed again on the Administration page, in a "Blocked accounts" section above the usage, where an admin can unblock it (#167).
+- The weather alert cards of the garden home and the gardens overview no longer miss alerts once a person has received fifty newer notifications of any kind: they read every weather alert of that space, or garden, of the last three days (#155).
+- A digest email whose send fails is no longer lost: the notifications stay pending and the next run sends them (#153).
+- A garden whose weather check fails no longer stops the morning alerts for the other gardens: the failure is logged with the garden's id and the check moves on (#154).
+- Two people answering the same waiting question at the same moment no longer both get through: the second is told that someone else is answering it, and an answer that fails leaves the question waiting (#152).
+- "Cosa semino nell’aiuola?" with no plot name is read as a question about one of the garden’s plots, which the app then asks for, and no longer answered with the whole garden’s list without the plot’s rotation check (#149).
+- With the keyboard, Tab now reaches the content of the signed-in pages after the top bar; before, it went round the top bar only (#88).
+
+### Security
+
+- Spring Boot 4.1.3 (Spring Framework 7.0.11, Spring Security 7.1.3) for the Spring advisories of 2026-11-19; none of them reached Rootology's configuration (#145).
+- Java 25.0.5.1 in the server image (Temurin `25.0.5.1_2-jre-resolute`) for Java4Shell (CVE-2026-114938); the current server's CPU could not reach the vulnerable path (#146).
+
 ## [0.5.0] - 2026-11-17
 
 ### Added
@@ -314,7 +366,8 @@ The first release, for a few invited users.
 - Account deletion, data export and a public privacy page (#40).
 - Italian and English interface, usable on a phone, light and dark (#31).
 
-[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.5.0...develop
+[Unreleased]: https://github.com/vincenzofiore/rootology/compare/v0.6.0...develop
+[0.6.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.6.0
 [0.5.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.5.0
 [0.4.1]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.1
 [0.4.0]: https://github.com/vincenzofiore/rootology/releases/tag/v0.4.0

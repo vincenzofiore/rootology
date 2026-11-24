@@ -163,6 +163,20 @@ final class GoldenFixtures {
                 gardens.plant(space, login, pot.id(), "garlic", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 10, 15), null);
                 yield c.garden().equals("two-terraces-small") ? small.id() : 0L;
             }
+            // A garden in Milan for the winter of a citrus (#147), at the reference site's coordinates.
+            case "milano" -> {
+                var created = gardens.saveGarden(space, login, null, "Orto di Milano", "Milano",
+                        new BigDecimal("45.46"), new BigDecimal("9.19"), "IT", 120);
+                gardens.savePlot(space, login, created.id(), null, "Aiuola", PlotKind.GROUND, Soil.LOAMY, null);
+                yield created.id();
+            }
+            // A terrace in Turin whose only area is a pot (#147): a perennial there can be sheltered in winter.
+            case "turin-terrace" -> {
+                var created = gardens.saveGarden(space, login, null, "Terrazzo di Torino", "Torino",
+                        new BigDecimal("45.07"), new BigDecimal("7.69"), "IT", 205);
+                gardens.savePlot(space, login, created.id(), null, "Vaso", PlotKind.POT, Soil.POTTING_MIX, null);
+                yield created.id();
+            }
             case "none" -> 0L;
             default -> throw new IllegalArgumentException("Unknown garden fixture " + c.garden());
         };

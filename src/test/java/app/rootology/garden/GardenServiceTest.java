@@ -269,6 +269,25 @@ class GardenServiceTest {
     }
 
     @Test
+    void perennialsAreLeftOutOfTheRotation() {
+        long space = spaceOf("mara");
+        GardenSummary garden = gardens.saveGarden(space, "mara", null, "Garden", null, null, null);
+        PlotSummary lettuceBed = gardens.savePlot(space, "mara", garden.id(), null, "Bed D", PlotKind.GROUND, Soil.LOAMY, null);
+        PlotSummary artichokeBed = gardens.savePlot(space, "mara", garden.id(), null, "Bed E", PlotKind.GROUND, Soil.LOAMY, null);
+        LocalDate june = LocalDate.of(2026, 6, 1);
+        // Lettuce and artichoke are both Asteraceae; the artichoke stays in place for years.
+        gardens.plant(space, "mara", lettuceBed.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 3, 1), null);
+        gardens.plant(space, "mara", artichokeBed.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2025, 9, 1), null);
+
+        assertThat(gardens.rotationWarning(space, "mara", lettuceBed.id(), "artichoke", june))
+                .as("a perennial candidate").isEmpty();
+        assertThat(gardens.rotationWarning(space, "mara", artichokeBed.id(), "lettuce", june))
+                .as("beside a perennial still growing, not after it").isEmpty();
+        assertThat(gardens.rotationWarning(space, "mara", lettuceBed.id(), "lettuce", june))
+                .as("annuals keep the rule").isPresent();
+    }
+
+    @Test
     void theZoneFollowsTheGardensLatitude() {
         assertThat(GardenService.zoneOf(45.46)).isEqualTo("NORD");
         assertThat(GardenService.zoneOf(41.90)).isEqualTo("CENTRO");
@@ -332,12 +351,55 @@ class GardenServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> gardens.saveGarden(space, "kara", null, "X", null, new BigDecimal("95"), null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> gardens.plant(space, "kara", bed.id(), "lavender", PlantingMethod.SOWN,
+        assertThatThrownBy(() -> gardens.plant(space, "kara", bed.id(), "papaya", PlantingMethod.SOWN,
                 LocalDate.now(), null)).isInstanceOf(IllegalArgumentException.class);
         PlantingSummary carrots = gardens.plant(space, "kara", bed.id(), "carrot", PlantingMethod.SOWN,
                 LocalDate.of(2026, 3, 1), null);
         assertThatThrownBy(() -> gardens.endPlanting(space, "kara", carrots.id(), LocalDate.of(2026, 2, 1)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void theRegionFollowsThePlaceAndIsClearedWhenItMovesOrLosesItsCoordinates() {
+        long space = spaceOf("region");
+        GardenSummary garden = gardens.saveGarden(space, "region", null, "Orto", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        gardens.setRegion(garden.id(), "13");
+        assertThat(gardens.garden(space, "region", garden.id()).orElseThrow().regionCode()).isEqualTo("13");
+
+        GardenSummary same = gardens.saveGarden(space, "region", garden.id(), "Orto", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        assertThat(same.regionCode()).as("the same place keeps the region").isEqualTo("13");
+
+        GardenSummary moved = gardens.saveGarden(space, "region", garden.id(), "Orto", "Trivento",
+                new BigDecimal("41.78"), new BigDecimal("14.55"), "IT");
+        assertThat(moved.regionCode()).as("a moved garden loses the region of its old place").isNull();
+
+        gardens.setRegion(garden.id(), "13");
+        GardenSummary cleared = gardens.saveGarden(space, "region", garden.id(), "Orto", "Vasto", null, null, "IT");
+        assertThat(cleared.regionCode()).as("cleared coordinates lose the region").isNull();
+
+        assertThatThrownBy(() -> gardens.setRegion(garden.id(), "Lombardia"))
+                .as("a region is a GeoNames code, not a name").isInstanceOf(IllegalArgumentException.class);
+        gardens.setRegion(garden.id(), null);
+        assertThat(gardens.garden(space, "region", garden.id()).orElseThrow().regionCode()).isNull();
+    }
+
+    @Test
+    void withoutRegionListsOnlyItalianGardensWithCoordinatesAndNoRegion() {
+        long space = spaceOf("regions");
+        GardenSummary italian = gardens.saveGarden(space, "regions", null, "Italiano", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        GardenSummary known = gardens.saveGarden(space, "regions", null, "Con regione", "Vasto",
+                new BigDecimal("42.12"), new BigDecimal("14.72"), "IT");
+        gardens.setRegion(known.id(), "13");
+        GardenSummary foreign = gardens.saveGarden(space, "regions", null, "Straniero", "Lyon",
+                new BigDecimal("45.76"), new BigDecimal("4.84"), "FR");
+        GardenSummary nowhere = gardens.saveGarden(space, "regions", null, "Senza posto", "Vasto", null, null, "IT");
+
+        assertThat(gardens.withoutRegion()).extracting(GardenSummary::id)
+                .contains(italian.id())
+                .doesNotContain(known.id(), foreign.id(), nowhere.id());
     }
 
     /** A new place is announced so its forecast can be fetched (#67); a save that keeps the place is not. */

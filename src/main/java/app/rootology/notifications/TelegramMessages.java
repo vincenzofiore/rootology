@@ -48,6 +48,11 @@ final class TelegramMessages {
         return new Item("una richiesta di invito aspetta una decisione", link);
     }
 
+    /** A flagged account (#165): the login and the counts, never a question, and where to decide. */
+    static Item accountFlag(String line, String link) {
+        return new Item("un account è stato segnalato: " + line, link);
+    }
+
     /** A change of membership (#105): what changed and where, never who wrote what. */
     static Item membership(String event, String spaceName, String link) {
         return new Item(MembershipText.subject(event, spaceName), link);

@@ -1,16 +1,8 @@
 package app.rootology.privacy;
 
-import app.rootology.access.AccessPersonalData;
-import app.rootology.enrichment.ProposalPersonalData;
-import app.rootology.garden.GardenPersonalData;
-import app.rootology.history.RunPersonalData;
-import app.rootology.notifications.NotificationPersonalData;
-import app.rootology.notifications.TelegramPersonalData;
-import app.rootology.pipeline.EscalationPersonalData;
-import app.rootology.roles.RolePersonalData;
+import app.rootology.roles.RoleService;
 import app.rootology.spaces.SpacePersonalData;
 import app.rootology.spaces.SpaceService;
-import app.rootology.usage.UsagePersonalData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -41,39 +33,22 @@ public class AccountDeletion {
 
     private static final Logger log = LoggerFactory.getLogger(AccountDeletion.class);
 
-    private final SpacePersonalData spaces;
-    private final GardenPersonalData gardens;
-    private final RunPersonalData runs;
-    private final EscalationPersonalData escalations;
-    private final NotificationPersonalData notifications;
-    private final TelegramPersonalData telegram;
-    private final UsagePersonalData usage;
-    private final ProposalPersonalData proposals;
-    private final RolePersonalData roles;
-    private final AccessPersonalData access;
+    private final PersonalData people;
+    private final SpaceService spaces;
+    private final RoleService roles;
     private final Clock clock;
 
-    AccountDeletion(SpacePersonalData spaces, GardenPersonalData gardens, RunPersonalData runs,
-                    EscalationPersonalData escalations, NotificationPersonalData notifications,
-                    TelegramPersonalData telegram, UsagePersonalData usage,
-                    ProposalPersonalData proposals, RolePersonalData roles, AccessPersonalData access, Clock clock) {
+    AccountDeletion(PersonalData people, SpaceService spaces, RoleService roles, Clock clock) {
+        this.people = people;
         this.spaces = spaces;
-        this.gardens = gardens;
-        this.runs = runs;
-        this.escalations = escalations;
-        this.notifications = notifications;
-        this.telegram = telegram;
-        this.usage = usage;
-        this.proposals = proposals;
         this.roles = roles;
-        this.access = access;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public Preview preview(String githubLogin) {
         String login = SpaceService.normalizeLogin(githubLogin);
-        SpacePersonalData.DeletionPlan plan = spaces.plan(login);
+        SpacePersonalData.DeletionPlan plan = people.spaces().plan(login);
         return new Preview(plan.spacesToDeleteNames(), plan.blockingSpaces(), roles.isLastAdmin(login));
     }
 
@@ -81,7 +56,7 @@ public class AccountDeletion {
     @Transactional
     public void delete(String githubLogin) {
         String login = SpaceService.normalizeLogin(githubLogin);
-        SpacePersonalData.DeletionPlan plan = spaces.plan(login);
+        SpacePersonalData.DeletionPlan plan = people.spaces().plan(login);
         List<String> refusals = new ArrayList<>();
         if (!plan.blockingSpaces().isEmpty()) {
             refusals.add("the only owner of " + plan.blockingSpaces() + ", which other people use");
@@ -94,17 +69,18 @@ public class AccountDeletion {
         }
         Set<Long> gone = plan.spacesToDelete();
         // Everything that refers to a space first, the spaces and the account last.
-        access.forget(login);
-        proposals.forget(login, gone, DELETED_USER);
-        notifications.forget(login, gone, DELETED_USER);
-        telegram.forget(login);
-        escalations.forget(login, gone, DELETED_USER);
-        runs.forget(login, gone, DELETED_USER);
-        gardens.forget(login, gone, DELETED_USER);
-        gardens.deleteSpaces(gone);
-        usage.forget(login, DELETED_USER);
-        roles.forget(login, DELETED_USER, clock.instant());
-        spaces.forget(login, gone, DELETED_USER);
+        people.access().forget(login);
+        people.accountFlags().forget(login, DELETED_USER);
+        people.proposals().forget(login, gone, DELETED_USER);
+        people.notifications().forget(login, gone, DELETED_USER);
+        people.telegram().forget(login);
+        people.escalations().forget(login, gone, DELETED_USER);
+        people.runs().forget(login, gone, DELETED_USER);
+        people.gardens().forget(login, gone, DELETED_USER);
+        people.gardens().deleteSpaces(gone);
+        people.usage().forget(login, DELETED_USER);
+        people.roles().forget(login, DELETED_USER, clock.instant());
+        people.spaces().forget(login, gone, DELETED_USER);
         log.info("An account was deleted, with {} space(s)", gone.size());
     }
 }

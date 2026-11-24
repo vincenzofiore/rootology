@@ -1,12 +1,10 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasEnabled;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -31,12 +29,12 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.geocoding.GeoNames;
-import app.rootology.geocoding.Place;
 import app.rootology.history.PipelineRunRecord;
 import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.history.RunHistory;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.resilience.ServiceUnavailableException;
+import app.rootology.spaces.SpaceAccessException;
 import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
@@ -50,7 +48,6 @@ import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
@@ -130,17 +127,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final Div main = new Div();
     /** What the answer will assume, before the question (#110): the garden, its last frost, the month. */
     private final Span context = new Span();
-    /** The choice a question needs before it can be answered (#107): one line and a chip per option. */
-    private final Div choice = new Div();
-    private final Span choiceLine = new Span();
-    /** The question the choice belongs to, so the person sees what the chips answer. */
-    private final Span choiceQuestion = new Span();
-    private final HorizontalLayout choiceChips = new HorizontalLayout();
-    /** "Another place…" (#107): the same GeoNames search the garden dialog uses, opened on demand. */
-    private ComboBox<Place> anotherPlace;
-    /** The question waiting for a choice, with the intent Claude already understood: what a tap runs again. */
-    private String waitingQuestion;
-    private Intent waitingIntent;
+    /** The place or garden a question needs before it can be answered (#107), under the field. */
+    private final ChoiceCard choice;
     /** A guest only looks (#33): each question costs Claude and Jev calls and may wait for a member. */
     private final Paragraph guest = new Paragraph(getTranslation("ask.guest"));
     private final HorizontalLayout form = new HorizontalLayout();
@@ -173,6 +161,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         this.currentUser = currentUser;
         this.executor = executor;
         this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting, currentUser::namesOf);
+        this.choice = new ChoiceCard(gardens, geoNames, cells, currentUser, () -> asking, () -> contributor,
+                this::continueQuestion);
 
         addClassName("rootology-ask");
         question.setLabel(getTranslation("ask.question"));
@@ -198,12 +188,6 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         suggestions.add(suggestionsLabel, suggested);
         context.addClassName("rootology-ask-context");
         answers.addClassName("rootology-ask-answers");
-        choice.addClassName("rootology-ask-choice");
-        choiceLine.addClassName("rootology-ask-choice-line");
-        choiceChips.addClassName("rootology-ask-chips");
-        choiceChips.addClassName("rootology-ask-choice-chips");
-        choice.setVisible(false);
-        choice.add(choiceLine, choiceChips);
         guest.setVisible(false);
         historyButton.addClassName("rootology-history-toggle");
         historyButton.setTooltipText(getTranslation("history.title"));
@@ -274,7 +258,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         form.setVisible(contributor);
         guest.setVisible(!contributor);
         // A choice belongs to the question that asked it: a page that opens again starts without one (#107).
-        hideChoice();
+        choice.hide();
         showContext();
         showSuggestions();
         loadHistory();
@@ -496,52 +480,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             button.addClassName("rootology-ask-chip");
             suggested.add(button);
         }
-        roving(suggested, getTranslation("ask.suggest.more"));
+        ChipGroup.roving(suggested, getTranslation("ask.suggest.more"));
         suggestions.setVisible(!chips.isEmpty());
-    }
-
-    /**
-     * One Tab stop for a group of chips (#120): the first chip (or the last one focused) carries tabindex 0,
-     * the others -1, and the arrow keys move between them. The keydown handler stays in the browser and only
-     * moves the focus; Enter and Space still click the chip, as a button always does.
-     */
-    private void roving(Component group, String label) {
-        group.getElement().setAttribute("role", "group");
-        group.getElement().setAttribute("aria-label", label);
-        List<Component> chips = group.getChildren().toList();
-        for (int i = 0; i < chips.size(); i++) {
-            chips.get(i).getElement().setAttribute("tabindex", i == 0 ? "0" : "-1");
-        }
-        group.getElement().executeJs("""
-                const group = this;
-                if (group.__roving) return;
-                group.__roving = true;
-                const chips = () => Array.from(group.querySelectorAll('.rootology-ask-chip'));
-                group.addEventListener('focusin', (event) => {
-                    const target = event.target.closest('.rootology-ask-chip');
-                    if (!target) return;
-                    chips().forEach((chip) => chip.setAttribute('tabindex', chip === target ? '0' : '-1'));
-                });
-                group.addEventListener('keydown', (event) => {
-                    const target = event.target.closest('.rootology-ask-chip');
-                    if (!target) return;
-                    const items = chips();
-                    const index = items.indexOf(target);
-                    if (index < 0) return;
-                    let next;
-                    switch (event.key) {
-                        case 'ArrowRight': case 'ArrowDown': next = index + 1; break;
-                        case 'ArrowLeft': case 'ArrowUp': next = index - 1; break;
-                        case 'Home': next = 0; break;
-                        case 'End': next = items.length - 1; break;
-                        default: return;
-                    }
-                    event.preventDefault();
-                    next = Math.max(0, Math.min(items.length - 1, next));
-                    items.forEach((chip, i) => chip.setAttribute('tabindex', i === next ? '0' : '-1'));
-                    items[next].focus();
-                });
-                """);
     }
 
     /** An item on top of the visit's stack, and the suggestions under it (#114). */
@@ -635,7 +575,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         asking = true;
         askButton.setEnabled(false);
         // A new question replaces whatever the previous one waited for (#107).
-        hideChoice();
+        choice.hide();
         // The question moves into its card, like a chat: the field is free for the next one, and every card
         // has "ask again" to bring the text back.
         question.clear();
@@ -655,10 +595,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
             } catch (RuntimeException ex) {
                 asking = false;
-                update(ui, () -> {
-                    clear(thinking);
-                    UiErrors.show(this, ex);
-                });
+                update(ui, () -> failedWith(thinking, ex));
             }
         });
     }
@@ -678,7 +615,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         }
         if (run.choice() != null) {
             // The question needs a place or a garden (#107): one line and a chip per option, and a tap runs it again.
-            showChoice(run, asked);
+            choice.show(run, asked, spaceId);
             return;
         }
         if (run.answer() == null) {
@@ -694,113 +631,26 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             return;
         }
         AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), currentUser, pageGarden, sources, enrichment, this);
-        if (mayAsk) {
-            // A place's answer can become a garden there, with every field already filled in (#107).
-            gardenHere(run).ifPresent(card::extra);
-        }
+        // A place's answer can become a garden there, with every field already filled in (#107).
+        choice.gardenHere(run, spaceId).ifPresent(card::extra);
         stack(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
-    }
-
-    /**
-     * The choice a question needs before it can be answered (#107): one short line and a chip per option under
-     * the field. A tap runs the same question again with that place or garden, and the answer is handled like
-     * any other.
-     */
-    private void showChoice(GardenPipeline.Run run, String asked) {
-        Choice needed = run.choice();
-        waitingQuestion = asked;
-        waitingIntent = run.intent();
-        choiceLine.setText(choiceText(needed, run.intent()));
-        choiceQuestion.setText(getTranslation("ask.choice.question", asked));
-        choiceQuestion.addClassName("rootology-ask-choice-question");
-        choiceChips.removeAll();
-        choice.removeAll();
-        choice.add(choiceQuestion, choiceLine, choiceChips);
-        for (Choice.Place place : needed.places()) {
-            choiceChips.add(chip(place.label(), () -> choosePlace(place)));
-        }
-        for (Choice.Garden garden : needed.gardens()) {
-            choiceChips.add(chip(garden.name(), () -> chooseGarden(garden.id())));
-        }
-        if (needed.kind() == Choice.Kind.PLACE) {
-            if (anotherPlaceAvailable()) {
-                choiceChips.add(chip(getTranslation("ask.choice.otherplace"), this::openAnotherPlace));
-                // The search opens only from its chip: most people tap one of the places offered.
-                choice.add(anotherPlace());
-                anotherPlace.setVisible(false);
-            }
-        } else if (needed.gardens().isEmpty()) {
-            // The space has no garden yet: creating one is the only way to answer a garden question.
-            choiceChips.add(chip(getTranslation("ask.choice.creategarden"), this::openNewGarden));
-        }
-        roving(choiceChips, choiceQuestion.getText());
-        choice.setVisible(true);
-        setChipsEnabled(true);
-    }
-
-    /** The line above the chips, naming what the question was looking for, in the page's language. */
-    private String choiceText(Choice needed, Intent intent) {
-        String asked = intent == null || intent.place() == null ? "" : intent.place();
-        return switch (needed.kind()) {
-            case PLACE -> switch (needed.why()) {
-                case MISSING -> getTranslation("ask.choice.place");
-                case NOT_FOUND -> getTranslation("ask.choice.place.notfound", asked);
-                case AMBIGUOUS -> getTranslation("ask.choice.place.ambiguous", asked);
-            };
-            case GARDEN -> getTranslation("ask.choice.garden");
-        };
-    }
-
-    /** One option, as a chip: a button with the look of the suggested questions, reachable from the keyboard. */
-    private Button chip(String text, Runnable action) {
-        Button button = new Button(text, e -> action.run());
-        button.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        button.addClassName("rootology-ask-chip");
-        return button;
-    }
-
-    /** The choice goes with the question that asked it: a new question, or a tap, takes it away (#107). */
-    private void hideChoice() {
-        waitingQuestion = null;
-        waitingIntent = null;
-        choice.setVisible(false);
-    }
-
-    /** The chips stay visible but do nothing while the continuation runs, so one tap is one question. */
-    private void setChipsEnabled(boolean enabled) {
-        choiceChips.getChildren().filter(HasEnabled.class::isInstance).map(HasEnabled.class::cast)
-                .forEach(c -> c.setEnabled(enabled));
-    }
-
-    /** A tap on a place chip: the same question again, with the place the person picked (#107). */
-    private void choosePlace(Choice.Place place) {
-        continueQuestion(place, 0);
-    }
-
-    /** A tap on a garden chip: the same question again, in the garden the person picked (#107). */
-    private void chooseGarden(long gardenId) {
-        continueQuestion(null, gardenId);
     }
 
     /**
      * Runs the waiting question again, with the place the person chose already resolved or in the garden they
      * chose (#107): no second understanding call and no daily limit, so it is a continuation, not a new
-     * question. A second tap meanwhile starts nothing.
+     * question. The choice has already gone, and a second tap meanwhile starts nothing.
      */
-    private void continueQuestion(Choice.Place place, long gardenId) {
-        if (asking || waitingQuestion == null || waitingIntent == null) {
+    private void continueQuestion(String asked, Intent intent, Choice.Place place, long gardenId) {
+        if (asking || intent == null) {
             return;
         }
-        String asked = waitingQuestion;
-        Intent intent = waitingIntent;
         RunContext context = context();
         String login = currentUser.login();
         boolean mayAsk = contributor;
         UI ui = getUI().or(() -> Optional.ofNullable(UI.getCurrent())).orElse(null);
         asking = true;
         askButton.setEnabled(false);
-        setChipsEnabled(false);
-        hideChoice();
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
         stack(thinking);
         executor.execute(() -> {
@@ -823,10 +673,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
             } catch (RuntimeException ex) {
                 asking = false;
-                update(ui, () -> {
-                    clear(thinking);
-                    UiErrors.show(this, ex);
-                });
+                update(ui, () -> failedWith(thinking, ex));
             }
         });
     }
@@ -839,7 +686,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         clear(thinking);
         if (run.choice() != null) {
             // Still a choice (the garden went away meanwhile, say): the chips come back here.
-            showChoice(run, asked);
+            choice.show(run, asked, spaceId);
             return;
         }
         Map<String, String> route = Map.of(Routed.SPACE, String.valueOf(spaceId),
@@ -850,88 +697,25 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 QueryParameters.simple(query)));
     }
 
-    /** Whether "another place" is offered: only when GeoNames is configured, and only to whoever asks (#30). */
-    private boolean anotherPlaceAvailable() {
-        return contributor && geoNames != null && geoNames.enabled();
-    }
-
-    /** The search field of "another place" (#107), built once: the same search as the garden dialog's. */
-    private ComboBox<Place> anotherPlace() {
-        if (anotherPlace == null) {
-            anotherPlace = PlaceSearch.field(geoNames, getTranslation("ask.choice.search"), "",
-                    NoteText.locale(this).getLanguage());
-            anotherPlace.addClassName("rootology-ask-choice-search");
-            anotherPlace.addValueChangeListener(e -> {
-                Place found = e.getValue();
-                if (found != null) {
-                    choosePlace(new Choice.Place(found.name(), found.region(), found.countryCode(),
-                            found.countryName(), BigDecimal.valueOf(found.latitude()),
-                            BigDecimal.valueOf(found.longitude()), null));
-                }
-            });
-        }
-        return anotherPlace;
-    }
-
-    private void openAnotherPlace() {
-        ComboBox<Place> search = anotherPlace();
-        search.setVisible(true);
-        search.focus();
-    }
-
-    /** The gardens overview with its new-garden dialog open: no garden, no garden question can be answered. */
-    private void openNewGarden() {
-        getUI().ifPresent(ui -> ui.navigate(GardensView.class,
-                new RouteParameters(Map.of(Routed.SPACE, String.valueOf(spaceId))),
-                QueryParameters.simple(Map.of(GardensView.NEW, ""))));
-    }
-
-    /**
-     * The link under a place's answer that opens a garden there (#107), with the place's names, position,
-     * country and altitude already in the dialog. Nothing is offered for an answer that used no place.
-     */
-    private Optional<Button> gardenHere(GardenPipeline.Run run) {
-        ContextSnapshot context = run.answer() == null ? null : run.answer().context();
-        if (run.place() == null || context == null || context.climateFrom() != ContextSnapshot.ClimateFrom.PLACE
-                || hasGardenAt(run.place())) {
-            return Optional.empty();
-        }
-        Button create = new Button(getTranslation("ask.createhere"), VaadinIcon.PLUS.create(),
-                e -> createGardenAt(run.place()));
-        create.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
-        create.addClassName("rootology-answer-create");
-        return Optional.of(create);
-    }
-
-    /** True when one of the space's gardens is already in that town or within about 5 km of the place. */
-    private boolean hasGardenAt(Choice.Place place) {
-        return gardens.gardens(spaceId, currentUser.login()).stream().anyMatch(g ->
-                (g.town() != null && g.town().strip().equalsIgnoreCase(place.name()))
-                        || (g.latitude() != null && g.longitude() != null && place.latitude() != null
-                        && place.longitude() != null
-                        && g.latitude().subtract(place.latitude()).abs().doubleValue() < 0.05
-                        && g.longitude().subtract(place.longitude()).abs().doubleValue() < 0.05));
-    }
-
-    /** The garden dialog on the place, and a toast that leads to the garden once it is saved (#107). */
-    private void createGardenAt(Choice.Place place) {
-        new GardenDialog(geoNames, cells, (name, town, latitude, longitude, countryCode, elevationM) ->
-                gardens.saveGarden(spaceId, currentUser.login(), null, name, town, latitude, longitude,
-                        countryCode, elevationM))
-                .open(null, saved -> Toasts.opening(getTranslation("ask.createhere.done", saved.name()),
-                        getTranslation("ask.createhere.open"), () -> openGarden(saved.id())), place);
-    }
-
-    /** A garden's home: where the toast of a garden just created leads (#107). */
-    private void openGarden(long gardenId) {
-        getUI().ifPresent(ui -> ui.navigate(GardenHomeView.class, new RouteParameters(Map.of(
-                Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(gardenId)))));
-    }
 
     /** The question could not be answered (#82): what to say instead of the answer, in the same stack. */
     private void failed(ThinkingCard thinking, String asked, String text, boolean mayAsk) {
         clear(thinking);
         stack(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
+    }
+
+    /**
+     * The question failed for a reason the person did not cause, or was refused. A refusal means the access changed
+     * while the page was open (#166): blocked, or no longer a member. Reading the page again goes through
+     * AccessRouting, which sends the person where they belong; the stack and the history are not read again.
+     */
+    private void failedWith(ThinkingCard thinking, RuntimeException ex) {
+        if (ex instanceof SpaceAccessException) {
+            getUI().ifPresent(u -> u.getPage().reload());
+            return;
+        }
+        clear(thinking);
+        UiErrors.show(this, ex);
     }
 
     /** The page is usable again: the thinking card goes, the button comes back and the count is re-read. */
@@ -1034,19 +818,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         return asking;
     }
 
-    /** Whether the choice under the field is showing, for the tests (#107). */
-    boolean choiceOpen() {
-        return choice.isVisible();
-    }
-
-    /** The chips of the choice, for the tests: a click is one choice (#107). */
-    List<Button> chips() {
-        return choiceChips.getChildren().map(Button.class::cast).toList();
-    }
-
-    /** The line above the chips, for the tests: it names what the question was looking for (#107). */
-    String choiceAsked() {
-        return choiceLine.getText();
+    /** The place or garden choice under the field, for the tests (#107). */
+    ChoiceCard choice() {
+        return choice;
     }
 
     /** The answers of the visit, for the tests (#107). */

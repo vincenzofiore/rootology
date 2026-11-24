@@ -41,10 +41,11 @@ final class ClimateCellsReader {
         short[] firstP50 = new short[rows.size()];
         short[] firstP20 = new short[rows.size()];
         byte[] years = new byte[rows.size()];
+        short[] winterMin = new short[rows.size()];
         for (int i = 0; i < rows.size(); i++) {
             String[] cells = rows.get(i).split(",", -1);
-            if (cells.length != 11) {
-                throw new IllegalStateException(RESOURCE + ": expected 11 cells at row " + (i + 2) + ": "
+            if (cells.length != 12) {
+                throw new IllegalStateException(RESOURCE + ": expected 12 cells at row " + (i + 2) + ": "
                         + rows.get(i));
             }
             try {
@@ -57,11 +58,20 @@ final class ClimateCellsReader {
                 firstP50[i] = (short) day(cells[8]);
                 firstP20[i] = (short) day(cells[9]);
                 years[i] = (byte) Integer.parseInt(cells[10]);
+                winterMin[i] = winterMinimum(cells[11]);
             } catch (NumberFormatException e) {
                 throw new IllegalStateException(RESOURCE + ": bad number at row " + (i + 2) + ": " + rows.get(i), e);
             }
         }
-        return new ClimateCells(lat, lon, elevation, land, lastP50, lastP80, firstP50, firstP20, years);
+        return new ClimateCells(lat, lon, elevation, land, lastP50, lastP80, firstP50, firstP20, years, winterMin);
+    }
+
+    /** The winter minimum in tenths of a degree; the sentinel when the cell has no value. */
+    private static short winterMinimum(String value) {
+        if (value == null || value.isBlank()) {
+            return ClimateCells.NO_WINTER_MIN;
+        }
+        return (short) Math.round(Double.parseDouble(value) * 10);
     }
 
     /** "MM-DD" as a day of the year (2025, not a leap year); 0 when the cell has no such frost. */

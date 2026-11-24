@@ -1,5 +1,6 @@
 package app.rootology.facts;
 
+import app.rootology.facts.CuratedKnowledge.ControlRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.NeedRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
@@ -24,10 +25,14 @@ import java.util.stream.Collectors;
 public final class KnowledgeValidator {
 
     static final Set<String> ZONES = Set.of("NORD", "CENTRO", "SUD");
-    static final Set<String> ACTIVITIES = Set.of("SOW", "SOW_SEEDBED", "TRANSPLANT", "PLANT", "HARVEST");
+    static final Set<String> ACTIVITIES = Set.of("SOW", "SOW_SEEDBED", "TRANSPLANT", "PLANT", "HARVEST", "PRUNE");
     static final Set<String> RELATIONS = Set.of("COMPANION", "ANTAGONIST");
     static final Set<String> EVIDENCE = Set.of("study", "extension", "traditional");
     static final Set<String> KINDS = Set.of("INSECT", "MITE", "MOLLUSC", "DISEASE");
+    static final Set<String> CONTROL_KINDS = Set.of("PRACTICE", "NATURAL_ENEMY", "SERVICE_PLANT", "SUBSTANCE",
+            "MICROORGANISM", "TRAP");
+    /** Substances and microorganisms must be allowed in organic production (#140). */
+    static final String ORGANIC_LIST = "eu-2021-1165";
 
     public static List<String> validate(CuratedKnowledge k) {
         List<String> problems = new ArrayList<>();
@@ -48,6 +53,16 @@ public final class KnowledgeValidator {
             }
             oneOf(c.frostGroup(), FrostShiftRule.GROUPS, "crop " + c.id() + ": frost_group", problems);
             oneOf(c.italianArticle(), Crop.ITALIAN_ARTICLES, "crop " + c.id() + ": italian_article", problems);
+            oneOf(c.lifecycle(), Crop.LIFECYCLES, "crop " + c.id() + ": lifecycle", problems);
+            oneOf(c.use(), Crop.USES, "crop " + c.id() + ": use", problems);
+            if (c.frostHardiness() != null || c.hardinessSource() != null) {
+                if (!c.perennial()) {
+                    problems.add("crop " + c.id() + ": frost_hardiness is for perennials only");
+                } else if (c.frostHardiness() == null || c.frostHardiness() < -40 || c.frostHardiness() > 15) {
+                    problems.add("crop " + c.id() + ": frost_hardiness must be between -40 and 15 °C");
+                }
+                source(sources, c.hardinessSource(), "crop " + c.id() + ": hardiness_source", problems);
+            }
         }
         for (NeedRow n : k.needs()) {
             String where = "needs of " + n.cropId();
@@ -71,9 +86,11 @@ public final class KnowledgeValidator {
         for (Crop c : k.crops()) {
             Set<String> activities = k.windows().stream().filter(w -> w.cropId().equals(c.id()))
                     .map(WindowRow::activity).collect(Collectors.toSet());
-            if (!activities.contains("HARVEST")
-                    || activities.stream().noneMatch(a -> Set.of("SOW", "SOW_SEEDBED", "PLANT").contains(a))) {
-                problems.add("crop " + c.id() + " needs a sowing or planting window and a harvest window");
+            // A service plant or green manure is not harvested for food (#140): it needs only its sowing window.
+            if (activities.stream().noneMatch(a -> Set.of("SOW", "SOW_SEEDBED", "PLANT").contains(a))) {
+                problems.add("crop " + c.id() + " needs a sowing or planting window");
+            } else if (!c.service() && !activities.contains("HARVEST")) {
+                problems.add("crop " + c.id() + " needs a harvest window");
             }
         }
         Set<String> declared = new HashSet<>();
@@ -102,6 +119,7 @@ public final class KnowledgeValidator {
             oneOf(o.kind(), KINDS, "organism " + o.id() + ": kind", problems);
             source(sources, o.source(), "organism " + o.id(), problems);
         }
+        otherNames(k, problems);
         for (HostRow h : k.hosts()) {
             String where = "host " + h.organismId() + "-" + h.cropId();
             if (!organisms.containsKey(h.organismId())) {
@@ -115,7 +133,40 @@ public final class KnowledgeValidator {
         Set<String> withHosts = k.hosts().stream().map(HostRow::organismId).collect(Collectors.toSet());
         organisms.keySet().stream().filter(id -> !withHosts.contains(id))
                 .forEach(id -> problems.add("organism " + id + " affects no crop"));
+        controls(k.controls(), sources, crops, organisms, problems);
         return problems;
+    }
+
+    private static void controls(List<ControlRow> controls, Map<String, SourceRow> sources, Map<String, Crop> crops,
+                                 Map<String, OrganismRow> organisms, List<String> problems) {
+        Set<String> seen = new HashSet<>();
+        for (ControlRow c : controls) {
+            String where = "control " + c.organismId() + " \"" + c.method() + "\"";
+            if (!organisms.containsKey(c.organismId())) {
+                problems.add(where + ": unknown organism " + c.organismId());
+            }
+            if (c.method() == null || c.method().isBlank()) {
+                problems.add(where + ": no method");
+            }
+            if (!seen.add(c.organismId() + "|" + c.method())) {
+                problems.add(where + ": duplicate");
+            }
+            oneOf(c.kind(), CONTROL_KINDS, where + ": kind", problems);
+            oneOf(c.evidence(), EVIDENCE, where + ": evidence", problems);
+            c.sources().forEach(s -> source(sources, s, where, problems));
+            if (("SUBSTANCE".equals(c.kind()) || "MICROORGANISM".equals(c.kind()))
+                    && !c.sources().contains(ORGANIC_LIST)) {
+                problems.add(where + ": a substance or microorganism must cite " + ORGANIC_LIST);
+            }
+            if ("SERVICE_PLANT".equals(c.kind())) {
+                if (c.agent() == null || c.agent().isBlank()) {
+                    problems.add(where + ": a service plant names its crop in agent");
+                } else {
+                    java.util.Arrays.stream(c.agent().split(";")).map(String::trim)
+                            .forEach(id -> crop(crops, id, where, problems));
+                }
+            }
+        }
     }
 
     /**
@@ -218,5 +269,27 @@ public final class KnowledgeValidator {
     }
 
     private KnowledgeValidator() {
+    }
+
+    /**
+     * Common names of a pest (#140), in lower case as questions are matched: each says one pest only, so none
+     * may be the name of a crop, of another pest or another pest's common name.
+     */
+    private static void otherNames(CuratedKnowledge k, List<String> problems) {
+        Map<String, String> taken = new java.util.HashMap<>();
+        k.crops().forEach(c -> java.util.stream.Stream.of(c.id(), c.italianName(), c.englishName())
+                .forEach(n -> taken.put(n.toLowerCase(java.util.Locale.ROOT), "crop " + c.id())));
+        k.organisms().forEach(o -> java.util.stream.Stream.of(o.id(), o.italianName(), o.englishName(), o.scientificName())
+                .forEach(n -> taken.put(n.toLowerCase(java.util.Locale.ROOT), "organism " + o.id())));
+        for (OrganismRow o : k.organisms()) {
+            for (String name : o.otherNames()) {
+                String owner = taken.putIfAbsent(name, "organism " + o.id());
+                if (name.isBlank() || !name.equals(name.toLowerCase(java.util.Locale.ROOT)) || name.contains(",")) {
+                    problems.add("organism " + o.id() + ": other name '" + name + "' is not a lower-case name");
+                } else if (owner != null) {
+                    problems.add("organism " + o.id() + ": other name '" + name + "' is already the name of " + owner);
+                }
+            }
+        }
     }
 }

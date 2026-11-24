@@ -39,7 +39,22 @@ public class ClimateWindows {
 
     /** The windows of a crop at a site, curated ones for a named NORD or SUD zone included. */
     public List<ClimateWindow> windows(String cropId, SiteProfile site) {
-        return all(site).stream().filter(w -> w.window().cropId().equals(cropId)).toList();
+        return windows(site).stream().filter(w -> w.window().cropId().equals(cropId)).toList();
+    }
+
+    /** Every window of a site, by crop and activity: the derived ones, then the curated rows of a named zone. */
+    public List<ClimateWindow> windows(SiteProfile site) {
+        return all(site);
+    }
+
+    /** The curated CENTRO windows, the calendars a rule such as pest-shift-v1 moves (#162). */
+    public List<WindowRow> curatedWindows() {
+        return curated.stream().filter(w -> w.zone().equals("CENTRO")).toList();
+    }
+
+    /** The windows the site's frost dates derive from the curated ones (frost-shift-v1); empty without a site. */
+    public List<FrostShiftRule.InferredWindow> derivedWindows(SiteProfile site) {
+        return site == null ? List.of() : FrostShiftRule.infer(curated, groups, site);
     }
 
     /**
@@ -60,8 +75,9 @@ public class ClimateWindows {
     }
 
     /**
-     * The crops that can be sown or planted in a month at a site, as facts (crop, sowIn|seedbedIn|transplantIn|plantIn, MONTH),
-     * named in the given language ("it" for Italian, otherwise English).
+     * The food crops that can be sown or planted in a month at a site, as facts (crop,
+     * sowIn|seedbedIn|transplantIn|plantIn, MONTH), named in the given language ("it" for Italian, otherwise
+     * English). Service plants and green manures are left out (#140).
      */
     public List<SourcedFact> sowingFacts(String month, SiteProfile site, String language) {
         int m = KnowledgeGraph.MONTHS.indexOf(month) + 1;
@@ -72,6 +88,10 @@ public class ClimateWindows {
         List<ClimateWindow> all = all(site);
         List<SourcedFact> facts = new ArrayList<>();
         for (Crop crop : crops.all()) {
+            // Service plants and green manures are not food (#140): their own calendar answers, this question does not.
+            if (crop.service()) {
+                continue;
+            }
             for (ClimateWindow w : all) {
                 if (!w.window().cropId().equals(crop.id())
                         || !Set.of("SOW", "SOW_SEEDBED", "PLANT", "TRANSPLANT").contains(w.window().activity())
@@ -110,7 +130,7 @@ public class ClimateWindows {
     }
 
     /** The sources of a window: the site's own for a derived one, the curated file's for a declared one. */
-    private static List<String> sources(ClimateWindow w, SiteProfile site) {
+    public static List<String> sources(ClimateWindow w, SiteProfile site) {
         if (!w.derived()) {
             return List.of(w.window().source());
         }

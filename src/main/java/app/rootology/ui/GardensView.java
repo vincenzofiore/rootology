@@ -35,9 +35,7 @@ import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -350,9 +348,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     private Map<Long, Counts> counts(List<GardenSummary> all) {
         String login = currentUser.login();
         LocalDate today = LocalDate.now(GardenHomeView.ITALY);
-        Instant since = Instant.now().minus(GardenHomeView.ALERT_DAYS, ChronoUnit.DAYS);
-        List<NotificationView> alerts = all.isEmpty() ? List.of() : notifications.of(login, 50).stream()
-                .filter(n -> n.weather() && n.spaceId() == spaceId && n.createdAt().isAfter(since)).toList();
+        List<NotificationView> alerts = all.isEmpty() ? List.of()
+                : notifications.weatherAlerts(login, spaceId, 0, GardenHomeView.ALERT_DAYS);
         Map<Long, Counts> counts = new LinkedHashMap<>();
         for (GardenSummary garden : all) {
             counts.put(garden.id(), new Counts(gardens.growingOn(spaceId, login, garden.id(), today).size(),
@@ -368,8 +365,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         if (garden.latitude() == null || garden.longitude() == null) {
             return Optional.empty();
         }
-        return hours.computeIfAbsent(garden.latitude() + "/" + garden.longitude(),
-                key -> weather.storedNow(garden.latitude(), garden.longitude()));
+        return hours.computeIfAbsent(garden.latitude() + "/" + garden.longitude() + "/" + garden.elevationM(),
+                key -> weather.storedNow(garden.latitude(), garden.longitude(), garden.elevationM()));
     }
 
     /**
@@ -416,7 +413,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                 counts.waiting() > 0 ? "rootology-garden-card-fact-waiting" : null));
         if (!counts.alerts().isEmpty()) {
             AlertSeverity gravest = counts.alerts().getFirst();
-            facts.add(fact(gravest.icon().create(), counts.alerts().size(), getTranslation("home.alerts"),
+            facts.add(fact(new SvgIcon(gravest.icon()), counts.alerts().size(), getTranslation("home.alerts"),
                     gravest.className()));
         }
         return facts;

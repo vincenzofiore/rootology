@@ -113,6 +113,7 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
 
         PipelineRunRecord row = history.recent(run.spaceId(), run.gardenId(), run.startedBy()).getFirst();
         assertThat(row.isOffDomain()).isTrue();
+        assertThat(row.isDomainUnjudged()).isFalse();
         assertThat(row.getQuestion()).isEqualTo(text);
         // The context was never resolved, but the row still says where it was asked.
         assertThat(history.contextOf(row)).hasValueSatisfying(context -> {
@@ -120,6 +121,32 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
             assertThat(context.gardenName()).isEqualTo("Home garden");
         });
         assertThat(usage.today("otto").used()).isEqualTo(1);
+    }
+
+    @Test
+    void aQuestionTheFilterCouldNotJudgeGoesOnAndSaysSo() {
+        whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9102"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+        when(domainFilter.judge("How do I change a car tyre? 9102")).thenReturn(DomainFilter.Verdict.unjudged());
+        when(domainFilter.judge("How do I change a car tyre? 9103")).thenReturn(DomainFilter.Verdict.allowing(0.9));
+        whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9103"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
+        RunContext run = signedIn("piero");
+
+        GardenPipeline.Run unscreened = pipeline.askKnowledgeBase(new Question("ask", "How do I change a car tyre? 9102"), run);
+        GardenPipeline.Run screened = pipeline.askKnowledgeBase(new Question("ask", "How do I change a car tyre? 9103"), run);
+
+        assertThat(unscreened.offDomain()).isFalse();
+        assertThat(unscreened.domainUnjudged()).as("an outage of the filter is kept with the run (#161)").isTrue();
+        assertThat(screened.domainUnjudged()).isFalse();
+
+        // #165: the history row says the question went on unscreened, so a later signal can leave it out.
+        assertThat(history.recent(run.spaceId(), 0, "piero"))
+                .filteredOn(row -> row.getQuestion().endsWith("9102")).singleElement()
+                .satisfies(row -> assertThat(row.isDomainUnjudged()).isTrue());
+        assertThat(history.recent(run.spaceId(), 0, "piero"))
+                .filteredOn(row -> row.getQuestion().endsWith("9103")).singleElement()
+                .satisfies(row -> assertThat(row.isDomainUnjudged()).isFalse());
     }
 
     @Test

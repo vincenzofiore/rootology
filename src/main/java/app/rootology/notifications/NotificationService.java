@@ -1,6 +1,7 @@
 package app.rootology.notifications;
 
 import app.rootology.access.AccessRequested;
+import app.rootology.access.AccountFlagged;
 import app.rootology.mail.MailService;
 import app.rootology.mail.OutgoingMail;
 import app.rootology.pipeline.EscalationResolved;
@@ -50,6 +51,10 @@ public class NotificationService {
     static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+
+    /** The columns of a notification as its recipient sees it, in the order {@link #view} reads them. */
+    private static final String COLUMNS = "id, space_id, garden_id, kind, process_id, title, body, created_at, "
+            + "read_at, resolved_at, resolved_by, dedup_key, asked_by, event, space_name";
 
     /** The delivery mark of each channel, on the same rows: a notification can go out by both (#38). */
     private static final String EMAIL_MARK = "emailed_at";
@@ -149,6 +154,26 @@ public class NotificationService {
     }
 
     /**
+     * A flagged account (#165): one notification per admin, with no space. It says the login and the counts
+     * that raised the flag, never a question, and links the Administration page, where an admin decides.
+     */
+    @EventListener
+    @Transactional
+    void on(AccountFlagged flagged) {
+        Set<String> admins = new HashSet<>(roles.holders(AppRole.ADMIN));
+        for (String admin : admins) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, title, body, created_at) "
+                            + "VALUES (?, NULL, NULL, 'ACCOUNT_FLAG', ?, ?, ?)")
+                    .params(admin, "An account was flagged", AccountFlagText.line(flagged),
+                            Timestamp.from(clock.instant()))
+                    .update();
+        }
+        if (!admins.isEmpty()) {
+            events.publishEvent(new NotificationsChanged(admins));
+        }
+    }
+
+    /**
      * A change of membership (#105): one unread notification per recipient, in the space it is about, with who
      * acted, the optional message and the space's name then (a blocked member no longer sees the space).
      */
@@ -174,23 +199,32 @@ public class NotificationService {
     /** The latest notifications of a person, newest first. */
     @Transactional(readOnly = true)
     public List<NotificationView> of(String login, int limit) {
-        return jdbc.sql("SELECT id, space_id, garden_id, kind, process_id, title, body, created_at, read_at, "
-                        + "resolved_at, resolved_by, dedup_key, asked_by, event, space_name FROM notification "
-                        + "WHERE recipient = ? "
+        return jdbc.sql("SELECT " + COLUMNS + " FROM notification WHERE recipient = ? "
                         + "ORDER BY created_at DESC, id DESC LIMIT ?")
                 .params(normalize(login), limit)
-                .query((rs, i) -> {
-                    long gardenId = rs.getLong(3);
-                    if (rs.wasNull()) {
-                        gardenId = 0;
-                    }
-                    return new NotificationView(rs.getLong(1), rs.getLong(2), gardenId,
-                            rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7),
-                            rs.getTimestamp(8).toInstant(), instant(rs.getTimestamp(9)),
-                            instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12), rs.getString(13),
-                            rs.getString(14), rs.getString(15));
-                })
+                .query(NotificationService::view)
                 .list();
+    }
+
+    /**
+     * The weather alerts (#37) a person got in a space's gardens in the last {@code days}, newest first: every
+     * one of them, however many other notifications arrived meanwhile (#155). {@code gardenId} 0 asks for every
+     * garden of the space, a garden id for that one alone, as the garden home does. The line on the official
+     * warnings (#168, dedup key {@code official:}) is left out: the card on the garden home shows those.
+     */
+    @Transactional(readOnly = true)
+    public List<NotificationView> weatherAlerts(String login, long spaceId, long gardenId, int days) {
+        Instant since = clock.instant().minus(Duration.ofDays(days));
+        var query = jdbc.sql("SELECT " + COLUMNS + " FROM notification "
+                + "WHERE recipient = ? AND kind = 'WEATHER_ALERT' AND space_id = ?"
+                + " AND (dedup_key IS NULL OR dedup_key NOT LIKE 'official:%')"
+                + (gardenId > 0 ? " AND garden_id = ?" : "") + " AND created_at > ? "
+                + "ORDER BY created_at DESC, id DESC")
+                .param(normalize(login)).param(spaceId);
+        if (gardenId > 0) {
+            query = query.param(gardenId);
+        }
+        return query.param(Timestamp.from(since)).query(NotificationService::view).list();
     }
 
     @Transactional(readOnly = true)
@@ -284,9 +318,11 @@ public class NotificationService {
 
     /**
      * One email per person with every question still waiting that is at least group-window old and not yet
-     * emailed; skipped during their quiet hours (it goes at the next run after them). Returns the emails sent.
+     * emailed; skipped during their quiet hours (it goes at the next run after them). Each email is sent
+     * synchronously (the job already runs in the background) and its rows are marked only when it went out,
+     * so a failed send is picked up by the next run. No transaction around it: a slow SMTP server must not hold
+     * one open, and a later failure must not roll back the marks of emails already sent. Returns the emails sent.
      */
-    @Transactional
     public int digest() {
         Instant now = clock.instant();
         Map<String, List<Pending>> byRecipient = pending(EMAIL_MARK, now.minus(groupWindow));
@@ -298,14 +334,19 @@ public class NotificationService {
             }
             List<Pending> wanted = e.getValue().stream()
                     .filter(p -> p.weather() ? prefs.emailWeather() : prefs.emailEscalations()).toList();
-            if (!wanted.isEmpty() && prefs.email() != null) {
-                mail.sendLater(digestMail(prefs.email(), wanted));
+            // Not wanted, or no address: handled without sending, as always.
+            List<Pending> unwanted = e.getValue().stream().filter(p -> !wanted.contains(p)).toList();
+            markEmailed(unwanted, now);
+            if (wanted.isEmpty() || prefs.email() == null) {
+                markEmailed(wanted, now);
+                continue;
+            }
+            // Sent synchronously (#153): the rows are marked only once the email went out; a failed send
+            // leaves them unmarked and the next run tries again.
+            if (mail.sendNow(digestMail(prefs.email(), wanted))) {
+                markEmailed(wanted, now);
                 sent++;
             }
-            // Handled: sent, or not wanted, or no address. Never emailed twice.
-            jdbc.sql("UPDATE notification SET emailed_at = :at WHERE id IN (:ids)")
-                    .param("at", Timestamp.from(now)).param("ids", e.getValue().stream().map(Pending::id).toList())
-                    .update();
         }
         if (sent > 0) {
             log.info("Sent {} notification emails", sent);
@@ -361,6 +402,14 @@ public class NotificationService {
         return sent;
     }
 
+    private void markEmailed(List<Pending> rows, Instant now) {
+        if (rows.isEmpty()) {
+            return;
+        }
+        jdbc.sql("UPDATE notification SET emailed_at = :at WHERE id IN (:ids)")
+                .param("at", Timestamp.from(now)).param("ids", rows.stream().map(Pending::id).toList()).update();
+    }
+
     private void markTelegramed(List<Pending> rows, Instant now) {
         jdbc.sql("UPDATE notification SET telegramed_at = :at WHERE id IN (:ids)")
                 .param("at", Timestamp.from(now)).param("ids", rows.stream().map(Pending::id).toList()).update();
@@ -370,6 +419,9 @@ public class NotificationService {
     private TelegramMessages.Item telegramItem(Pending p) {
         if (p.accessRequest()) {
             return TelegramMessages.accessRequest(adminLink());
+        }
+        if (p.accountFlag()) {
+            return TelegramMessages.accountFlag(p.body(), adminLink());
         }
         if (p.membership()) {
             return TelegramMessages.membership(p.event(), p.spaceName(), membershipLink(p));
@@ -416,6 +468,7 @@ public class NotificationService {
         List<Pending> weather = pending.stream().filter(Pending::weather).toList();
         List<Pending> requests = pending.stream().filter(Pending::accessRequest).toList();
         List<Pending> memberships = pending.stream().filter(Pending::membership).toList();
+        List<Pending> flags = pending.stream().filter(Pending::accountFlag).toList();
         String subject;
         if (!weather.isEmpty()) {
             subject = questions.isEmpty() && answers.isEmpty()
@@ -447,6 +500,10 @@ public class NotificationService {
         if (!memberships.isEmpty()) {
             String extra = memberships.size() == 1 ? MembershipText.subject(memberships.getFirst().event(),
                     memberships.getFirst().spaceName()) : "cambiamenti nei tuoi spazi";
+            subject = subject == null ? "Rootology: " + extra : subject + " e " + extra;
+        }
+        if (!flags.isEmpty()) {
+            String extra = AccountFlagText.subject(flags.size());
             subject = subject == null ? "Rootology: " + extra : subject + " e " + extra;
         }
         StringBuilder text = new StringBuilder("Ciao,\n\n");
@@ -511,6 +568,19 @@ public class NotificationService {
                 html.append("<br><a href=\"").append(HtmlUtils.htmlEscape(membershipLink(p))).append("\">Rootology</a></p>");
             }
         }
+        if (!flags.isEmpty()) {
+            // The login and the counts only (#165): never a question, and nothing to the flagged person.
+            text.append(flags.size() == 1 ? "un account è stato segnalato:\n"
+                    : "alcuni account sono stati segnalati:\n");
+            flags.forEach(p -> text.append("- ").append(p.body()).append("\n  Amministrazione: ")
+                    .append(adminLink()).append('\n'));
+            html.append("<p>").append(flags.size() == 1 ? "Un account è stato segnalato:"
+                    : "Alcuni account sono stati segnalati:").append("</p><ul>");
+            flags.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body()))
+                    .append(" — <a href=\"").append(HtmlUtils.htmlEscape(adminLink()))
+                    .append("\">Amministrazione</a></li>"));
+            html.append("</ul>");
+        }
         text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
         html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
         return new OutgoingMail(to, subject, text.toString(), html.toString());
@@ -562,7 +632,7 @@ public class NotificationService {
 
         /** Where it happened, as the notification page shows it: space · garden, or the space alone. */
         String place() {
-            if (accessRequest()) {
+            if (accessRequest() || accountFlag()) {
                 return "Amministrazione";
             }
             return gardenName == null ? spaceName : spaceName + " · " + gardenName;
@@ -570,6 +640,11 @@ public class NotificationService {
 
         boolean accessRequest() {
             return "ACCESS_REQUEST".equals(kind);
+        }
+
+        /** A flagged account (#165): about the app, not about a space, and it leads to the admin page. */
+        boolean accountFlag() {
+            return "ACCOUNT_FLAG".equals(kind);
         }
 
         boolean weather() {
@@ -585,7 +660,7 @@ public class NotificationService {
         }
 
         boolean waiting() {
-            return !weather() && !answered() && !accessRequest() && !membership();
+            return !weather() && !answered() && !accessRequest() && !membership() && !accountFlag();
         }
     }
 
@@ -606,6 +681,14 @@ public class NotificationService {
     private static long gardenOf(java.sql.ResultSet rs, int column) throws java.sql.SQLException {
         long gardenId = rs.getLong(column);
         return rs.wasNull() ? 0 : gardenId;
+    }
+
+    /** One row as the recipient sees it, from the columns of {@link #COLUMNS}. */
+    private static NotificationView view(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new NotificationView(rs.getLong(1), rs.getLong(2), gardenOf(rs, 3), rs.getString(4),
+                rs.getString(5), rs.getString(6), rs.getString(7), rs.getTimestamp(8).toInstant(),
+                instant(rs.getTimestamp(9)), instant(rs.getTimestamp(10)), rs.getString(11), rs.getString(12),
+                rs.getString(13), rs.getString(14), rs.getString(15));
     }
 
     private static Instant instant(Timestamp t) {

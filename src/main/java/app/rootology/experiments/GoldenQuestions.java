@@ -75,7 +75,7 @@ public record GoldenQuestions(LocalDate today, List<Case> cases) {
         Map<String, Object> i = (Map<String, Object>) c.get("intent");
         Intent intent = new Intent(QueryKind.valueOf((String) i.get("kind")), (String) i.get("subject"),
                 (String) i.get("season"), (String) i.get("language"), (String) i.get("zone"), (String) i.get("month"),
-                (String) i.get("garden"), (String) i.get("place"));
+                (String) i.get("garden"), (String) i.get("place"), (List<String>) i.get("goals"));
         Map<String, Object> expect = (Map<String, Object>) c.get("expect");
         List<SpaceAlias> facts = ((List<Map<String, Object>>) c.getOrDefault("spaceFacts", List.of())).stream()
                 .map(f -> new SpaceAlias((String) f.get("alias"), (String) f.get("name"), (String) f.get("language")))

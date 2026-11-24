@@ -2,7 +2,6 @@ package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Location;
 import com.vaadin.flow.router.QueryParameters;
@@ -18,7 +17,6 @@ import app.rootology.facts.SourceCatalog;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.geocoding.GeoNames;
-import app.rootology.geocoding.Place;
 import app.rootology.history.RunHistory;
 import app.rootology.pipeline.ContextSnapshot;
 import app.rootology.pipeline.GardenPipeline;
@@ -99,44 +97,11 @@ class AskChoiceTest {
 
         view.beforeEnter(asking(space, "Cosa posso seminare adesso?"));
 
-        assertThat(view.choiceOpen()).isTrue();
-        assertThat(view.choiceAsked()).as("the page's texts, without a session, are their keys")
+        assertThat(view.choice().showing()).isTrue();
+        assertThat(view.choice().line()).as("the page's texts, without a session, are their keys")
                 .contains("ask.choice.place")
                 .doesNotContain("notfound", "ambiguous");
-        assertThat(texts(view.chips())).containsExactly("Torino, Piemonte", "Palermo, Sicilia");
-    }
-
-    @Test
-    void aPlaceThatWasNotFoundNamesItAndOffersTheTowns() {
-        String login = login("place-not-found");
-        long space = personalSpace(login);
-        GardenPipeline stub = mockPicking(choice(Choice.Kind.PLACE, Choice.Why.NOT_FOUND, List.of(TORINO), List.of()));
-        when(stub.askKnowledgeBase(any(), any(), anyBoolean())).thenReturn(run(
-                new Intent(QueryKind.SOWING_TIME, "tomato", null, "it", null, null, null, "Xyzville"), null,
-                choice(Choice.Kind.PLACE, Choice.Why.NOT_FOUND, List.of(TORINO), List.of()), null));
-
-        AskView view = ask(stub, login, space);
-        view.beforeEnter(asking(space, "Quando semino il pomodoro a Xyzville?"));
-
-        assertThat(view.choiceAsked()).contains("ask.choice.place.notfound");
-        assertThat(texts(view.chips())).containsExactly("Torino, Piemonte");
-    }
-
-    @Test
-    void aPlaceThatMatchesSeveralAsksWhichOneAndOffersTheCandidates() {
-        String login = login("place-ambiguous");
-        long space = personalSpace(login);
-        GardenPipeline stub = mockPicking(choice(Choice.Kind.PLACE, Choice.Why.AMBIGUOUS, List.of(TORINO, PALERMO),
-                List.of()));
-        when(stub.askKnowledgeBase(any(), any(), anyBoolean())).thenReturn(run(
-                new Intent(QueryKind.SOWING_TIME, "tomato", null, "it", null, null, null, "Sant’Angelo"), null,
-                choice(Choice.Kind.PLACE, Choice.Why.AMBIGUOUS, List.of(TORINO, PALERMO), List.of()), null));
-
-        AskView view = ask(stub, login, space);
-        view.beforeEnter(asking(space, "Quando semino il pomodoro a Sant’Angelo?"));
-
-        assertThat(view.choiceAsked()).contains("ask.choice.place.ambiguous");
-        assertThat(texts(view.chips())).containsExactly("Torino, Piemonte", "Palermo, Sicilia");
+        assertThat(texts(view.choice().chips())).containsExactly("Torino, Piemonte", "Palermo, Sicilia");
     }
 
     @Test
@@ -150,11 +115,11 @@ class AskChoiceTest {
 
         AskView view = ask(stub, login, space);
         view.beforeEnter(asking(space, "Cosa posso seminare adesso?"));
-        view.chips().getFirst().click();
+        view.choice().chips().getFirst().click();
 
         verify(stub).continueWith(any(Question.class), eq(new Intent(QueryKind.SOWING_TIME, "tomato", null, "it",
                 null, null, null)), any(RunContext.class), eq(TORINO));
-        assertThat(view.choiceOpen()).as("the choice is done").isFalse();
+        assertThat(view.choice().showing()).as("the choice is done").isFalse();
         assertThat(view.asking()).isFalse();
     }
 
@@ -171,53 +136,13 @@ class AskChoiceTest {
 
         AskView view = ask(stub, login, space);
         view.beforeEnter(asking(space, "Cosa cresce adesso?"));
-        assertThat(view.choiceAsked()).contains("ask.choice.garden");
-        assertThat(texts(view.chips())).containsExactly("Terrazzo grande", "Terrazzo piccolo");
+        assertThat(view.choice().line()).contains("ask.choice.garden");
+        assertThat(texts(view.choice().chips())).containsExactly("Terrazzo grande", "Terrazzo piccolo");
 
-        view.chips().get(1).click();
+        view.choice().chips().get(1).click();
 
         verify(stub).continueWith(any(Question.class), any(Intent.class), any(RunContext.class), eq(second));
-        assertThat(view.choiceOpen()).isFalse();
-    }
-
-    @Test
-    void aSpaceWithoutAGardenOffersToCreateOne() {
-        String login = login("no-garden");
-        long space = personalSpace(login);
-        AskView view = ask(mockPicking(choice(Choice.Kind.GARDEN, Choice.Why.MISSING, List.of(), List.of())), login,
-                space);
-
-        view.beforeEnter(asking(space, "Cosa cresce adesso?"));
-
-        assertThat(texts(view.chips())).hasSize(1);
-        assertThat(texts(view.chips()).getFirst()).contains("ask.choice.creategarden");
-    }
-
-    @Test
-    void anotherPlaceIsSearchedWhenGeoNamesKnowsTheWantedPlace() {
-        // The search is the garden dialog's (#30): a chosen result continues the question with that place.
-        String login = login("another-place");
-        long space = personalSpace(login);
-        GardenPipeline stub = mockPicking(choice(Choice.Kind.PLACE, Choice.Why.MISSING, List.of(PALERMO), List.of()));
-        when(stub.continueWith(any(), any(), any(), any(Choice.Place.class)))
-                .thenReturn(answered(new Intent(QueryKind.SOWING_TIME, "garlic", null, "it"), null));
-        GeoNames searching = mock(GeoNames.class);
-        when(searching.enabled()).thenReturn(true);
-        when(searching.search(any(), any())).thenReturn(List.of(new Place("Bologna", "Emilia-Romagna", "IT",
-                "Italia", 44.49, 11.34, 390_000)));
-
-        AskView view = ask(stub, searching, login, space);
-        view.beforeEnter(asking(space, "Cosa posso seminare adesso?"));
-        assertThat(texts(view.chips()).getLast()).as("the search of another place").contains("ask.choice.otherplace");
-
-        view.chips().getLast().click();
-        ComboBox<Place> search = find(view.getChildren().toList(), ComboBox.class);
-        assertThat(search.isVisible()).as("the search opens on demand").isTrue();
-        search.setValue(new Place("Bologna", "Emilia-Romagna", "IT", "Italia", 44.49, 11.34, 390_000));
-
-        verify(stub).continueWith(any(Question.class), any(Intent.class), any(RunContext.class),
-                eq(new Choice.Place("Bologna", "Emilia-Romagna", "IT", "Italia", BigDecimal.valueOf(44.49),
-                        BigDecimal.valueOf(11.34), null)));
+        assertThat(view.choice().showing()).isFalse();
     }
 
     @Test
@@ -237,22 +162,6 @@ class AskChoiceTest {
     }
 
     @Test
-    void anAnswerThatUsedNoPlaceOffersNoGardenHere() {
-        String login = login("no-create-here");
-        long space = personalSpace(login);
-        GardenPipeline stub = mockPicking(choice(Choice.Kind.PLACE, Choice.Why.MISSING, List.of(TORINO), List.of()));
-        when(stub.askKnowledgeBase(any(), any(), anyBoolean())).thenReturn(answer(
-                new Intent(QueryKind.SOWING_TIME, "garlic", null, "it"), new ContextSnapshot("Casa", "Orto", null,
-                        null, "NOVEMBER", ContextSnapshot.MonthFrom.DEFAULT, null, 80, 300,
-                        ContextSnapshot.ClimateFrom.GARDEN, null), null));
-
-        AskView view = ask(stub, login, space);
-        view.beforeEnter(asking(space, "Quando semino l’aglio?"));
-
-        assertThat(buttons(view.answersShown())).noneMatch(text -> text.contains("ask.createhere"));
-    }
-
-    @Test
     void aGuestIsOfferedNoChoiceBecauseAGuestAsksNothing() {
         String login = login("guest-choice");
         String host = login("guest-choice-host");
@@ -264,8 +173,8 @@ class AskChoiceTest {
         AskView view = ask(stub, login, shared);
 
         assertThat(view.canAsk()).isFalse();
-        assertThat(view.choiceOpen()).isFalse();
-        assertThat(view.chips()).isEmpty();
+        assertThat(view.choice().showing()).isFalse();
+        assertThat(view.choice().chips()).isEmpty();
     }
 
     // The pipeline as the page calls it: a stub that says what the question needs.
@@ -329,20 +238,6 @@ class AskChoiceTest {
             component.getChildren().forEach(left::push);
         }
         return texts;
-    }
-
-    /** The first component of a kind under this one, for the search field of "another place". */
-    @SuppressWarnings("unchecked")
-    private static <T extends Component> T find(List<com.vaadin.flow.component.Component> children, Class<T> kind) {
-        java.util.Deque<Component> left = new java.util.ArrayDeque<>(children);
-        while (!left.isEmpty()) {
-            Component component = left.pop();
-            if (kind.isInstance(component)) {
-                return (T) component;
-            }
-            component.getChildren().forEach(left::push);
-        }
-        return null;
     }
 
     private long personalSpace(String login) {

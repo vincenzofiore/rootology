@@ -163,7 +163,7 @@ class PrivacyTest {
         spaces.signedIn("exp-gus");
         long gusSpace = personalSpace("exp-gus");
         spaces.addMember(gusSpace, "exp-gus", "exp-fay", app.rootology.spaces.Role.MEMBER);
-        run(gusSpace, "exp-fay", "fay asks about basil", Instant.now());
+        run(gusSpace, "exp-fay", "fay asks about basil", Instant.now(), true);
         run(gusSpace, "exp-gus", "gus asks about leeks", Instant.now());
         jdbc.sql("insert into garden (space_id, name, created_at) values (:s, 'Gus garden', now())").param("s", gusSpace).update();
         jdbc.sql("""
@@ -191,6 +191,8 @@ class PrivacyTest {
                         "\"sun_declared_by\" : \"exp-gus\"", "\"sun_declared_at\"",
                         // #56: the garden a question belongs to is part of the export, like its space.
                         "\"garden_id\"",
+                        // #165: whether the domain filter could not judge the question.
+                        "\"domain_unjudged\" : true",
                         // #38: the Telegram chat the person linked.
                         "\"telegramLinks\"", "\"chat_id\" : 6002")
                 .doesNotContain("gus asks about leeks");
@@ -226,6 +228,67 @@ class PrivacyTest {
         assertThat(count("select count(*) from pipeline_run where question = 'a recent question'")).isEqualTo(1);
     }
 
+    @Test
+    void theExportHoldsTheFlagsOfTheAccount() {
+        spaces.signedIn("flg-exp-fay");
+        flag("flg-exp-fay", "DISMISSED", Instant.now(), "flg-exp-admin");
+
+        String json = new String(export.export("flg-exp-fay"), StandardCharsets.UTF_8);
+
+        assertThat(json).contains("\"accountFlags\"", "\"login\" : \"flg-exp-fay\"",
+                "\"judgedQuestions\" : 8", "\"offDomainQuestions\" : 7", "\"daysWithoutGarden\" : 12",
+                "\"status\" : \"DISMISSED\"", "\"decidedBy\" : \"flg-exp-admin\"");
+    }
+
+    @Test
+    void theNightlyJobDeletesOnlyDecidedFlagsOlderThanTheRetention() {
+        Instant old = Instant.now().minus(retention.accountFlags()).minus(Duration.ofDays(1));
+        flag("flg-ret-open", "OPEN", null, null, old);
+        flag("flg-ret-old", "DISMISSED", old, "flg-ret-admin", old);
+        flag("flg-ret-new", "BLOCKED", Instant.now(), "flg-ret-admin", Instant.now());
+
+        retentionJob.run();
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-open'"))
+                .as("one still waiting for an admin stays").isEqualTo(1);
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-old'")).isZero();
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-new'")).isEqualTo(1);
+    }
+
+    @Test
+    void deletingAnAccountRemovesItsFlagsAndNamesNoOne() {
+        spaces.signedIn("flg-del-ada");
+        spaces.signedIn("flg-del-bob");
+        // Ada was flagged, and Bob, the admin, decided it; Bob was flagged too.
+        flag("flg-del-ada", "DISMISSED", Instant.now(), "flg-del-bob");
+        flag("flg-del-bob", "DISMISSED", Instant.now(), "flg-del-bob");
+
+        deletion.delete("flg-del-bob");
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-del-bob'")).isZero();
+        assertThat(jdbc.sql("select decided_by from account_flag where login = 'flg-del-ada'")
+                .query(String.class).single()).isEqualTo(AccountDeletion.DELETED_USER);
+
+        deletion.delete("flg-del-ada");
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-del-ada'")).isZero();
+    }
+
+    /** One account flag (#165), with the decision when it has one; flagged_at and decided_at as given. */
+    private void flag(String login, String status, Instant decidedAt, String decidedBy) {
+        flag(login, status, decidedAt, decidedBy, Instant.now());
+    }
+
+    private void flag(String login, String status, Instant decidedAt, String decidedBy, Instant flaggedAt) {
+        jdbc.sql("""
+                insert into account_flag (login, flagged_at, judged_questions, off_domain_questions,
+                    days_without_garden, status, decided_by, decided_at)
+                values (:l, :flagged, 8, 7, 12, :status, cast(:by as varchar), cast(:decided as timestamptz))""")
+                .param("l", login).param("flagged", Timestamp.from(flaggedAt)).param("status", status)
+                .param("by", decidedBy).param("decided", decidedAt == null ? null : Timestamp.from(decidedAt))
+                .update();
+    }
+
     private long personalSpace(String login) {
         return app.rootology.TestSpaces.personal(spaces, login);
     }
@@ -238,13 +301,19 @@ class PrivacyTest {
     }
 
     private void run(long space, String login, String question, Instant at) {
+        run(space, login, question, at, false);
+    }
+
+    private void run(long space, String login, String question, Instant at, boolean domainUnjudged) {
         jdbc.sql("""
                 insert into pipeline_run (process_id, question_id, question, noise_dropout, noise_spurious, noise_mislabel,
                     noise_near_subject, noise_seed, decision_answer, decision_confidence, decision_escalated,
-                    decision_reason, answer, answered_by_human, answer_text, finished_at, space_id, started_by)
+                    decision_reason, answer, answered_by_human, answer_text, finished_at, space_id, started_by,
+                    domain_unjudged)
                 values (gen_random_uuid()::text, 'free', :q, 0, 0, 0, false, 0, '{}', 1, false, 'test', '{}', false,
-                    'an answer', :at, :s, :l)""")
-                .param("q", question).param("at", Timestamp.from(at)).param("s", space).param("l", login).update();
+                    'an answer', :at, :s, :l, :u)""")
+                .param("q", question).param("at", Timestamp.from(at)).param("s", space).param("l", login)
+                .param("u", domainUnjudged).update();
     }
 
     private void notification(String recipient, long space) {
@@ -266,5 +335,40 @@ class PrivacyTest {
 
     private long count(String sql) {
         return jdbc.sql(sql).query(Long.class).single();
+    }
+
+    @Test
+    void theExportHoldsTheBlockOfTheAccount() {
+        spaces.signedIn("blk-exp-fay");
+        jdbc.sql("""
+                        update app_user set blocked_at = now() - interval '2 days', blocked_by = 'blk-exp-admin',
+                               blocked_reason = 'domande fuori tema'
+                        where login = 'blk-exp-fay'""").update();
+
+        String json = new String(export.export("blk-exp-fay"), StandardCharsets.UTF_8);
+
+        assertThat(json).contains("\"blocked_by\" : \"blk-exp-admin\"",
+                "\"blocked_reason\" : \"domande fuori tema\"", "\"blocked_at\"");
+    }
+
+    @Test
+    void deletingABlockedAccountRemovesItsBlockAndNamesNoOne() {
+        spaces.signedIn("blk-del-ada");
+        spaces.signedIn("blk-del-bob");
+        jdbc.sql("""
+                        update app_user set blocked_at = now(), blocked_by = 'blk-del-bob', blocked_reason = 'spam'
+                        where login = 'blk-del-ada'""").update();
+
+        // Bob, the admin who blocked Ada, deletes his own account: Ada's block stays, and names no one.
+        deletion.delete("blk-del-bob");
+
+        assertThat(count("select count(*) from app_user where login = 'blk-del-bob'")).isZero();
+        assertThat(jdbc.sql("select blocked_by from app_user where login = 'blk-del-ada'").query(String.class).single())
+                .isEqualTo(AccountDeletion.DELETED_USER);
+
+        // Ada deletes hers: the block goes with the account.
+        deletion.delete("blk-del-ada");
+
+        assertThat(count("select count(*) from app_user where login = 'blk-del-ada'")).isZero();
     }
 }

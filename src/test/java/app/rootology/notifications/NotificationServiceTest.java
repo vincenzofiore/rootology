@@ -393,6 +393,72 @@ class NotificationServiceTest {
         }
     }
 
+    /**
+     * The garden pages ask for the weather alerts alone (#155): they are all there, however many other
+     * notifications arrived, and only those of the space and garden asked for, in the last three days.
+     */
+    @Test
+    void everyWeatherAlertOfTheLastDaysIsThereHoweverManyNotificationsArrive() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
+        Instant today = now;
+        long space = space("w-ugo", "w-vera", "w-wilma");
+        // The person is in a second space too, whose alerts the homepage of the first must not show.
+        long other = space("w-ivan", "w-vera", "w-irene");
+        long garden = gardens.saveGarden(space, "w-ugo", null, "Orto", null, null, null).id();
+        long roof = gardens.saveGarden(space, "w-ugo", null, "Tetto", null, null, null).id();
+        long elsewhere = gardens.saveGarden(other, "w-ivan", null, "Altrove", null, null, null).id();
+
+        // Weather alerts spread over the last days, as the morning check wrote them, plus two that the
+        // pages must leave out: one of an older day and one of the other space.
+        now = today.minus(Duration.ofDays(4));
+        notifications.weatherAlert(space, garden, "frost:old", "Rischio gelo", "Minima prevista -2 °C");
+        now = today.minus(Duration.ofDays(2)).minus(Duration.ofHours(12));
+        notifications.weatherAlert(space, garden, "frost:oldest-shown", "Rischio gelo", "Minima prevista -1 °C");
+        now = today.minus(Duration.ofDays(2));
+        notifications.weatherAlert(space, garden, "blight:two-days", "Rischio peronospora", "Periodo caldo e umido");
+        now = today.minus(Duration.ofDays(1));
+        notifications.weatherAlert(space, garden, "heat:yesterday", "Caldo intenso", "Massima prevista 36 °C");
+        now = today.minus(Duration.ofHours(3));
+        notifications.weatherAlert(space, roof, "wind:other-garden", "Vento forte", "Raffiche possibili");
+        now = today.minus(Duration.ofHours(2));
+        notifications.weatherAlert(space, garden, "rain:this-morning", "Pioggia intensa", "30 mm in un giorno");
+        // The line on the official warnings (#168): the card on the garden home shows those, never this list.
+        notifications.weatherAlert(space, garden, "official:" + garden + ":2026-11-04", "Allerte ufficiali in Abruzzo",
+                "1 allerta attiva, la più alta gialla (pioggia).");
+        notifications.weatherAlert(other, elsewhere, "frost:another-space", "Rischio gelo", "Minima prevista -2 °C");
+
+        // A busy space: sixty newer notifications of other kinds, which used to push the alerts out of the
+        // latest fifty that the pages read.
+        for (int i = 1; i <= 60; i++) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, kind, process_id, title, body, created_at) "
+                            + "VALUES (?, ?, 'ESCALATION_WAITING', ?, 'A question waits for an answer', ?, ?)")
+                    .params("w-vera", space, "p-busy-" + i, "Domanda " + i,
+                            Timestamp.from(today.minus(Duration.ofMinutes(i))))
+                    .update();
+        }
+        now = today;
+
+        assertThat(notifications.of("w-vera", 50)).as("the latest fifty are the questions, not the alerts")
+                .hasSize(50).noneMatch(NotificationView::weather);
+
+        assertThat(notifications.weatherAlerts("w-vera", space, 0, 3))
+                .extracting(NotificationView::dedupKey)
+                .as("every alert of the space in the last three days, newest first, and nothing else")
+                .containsExactly("rain:this-morning", "wind:other-garden", "heat:yesterday", "blight:two-days",
+                        "frost:oldest-shown");
+        assertThat(notifications.weatherAlerts("w-vera", space, garden, 3))
+                .extracting(NotificationView::dedupKey)
+                .as("one garden's own alerts only")
+                .containsExactly("rain:this-morning", "heat:yesterday", "blight:two-days", "frost:oldest-shown");
+        assertThat(notifications.weatherAlerts("w-vera", other, 0, 3))
+                .extracting(NotificationView::dedupKey)
+                .as("a space's alerts stay in that space")
+                .containsExactly("frost:another-space");
+        assertThat(notifications.of("w-vera", 200)).extracting(NotificationView::dedupKey)
+                .as("the official line is still a notification like the rest")
+                .contains("official:" + garden + ":2026-11-04");
+    }
+
     @Test
     void aWeatherAlertWithoutAGardenLinksToTheGardensOverview() throws Exception {
         now = Instant.parse("2026-11-04T10:00:00Z");

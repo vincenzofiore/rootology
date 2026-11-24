@@ -66,14 +66,26 @@ public class GardenPipeline {
      * processId: the agent process of the run, which is also the id its history row is stored with, so the UI
      *            can open the answer of a question continued in another garden (#107); null when no agent ran.
      * place: the place the question used, named in it or chosen by the person (#107); null when it used none.
+     * domainUnjudged: the domain filter was asked but could not judge the question (Jev unreachable), so it
+     *                 went on unscreened (#161); false when it was judged or not screened at all.
      */
     public record Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
-                      QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place) {
+                      QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place,
+                      boolean domainUnjudged) {
+
+        public Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
+                   QuestionContext.Choice choice, String processId, QuestionContext.Choice.Place place) {
+            this(answer, pending, intent, offDomain, choice, processId, place, false);
+        }
 
         /** A run with no agent process of its own (a refusal) and no place: what the suite and the tests build. */
         public Run(PipelineAnswer answer, PendingReview pending, Intent intent, boolean offDomain,
                    QuestionContext.Choice choice) {
             this(answer, pending, intent, offDomain, choice, null, null);
+        }
+
+        Run withDomainUnjudged() {
+            return new Run(answer, pending, intent, offDomain, choice, processId, place, true);
         }
     }
 
@@ -91,11 +103,18 @@ public class GardenPipeline {
     private final DecisionLayer decisionLayer;
     private final DomainFilter domainFilter;
     private final PipelineMetrics metrics;
+    private final app.rootology.garden.CropProposalService proposals;
+    private final java.time.Clock clock;
+
+    /** Today's proposal runs (#141), so the same area, month, goals and crops cost no second call the same day. */
+    private final java.util.Map<String, Run> proposalRuns = new java.util.concurrent.ConcurrentHashMap<>();
 
     GardenPipeline(AgentPlatform agentPlatform, ApplicationEventPublisher events, ClaudeCircuit claude,
                    SpaceService spaces, GardenService gardens, UsageService usage, DecisionLayer decisionLayer,
                    DomainFilter domainFilter, PendingEscalations pending, PlatformTransactionManager transactions,
-                   PipelineMetrics metrics) {
+                   PipelineMetrics metrics, app.rootology.garden.CropProposalService proposals, java.time.Clock clock) {
+        this.proposals = proposals;
+        this.clock = clock;
         this.agentPlatform = agentPlatform;
         this.pending = pending;
         this.transaction = new TransactionTemplate(transactions);
@@ -171,19 +190,21 @@ public class GardenPipeline {
         Timer.Sample timing = metrics.start();
         // The domain filter (#53) runs before the agent, so a question that is clearly not about gardens
         // costs no Claude call. Only real questions are screened, and "Ask anyway" skips it once.
+        boolean unjudged = false;
         if (scope == FactScope.KNOWLEDGE_BASE && !askAnyway) {
             DomainFilter.Verdict verdict = domainFilter.judge(question.text());
             if (verdict.refused()) {
                 return refuse(question, context, verdict, timing);
             }
+            unjudged = !verdict.judged();
         }
         AgentProcess process = agentPlatform.createAgentProcessFrom(
                 agent(), ProcessOptions.DEFAULT, question, noise, ReviewMode.HUMAN, scope, context,
-                QuestionContext.Pinned.NONE);
+                unjudged ? QuestionContext.Pinned.DOMAIN_UNJUDGED : QuestionContext.Pinned.NONE);
         try {
             Run run = settle(process.run(), question, context);
             metrics.finished(timing, scope, run);
-            return run;
+            return unjudged ? run.withDomainUnjudged() : run;
         } catch (RuntimeException e) {
             metrics.failed(timing, scope);
             throw e;
@@ -191,6 +212,57 @@ public class GardenPipeline {
             if (context.hasSpace()) {
                 usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
             }
+        }
+    }
+
+    /**
+     * The proposal for one free area of a garden (#141): a question the app builds from the proposal screen,
+     * with its intent already known (PROPOSE_IN_AREA, the area as subject, the month and one or two goals), so
+     * Claude only phrases it. Jev judges the crops of crop-proposal-v1 and, when unsure, the question waits
+     * for a person like any other. It counts as a question; the same area, month, goals and proposed crops
+     * are answered from today's run instead of a new one.
+     */
+    public Run propose(Question question, Intent intent, RunContext context) {
+        if (intent.kind() != QueryKind.PROPOSE_IN_AREA || intent.subject() == null || intent.month() == null
+                || !context.hasGarden()) {
+            throw new IllegalArgumentException("A proposal needs a garden, an area and a month");
+        }
+        if (question.text() == null || question.text().isBlank() || question.text().length() > Question.MAX_LENGTH) {
+            throw new IllegalArgumentException("A question needs between 1 and " + Question.MAX_LENGTH + " characters");
+        }
+        List<app.rootology.garden.CropProposalRule.Goal> goals = intent.goals().stream()
+                .map(app.rootology.garden.CropProposalRule.Goal::valueOf).toList();
+        app.rootology.garden.CropProposalRule.checkGoals(goals);
+        spaces.requireContributor(context.spaceId(), context.startedBy());
+        java.time.Month month = java.time.Month.valueOf(intent.month());
+        String crops = proposals.propose(context.spaceId(), context.startedBy(), context.gardenId(), month, goals)
+                .areas().stream().filter(a -> a.areaName().equals(intent.subject()))
+                .flatMap(a -> a.proposals().stream()).map(app.rootology.garden.CropProposalRule.Proposal::cropId)
+                .collect(java.util.stream.Collectors.joining(","));
+        String today = clock.instant().atZone(GardenPipelineAgent.ITALY).toLocalDate().toString();
+        String key = String.join("|", today, String.valueOf(context.spaceId()), String.valueOf(context.gardenId()),
+                intent.subject(), intent.month(), String.join(",", intent.goals()), crops);
+        Run cached = proposalRuns.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        usage.requireQuestionAvailable(context.startedBy());
+        requireClaude();
+        Timer.Sample timing = metrics.start();
+        AgentProcess process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, question,
+                intent.bounded(), NoiseProfile.NONE, ReviewMode.HUMAN, FactScope.KNOWLEDGE_BASE, context,
+                QuestionContext.Pinned.NONE);
+        try {
+            Run result = settle(process.run(), question, context);
+            metrics.finished(timing, FactScope.KNOWLEDGE_BASE, result);
+            proposalRuns.keySet().removeIf(k -> !k.startsWith(today + "|"));
+            proposalRuns.put(key, result);
+            return result;
+        } catch (RuntimeException e) {
+            metrics.failed(timing, FactScope.KNOWLEDGE_BASE);
+            throw e;
+        } finally {
+            usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, usageOf(process, 0));
         }
     }
 
@@ -228,7 +300,7 @@ public class GardenPipeline {
         Timer.Sample timing = metrics.start();
         AgentProcess process = agentPlatform.createAgentProcessFrom(agent(), ProcessOptions.DEFAULT, question,
                 understood, NoiseProfile.NONE, ReviewMode.HUMAN, FactScope.KNOWLEDGE_BASE, run,
-                new QuestionContext.Pinned(place));
+                new QuestionContext.Pinned(place, false));
         try {
             Run result = settle(process.run(), question, run);
             metrics.finished(timing, FactScope.KNOWLEDGE_BASE, result);
@@ -260,7 +332,7 @@ public class GardenPipeline {
             usage.record(context.startedBy(), context.spaceId(), UsageKind.QUESTION, new RunUsage(0, 0, 0, 0.0, 1));
         }
         events.publishEvent(new PipelineRunFinished(UUID.randomUUID().toString(), context, question,
-                NoiseProfile.NONE, decision, answer, true, Instant.now()));
+                NoiseProfile.NONE, decision, answer, true, false, Instant.now()));
         metrics.refused(timing, FactScope.KNOWLEDGE_BASE);
         return new Run(answer, null, null, true, null, null, null);
     }
@@ -318,6 +390,28 @@ public class GardenPipeline {
                 .filter(s -> s.review().context().gardenId() == gardenId)
                 .orElseThrow(() -> new NoSuchElementException("No review waiting for process " + processId
                         + " in this space and garden"));
+        // Taken before anything is phrased (#152): two people answering at once never both get through.
+        if (!pending.claim(processId, human.reviewer())) {
+            throw new AlreadyAnsweredException(processId);
+        }
+        PendingReview review = stored.review();
+        Run run;
+        try {
+            run = finish(processId, spaceId, stored, human);
+        } catch (RuntimeException e) {
+            pending.release(processId);
+            throw e;
+        }
+        transaction.executeWithoutResult(status -> {
+            pending.resolve(processId, human.reviewer(), Instant.now());
+            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
+                    review.context().startedBy(), human.reviewer(), Instant.now()));
+        });
+        return run.answer();
+    }
+
+    /** Lets the paused agent, or a new one after a restart, finish with the person's answer. */
+    private Run finish(String processId, long spaceId, PendingEscalations.Stored stored, HumanAnswer human) {
         PendingReview review = stored.review();
         AgentProcess paused = agentPlatform.getAgentProcess(processId);
         AgentProcess process;
@@ -349,12 +443,7 @@ public class GardenPipeline {
         if (run.answer() == null) {
             throw new IllegalStateException("Process " + processId + " is still waiting after the answer");
         }
-        transaction.executeWithoutResult(status -> {
-            pending.resolve(processId, human.reviewer(), Instant.now());
-            events.publishEvent(new EscalationResolved(processId, spaceId, review.context().gardenId(),
-                    review.context().startedBy(), human.reviewer(), Instant.now()));
-        });
-        return run.answer();
+        return run;
     }
 
     private Run settle(AgentProcess process, Question question, RunContext context) {
@@ -395,8 +484,11 @@ public class GardenPipeline {
         // The garden the question was answered for, which may be the one it named (#57), owns the history row.
         RunContext owner = answered == null || !answered.hasSpace() ? context
                 : new RunContext(context.spaceId(), answered.gardenId(), context.startedBy());
+        // #165: the question context says whether the domain filter could not judge the question and let it
+        // through (#161); a run the filter never saw carries false.
+        boolean domainUnjudged = answered != null && answered.domainUnjudged();
         events.publishEvent(new PipelineRunFinished(process.getId(), owner, question, process.last(NoiseProfile.class),
-                process.last(Decision.class), answer, false, Instant.now()));
+                process.last(Decision.class), answer, false, domainUnjudged, Instant.now()));
         return new Run(answer, null, intentOf(process), false, null, process.getId(), answeredPlace(process));
     }
 

@@ -8,6 +8,7 @@ import app.rootology.facts.ClimateCells;
 import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.ReferenceSite;
 import app.rootology.facts.SiteProfile;
+import app.rootology.garden.GardenClimate;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlotLookup;
@@ -55,19 +56,21 @@ class ContextResolver {
 
     /** The kinds that read the Italian calendars: only these get a climate profile and a month. */
     static final java.util.Set<QueryKind> NEEDS_ZONE = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT,
+            QueryKind.PROPOSE_IN_AREA);
 
     /** The kinds a place named in the question applies to (#107). */
     static final java.util.Set<QueryKind> NEEDS_PLACE = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW);
 
     /** The kinds that need a month: the calendars and the pest months, which apply abroad too (#58). */
     static final java.util.Set<QueryKind> NEEDS_MONTH = java.util.Set.of(QueryKind.SOWING_TIME,
-            QueryKind.HARVEST_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK);
+            QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.SOW_NOW, QueryKind.SOW_IN_PLOT, QueryKind.PEST_RISK,
+            QueryKind.PROPOSE_IN_AREA);
 
     /** The kinds about the run's garden: they cannot be answered outside one. */
     static final java.util.Set<QueryKind> NEEDS_GARDEN = java.util.Set.of(QueryKind.GROWING_NOW,
-            QueryKind.PEST_RISK, QueryKind.SOW_IN_PLOT);
+            QueryKind.PEST_RISK, QueryKind.SOW_IN_PLOT, QueryKind.PROPOSE_IN_AREA);
 
     /** The reasons of the escalations decided before the decision layer (#55); ReasonText translates them. */
     static final String GARDEN_GONE_REASON = "the garden no longer exists";
@@ -118,13 +121,16 @@ class ContextResolver {
     private final SpaceService spaces;
     private final GardenService gardens;
     private final ClimateCells cells;
+    private final GardenClimate sites;
     private final GeoNames geoNames;
     private final Clock clock;
 
-    ContextResolver(SpaceService spaces, GardenService gardens, ClimateCells cells, GeoNames geoNames, Clock clock) {
+    ContextResolver(SpaceService spaces, GardenService gardens, ClimateCells cells, GardenClimate sites,
+                    GeoNames geoNames, Clock clock) {
         this.spaces = spaces;
         this.gardens = gardens;
         this.cells = cells;
+        this.sites = sites;
         this.geoNames = geoNames;
         this.clock = clock;
     }
@@ -235,7 +241,7 @@ class ContextResolver {
             }
         }
         if (choice != null) {
-            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null);
+            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null, false);
         }
         if (place != null && effective.zone() != null) {
             // The place wins over the zone the question also names: the zone plays no part (#107).
@@ -281,6 +287,13 @@ class ContextResolver {
                 }
             }
         }
+        if (intent.kind() == QueryKind.PEST_RISK && !gone) {
+            // A pest question has no calendar, but its months follow the crop's own calendar at the
+            // garden's site (#162): the profile is read, with no note about windows.
+            climate = climate(null, garden);
+            climateFrom = climate == null ? null
+                    : climate.fromGarden() ? ContextSnapshot.ClimateFrom.GARDEN : ContextSnapshot.ClimateFrom.DEFAULT;
+        }
 
         boolean asksZone = NEEDS_ZONE.contains(intent.kind());
         String gardenZone = garden == null ? null : GardenService.zone(garden).orElse(null);
@@ -291,7 +304,7 @@ class ContextResolver {
         }
 
         QuestionContext.Plot plot = null;
-        if (intent.kind() == QueryKind.SOW_IN_PLOT && !gone) {
+        if ((intent.kind() == QueryKind.SOW_IN_PLOT || intent.kind() == QueryKind.PROPOSE_IN_AREA) && !gone) {
             plot = plot(intent.subject(), garden, run, notes);
             if (plot.outcome() == QuestionContext.Plot.Outcome.FOUND) {
                 // The question is about the plot as it is really called, so the facts and the decision layer agree.
@@ -312,8 +325,9 @@ class ContextResolver {
                 climate == null ? null : climate.firstFrostDay(), climateFrom,
                 place == null ? null : place.name());
         return new QuestionContext(run.spaceId(), garden == null ? 0 : garden.id(), effective, plot,
-                place != null ? new QuestionContext.Location(place.latitude(), place.longitude()) : location(garden),
-                climate, snapshot, refusal, notes, null, place);
+                place != null ? new QuestionContext.Location(place.latitude(), place.longitude(), place.elevationM())
+                        : location(garden),
+                climate, snapshot, refusal, notes, null, place, false);
     }
 
     /**
@@ -326,14 +340,13 @@ class ContextResolver {
             return ReferenceSite.of(askedZone).map(site -> site.profile(cells)).orElse(null);
         }
         if (garden != null && garden.latitude() != null && garden.longitude() != null) {
-            return cells.nearest(garden.latitude().doubleValue(), garden.longitude().doubleValue())
-                    .map(cell -> FrostSeasonRule.profile(cell, garden.elevationM(), null)).orElse(null);
+            return sites.profile(garden).orElse(null);
         }
         if (abroad(garden)) {
             // No coordinates abroad: no profile, and the calendars do not cover it.
             return null;
         }
-        return ReferenceSite.CENTRO.profile(cells);
+        return sites.defaultProfile();
     }
 
     /**
@@ -478,7 +491,7 @@ class ContextResolver {
 
     private static QuestionContext.Location location(GardenSummary garden) {
         return garden == null || garden.latitude() == null || garden.longitude() == null ? null
-                : new QuestionContext.Location(garden.latitude(), garden.longitude());
+                : new QuestionContext.Location(garden.latitude(), garden.longitude(), garden.elevationM());
     }
 
     /**
@@ -492,7 +505,8 @@ class ContextResolver {
         }
         String month = intent.month();
         if (NEEDS_MONTH.contains(intent.kind()) && month == null
-                && intent.kind() != QueryKind.SOWING_TIME && intent.kind() != QueryKind.HARVEST_TIME) {
+                && intent.kind() != QueryKind.SOWING_TIME && intent.kind() != QueryKind.HARVEST_TIME
+                && intent.kind() != QueryKind.PRUNING_TIME) {
             month = currentMonth.name();
         }
         // A kind that reads no zone (a pest question, #58) carries none, so nothing shows a zone that

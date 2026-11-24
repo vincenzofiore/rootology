@@ -101,7 +101,7 @@ class JevJudgmentsRecordingTest {
                 continue; // never sent to Jev
             }
             RunContext run = fixtures.space("judge-" + startedAt.toEpochMilli(), c);
-            when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+            when(weather.around(any(), any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
             var context = agent.resolveContext(c.intent(), run, app.rootology.pipeline.QuestionContext.Pinned.NONE);
             Intent intent = context.intent();
             GraphFacts facts = agent.gatherFacts(context, NoiseProfile.NONE, FactScope.KNOWLEDGE_BASE, run);
@@ -112,7 +112,7 @@ class JevJudgmentsRecordingTest {
                     j.answerable(), new LinkedHashMap<>(j.candidates()),
                     JevDecisionLayer.decide(j, JevDecisionLayer.MIN_CONFIDENCE).toString()));
         }
-        Path file = GoldenLiveRecordingTest.RUNS.resolve("jev-judgments-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm")
+        Path file = GoldenLiveRecordingTest.RUNS.resolve("jev-judgments-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss")
                 .withZone(ZoneOffset.UTC).format(startedAt) + ".json");
         Files.createDirectories(GoldenLiveRecordingTest.RUNS);
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValue(file.toFile(),

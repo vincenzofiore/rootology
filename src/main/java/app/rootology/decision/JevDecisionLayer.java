@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -35,6 +36,24 @@ public class JevDecisionLayer implements DecisionLayer {
             "CURATED", "From the curated garden dataset.",
             "UNCONFIRMED", "From a single unverified report. It may be wrong.",
             "INFERRED", "Derived from curated facts by the rule named in `derivedBy`. As reliable as that rule.");
+
+    /**
+     * What each rule of the app derives, said to Jev for the knowledge base only (#69): "as reliable as that rule"
+     * left Jev at about 0.75 on every derived calendar fact, so long lists escalated with the right values.
+     */
+    static final Map<String, String> DERIVED_BY = Map.of(
+            "frost-shift-v1", "`frost-shift-v1` gives the calendar of the question's site: the curated calendar "
+                    + "(sowIn, seedbedIn, transplantIn, plantIn, harvestIn, pruneIn) moved to the site's own frost dates.",
+            "frost-season-v1", "`frost-season-v1` gives the site's frost-safe months from its measured frost dates.",
+            "family-rotation-v1", "`family-rotation-v1` gives avoidIn: a crop of the same botanical family as the "
+                    + "plot's previous crop.",
+            "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.",
+            "pest-shift-v1", "`pest-shift-v1` gives threatens: the curated months a pest or disease is active on a "
+                    + "crop, moved as that crop's own calendar moves at the site.",
+            "frost-suitability-v1", "`frost-suitability-v1` gives survives-winter: whether an established perennial "
+                    + "stands the site's 1-in-5 winter minimum, from its frost hardiness.",
+            "crop-proposal-v1", "`crop-proposal-v1` gives proposedFor, meetsGoal and uncertainty: the crops that "
+                    + "can go in a free area this month, ranked by the person's goals, and what is not known about them.");
 
     /** Added only when some reading is proposed (#24), so other requests stay exactly as they were. */
     static final Map<String, Object> PROPOSED = ordered(
@@ -81,6 +100,22 @@ public class JevDecisionLayer implements DecisionLayer {
         return extended;
     }
 
+    /** As {@link #sources}, with the derived facts' rules described (#69); the suite's requests never get it. */
+    static Map<String, Object> knowledgeBaseSources(GraphFacts facts, boolean anyProposed, boolean anyForecast,
+                                                    boolean anyDeclared) {
+        List<String> rules = facts.readings().stream().map(Reading::derivedBy).filter(Objects::nonNull)
+                .distinct().sorted().toList();
+        Map<String, Object> sources = new LinkedHashMap<>(sources(!rules.isEmpty(), anyProposed, anyForecast,
+                anyDeclared));
+        if (!rules.isEmpty()) {
+            sources.put("INFERRED", "Derived from curated facts by a deterministic rule of the app, named in "
+                    + "`derivedBy`. " + String.join(" ", rules.stream().map(r -> DERIVED_BY.getOrDefault(r,
+                    "`" + r + "` is a rule of the app.")).toList())
+                    + " A derived fact is the knowledge base's own answer for this site, not a guess.");
+        }
+        return sources;
+    }
+
     /** Jev's raw yes-probabilities, before any threshold is applied. */
     public record Judgments(double answerable, Map<String, Double> candidates) {
     }
@@ -124,6 +159,10 @@ public class JevDecisionLayer implements DecisionLayer {
                 can the question described by `intent` be answered? Answer no if `intent.subject` \
                 does not appear in any fact. If it appears but no fact declares the relation the \
                 question asks about, answer yes: the answer is that there is none."""
+                : knowledgeBase && intent.kind() == QueryKind.PROPOSE_IN_AREA ? """
+                Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
+                can the question described by `intent` be answered? `intent.subject` is a free area of \
+                the garden. Answer no if no crop is proposed for it."""
                 : knowledgeBase && intent.kind() == QueryKind.SOW_IN_PLOT ? """
                 Using only `facts`, and weighing each fact by its `source` as described in `sources`, \
                 can the question described by `intent` be answered? `intent.subject` is a plot of the \
@@ -164,7 +203,8 @@ public class JevDecisionLayer implements DecisionLayer {
                 // Field by field, so the language (not needed to decide) never changes what Jev sees.
                 "intent", intent(intent),
                 "rule", knowledgeBase ? knowledgeBaseRule(intent.kind()) : rule(intent.kind()),
-                "sources", sources(anyInferred, anyProposed, anyForecast, anyDeclared),
+                "sources", knowledgeBase ? knowledgeBaseSources(facts, anyProposed, anyForecast, anyDeclared)
+                        : sources(anyInferred, anyProposed, anyForecast, anyDeclared),
                 "facts", stateFacts);
         Map<String, Object> request = ordered("model", model, "state", state, "questions", questions);
 
@@ -235,13 +275,16 @@ public class JevDecisionLayer implements DecisionLayer {
     static final Set<QueryKind> SUBJECTLESS = Set.of(QueryKind.SOW_NOW, QueryKind.GROWING_NOW, QueryKind.PEST_RISK);
 
     /** Kind, subject and season as always; zone and month only when set, so suite requests are unchanged. */
-    private static Map<String, Object> intent(Intent intent) {
+    static Map<String, Object> intent(Intent intent) {
         Map<String, Object> map = ordered("kind", intent.kind(), "subject", intent.subject(), "season", intent.season());
         if (intent.zone() != null) {
             map.put("zone", intent.zone());
         }
         if (intent.month() != null) {
             map.put("month", intent.month());
+        }
+        if (!intent.goals().isEmpty()) {
+            map.put("goals", intent.goals());
         }
         return map;
     }
@@ -283,6 +326,11 @@ public class JevDecisionLayer implements DecisionLayer {
                         result.add(f.object());
                     }
                 }
+                case PRUNING_TIME -> {
+                    if (f.predicate().equals("pruneIn")) {
+                        result.add(f.object());
+                    }
+                }
                 case SOW_NOW, SOW_IN_PLOT -> {
                     if (app.rootology.facts.SowingActivity.PREDICATES.contains(f.predicate())) {
                         result.add(f.subject());
@@ -295,6 +343,16 @@ public class JevDecisionLayer implements DecisionLayer {
                 }
                 case PEST_RISK -> {
                     if (f.predicate().equals("threatens")) {
+                        result.add(f.subject());
+                    }
+                }
+                case CONTROL_METHODS -> {
+                    if (f.predicate().equals("controlledBy")) {
+                        result.add(f.object());
+                    }
+                }
+                case PROPOSE_IN_AREA -> {
+                    if (f.predicate().equals("proposedFor")) {
                         result.add(f.subject());
                     }
                 }
@@ -318,13 +376,16 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "no repels facts, so no pest is excluded for being repelled.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidNow, C) is a fact for a condition C "
-                    + "such as frost or too little light. " + SITE;
+                    + "such as frost or too little light. " + SITE + PLANTING;
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) is a fact or "
-                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE;
+                    + "(X, avoidNow, C) is a fact for a condition C such as frost or too little light. " + SITE + PLANTING;
             case SOWING_TIME -> "The answer is every month M such that "
-                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE;
+                    + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact. " + SITE
+                    + PLANTING;
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact. " + SITE;
+            case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact. " + SITE;
+            case PROPOSE_IN_AREA -> rule(kind);
             default -> rule(kind);
         };
     }
@@ -335,6 +396,10 @@ public class JevDecisionLayer implements DecisionLayer {
      */
     static final String SITE = "The calendar facts are already those of the question's site, with its frost "
             + "dates taken into account.";
+
+    /** Trees, bulbs and young plants are planted, not sown: the question still means them (#69). */
+    static final String PLANTING = " Planting (plantIn: trees, shrubs, bulbs, cloves, young plants) counts as "
+            + "sowing for this question.";
 
     /** The domain rule for each question shape, stated in plain words for Jev. */
     static String rule(QueryKind kind) {
@@ -354,6 +419,8 @@ public class JevDecisionLayer implements DecisionLayer {
                     + "(subject, sowIn, M), (subject, seedbedIn, M), (subject, transplantIn, M) or (subject, plantIn, M) is a fact for `intent.zone`.";
             case HARVEST_TIME -> "The answer is every month M such that (subject, harvestIn, M) is a fact for "
                     + "`intent.zone`.";
+            case PRUNING_TIME -> "The answer is every month M such that (subject, pruneIn, M) is a fact for "
+                    + "`intent.zone`.";
             case SOW_NOW -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact for `intent.zone`, unless (X, avoidNow, frost) is a fact.";
             case GROWING_NOW -> "The answer is every crop X such that (P, grows, X) is a fact for some plot P.";
@@ -362,6 +429,16 @@ public class JevDecisionLayer implements DecisionLayer {
             case SOW_IN_PLOT -> "The answer is every crop X such that (X, sowIn, `intent.month`), (X, seedbedIn, `intent.month`), "
                     + "(X, transplantIn, `intent.month`) or (X, plantIn, `intent.month`) is a fact, unless (X, avoidIn, `intent.subject`) or "
                     + "(X, avoidNow, frost) is a fact.";
+            case CONTROL_METHODS -> "The answer is every method M such that (subject, controlledBy, M) is a fact, "
+                    + "whatever its controlKind and evidence. Methods are never inferred from other pests.";
+            case PROPOSE_IN_AREA -> "The answer is every crop X such that (X, proposedFor, `intent.subject`) is a fact: "
+                    + "`crop-proposal-v1` proposed it for that free area of the garden, from the site's calendar "
+                    + "(sowIn, transplantIn or plantIn in `intent.month`), the area's rotation and light, and the goals "
+                    + "in `intent.goals` it meets (meetsGoal). An (X, uncertainty, U) fact says what is not known "
+                    + "about X: LIGHT_UNKNOWN (its light need or the area's sun), CYCLE_UNKNOWN (its growing time) "
+                    + "or TRADITIONAL_EVIDENCE (its help "
+                    + "to beneficial insects is only traditional). A crop is part of the answer only if the facts "
+                    + "support proposing it there.";
             case OTHER -> "";
         };
     }

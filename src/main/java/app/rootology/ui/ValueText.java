@@ -49,6 +49,11 @@ final class ValueText {
         return value;
     }
 
+    /** Whether a value is worth a badge: a control method is a sentence the answer's text already says (#140). */
+    static boolean badge(String value) {
+        return !ORGANISMS.isControlMethod(value);
+    }
+
     /**
      * Whether a sentence already says a word, as a whole word and ignoring case and accents: "agosto" is in
      * "da agosto a ottobre", while "rapa" is not in "rapanello".

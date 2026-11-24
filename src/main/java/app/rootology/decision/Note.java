@@ -60,6 +60,8 @@ public record Note(Kind kind, List<String> args) {
         /** args: plot as asked, garden, the plots matching (comma-separated). */
         PLOT_AMBIGUOUS,
         /** The windows were derived from the garden's climate profile (#62). */
+        /** The answer names a substance or a microorganism: read the label, follow the rules (#140). */
+        READ_THE_LABEL,
         WINDOWS_FROM_CLIMATE,
         /** The garden has coordinates but no climate cell within reach (#62). */
         NO_CLIMATE_PROFILE,
@@ -68,7 +70,9 @@ public record Note(Kind kind, List<String> args) {
         /** The garden is on the coast below its cell: the cell's frost dates were not corrected (#62). */
         ALTITUDE_COAST,
         /** The altitude difference was capped at 500 m (#62). */
-        ALTITUDE_CAPPED
+        ALTITUDE_CAPPED,
+        /** args: crop, its hardiness (°C, one decimal), the site's winter minimum (°C, one decimal), verdict (#147). */
+        FROST_SUITABILITY
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -127,6 +131,8 @@ public record Note(Kind kind, List<String> args) {
             case PLOT_NOT_FOUND -> "There is no plot named \"" + arg(0) + "\" in " + arg(1)
                     + ": what grows there and its rotation were not checked.";
             case PLOT_AMBIGUOUS -> "More than one plot in " + arg(1) + " matches \"" + arg(0) + "\": " + arg(2) + ".";
+            case READ_THE_LABEL -> "Substances and microorganisms allowed in organic farming are still plant "
+                    + "protection products: read the label, follow it, and check the rules for home gardeners.";
             case WINDOWS_FROM_CLIMATE -> "The sowing and harvest windows are those of central Italy, derived "
                     + "for the garden's climate profile (AgERA5 1996-2025).";
             case NO_CLIMATE_PROFILE -> "There is no climate profile for this garden's position: its sowing and "
@@ -136,6 +142,18 @@ public record Note(Kind kind, List<String> args) {
                     + "corrected for altitude.";
             case ALTITUDE_CAPPED -> "The garden's altitude is more than 500 m from its climate cell's: the frost "
                     + "dates were corrected by a capped 500 m.";
+            case FROST_SUITABILITY -> arg(0) + " stands " + arg(1) + " °C and this site's 1-in-5 winter minimum "
+                    + "is " + arg(2) + " °C: " + frostVerdict(arg(3));
+        };
+    }
+
+    /** The verdict of frost-suitability-v1 as a sentence (#147). */
+    private static String frostVerdict(String verdict) {
+        return switch (verdict) {
+            case "NOT_IN_OPEN_GROUND" -> "it does not survive the winter here in open ground: in a pot, sheltered "
+                    + "in winter.";
+            case "SHELTER_IN_POT" -> "in a pot, shelter it in winter.";
+            default -> "";
         };
     }
 

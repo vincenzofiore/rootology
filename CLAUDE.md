@@ -31,7 +31,7 @@ The detail of every module, with the issue that built it, is in `docs/architectu
 touches before changing it, and update it (not this file) when a change alters what it says. `ModularityTest` checks the module boundaries and writes the module diagram and each
 module's dependencies to `target/spring-modulith-docs/`.
 
-- Stack: Spring Boot 4.1.2, Java 25, Maven (`./mvnw`), Spring Modulith 2.1.2, Apache Jena 6.2.0, Embabel 1.5.4 (Claude, default `claude-sonnet-5-5`), Vaadin Flow 25.3, Spring Security OAuth2 (GitHub, Google), Postgres 17 with Flyway (Hibernate `ddl-auto: validate`), Neo4j 2026.10.
+- Stack: Spring Boot 4.1.3, Java 25, Maven (`./mvnw`), Spring Modulith 2.1.2, Apache Jena 6.2.0, Embabel 1.5.4 (Claude, default `claude-sonnet-5-5`), Vaadin Flow 25.3, Spring Security OAuth2 (GitHub, Google), Postgres 17 with Flyway (Hibernate `ddl-auto: validate`), Neo4j 2026.10.
 - Modules (base package `app.rootology`):
   - `ontology`, `inference`, `experiments`: the quality suite's fixture (`OntologyDefinition`), its Jena arbiter and the five cases. Ground truth, see the conventions.
   - `facts`: Neo4j fact store with two graphs that never mix (`Suite` and the curated knowledge base `Kb`), loaded at startup from `src/main/resources/knowledge/` and validated (`KnowledgeValidator`: an invalid base stops startup); climate cells and the calendar rules (`FrostSeasonRule`, `FrostShiftRule`, `ClimateWindows`); `KnowledgeGraph.resolve`/`factsAbout`.
@@ -67,8 +67,9 @@ which order it was built, is in `docs/roadmap.md`.
 
 Phase 1, a personal assistant for a few invited users, still open:
 
-- Before the first users outside the owner's circle: #70 off-server backups, a production restore test and the domain email; #71 TypeSafe zero data retention; #125 after the next release, the root's redirect in production and Search Console.
+- Before the first users outside the owner's circle: #70 off-server backups, a production restore test and the domain email; #71 TypeSafe zero data retention; #125 after the next release, the root's redirect in production and Search Console; #165 flag accounts that only create useless traffic, blocked by an admin.
 - Quality: #69 Jev's confidence around the 0.5 threshold; #27 observability, part 2 (traces, a place for metrics).
+- Knowledge (census, not started): #139 crop list v2 (vegetables, herbs, fruit, flowers, perennials); #140 biological and integrated pest control per pest; #141 proposal of crops for the free areas.
 - Later: #52 review policy per space and second opinions; #34 more collaborator roles; #99 support the project; #90 layout of areas in the garden (blocked: its value is being evaluated; step 1 on `feature/90-garden-plan`).
 - Tooling: #127 dev environment; #128 this file; #129 ponytail trial.
 

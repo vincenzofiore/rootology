@@ -50,6 +50,15 @@ public class GardenService {
         return gardens.findBySpaceIdOrderById(spaceId).stream().map(GardenService::summary).toList();
     }
 
+    /**
+     * True when the space has a garden (#165): a system read, with no person, since the nightly signal asks it
+     * about spaces nobody is looking at.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasGarden(long spaceId) {
+        return gardens.existsBySpaceId(spaceId);
+    }
+
     /** Coordinates are optional and rounded to 0.01 degrees, so only a coarse location is stored. */
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
@@ -83,18 +92,32 @@ public class GardenService {
         BigDecimal lon = coarse(longitude, 180, "Longitude");
         Garden existing = gardenId == null ? null : garden(spaceId, gardenId);
         Integer elevation = elevation(lat, lon, elevationM, existing);
+        String region = region(lat, lon, existing);
         Garden garden = existing == null
                 ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, Instant.now())
                 : existing;
         boolean moved = lat != null && lon != null && (existing == null
                 || !lat.equals(existing.getLatitude()) || !lon.equals(existing.getLongitude()));
         garden.update(cleanName, blankToNull(town), lat, lon, country, elevation);
+        garden.setRegionCode(region);
         GardenSummary saved = summary(gardens.save(garden));
         if (moved) {
             // A new place has no stored forecast yet: the map's popups would show no weather (#67).
-            events.publishEvent(new GardenLocated(saved.id(), lat, lon));
+            events.publishEvent(new GardenLocated(saved.id(), lat, lon, elevation));
         }
         return saved;
+    }
+
+    /**
+     * The region to store: none for a new garden or without coordinates, and the old one only when the place
+     * did not change; a moved or cleared garden loses the region that belonged to its old place (#136).
+     */
+    private static String region(BigDecimal latitude, BigDecimal longitude, Garden existing) {
+        if (existing == null || latitude == null || longitude == null) {
+            return null;
+        }
+        boolean samePlace = latitude.equals(existing.getLatitude()) && longitude.equals(existing.getLongitude());
+        return samePlace ? existing.getRegionCode() : null;
     }
 
     /** The elevation to store: none without coordinates; the old one kept only when the place did not change. */
@@ -108,6 +131,31 @@ public class GardenService {
         boolean samePlace = existing != null && latitude.equals(existing.getLatitude())
                 && longitude.equals(existing.getLongitude());
         return samePlace ? existing.getElevationM() : null;
+    }
+
+    /**
+     * Stores the region GeoNames gave for a garden (#136): a system call, no person and no membership check.
+     * The code is a GeoNames first-level administrative code, "01"…"20" for the Italian regions, or null.
+     */
+    @Transactional
+    public void setRegion(long gardenId, String regionCode) {
+        String code = blankToNull(regionCode);
+        if (code != null && !code.matches("[0-9A-Z]{1,3}")) {
+            throw new IllegalArgumentException("A region is a GeoNames code of 1 to 3 letters or digits, not "
+                    + regionCode);
+        }
+        Garden garden = gardens.findById(gardenId)
+                .orElseThrow(() -> new IllegalArgumentException("No such garden: " + gardenId));
+        garden.setRegionCode(code);
+    }
+
+    /**
+     * Gardens with coordinates and no region yet, for the background lookup (#136): Italian gardens and those
+     * saved before the country was recorded. A system read, no person and no membership check.
+     */
+    @Transactional(readOnly = true)
+    public List<GardenSummary> withoutRegion() {
+        return gardens.withoutRegion().stream().map(GardenService::summary).toList();
     }
 
     @Transactional
@@ -390,7 +438,7 @@ public class GardenService {
 
     private static GardenSummary summary(Garden g) {
         return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude(),
-                g.getCountryCode(), g.getElevationM());
+                g.getCountryCode(), g.getRegionCode(), g.getElevationM());
     }
 
     private static PlotSummary summary(Plot p) {

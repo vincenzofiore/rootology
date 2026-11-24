@@ -1,16 +1,6 @@
 package app.rootology.privacy;
 
-import app.rootology.access.AccessPersonalData;
-import app.rootology.enrichment.ProposalPersonalData;
-import app.rootology.garden.GardenPersonalData;
-import app.rootology.history.RunPersonalData;
-import app.rootology.notifications.NotificationPersonalData;
-import app.rootology.notifications.TelegramPersonalData;
-import app.rootology.pipeline.EscalationPersonalData;
-import app.rootology.roles.RolePersonalData;
-import app.rootology.spaces.SpacePersonalData;
 import app.rootology.spaces.SpaceService;
-import app.rootology.usage.UsagePersonalData;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.SerializationFeature;
@@ -34,33 +24,12 @@ import java.util.Map;
 @Service
 public class DataExport {
 
-    private final SpacePersonalData spaces;
-    private final GardenPersonalData gardens;
-    private final RunPersonalData runs;
-    private final EscalationPersonalData escalations;
-    private final NotificationPersonalData notifications;
-    private final TelegramPersonalData telegram;
-    private final UsagePersonalData usage;
-    private final ProposalPersonalData proposals;
-    private final RolePersonalData roles;
-    private final AccessPersonalData access;
+    private final PersonalData people;
     private final Clock clock;
     private final JsonMapper json = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
-    DataExport(SpacePersonalData spaces, GardenPersonalData gardens, RunPersonalData runs,
-               EscalationPersonalData escalations, NotificationPersonalData notifications, TelegramPersonalData telegram,
-               UsagePersonalData usage,
-               ProposalPersonalData proposals, RolePersonalData roles, AccessPersonalData access, Clock clock) {
-        this.spaces = spaces;
-        this.gardens = gardens;
-        this.runs = runs;
-        this.escalations = escalations;
-        this.notifications = notifications;
-        this.telegram = telegram;
-        this.usage = usage;
-        this.proposals = proposals;
-        this.roles = roles;
-        this.access = access;
+    DataExport(PersonalData people, Clock clock) {
+        this.people = people;
         this.clock = clock;
     }
 
@@ -70,16 +39,17 @@ public class DataExport {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("exportedAt", clock.instant().toString());
         data.put("githubLogin", login);
-        data.putAll(spaces.export(login));
-        data.putAll(gardens.export(spaces.spacesOf(login)));
-        data.put("questions", runs.export(login));
-        data.put("escalations", escalations.export(login));
-        data.putAll(notifications.export(login));
-        data.putAll(telegram.export(login));
-        data.putAll(usage.export(login));
-        data.put("knowledgeProposals", proposals.export(login));
-        data.put("appRoles", roles.export(login));
-        data.put("accessRequests", access.export(login));
+        data.putAll(people.spaces().export(login));
+        data.putAll(people.gardens().export(people.spaces().spacesOf(login)));
+        data.put("questions", people.runs().export(login));
+        data.put("escalations", people.escalations().export(login));
+        data.putAll(people.notifications().export(login));
+        data.putAll(people.telegram().export(login));
+        data.putAll(people.usage().export(login));
+        data.put("knowledgeProposals", people.proposals().export(login));
+        data.put("appRoles", people.roles().export(login));
+        data.put("accessRequests", people.access().export(login));
+        data.put("accountFlags", people.accountFlags().export(login));
         return json.writeValueAsBytes(plain(data));
     }
 

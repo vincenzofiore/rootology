@@ -15,6 +15,8 @@
 #   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
 #   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
 #   | balcony ("Balcone" in Palermo, 38.12, 13.36, SUD; one plot "Davanzale", container, declared part shade)
+#   | milano ("Orto di Milano", 45.46, 9.19, IT, 120 m; one plot "Aiuola", ground)
+#   | turin-terrace ("Terrazzo di Torino", 45.07, 7.69, IT, 205 m; one plot "Vaso", pot)
 #   | two-terraces-small, two-terraces-space (one space in Vasto with "Terrazzo grande", plot Vasca with
 #   lettuce since 2026-10-01, and "Terrazzo piccolo", plot Vaso with garlic since 2026-10-15; asked on the
 #   small terrace or at the space level)
@@ -67,6 +69,50 @@ cases:
     expect:
       answer: [FEBRUARY, MARCH, APRIL, MAY]
       activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # Will a perennial stand the garden's winter (#147, frost-suitability-v1)? Vasto's cell is -1.4 °C,
+  # corrected to -1.5 °C at 144 m: the lemon, which stands -3 °C, survives, and nothing is said about it.
+  - id: plant-lemon-in-a-vasto-garden
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: two-terraces-small
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
+  # Turin's cell is -10.4 °C, -10.2 °C at 205 m: the lemon (-3 °C) does not survive the winter there in open
+  # ground, and the answer says so. The planting window is still April-May, as at Vasto.
+  - id: plant-lemon-in-a-turin-garden
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: two-gardens-north
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+      notes: [does not survive the winter here in open ground]
+
+  # The same lemon on a terrace in Turin whose only area is a pot: the verdict is the pot's, shelter it in winter.
+  - id: plant-lemon-on-a-turin-terrace
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: turin-terrace
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+      notes: [in a pot, shelter it in winter]
+
+  # Milan's cell is -6.8 °C, -6.7 °C at 120 m: the kumquat, which stands -10 °C, survives the winter.
+  - id: plant-kumquat-in-a-milan-garden
+    question: Quando posso piantare un kumquat?
+    intent: {kind: SOWING_TIME, subject: kumquat, language: it}
+    garden: milano
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
 
   # A crop named in the plural, as questions usually do (#108): the same answer as the singular.
   - id: sowing-tomato-plural
@@ -123,51 +169,233 @@ cases:
     intent: {kind: HARVEST_TIME, subject: aglio, language: it, place: Vasto}
     expect: {answer: [JUNE, JULY]}
 
+  # A service plant (#140): not food, so it is never in a "what can I sow now" answer, but its own calendar
+  # still answers. Phacelia's curated windows are March to June.
+  - id: sowing-time-phacelia
+    question: Quando semino la facelia a Vasto?
+    intent: {kind: SOWING_TIME, subject: facelia, language: it, place: Vasto}
+    expect: {answer: [MARCH, APRIL, MAY, JUNE]}
+
+  # Citrus and pruning (#139): perennials with a planting, a harvest and a pruning window.
+  - id: plant-lemon
+    question: Quando si pianta il limone a Vasto?
+    intent: {kind: SOWING_TIME, subject: limone, language: it, place: Vasto}
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
+  - id: prune-lemon
+    question: Quando si pota il limone a Vasto?
+    intent: {kind: PRUNING_TIME, subject: limone, language: it, place: Vasto}
+    expect: {answer: [MARCH, APRIL]}
+
+  - id: harvest-mandarin-en
+    question: When are mandarins harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: Mandarin, language: en, place: Vasto}
+    expect: {answer: [NOVEMBER, DECEMBER, JANUARY, FEBRUARY]}
+
+  # Perennial herbs (#139).
+  - id: prune-lavender
+    question: Quando si pota la lavanda a Vasto?
+    intent: {kind: PRUNING_TIME, subject: lavanda, language: it, place: Vasto}
+    expect: {answer: [AUGUST, SEPTEMBER]}
+
+  - id: harvest-thyme-en
+    question: When is thyme harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: thyme, language: en, place: Vasto}
+    expect:
+      answer: [JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER]
+
+  - id: plant-marjoram
+    question: Quando si pianta la maggiorana a Vasto?
+    intent: {kind: SOWING_TIME, subject: maggiorana, language: it, place: Vasto}
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
+  # Berries (#139).
+  - id: prune-blueberry
+    question: Quando si pota il mirtillo a Vasto?
+    intent: {kind: PRUNING_TIME, subject: mirtillo, language: it, place: Vasto}
+    expect: {answer: [FEBRUARY, MARCH]}
+
+  - id: harvest-raspberry-en
+    question: When are raspberries harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: raspberries, language: en, place: Vasto}
+    expect: {answer: [JUNE, JULY, SEPTEMBER, OCTOBER]}
+
+  - id: plant-goji
+    question: Quando si pianta il goji a Vasto?
+    intent: {kind: SOWING_TIME, subject: goji, language: it, place: Vasto}
+    expect:
+      answer: [MARCH, APRIL, OCTOBER, NOVEMBER]
+      activities: {MARCH: [PLANT], APRIL: [PLANT], OCTOBER: [PLANT], NOVEMBER: [PLANT]}
+
+  # Pome and stone fruit (#139): planting and pruning from the Abruzzo integrated production rules.
+  - id: prune-apple
+    question: Quando si pota il melo a Vasto?
+    intent: {kind: PRUNING_TIME, subject: melo, language: it, place: Vasto}
+    expect: {answer: [JANUARY, FEBRUARY, MARCH, JULY]}
+
+  - id: harvest-apricot-en
+    question: When are apricots harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: apricots, language: en, place: Vasto}
+    expect: {answer: [JUNE, JULY]}
+
+  - id: plant-cherry
+    question: Quando si pianta il ciliegio a Vasto?
+    intent: {kind: SOWING_TIME, subject: ciliegio, language: it, place: Vasto}
+    expect:
+      answer: [NOVEMBER, DECEMBER]
+      activities: {NOVEMBER: [PLANT], DECEMBER: [PLANT]}
+
+  # Other fruit trees (#139): kiwi from the Abruzzo integrated production rules, the rest editorial.
+  - id: harvest-olive
+    question: Quando si raccolgono le olive a Vasto?
+    intent: {kind: HARVEST_TIME, subject: olive, language: it, place: Vasto}
+    expect: {answer: [OCTOBER, NOVEMBER, DECEMBER]}
+
+  - id: prune-kiwi
+    question: Quando si pota il kiwi a Vasto?
+    intent: {kind: PRUNING_TIME, subject: kiwi, language: it, place: Vasto}
+    expect: {answer: [JANUARY, FEBRUARY, JUNE, JULY]}
+
+  - id: plant-fig-en
+    question: When can I plant a fig tree in Vasto?
+    intent: {kind: SOWING_TIME, subject: fig tree, language: en, place: Vasto}
+    expect:
+      answer: [FEBRUARY, MARCH]
+      activities: {FEBRUARY: [PLANT], MARCH: [PLANT]}
+
+  # Nuts and perennial vegetables (#139): chestnut planting from the Abruzzo integrated production rules.
+  - id: plant-chestnut
+    question: Quando si pianta il castagno a Vasto?
+    intent: {kind: SOWING_TIME, subject: castagno, language: it, place: Vasto}
+    expect:
+      answer: [NOVEMBER, DECEMBER]
+      activities: {NOVEMBER: [PLANT], DECEMBER: [PLANT]}
+
+  - id: prune-hazelnut
+    question: Quando si potano i noccioli a Vasto?
+    intent: {kind: PRUNING_TIME, subject: noccioli, language: it, place: Vasto}
+    expect: {answer: [JANUARY, FEBRUARY]}
+
+  - id: harvest-asparagus-en
+    question: When is asparagus harvested in Vasto?
+    intent: {kind: HARVEST_TIME, subject: asparagus, language: en, place: Vasto}
+    expect: {answer: [APRIL, MAY]}
+
+  # A crop with no pruning window: nothing is guessed, the question waits for a person.
+  - id: prune-tomato
+    question: Quando si pota il pomodoro a Vasto?
+    intent: {kind: PRUNING_TIME, subject: pomodoro, language: it, place: Vasto}
+    expect: {escalate: pruning months}
+
   - id: sow-now-november
     question: Cosa posso seminare adesso a Vasto?
     intent: {kind: SOW_NOW, language: it, place: Vasto}
-    expect: {answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]}
+    expect: {answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+                      Uva spina, Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno,
+                      Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]}
 
   - id: sow-in-march-en
     question: What can I sow in March in Vasto?
     intent: {kind: SOW_NOW, language: en, month: MARCH, place: Vasto}
     expect:
-      answer: [Basil, Cabbage, Carrot, Celery, Chard, Chili pepper, Eggplant, Leek, Lettuce, Onion, Parsley,
-               Pea, Potato, Radish, Rocket, Rosemary, Sage, Spinach, Sweet pepper, Tomato]
+      answer: [Aronia, Basil, Bay laurel, Beetroot, Black currant, Blackberry, Blueberry, Borage, Cabbage,
+               Cape gooseberry, Carrot, Celeriac, Celery, Chard, Chervil, Chickpea, Chili pepper, Chives,
+               Coriander, Dill, Eggplant, Goji, Gooseberry, Grass pea, Kohlrabi, Lavender, Leek, Lentil, Lettuce,
+               Mint, Okra, Onion, Oregano, Parsley, Parsnip, Pea, Potato, Radish, Raspberry, Red currant, Rocket,
+               Rosemary, Sage, Shallot, Spinach, Spring onion, Sweet pepper, Thyme, Tomato, Fig, Pomegranate, Loquat, Olive, Table grape, Lemon balm,
+               Tarragon, Winter savory, Asparagus, Jerusalem artichoke]
       activities:
+        Fig: [PLANT]
+        Pomegranate: [PLANT]
+        Loquat: [PLANT]
+        Olive: [PLANT]
+        Table grape: [PLANT]
+        Lemon balm: [PLANT]
+        Tarragon: [PLANT]
+        Winter savory: [PLANT]
+        Asparagus: [PLANT]
+        Jerusalem artichoke: [PLANT]
+        Aronia: [PLANT]
         Basil: [SOW]
+        Bay laurel: [PLANT]
+        Beetroot: [SOW]
+        Black currant: [PLANT]
+        Blackberry: [PLANT]
+        Blueberry: [PLANT]
+        Borage: [SOW]
         Cabbage: [SOW_SEEDBED]
+        Cape gooseberry: [SOW_SEEDBED]
         Carrot: [SOW]
+        Celeriac: [SOW_SEEDBED]
         Celery: [SOW_SEEDBED]
         Chard: [SOW]
+        Chervil: [SOW]
+        Chickpea: [SOW]
         Chili pepper: [SOW_SEEDBED]
+        Chives: [SOW, PLANT]
+        Coriander: [SOW]
+        Dill: [SOW]
         Eggplant: [SOW_SEEDBED]
+        Goji: [PLANT]
+        Gooseberry: [PLANT]
+        Grass pea: [SOW]
+        Kohlrabi: [SOW]
+        Lavender: [PLANT]
         Leek: [SOW_SEEDBED]
+        Lentil: [SOW]
         Lettuce: [SOW]
+        Mint: [PLANT]
+        Okra: [SOW_SEEDBED]
         Onion: [SOW]
+        Oregano: [PLANT]
         Parsley: [SOW]
+        Parsnip: [SOW]
         Pea: [SOW]
         Potato: [PLANT]
         Radish: [SOW]
+        Raspberry: [PLANT]
+        Red currant: [PLANT]
         Rocket: [SOW]
         Rosemary: [PLANT]
         Sage: [PLANT]
+        Shallot: [PLANT]
         Spinach: [SOW]
+        Spring onion: [SOW]
         Sweet pepper: [SOW_SEEDBED]
+        Thyme: [PLANT]
         Tomato: [SOW_SEEDBED]
-
   # What to sow in a month: seedbed crops stay in the list, marked as such (owner's choice 2026-11-15, #112).
   - id: sow-in-february-it
     question: Cosa posso seminare a febbraio a Vasto?
     intent: {kind: SOW_NOW, language: it, month: FEBRUARY, place: Vasto}
     expect:
-      answer: [Carota, Cipolla, Lattuga, Melanzana, Peperoncino, Peperone, Pisello, Pomodoro, Porro,
-               Prezzemolo, Ravanello, Sedano, Spinacio]
+      answer: [Alchechengi, Aronia, Carota, Cece, Cerfoglio, Cicerchia, Cipolla, Cipollotto, Lampone, Lattuga,
+               Lenticchia, Melanzana, Mirtillo, Mora, Peperoncino, Peperone, Pisello, Pomodoro, Porro,
+               Prezzemolo, Ravanello, Ribes nero, Ribes rosso, Scalogno, Sedano, Sedano rapa, Spinacio,
+               Uva spina, Fico, Uva da tavola, Asparago, Topinambur]
       activities:
+        Fico: [PLANT]
+        Uva da tavola: [PLANT]
+        Asparago: [PLANT]
+        Topinambur: [PLANT]
+        Alchechengi: [SOW_SEEDBED]
+        Aronia: [PLANT]
         Carota: [SOW]
+        Cece: [SOW]
+        Cerfoglio: [SOW]
+        Cicerchia: [SOW]
         Cipolla: [SOW]
+        Cipollotto: [SOW]
+        Lampone: [PLANT]
         Lattuga: [SOW]
+        Lenticchia: [SOW]
         Melanzana: [SOW_SEEDBED]
+        Mirtillo: [PLANT]
+        Mora: [PLANT]
         Peperoncino: [SOW_SEEDBED]
         Peperone: [SOW_SEEDBED]
         Pisello: [SOW]
@@ -175,8 +403,13 @@ cases:
         Porro: [SOW_SEEDBED]
         Prezzemolo: [SOW]
         Ravanello: [SOW]
+        Ribes nero: [PLANT]
+        Ribes rosso: [PLANT]
+        Scalogno: [PLANT]
         Sedano: [SOW_SEEDBED]
+        Sedano rapa: [SOW_SEEDBED]
         Spinacio: [SOW]
+        Uva spina: [PLANT]
 
   # Pests and diseases.
   - id: relevant-pests-tomato-summer
@@ -197,6 +430,69 @@ cases:
     intent: {kind: ACTIVE_SEASONS, subject: late blight, language: en}
     expect: {answer: [SPRING, SUMMER, AUTUMN]}
 
+  # Control methods (#140): every method of the pest, whatever its kind; a substance asks to read the label.
+  - id: control-aphids
+    question: Cosa posso fare contro gli afidi?
+    intent: {kind: CONTROL_METHODS, subject: afidi, language: it}
+    expect:
+      answer: ["Squash small colonies by hand and tolerate light attacks while natural enemies build up",
+               "Encourage ladybirds; hoverflies; lacewings; parasitoid wasps and earwigs",
+               "Two-spot ladybird released as biological control under cover",
+               "Lacewing larvae released as biological control",
+               "Parasitoid wasp released as biological control under cover",
+               "Predatory gall midge released as biological control",
+               "Fatty acids (insecticidal soap) sprayed on the colonies"]
+      notes: [read the label]
+
+  - id: control-cabbage-white
+    question: Come combatto la cavolaia?
+    intent: {kind: CONTROL_METHODS, subject: cavolaia, language: it}
+    expect:
+      answer: ["Cover with fine netting or fleece that does not touch the plants",
+               "Inspect the plants and pick off eggs and caterpillars",
+               "Parasitoid wasp common in gardens: tolerate light attacks",
+               "Bacillus thuringiensis ssp. kurstaki on young caterpillars", "Spinosad"]
+      notes: [read the label]
+
+  - id: control-slugs-common-name
+    question: Come mi difendo dalle lumache?
+    intent: {kind: CONTROL_METHODS, subject: lumache, language: it}
+    expect:
+      answer: ["Hand-pick slugs on mild; damp evenings", "Water in the morning rather than in the evening",
+               "Beer traps or upturned fruit skins; emptied every morning",
+               "Slug-specific nematodes watered into moist soil",
+               "Ferric phosphate pellets (the RHS advises against any pellets; for wildlife)"]
+      notes: [read the label]
+
+  - id: control-late-blight-en
+    question: How do I fight late blight?
+    intent: {kind: CONTROL_METHODS, subject: late blight, language: en}
+    expect:
+      answer: ["Rotate for at least four years; keeping tomatoes off that soil too",
+               "Destroy leftover tubers and volunteer potatoes",
+               "Early potato cultivars; harvested before the disease peaks",
+               "Copper compounds slow the spread (at most 28 kg of copper per hectare over 7 years)"]
+      notes: [read the label]
+
+  # A service plant as a control method (#140): the methods of the glasshouse whitefly include the French
+  # marigold, a traditional companion (weak evidence, so it is listed as traditional).
+  - id: control-glasshouse-whitefly
+    question: Cosa posso fare contro la mosca bianca delle serre?
+    intent: {kind: CONTROL_METHODS, subject: mosca bianca delle serre, language: it}
+    expect:
+      answer: ["Parasitoid wasp released early under cover",
+               "Predatory bug released under cover (it can damage cherry tomatoes)",
+               "Quarantine new plants before bringing them in",
+               "Yellow sticky traps; to monitor rather than control",
+               "Fatty acids (insecticidal soap)", "Azadirachtin (neem extract)",
+               "Grow French marigolds beside the crop against glasshouse whitefly"]
+      notes: [read the label]
+
+  - id: control-unknown-pest
+    question: Cosa posso fare contro la cimice asiatica?
+    intent: {kind: CONTROL_METHODS, subject: cimice asiatica, language: it}
+    expect: {escalate: not in the dataset}
+
   # The space's garden.
   - id: growing-now
     question: Cosa cresce nel mio orto?
@@ -204,6 +500,23 @@ cases:
     garden: rome
     weather: missing
     expect: {answer: [Pomodoro, Lattuga]}
+
+  # Proposals for a free area (#141): built by the app with the goals the person chose; Jev judges the crops
+  # of crop-proposal-v1. Aiuola B had peas until June (rotation: no legumes); garlic and shallot are a family the
+  # garden lacks, and annuals come before the almond tree. Aiuola A is not free: nothing is proposed for it.
+  - id: propose-free-area-variety
+    question: "Cosa metto in Aiuola B a novembre? Obiettivi: varietà"
+    intent: {kind: PROPOSE_IN_AREA, subject: Aiuola B, language: it, month: NOVEMBER, goals: [VARIETY]}
+    garden: rome
+    weather: missing
+    expect: {answer: [Aglio, Scalogno, Mandorlo]}
+
+  - id: propose-area-not-free
+    question: "Cosa metto in Aiuola A a novembre? Obiettivi: suolo"
+    intent: {kind: PROPOSE_IN_AREA, subject: Aiuola A, language: it, month: NOVEMBER, goals: [SOIL]}
+    garden: rome
+    weather: missing
+    expect: {escalate: not in the dataset}
 
   - id: pest-risk-november
     question: Cosa minaccia il mio orto questo mese?
@@ -219,7 +532,9 @@ cases:
     intent: {kind: SOW_IN_PLOT, subject: Aiuola B, language: it}
     garden: rome
     weather: missing
-    expect: {answer: [Aglio, Rosmarino, Salvia]}
+    expect: {answer: [Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
+                      Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+                      Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]}
 
   # Local weather (#18): frost-risk-v1 with ECOCROP's killing temperature for young plants.
   - id: frost-rules-out-pea
@@ -228,7 +543,7 @@ cases:
     garden: rome
     weather: frost
     expect:
-      answer: [Fava, Aglio, Rosmarino, Salvia]
+      answer: [Fava, Aglio, Aronia, Goji, Mora, Rosmarino, Salvia, Scalogno, Amarena, Nettarina, Pero, Pesco, Giuggiolo, Castagno]
       notes: [frost-risk-v1, Pisello]
 
   - id: forecast-missing-answers-anyway
@@ -237,7 +552,9 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Fava, Aglio, Pisello, Rosmarino, Salvia]
+      answer: [Fava, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso, Uva spina,
+               Pisello, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available]
 
   # Facts added by a space (#24): visible only there.
@@ -254,8 +571,8 @@ cases:
 
   # Questions that must go to a person.
   - id: unknown-crop
-    question: Quali sono le compagne della lavanda?
-    intent: {kind: COMPANIONS, subject: lavanda, language: it}
+    question: Quali sono le compagne della papaya?
+    intent: {kind: COMPANIONS, subject: papaya, language: it}
     expect: {escalate: not in the dataset}
 
   # A plain weather forecast is not about the garden (#53): refused, where it used to wait for a person.
@@ -331,7 +648,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available]
 
   - id: sow-now-in-the-southern-garden
@@ -340,7 +657,9 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia]
+      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available, on the coast]
 
   - id: growing-now-in-one-of-two-gardens
@@ -349,6 +668,17 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect: {answer: [Aglio]}
+
+  # Pest months follow the garden's climate (#162, rule pest-shift-v1): the pest rows move as the crop's
+  # own calendar moves. Garlic's latest-ending window (PLANT 10-12) ends a month earlier at Torino (9-11),
+  # so the rows that end with it move: onion fly 8-9 -> 8-8 and onion thrips 5-9 -> 5-8, while leek rust
+  # 9-10 -> 9-9 still covers September. Vasto's curated months would name all three in September.
+  - id: pest-risk-in-the-northern-garden
+    question: Cosa minaccia il mio orto a settembre?
+    intent: {kind: PEST_RISK, language: it, month: SEPTEMBER}
+    garden: two-gardens-north
+    weather: missing
+    expect: {answer: [Ruggine dell'aglio e del porro]}
 
   # A calendar question outside a garden, with no place and no zone: the person picks one of the gardens'
   # towns (#107). The choices replace the old default-zone answer and the old escalation.
@@ -374,7 +704,7 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Torino}
     weather: missing
     expect:
-      answer: [Aglio]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available]
 
   - id: sow-now-in-palermo-place
@@ -382,7 +712,9 @@ cases:
     intent: {kind: SOW_NOW, language: it, place: Palermo}
     weather: missing
     expect:
-      answer: [Fava, Pisello, Aglio, Rosmarino, Salvia]
+      answer: [Fava, Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available]
 
   - id: sow-now-in-a-place-named-inside-a-garden
@@ -391,7 +723,7 @@ cases:
     garden: two-gardens-south
     weather: missing
     expect:
-      answer: [Aglio]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [names the place Torino]
 
   - id: place-named-matching-several
@@ -411,7 +743,7 @@ cases:
     garden: two-gardens-north
     weather: missing
     expect:
-      answer: [Aglio]
+      answer: [Aglio, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina, Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [not available, Xyzville named in the question was not found]
 
   # A question that needs no garden and no place is still answered at the space level: no choice.
@@ -458,7 +790,9 @@ cases:
     garden: rome
     weather: missing
     expect:
-      answer: [Pisello, Aglio, Rosmarino, Salvia]
+      answer: [Pisello, Aglio, Alloro, Aronia, Goji, Lampone, Mirtillo, Mora, Ribes nero, Ribes rosso,
+               Uva spina, Rosmarino, Salvia, Scalogno, Albicocco, Amarena, Ciliegio, Cotogno, Melo, Nettarina,
+               Pero, Pesco, Susino, Gelso nero, Giuggiolo, Kaki, Kiwi, Uva da tavola, Mandorlo, Noce, Nocciolo, Castagno]
       notes: [names zone NORD, but the garden is in zone CENTRO]
 
   - id: plot-not-in-the-garden
@@ -468,7 +802,8 @@ cases:
     weather: missing
     expect:
       escalate: the plot is not in this garden
-      notes: [no plot named "Aiuola C"]
+      # Claude may keep or drop the kind word ("Aiuola C" or "C"): both resolve the same plot (#159).
+      notes: [no plot named]
 
   - id: plot-name-matching-two-plots
     question: Cosa posso seminare nell'aiuola?
@@ -488,7 +823,7 @@ cases:
     garden: balcony
     weather: missing
     expect:
-      answer: [Aglio]
+      answer: [Aglio, Aronia, Goji, Mirtillo, Mora, Scalogno, Giuggiolo]
       notes: [light-need-v1, on the coast]
 
   - id: calendar-abroad

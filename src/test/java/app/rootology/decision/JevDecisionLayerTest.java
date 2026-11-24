@@ -131,6 +131,40 @@ class JevDecisionLayerTest {
     }
 
     @Test
+    void onTheKnowledgeBaseADerivedCalendarIsSaidToBeTheSitesOwn() {
+        var calendar = new GraphFacts(List.of(Reading.inferred(new Fact("pomodoro", "plantIn", "MAY"),
+                "frost-shift-v1", List.of("crea-2020"))));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.INFERRED").value(org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("calendar of the question's site"),
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("As reliable as that rule")))))
+                .andExpect(jsonPath("$.state.rule").value(org.hamcrest.Matchers.containsString("counts as sowing")))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9},
+                         "candidate_0":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.SOWING_TIME, "pomodoro"), calendar);
+
+        server.verify();
+    }
+
+    @Test
+    void theSuitesInferredReadingsKeepTheRecordedSourceDescription() {
+        var suite = new GraphFacts(List.of(Reading.inferred(new Fact("Tomato", "companionOf", "Basil"),
+                "some-rule-v1", List.of())));
+        server.expect(requestTo("https://jev.test/v1/systemone"))
+                .andExpect(jsonPath("$.state.sources.INFERRED").value(
+                        "Derived from curated facts by the rule named in `derivedBy`. As reliable as that rule."))
+                .andRespond(withSuccess("""
+                        {"answers":{"answerable":{"type":"noul","noul":0.9},
+                         "candidate_0":{"type":"noul","noul":0.9}}}""", MediaType.APPLICATION_JSON));
+
+        layer.decide(Intent.of(QueryKind.COMPANIONS, "Tomato"), suite);
+
+        server.verify();
+    }
+
+    @Test
     void factsOfTheKnowledgeBaseGetTheirOwnRuleAndNoneCountsAsAnAnswer() {
         var garlic = new GraphFacts(List.of(new Reading(new Fact("Ruggine", "affects", "aglio"),
                 Reading.Source.CURATED, List.of("eppo-codes"), null)));

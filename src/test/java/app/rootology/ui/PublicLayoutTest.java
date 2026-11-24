@@ -27,7 +27,7 @@ class PublicLayoutTest {
     }
 
     private static PublicLayout navigatedTo(Class<? extends com.vaadin.flow.component.Component> target) {
-        PublicLayout layout = new PublicLayout("not-set");
+        PublicLayout layout = new PublicLayout("not-set", mock(app.rootology.access.AccountBlockService.class));
         BeforeEnterEvent event = mock(BeforeEnterEvent.class);
         doReturn(target).when(event).getNavigationTarget();
         layout.beforeEnter(event);

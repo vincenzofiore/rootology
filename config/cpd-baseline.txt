@@ -1,0 +1,8 @@
+# CPD baseline (#151): duplicated blocks that existed when the gate was introduced.
+# cpd-check fails on any duplication of 100 tokens or more that is not listed here.
+# One line per existing duplication, with the files it spans, comma-separated. Lines are
+# matched against the file paths, so a new copy-paste that adds a file still fails.
+# The file only shrinks: when the duplication is removed, delete its line.
+
+# AskView builds two identical "thinking" cards for two paths of the same answer flow.
+app/rootology/ui/AskView.java

@@ -166,7 +166,8 @@ class WeatherFacts {
 
     /** The run's garden's forecast; empty when the weather service gives nothing usable. */
     private Optional<Forecast> forecast(QuestionContext context) {
-        return weather.around(context.weather().latitude(), context.weather().longitude());
+        return weather.around(context.weather().latitude(), context.weather().longitude(),
+                context.weather().elevationM());
     }
 
     /** When the stored copy of a stale forecast was fetched, as an ISO local date-time in Italy; empty if fresh. */

@@ -27,7 +27,8 @@ public class GardenPersonalData {
             return data;
         }
         data.put("gardens", jdbc.sql("""
-                        select id, space_id, name, town, country_code, latitude, longitude, elevation_m, created_at
+                        select id, space_id, name, town, country_code, region_code, latitude, longitude, elevation_m,
+                               created_at
                         from garden where space_id in (:spaces) order by id""")
                 .param("spaces", spaces).query().listOfRows());
         data.put("plots", jdbc.sql("""

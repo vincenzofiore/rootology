@@ -1,6 +1,9 @@
 package app.rootology.ui;
 
 import app.rootology.decision.Note;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
@@ -28,6 +31,19 @@ class NoteAndReasonTextTest {
                 .isEqualTo("Sconsigliate adesso per rischio gelo: Pisello (regola frost-risk-v1).");
         assertThat(NoteText.tone(excluded)).isEqualTo(NoteText.Tone.RISK);
         assertThat(minimum.english()).isEqualTo("Forecast minimum in the next 7 days: -2.0 °C on Fri 6 Nov (MET Norway).");
+    }
+
+    @Test
+    void frostAndBlightNotesUseOurOwnDrawingsTheOthersStayOnVaadinIcons() {
+        Component frost = NoteText.icon(Note.of(Note.Kind.FROST_EXCLUDED, "frost-risk-v1", "Pisello"));
+        Component blight = NoteText.icon(Note.of(Note.Kind.SMITH_PERIOD, "2026-11-06", "Pomodoro", "rule", ""));
+        Component other = NoteText.icon(Note.of(Note.Kind.PLOT_NOT_FOUND, "Nord", "Terrazzo"));
+
+        assertThat(frost).isInstanceOf(SvgIcon.class);
+        assertThat(((SvgIcon) frost).getSrc()).isEqualTo("icons/seasons/winter.svg");
+        assertThat(blight).isInstanceOf(SvgIcon.class);
+        assertThat(((SvgIcon) blight).getSrc()).isEqualTo("icons/alerts/blight.svg");
+        assertThat(other).isInstanceOf(Icon.class);
     }
 
     @Test

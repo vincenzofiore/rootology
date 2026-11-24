@@ -151,6 +151,16 @@ public class SpaceService {
         return checked;
     }
 
+    /**
+     * When the person first signed in (#165), empty for someone added to a space who never did: a system
+     * read, with no role, since the nightly signal is about the account and not about a space.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Instant> firstLoginAt(String githubLogin) {
+        return users.findByLogin(normalizeLogin(githubLogin))
+                .map(AppUser::getFirstLoginAt);
+    }
+
     /** The spaces this person belongs to, oldest first (their personal space comes first). */
     @Transactional(readOnly = true)
     public List<SpaceSummary> spacesOf(String githubLogin) {
@@ -183,16 +193,19 @@ public class SpaceService {
         requireOwner(spaceId, requester).getSpace().rename(checkedName(name));
     }
 
-    /** True if this person is a member of the space, and not blocked there (#105). */
+    /**
+     * True if this person is a member of the space, and not blocked there (#105) nor blocked as an account
+     * (#165): read on every action, so a page left open after a block can no longer ask or change anything.
+     */
     @Transactional(readOnly = true)
     public boolean isMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin)).isPresent();
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNullAndUserBlockedAtIsNull(spaceId, normalizeLogin(githubLogin)).isPresent();
     }
 
     /** True for an OWNER or MEMBER of the space; a GUEST only looks (#33), a blocked member does nothing (#105). */
     @Transactional(readOnly = true)
     public boolean canContribute(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNullAndUserBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
                 .map(m -> m.getRole().contributes()).orElse(false);
     }
 
@@ -376,7 +389,7 @@ public class SpaceService {
 
     /** An active member: a blocked one is a member for nothing (#105). */
     private SpaceMember requireMember(long spaceId, String githubLogin) {
-        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
+        return members.findBySpaceIdAndUserLoginAndBlockedAtIsNullAndUserBlockedAtIsNull(spaceId, normalizeLogin(githubLogin))
                 .orElseThrow(() -> new SpaceAccessException(githubLogin + " is not a member of space " + spaceId));
     }
 }

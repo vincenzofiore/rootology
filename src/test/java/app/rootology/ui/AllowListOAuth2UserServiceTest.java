@@ -31,6 +31,8 @@ class AllowListOAuth2UserServiceTest {
             mock(app.rootology.notifications.NotificationService.class);
     private final app.rootology.access.AccessRequestService accessRequests =
             mock(app.rootology.access.AccessRequestService.class);
+    private final app.rootology.access.AccountBlockService blocks =
+            mock(app.rootology.access.AccountBlockService.class);
 
     private static OAuth2User githubUser(String id, String login) {
         return new DefaultOAuth2User(AuthorityUtils.createAuthorityList("OAUTH2_USER"),
@@ -39,7 +41,7 @@ class AllowListOAuth2UserServiceTest {
 
     private AllowListOAuth2UserService service(String... allowed) {
         return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), mock(GitHubEmails.class));
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks), mock(GitHubEmails.class));
     }
 
     @Test

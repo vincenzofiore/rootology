@@ -87,9 +87,12 @@ class GoldenQuestionsTest extends EmbabelMockitoIntegrationTest {
                 .thenReturn(c.intent());
         when(domainFilter.judge(c.question())).thenReturn(c.offDomain()
                 ? DomainFilter.Verdict.refusing(0.02) : DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+        when(weather.around(any(), any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
 
-        GardenPipeline.Run result = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
+        GardenPipeline.Run result = c.intent().kind() == app.rootology.decision.QueryKind.PROPOSE_IN_AREA
+                        // A proposal is built by the app with its intent (#141): no understanding to check.
+                        ? pipeline.propose(new Question(c.id(), c.question()), c.intent(), run)
+                        : pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
 
         GoldenVerdict verdict = GoldenVerdict.of(c, result);
         if (verdict != GoldenVerdict.CORRECT && verdict != GoldenVerdict.CORRECT_ESCALATION

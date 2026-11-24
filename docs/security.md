@@ -19,6 +19,12 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
   person is a member of no space and `CurrentUser` never treats them as one. The motivation they write is only
   read by admins: never sent to Claude or Jev, never logged, and shown as text (never markup) in the
   Administration page. Tested by `PendingAccessTest`.
+- A whole account can be blocked by an admin (#165): its principal carries `ROLE_BLOCKED` alone, nothing is
+  written for it at sign-in, `AccessRouting` sends it from any route to `/blocked` and lets it read only the
+  public pages, and it reads the account's state on every navigation, so an open session stops at its next
+  page. `CurrentUser` treats it as a member of nothing, so no question reaches Claude or Jev; only an admin
+  blocks or unblocks, nobody blocks themselves, and the last admin is never blocked. Tested by
+  `BlockedAccountTest`, `AccountBlockServiceTest`.
 
 ### A02 Security misconfiguration
 - In place: only `/logged-out`, `/invite/**`, `/sources`, `/privacy`, weather icons and styles are public; everything else needs sign-in. Spring's default headers (nosniff, `X-Frame-Options: DENY`, no-store cache control).
@@ -46,6 +52,7 @@ few invited people. Personal data is covered in `docs/privacy.md` (#40). To repo
 
 ### A08 Software or data integrity failures
 - In place: the curated knowledge files are validated at startup and the app refuses to start on invalid data; proposals are checked with the same rules and global ones approved by a curator; the quality suite in CI fails on silent wrong answers.
+- `main` is protected by a GitHub ruleset ("main"): no deletion, no force push, changes only through a pull request, and the `test` check of the build workflow must pass before the merge; releases are tagged on `main`, whose image is what the server runs.
 
 ### A09 Security logging and alerting failures
 - In place: invitations, joins and account deletions are logged; email addresses are masked; Jev's judgments are debug only. In production the logs are structured JSON with a random `traceId` per request (#27). Failed calls to external services log the service and the exception's type, not its message, which may carry the request (coordinates, the account, facts). `ObservabilityTest` checks that a whole run, notifications included, logs neither the question nor the asker's address. Admins are emailed when an external service keeps failing or the disk is nearly full (`docs/operations.md`).

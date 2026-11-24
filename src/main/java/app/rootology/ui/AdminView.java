@@ -1,5 +1,6 @@
 package app.rootology.ui;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -12,14 +13,19 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.Route;
+import app.rootology.access.AccountBlockService;
+import app.rootology.access.AccountFlagService;
+import app.rootology.access.AccountFlagView;
 import app.rootology.access.AccessRequestService;
 import app.rootology.access.AccessRequestStatus;
 import app.rootology.alerts.WeatherAlerts;
 import app.rootology.roles.AppRole;
 import app.rootology.roles.RoleGrantView;
 import app.rootology.roles.RoleService;
+import app.rootology.spaces.AccountBlock;
 import app.rootology.usage.UsageService;
 import jakarta.annotation.security.RolesAllowed;
 
@@ -30,7 +36,8 @@ import java.util.Set;
  * App roles (#32), for admins only (Vaadin checks {@code @RolesAllowed}, the service {@code @PreAuthorize}):
  * everyone the app knows with their roles, grant and revoke, and the history of every change. A change
  * applies from the person's next sign-in. It also holds the invitation requests (#65), approved or rejected
- * here, with the motivation shown as plain text.
+ * here, with the motivation shown as plain text, the accounts the nightly signal flagged (#165), every
+ * blocked account with an unblock action (#167), and the usage with a block action per account.
  */
 @Route(value = "admin", layout = MainLayout.class)
 @RolesAllowed("ADMIN")
@@ -43,17 +50,27 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
     private final UsageService usage;
     private final WeatherAlerts weatherAlerts;
     private final AccessRequestService accessRequests;
+    private final AccountBlockService blocks;
+    private final AccountFlagService accountFlags;
+    private final Grid<AccountFlagView> flagged = new Grid<>();
+    /** Every blocked account, by login, so one outside the usage window can still be unblocked (#167). */
+    private final Grid<Map.Entry<String, AccountBlock>> blockedAccounts = new Grid<>();
     private final Grid<UsageService.PersonUsage> consumption = new Grid<>();
+    /** The blocked accounts at the last refresh, so a row's action knows which way it goes (#165). */
+    private Map<String, AccountBlock> blockedNow = Map.of();
     private final Grid<app.rootology.access.AccessRequestView> waitingRequests = new Grid<>();
     private final Grid<app.rootology.access.AccessRequestView> decidedRequests = new Grid<>();
 
     public AdminView(RoleService roles, UsageService usage, WeatherAlerts weatherAlerts, CurrentUser currentUser,
-                     AccessRequestService accessRequests) {
+                     AccessRequestService accessRequests, AccountBlockService blocks,
+                     AccountFlagService accountFlags) {
         this.roles = roles;
         this.usage = usage;
         this.weatherAlerts = weatherAlerts;
         this.currentUser = currentUser;
         this.accessRequests = accessRequests;
+        this.blocks = blocks;
+        this.accountFlags = accountFlags;
         people.addColumn(p -> person(p.getKey())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
         for (AppRole role : AppRole.values()) {
             people.addComponentColumn(p -> {
@@ -86,6 +103,8 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         add(new PageHeader(getTranslation("admin.title")));
         add(new H3(getTranslation("admin.roles")), new Paragraph(getTranslation("admin.roles.intro")),
                 people, new H4(getTranslation("admin.history")), history);
+        add(flaggedSection());
+        add(blockedSection());
         add(usageSection());
         add(requestsSection());
         Button checkWeather = new Button(getTranslation("admin.weather.check"), e -> Toasts.info(
@@ -94,9 +113,92 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         refresh();
     }
 
+    /**
+     * The accounts the nightly signal flagged (#165), above the usage: the counts, when, and the two decisions.
+     * The system never blocks anyone: an admin blocks (with the reason prefilled, editable) or dismisses, both
+     * confirmed, and both recorded with who decided and when. Empty state: a line saying there are none.
+     */
+    private VerticalLayout flaggedSection() {
+        flagged.addColumn(f -> person(f.login())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
+        flagged.addColumn(f -> getTranslation("admin.flags.offdomain", f.offDomainQuestions(), f.judgedQuestions()))
+                .setHeader(getTranslation("admin.flags.questions")).setAutoWidth(true);
+        flagged.addColumn(f -> getTranslation("admin.flags.days", f.daysWithoutGarden()))
+                .setHeader(getTranslation("admin.flags.garden")).setAutoWidth(true);
+        flagged.addComponentColumn(f -> DateText.dateTimeSpan(f.flaggedAt(), this))
+                .setHeader(getTranslation("admin.flags.when")).setAutoWidth(true);
+        flagged.addComponentColumn(f -> new HorizontalLayout(
+                        RowActions.block(getTranslation("admin.flags.block"), e -> confirmBlockFlag(f)),
+                        RowActions.close(getTranslation("admin.flags.dismiss"), e -> confirmDismissFlag(f))))
+                .setAutoWidth(true);
+        flagged.setAllRowsVisible(true);
+        flagged.setEmptyStateText(getTranslation("admin.flags.none"));
+        return new VerticalLayout(new H3(getTranslation("admin.flags")),
+                new Paragraph(getTranslation("admin.flags.intro")), flagged);
+    }
+
+    /**
+     * Every blocked account (#167), above the usage: the usage lists only who was active in the last seven
+     * days, so a blocked account outside that window would otherwise have no unblock action at all. The
+     * unblock action is the one of the usage section, with the same confirmation.
+     */
+    private VerticalLayout blockedSection() {
+        blockedAccounts.addColumn(b -> person(b.getKey())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
+        blockedAccounts.addComponentColumn(b -> DateText.dateTimeSpan(b.getValue().blockedAt(), this))
+                .setHeader(getTranslation("admin.blocked.when")).setAutoWidth(true);
+        blockedAccounts.addColumn(b -> person(b.getValue().blockedBy()))
+                .setHeader(getTranslation("admin.blocked.by")).setAutoWidth(true);
+        blockedAccounts.addColumn(b -> b.getValue().reason() == null ? "" : b.getValue().reason())
+                .setHeader(getTranslation("admin.blocked.reason")).setFlexGrow(2);
+        blockedAccounts.addComponentColumn(b -> RowActions.unblock(getTranslation("admin.access.unblock"),
+                        e -> confirmUnblock(b.getKey())))
+                .setAutoWidth(true);
+        blockedAccounts.setAllRowsVisible(true);
+        blockedAccounts.setEmptyStateText(getTranslation("admin.blocked.none"));
+        return new VerticalLayout(new H3(getTranslation("admin.blocked")), blockedAccounts);
+    }
+
+    /** Blocking a flagged account: the reason arrives from the counts and the admin can change it (#165). */
+    private void confirmBlockFlag(AccountFlagView flag) {
+        Dialog dialog = new Dialog(getTranslation("admin.access.block.title"));
+        TextArea reason = new TextArea(getTranslation("admin.access.reason"));
+        reason.setMaxLength(AccountBlockService.MAX_REASON);
+        reason.setWidthFull();
+        reason.setValue(getTranslation("admin.flags.reason", flag.offDomainQuestions(), flag.judgedQuestions(),
+                flag.daysWithoutGarden()));
+        reason.setHelperText(getTranslation("admin.access.reason.help"));
+        Button confirm = new Button(getTranslation("admin.access.block"), e -> {
+            dialog.close();
+            act(() -> {
+                boolean emailed = accountFlags.block(currentUser.login(), flag.id(), reason.getValue());
+                Toasts.done(getTranslation(emailed ? "admin.access.block.email" : "admin.access.block.noemail"));
+            });
+        });
+        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        dialog.add(new Paragraph(getTranslation("admin.access.block.text", person(flag.login()))), reason);
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()), confirm);
+        dialog.open();
+    }
+
+    /** Leaving a flagged account alone asks first too, since the signal never raises the same flag again (#165). */
+    private void confirmDismissFlag(AccountFlagView flag) {
+        Dialog dialog = new Dialog(getTranslation("admin.flags.dismiss.title"));
+        dialog.add(new Paragraph(getTranslation("admin.flags.dismiss.text", person(flag.login()))));
+        Button confirm = new Button(getTranslation("admin.flags.dismiss"), e -> {
+            dialog.close();
+            act(() -> accountFlags.dismiss(currentUser.login(), flag.id()));
+        });
+        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()), confirm);
+        dialog.open();
+    }
+
     /** Usage of the paid services per person over the last 7 days, and personal daily limits (#19). */
     private VerticalLayout usageSection() {
         consumption.addColumn(u -> person(u.login())).setHeader(getTranslation("admin.person")).setAutoWidth(true);
+        // Blocking the whole account (#165): the icon changes with the state, and is never offered on one's own
+        // row or on the last admin, who may not be blocked. Next to the name, so it is seen without scrolling the grid.
+        consumption.addComponentColumn(u -> accountAction(u.login()))
+                .setHeader(getTranslation("admin.usage.access")).setAutoWidth(true);
         consumption.addColumn(u -> getTranslation("admin.usage.today.value", u.questionsToday(), u.limit()))
                 .setHeader(getTranslation("admin.usage.today")).setAutoWidth(true);
         consumption.addColumn(UsageService.PersonUsage::questions).setHeader(getTranslation("admin.usage.questions"))
@@ -162,6 +264,58 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
                 new H4(getTranslation("admin.requests.history")), decidedRequests);
     }
 
+    /**
+     * The block or unblock action of a person (#165), as the icon RowActions gives every row: the word is its
+     * tooltip and what a screen reader says. Never on one's own row, and never on the last admin, who cannot be
+     * blocked since the app always keeps one.
+     */
+    private Component accountAction(String login) {
+        boolean blocked = blockedNow.containsKey(login);
+        if (login.equals(currentUser.login()) || (!blocked && roles.isLastAdmin(login))) {
+            return new Span();
+        }
+        return blocked
+                ? RowActions.unblock(getTranslation("admin.access.unblock"), e -> confirmUnblock(login))
+                : RowActions.block(getTranslation("admin.access.block"), e -> confirmBlock(login));
+    }
+
+    /** Blocking a whole account asks first and for the optional reason, which the person reads (#165). */
+    private void confirmBlock(String login) {
+        Dialog dialog = new Dialog(getTranslation("admin.access.block.title"));
+        TextArea reason = new TextArea(getTranslation("admin.access.reason"));
+        reason.setMaxLength(AccountBlockService.MAX_REASON);
+        reason.setWidthFull();
+        reason.setPlaceholder(getTranslation("admin.access.reason.placeholder"));
+        reason.setHelperText(getTranslation("admin.access.reason.help"));
+        Button confirm = new Button(getTranslation("admin.access.block"), e -> {
+            dialog.close();
+            act(() -> {
+                boolean emailed = blocks.block(currentUser.login(), login, reason.getValue());
+                Toasts.done(getTranslation(emailed ? "admin.access.block.email" : "admin.access.block.noemail"));
+            });
+        });
+        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        dialog.add(new Paragraph(getTranslation("admin.access.block.text", person(login))), reason);
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()), confirm);
+        dialog.open();
+    }
+
+    /** Unblocking asks first too: the person hears that the account works again (#165). */
+    private void confirmUnblock(String login) {
+        Dialog dialog = new Dialog(getTranslation("admin.access.unblock.title"));
+        dialog.add(new Paragraph(getTranslation("admin.access.unblock.text", person(login))));
+        Button confirm = new Button(getTranslation("admin.access.unblock"), e -> {
+            dialog.close();
+            act(() -> {
+                boolean emailed = blocks.unblock(currentUser.login(), login);
+                Toasts.done(getTranslation(emailed ? "admin.access.unblock.email" : "admin.access.unblock.noemail"));
+            });
+        });
+        confirm.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()), confirm);
+        dialog.open();
+    }
+
     /** One decision, after a confirmation that says what it does. */
     private void confirm(app.rootology.access.AccessRequestView request, boolean approve) {
         Dialog dialog = new Dialog(getTranslation(approve ? "admin.requests.approve.title"
@@ -206,12 +360,21 @@ public class AdminView extends VerticalLayout implements HasDynamicTitle {
         return name == null || name.equals(login) ? login : name + " (" + login + ")";
     }
 
-    private void refresh() {
+    /** Rebuilds every grid, so a block or an unblock from anywhere shows here at once (#167). */
+    void refresh() {
         people.setItems(roles.people(currentUser.login()).entrySet().stream().toList());
+        blockedNow = blocks.blocked();
+        blockedAccounts.setItems(blockedNow.entrySet().stream().toList());
+        flagged.setItems(accountFlags.open());
         consumption.setItems(usage.report(7));
         history.setItems(roles.history(currentUser.login()));
         waitingRequests.setItems(accessRequests.pending(currentUser.login()));
         decidedRequests.setItems(accessRequests.decided(currentUser.login()));
+    }
+
+    /** The blocked accounts grid, which the test reads to see a block outside the usage listed and unblocked (#167). */
+    Grid<Map.Entry<String, AccountBlock>> blockedAccounts() {
+        return blockedAccounts;
     }
 
     @Override

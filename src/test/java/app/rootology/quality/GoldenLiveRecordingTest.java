@@ -112,12 +112,15 @@ class GoldenLiveRecordingTest {
         List<Result> results = new ArrayList<>();
         for (GoldenQuestions.Case c : GOLDEN.cases()) {
             RunContext run = fixtures.space(prefix, c);
-            when(weather.around(any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
+            when(weather.around(any(), any(), any())).thenReturn(GoldenFixtures.forecast(c.weather(), clock()));
             // The filter's own judgment, recorded so a live run shows what it saw (#53).
             Double domain = domainProbability(c.question());
             long start = System.nanoTime();
             try {
-                GardenPipeline.Run r = pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
+                GardenPipeline.Run r = c.intent().kind() == app.rootology.decision.QueryKind.PROPOSE_IN_AREA
+                        // A proposal is built by the app with its intent (#141): no understanding to check.
+                        ? pipeline.propose(new Question(c.id(), c.question()), c.intent(), run)
+                        : pipeline.askKnowledgeBase(new Question(c.id(), c.question()), run);
                 // A choice (#107) is neither an answer nor an escalation: it is recorded as what it asked for.
                 var decision = r.answer() != null || r.choice() != null ? null : r.pending().decision();
                 GoldenVerdict verdict = GoldenVerdict.of(c, r, false);
@@ -160,7 +163,7 @@ class GoldenLiveRecordingTest {
         report.put("results", results);
 
         Files.createDirectories(RUNS);
-        Path file = RUNS.resolve("golden-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm")
+        Path file = RUNS.resolve("golden-" + DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss")
                 .withZone(ZoneOffset.UTC).format(startedAt) + ".json");
         JsonMapper.builder().build().writerWithDefaultPrettyPrinter().writeValue(file.toFile(), report);
         System.out.println("Live golden run: " + summary + " -> " + file);
@@ -169,7 +172,8 @@ class GoldenLiveRecordingTest {
     /** Jev's probability that the question is about gardens, or null when the filter could not judge it. */
     private Double domainProbability(String question) {
         try {
-            return domainFilter.judge(question).probability();
+            DomainFilter.Verdict verdict = domainFilter.judge(question);
+            return verdict.judged() ? verdict.probability() : null;
         } catch (RuntimeException e) {
             return null;
         }

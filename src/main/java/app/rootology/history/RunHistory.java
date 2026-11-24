@@ -13,6 +13,8 @@ import app.rootology.spaces.SpaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -58,7 +60,27 @@ public class RunHistory {
                 answer.notes() == null ? null : JSON.writeValueAsString(answer.notes()),
                 answer.sources() == null ? null : List.copyOf(answer.sources()),
                 answer.activities().isEmpty() ? null : JSON.writeValueAsString(answer.activities()),
-                run.offDomain(), jena, matches, run.finishedAt()));
+                run.offDomain(), run.domainUnjudged(), jena, matches, run.finishedAt()));
+    }
+
+    /**
+     * The last questions of one person that the domain filter judged (#165), newest first: a system read, with
+     * no space and no role, for the nightly signal that flags an account creating only useless traffic. A run
+     * where the filter could not judge (#161) is left out, and so is one answered from a waiting question: only
+     * a question the filter saw on its own says what the person asks.
+     */
+    @Transactional(readOnly = true)
+    public JudgedQuestions judgedQuestions(String login, int limit) {
+        if (limit < 1) {
+            return new JudgedQuestions(0, 0);
+        }
+        Pageable newest = PageRequest.of(0, limit);
+        List<PipelineRunRecord> runs = repository.judgedQuestions(login, newest);
+        return new JudgedQuestions(runs.size(), (int) runs.stream().filter(PipelineRunRecord::isOffDomain).count());
+    }
+
+    /** How many of a person's last questions the filter judged, and how many of those were off-domain (#165). */
+    public record JudgedQuestions(int judged, int offDomain) {
     }
 
     /**

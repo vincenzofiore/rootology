@@ -16,6 +16,11 @@ exceeded in 1 year out of 5 (80th percentile) and the first frost date preceded 
 (20th percentile), and the number of years with any frost. Dates are written as MM-DD of a non-leap
 year; a date that falls in a year without frost is left empty.
 
+A winter W is December of W-1, January and February of W. For every winter the tool keeps the lowest
+daily minimum TN of those days (winter_min), and combine can add its 20th percentile over the winters
+(winter_min_p20, method "lower"): the minimum reached or passed in one winter out of five. Like a date
+that does not happen in a year, a cell without a value in a winter is left empty.
+
 The CDS key is read by cdsapi from ~/.cdsapirc. Every step can be interrupted and resumed.
 
 With --dem (the CSV of dem_cells.py) combine keeps only cells with at least --min-land of land (AgERA5
@@ -23,7 +28,8 @@ has values over the sea too) and adds each cell's mean land elevation and land f
 
 Usage:
   .venv/bin/python -I agera5_frost.py years 1991 2020 [--area N W S E] [--work DIR]
-  .venv/bin/python -I agera5_frost.py combine 1991 2020 --out cells.csv [--dem dem-cells.csv] [--work DIR]
+  .venv/bin/python -I agera5_frost.py winters 1996 2025 [--area N W S E] [--work DIR]
+  .venv/bin/python -I agera5_frost.py combine 1991 2020 --out cells.csv [--dem dem-cells.csv] [--winters] [--work DIR]
 """
 
 import argparse
@@ -133,6 +139,48 @@ def year_indices(year, area, work):
     return target
 
 
+def winter_minimum(tn):
+    """Lowest daily minimum over the days of a winter, per cell; NaN where no day has a value."""
+    tn = np.asarray(tn, dtype="float32")
+    has_value = ~np.isnan(tn).all(axis=0)
+    lowest = np.where(np.isnan(tn), np.inf, tn).min(axis=0)
+    return np.where(has_value, lowest, np.nan).astype("float32")
+
+
+def winter_p20(winters):
+    """20th percentile over the winters of each cell's winter minimum (method "lower"), NaN cells empty.
+
+    The percentile is the "lower" one, as for the frost dates: over 10 winters it is the second coldest.
+    """
+    stack = np.asarray(winters, dtype="float32")
+    ordered = np.sort(stack, axis=0)  # NaN sorts last, so only the values below count
+    count = np.count_nonzero(~np.isnan(stack), axis=0)
+    rank = np.clip(np.floor(0.20 * np.maximum(count - 1, 0)).astype(int), 0, None)
+    picked = np.take_along_axis(ordered, rank[None], axis=0)[0]
+    return np.where(count > 0, picked, np.nan).astype("float32")
+
+
+def winter_minimum_file(winter, area, work):
+    """One winter's lowest daily minimum per cell, cached as work/winters/<winter>.nc."""
+    target = work / "winters" / f"{winter}.nc"
+    if target.exists():
+        return target
+    months = [download_month(winter - 1, 12, area, work),
+              download_month(winter, 1, area, work),
+              download_month(winter, 2, area, work)]
+    ds = xr.concat([xr.load_dataset(m) for m in months], dim="time")
+    out = xr.Dataset({"winter_min": (("lat", "lon"), winter_minimum(ds["tn"].values))},
+                     coords={"lat": ds["lat"].values, "lon": ds["lon"].values})
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_suffix(".part")
+    out.to_netcdf(partial, encoding={"winter_min": {"zlib": True, "complevel": 4}})
+    partial.rename(target)
+    # years/ caches its own results, so these months are not kept: a later `years` run downloads them again.
+    for month in months:
+        month.unlink()
+    return target
+
+
 def month_day(day_of_year):
     if np.isnan(day_of_year) or day_of_year < 1 or day_of_year > 365:
         return ""
@@ -151,7 +199,12 @@ def read_dem(path):
     return cells
 
 
-def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
+def degrees(value):
+    """One decimal of a temperature in degrees C, or empty when the cell has no value."""
+    return "" if np.isnan(value) else f"{value:.1f}"
+
+
+def combine(first_year, last_year, work, out, dem=None, min_land=0.0, winters=False):
     files = [work / "years" / f"{y}.nc" for y in range(first_year, last_year + 1)]
     missing = [f.name for f in files if not f.exists()]
     if missing:
@@ -169,6 +222,13 @@ def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
         "first_frost_p20": np.percentile(first, 20, axis=0, method="lower"),
         "frost_years": ((last > 0) | (first < 367)).sum(axis=0),
     }
+    if winters:
+        winter_files = [work / "winters" / f"{y}.nc" for y in range(first_year, last_year + 1)]
+        for winter, path in zip(range(first_year, last_year + 1), winter_files):
+            if not path.exists():
+                sys.exit(f"missing winter {winter}: {path} does not exist")
+        winter_ds = xr.concat([xr.load_dataset(f) for f in winter_files], dim="winter")
+        table["winter_min_p20"] = winter_p20(winter_ds["winter_min"].values)
     with open(out, "w") as f:
         f.write(f"# AgERA5 v2.0 {first_year}-{last_year}, {years} years. "
                 "Contains modified Copernicus Climate Change Service information.")
@@ -177,7 +237,8 @@ def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
                     "GLO-90: produced using Copernicus WorldDEM-90 (c) DLR e.V. 2010-2014 and (c) Airbus Defence and "
                     "Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA.")
         f.write("\nlat,lon," + ("elevation_m,land_fraction," if dem else "")
-                + "fd,gsl,last_frost_p50,last_frost_p80,first_frost_p50,first_frost_p20,frost_years\n")
+                + "fd,gsl,last_frost_p50,last_frost_p80,first_frost_p50,first_frost_p20,frost_years"
+                + (",winter_min_p20" if winters else "") + "\n")
         lats, lons = ds["lat"].values, ds["lon"].values
         for i, lat in enumerate(lats):
             for j, lon in enumerate(lons):
@@ -190,15 +251,18 @@ def combine(first_year, last_year, work, out, dem=None, min_land=0.0):
                     if land < min_land or elevation is None:
                         continue
                     elevation += f",{land:.2f},"
-                f.write(f"{key[0]},{key[1]},{elevation}{table['fd'][i, j]:.0f},{table['gsl'][i, j]:.0f},"
-                        f"{month_day(table['last_frost_p50'][i, j])},{month_day(table['last_frost_p80'][i, j])},"
-                        f"{month_day(table['first_frost_p50'][i, j])},{month_day(table['first_frost_p20'][i, j])},"
-                        f"{int(table['frost_years'][i, j])}\n")
+                row = (f"{key[0]},{key[1]},{elevation}{table['fd'][i, j]:.0f},{table['gsl'][i, j]:.0f},"
+                       f"{month_day(table['last_frost_p50'][i, j])},{month_day(table['last_frost_p80'][i, j])},"
+                       f"{month_day(table['first_frost_p50'][i, j])},{month_day(table['first_frost_p20'][i, j])},"
+                       f"{int(table['frost_years'][i, j])}")
+                if winters:
+                    row += "," + degrees(table["winter_min_p20"][i, j])
+                f.write(row + "\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=["years", "combine"])
+    parser.add_argument("command", choices=["years", "winters", "combine"])
     parser.add_argument("first_year", type=int)
     parser.add_argument("last_year", type=int)
     parser.add_argument("--area", type=float, nargs=4, default=EUROPE, metavar=("N", "W", "S", "E"))
@@ -206,16 +270,21 @@ def main():
     parser.add_argument("--out", type=Path)
     parser.add_argument("--dem", type=Path, help="CSV of dem_cells.py: keep land cells and add their elevation")
     parser.add_argument("--min-land", type=float, default=0.25, help="least land fraction of a kept cell")
+    parser.add_argument("--winters", action="store_true", help="add winter_min_p20 from the winters step")
     args = parser.parse_args()
     if args.command == "years":
         for year in range(args.first_year, args.last_year + 1):
             print(f"{datetime.datetime.now():%H:%M} year {year}", flush=True)
             year_indices(year, tuple(args.area), args.work)
+    elif args.command == "winters":
+        for winter in range(args.first_year, args.last_year + 1):
+            print(f"{datetime.datetime.now():%H:%M} winter {winter}", flush=True)
+            winter_minimum_file(winter, tuple(args.area), args.work)
     else:
         if not args.out:
             sys.exit("--out is required")
         combine(args.first_year, args.last_year, args.work, args.out,
-                read_dem(args.dem) if args.dem else None, args.min_land)
+                read_dem(args.dem) if args.dem else None, args.min_land, args.winters)
 
 
 if __name__ == "__main__":

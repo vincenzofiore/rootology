@@ -29,8 +29,12 @@ class WeatherRefreshTest {
             Clock.fixed(Instant.parse("2026-11-11T12:00:00Z"), ZoneId.of("Europe/Rome")));
 
     private static GrowingGarden garden(long id, String latitude, String longitude) {
+        return garden(id, latitude, longitude, null);
+    }
+
+    private static GrowingGarden garden(long id, String latitude, String longitude, Integer elevationM) {
         return new GrowingGarden(1, new GardenSummary(id, "Orto " + id, null, new BigDecimal(latitude),
-                new BigDecimal(longitude), "IT", null), List.of());
+                new BigDecimal(longitude), "IT", null, elevationM), List.of());
     }
 
     @Test
@@ -40,15 +44,27 @@ class WeatherRefreshTest {
 
         assertThat(refresh.refresh()).isEqualTo(2);
 
-        verify(weather).around(new BigDecimal("42.11"), new BigDecimal("14.71"));
-        verify(weather).around(new BigDecimal("45.07"), new BigDecimal("7.69"));
-        verify(weather, times(2)).around(any(), any());
+        verify(weather).around(new BigDecimal("42.11"), new BigDecimal("14.71"), null);
+        verify(weather).around(new BigDecimal("45.07"), new BigDecimal("7.69"), null);
+        verify(weather, times(2)).around(any(), any(), any());
+    }
+
+    @Test
+    void twoAltitudesAtTheSamePointAreTwoPlaces() {
+        when(gardens.locatedGardensGrowing(any())).thenReturn(List.of(garden(1, "42.11", "14.71", 320),
+                garden(2, "42.11", "14.71", 900), garden(3, "42.11", "14.71", 320)));
+
+        assertThat(refresh.refresh()).isEqualTo(2);
+
+        verify(weather).around(new BigDecimal("42.11"), new BigDecimal("14.71"), 320);
+        verify(weather).around(new BigDecimal("42.11"), new BigDecimal("14.71"), 900);
+        verify(weather, times(2)).around(any(), any(), any());
     }
 
     @Test
     void aGardenWithANewPlaceGetsItsForecast() {
-        refresh.on(new GardenLocated(7, new BigDecimal("38.12"), new BigDecimal("13.36")));
+        refresh.on(new GardenLocated(7, new BigDecimal("38.12"), new BigDecimal("13.36"), 320));
 
-        verify(weather).around(new BigDecimal("38.12"), new BigDecimal("13.36"));
+        verify(weather).around(new BigDecimal("38.12"), new BigDecimal("13.36"), 320);
     }
 }

@@ -9,10 +9,12 @@ public final class GardenViews {
 
     /**
      * countryCode: ISO 3166-1 alpha-2, or null when not known (gardens saved before #30, all in Italy).
+     * regionCode: GeoNames first-level administrative code (for Italy the region, "01"…"20"), or null when
+     * not known (#136); it belongs to the place, so it is cleared when the garden moves or loses coordinates.
      * elevationM: metres above sea level from GeoNames GTOPO30 (#62), or null when not known.
      */
     public record GardenSummary(long id, String name, String town, BigDecimal latitude, BigDecimal longitude,
-                                String countryCode, Integer elevationM) {
+                                String countryCode, String regionCode, Integer elevationM) {
     }
 
     /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */

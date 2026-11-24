@@ -186,15 +186,15 @@ class KnowledgeEnrichmentTest {
     @Test
     void approvedFactsComeBackWhenTheGraphIsRebuilt() {
         long space = spaceOf("walt");
-        Host host = new Host("PIERBR", "kohlrabi", 5, 9);
-        assertThat(contributions.problems(host, space)).containsExactly("unknown crop kohlrabi");
+        Host host = new Host("PIERBR", "breadfruit", 5, 9);
+        assertThat(contributions.problems(host, space)).containsExactly("unknown crop breadfruit");
         Host onRocket = new Host("PIERBR", "rocket", 5, 9);
         enrichment.propose(space, "walt", ProposalScope.SPACE, onRocket, null);
         assertThat(contributions.problems(onRocket, space)).isNotEmpty();
 
         try (var session = driver.session()) {
             session.executeWrite(tx -> tx.run("MATCH ()-[r]->() WHERE r.proposalId IS NOT NULL DELETE r").consume());
-            session.executeWrite(tx -> tx.run("MATCH (a:Alias) DETACH DELETE a").consume());
+            session.executeWrite(tx -> tx.run("MATCH (a:Alias) WHERE a.proposalId IS NOT NULL DETACH DELETE a").consume());
         }
         assertThat(contributions.problems(onRocket, space)).isEmpty();
 

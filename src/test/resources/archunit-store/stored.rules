@@ -1,0 +1,4 @@
+#
+#Sat Nov 21 16:00:07 CET 2026
+no\ classes\ that\ do\ not\ have\ fully\ qualified\ name\ 'app.rootology.RootologyApplication'\ should\ call\ method\ ZoneId.of(String),\ because\ the\ app's\ time\ zone\ is\ the\ Clock\ bean's\:\ use\ clock.getZone()=391a3b1b-2c8e-415a-ac80-2fee9de9bcfc
+no\ classes\ that\ do\ not\ have\ fully\ qualified\ name\ 'app.rootology.RootologyApplication'\ should\ call\ method\ where\ reads\ the\ machine's\ time,\ because\ "now"\ comes\ from\ the\ Clock\ bean\ (LocalDate.now(clock),\ clock.instant()),\ which\ tests\ replace\ with\ @TestBean=11c60859-42aa-4e23-9251-f4b99fa183bf

@@ -1,9 +1,10 @@
 # The climate profile of a garden (#62)
 
 Every garden with coordinates gets its own sowing and harvest calendar from the climate of its site, instead
-of an Italian zone. Two rules do the work: `frost-season-v1` turns the site's frost dates into two safe months,
-and `frost-shift-v1` moves the curated central-Italy windows only where those months make them impossible.
-This page describes the file, how it is made, both rules, what they produce in twelve places, and their limits.
+of an Italian zone. Three rules do the work: `frost-season-v1` turns the site's frost dates into two safe
+months, `frost-shift-v1` moves the curated central-Italy windows only where those months make them impossible,
+and `frost-suitability-v1` says whether a perennial stands the site's winter. This page describes the file, how
+it is made, the rules, what they produce in twelve places, and their limits.
 
 ## The file
 
@@ -20,10 +21,12 @@ This page describes the file, how it is made, both rules, what they produce in t
 | `last_frost_p50`, `last_frost_p80` | The last frost of the season, median and 80th percentile, as `MM-DD`. Empty when the cell has no such frost. |
 | `first_frost_p50`, `first_frost_p20` | The first frost of the season, median and 20th percentile, as `MM-DD`. Empty when the cell has no such frost. |
 | `frost_years` | How many of the 30 years have at least one frost. |
+| `winter_min_p20` | The lowest daily minimum of the winter, December to February, reached or passed in one winter out of five, °C, over 1996–2025. Empty when the cell has no value. |
 
 The two percentiles are the "1 year in 5" dates: in four years out of five the last frost is no later than
 `last_frost_p80`, and in four years out of five the first frost is no earlier than `first_frost_p20`. They are
-the cautious dates the app uses, not the medians.
+the cautious dates the app uses, not the medians. `winter_min_p20` is the same idea for how cold it gets: four
+winters out of five stay above it, one goes as low or lower.
 
 The file's own header carries the notices:
 
@@ -41,8 +44,10 @@ The tool is outside the Maven build and CI, and needs a CDS account (`~/.cdsapir
 
 - `agera5_frost.py years A B` downloads AgERA5 v2.0 day by day, month by month, and keeps per cell the yearly
   indices: frost days, growing season length, last and first frost. Global files: no area parameter.
+- `agera5_frost.py winters A B` downloads December to February of each winter (December of A-1 for winter A) and
+  keeps per cell the lowest daily minimum of the three months.
 - `combine A B --dem --out` writes the CSV: the median and 1-in-5-years dates, and, with `--dem`, the cell
-  elevation and land fraction.
+  elevation and land fraction. With `--winters` it adds `winter_min_p20`, from the winters' files.
 - `dem_cells.py tiles` reads the Copernicus DEM GLO-90 tiles from the public bucket `copernicus-dem-90m` with
   `rasterio`, and keeps per cell the mean land elevation and the land fraction.
 
@@ -61,6 +66,11 @@ The altitude correction is 6.5 °C per 1000 m, and 0.15 °C per day of the frost
 later and the first frost earlier by the same number of days. It is capped at 500 m of difference (with a note),
 and it is not applied when the garden's altitude is not known or is -9999 (a note), and when the garden is on
 the coast, below its cell, with a land fraction below 0.9 (a note). Frost-free dates are never shifted.
+
+The site's winter minimum moves with the same correction and the same cases, because it is a temperature too:
+6.5 °C per 1000 m colder above the cell and warmer below it, capped at 500 m, and the cell's own value when the
+altitude is unknown or on a coast below the cell. A garden 38 m below its cell, as Turin is, is 0.2 °C warmer
+than the cell.
 
 The garden's altitude comes from GeoNames `gtopo30` at about 1 km, requested when a garden is saved or its
 coordinates change. Saving never depends on it: a failed lookup leaves the altitude unknown, and the profile
@@ -96,6 +106,24 @@ altitude correction: NORD = Milan (45.46, 9.19), CENTRO = Vasto (42.11, 14.71), 
 The curated NORD row (broad bean, February) applies only when the question names NORD, and then it wins over
 the derived broad bean sowing. Vasto itself (CENTRO named in the question, or the default outside a garden)
 gets the curated rows as they are, tagged curated, not inferred.
+
+## `frost-suitability-v1`
+
+Will a perennial survive the winter at a site (#147)? The rule reads two numbers: the crop's frost hardiness
+(`frost_hardiness` in `crops-v1.csv`, the lowest air temperature an established plant stands) and the site's
+1-in-5 winter minimum (`winter_min_p20`, corrected for altitude like the frost dates). It answers only for a
+perennial with a known hardiness, at a site with a known winter minimum.
+
+| Crop vs site | In the ground or a raised bed, or no area named | In a pot or a planter | In a greenhouse |
+|---|---|---|---|
+| hardiness above the winter minimum: it does not stand the cold | does not survive the winter here in open ground; in a pot, sheltered in winter | shelter it in winter (it can be moved) | the rule says nothing: the greenhouse protects it |
+| hardiness at or below the winter minimum | survives: nothing is said, and no note | survives: nothing is said | survives: nothing is said |
+
+In the answers about sowing and planting (`SOWING_TIME`, `SOW_NOW`, `SOW_IN_PLOT`, `PROPOSE_IN_AREA`) a
+perennial that does not stand the winter becomes an INFERRED reading, `survivesWinter`, with the crop's
+hardiness source and `agera5`, and a note that quotes both numbers and the verdict. `crop-proposal-v1` does not
+propose such a crop for a plot in the ground or a raised bed; in a pot or a planter it may propose it, with the
+note. On the garden home the crop's chip gets a snowflake with the short verdict as tooltip and aria label.
 
 ## Twelve places
 

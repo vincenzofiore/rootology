@@ -71,6 +71,14 @@ public class KnowledgeGraph {
         return result;
     }
 
+    /** The highest temperature each crop stands (ECOCROP's absolute maximum), for the crops that have one. */
+    public Map<String, Double> upperTemperatures() {
+        Map<String, Double> result = new java.util.TreeMap<>();
+        list("MATCH (c:Kb:Crop) WHERE c.tempAbsMax IS NOT NULL RETURN c.id AS id, c.tempAbsMax AS t", Map.of(),
+                r -> r).forEach(r -> result.put(r.get("id").asString(), r.get("t").asDouble()));
+        return result;
+    }
+
     /**
      * ECOCROP's light optimum of each crop, as `crop-needs.csv` writes it (for example "very bright",
      * "clear skies", "cloudy skies"), for the light rule (#54).
@@ -99,14 +107,23 @@ public class KnowledgeGraph {
 
     /** As {@link #affecting(String, int)}, plus the facts this space added (null: none). */
     public List<Affecting> affecting(String cropId, int month, Long spaceId) {
+        return hosts(cropId, spaceId).stream().filter(a -> PestShiftRule.covers(a.fromMonth(), a.toMonth(), month))
+                .toList();
+    }
+
+    /**
+     * The pests and diseases declared on this crop, every month (#162): the rows a rule such as
+     * pest-shift-v1 moves before the month is chosen. Periods may wrap over the new year; the facts this
+     * space added are included (null: only global ones).
+     */
+    public List<Affecting> hosts(String cropId, Long spaceId) {
         return list("MATCH (o:Kb:Organism)-[a:AFFECTS]->(:Kb:Crop {id: $id}) "
-                        + "WHERE (a.spaceId IS NULL OR a.spaceId = $space) AND ((a.fromMonth <= a.toMonth AND $m >= a.fromMonth AND $m <= a.toMonth) "
-                        + "   OR (a.fromMonth > a.toMonth AND ($m >= a.fromMonth OR $m <= a.toMonth))) "
+                        + "WHERE (a.spaceId IS NULL OR a.spaceId = $space) "
                         + "RETURN o.id AS id, o.italianName AS name, o.englishName AS en, o.kind AS kind, "
                         + "a.fromMonth AS f, a.toMonth AS t, "
                         + "a.sources + o.sources AS sources, a.verified AS verified, "
                         + "a.spaceId IS NOT NULL AS proposed ORDER BY o.id",
-                Map.of("id", cropId, "m", month, "space", space(spaceId)),
+                Map.of("id", cropId, "space", space(spaceId)),
                 r -> new Affecting(r.get("id").asString(), r.get("name").asString(), r.get("en").asString(),
                         r.get("kind").asString(),
                         r.get("f").asInt(), r.get("t").asInt(), r.get("sources").asList(v -> v.asString()),
@@ -130,8 +147,17 @@ public class KnowledgeGraph {
         }
         String n = name.trim().toLowerCase(java.util.Locale.ROOT);
         java.util.Optional<Entity> exact = resolveAny(List.of(n), spaceId);
-        return exact.isPresent() ? exact : resolveAny(List.copyOf(Singulars.of(n)), spaceId);
+        if (exact.isPresent()) {
+            return exact;
+        }
+        java.util.Optional<Entity> singular = resolveAny(List.copyOf(Singulars.of(n)), spaceId);
+        String bare = PLANT_FORM.matcher(n).replaceAll("").trim();
+        return singular.isPresent() || bare.equals(n) || bare.isEmpty() ? singular : resolve(bare, spaceId);
     }
+
+    /** The plant's form around a crop's name: "fig tree", "lemon plants", "albero di fico", "pianta del limone". */
+    static final java.util.regex.Pattern PLANT_FORM = java.util.regex.Pattern.compile(
+            "^(?:alber[oi]|piant[ae]) d(?:ell['’]|ello|ella|elle|egli|el|ei|i)\\s*|\\s+(?:trees?|plants?|bush(?:es)?)$");
 
     /** The first of the names (in their order) that is a crop or an organism; italian when it matched the Italian name. */
     private java.util.Optional<Entity> resolveAny(List<String> names, Long spaceId) {
@@ -201,6 +227,29 @@ public class KnowledgeGraph {
         return dedup(facts);
     }
 
+    /**
+     * What can be done against a pest or disease (#140): (pest, controlledBy, method) for each method, with
+     * (method, controlKind, kind) and (method, evidence, level) beside it, all with the method's sources. The
+     * methods are written in English. Empty when the name is not a known pest or disease.
+     */
+    public List<SourcedFact> controlFacts(String name, Long spaceId) {
+        return resolve(name, spaceId).filter(e -> e.kind().equals("ORGANISM")).map(e -> {
+            List<SourcedFact> facts = new java.util.ArrayList<>();
+            String self = name.trim();
+            list("MATCH (:Kb:Organism {id: $id})-[:CONTROLLED_BY]->(c:Kb:Control) "
+                            + "RETURN c.method AS method, c.kind AS kind, c.evidence AS evidence, c.sources AS sources "
+                            + "ORDER BY c.kind, c.method",
+                    Map.of("id", e.id()), r -> r).forEach(r -> {
+                String method = r.get("method").asString();
+                List<String> sources = r.get("sources").asList(v -> v.asString());
+                facts.add(new SourcedFact(new Fact(self, "controlledBy", method), sources, null, false));
+                facts.add(new SourcedFact(new Fact(method, "controlKind", r.get("kind").asString()), sources, null, false));
+                facts.add(new SourcedFact(new Fact(method, "evidence", r.get("evidence").asString()), sources, null, false));
+            });
+            return facts;
+        }).orElse(List.of());
+    }
+
     private List<SourcedFact> organismFacts(Entity organism, String self, Long spaceId) {
         List<SourcedFact> facts = new java.util.ArrayList<>();
         list("MATCH (o:Kb:Organism {id: $id})-[a:AFFECTS]->(c:Kb:Crop) WHERE (a.spaceId IS NULL OR a.spaceId = $space) "
@@ -220,9 +269,13 @@ public class KnowledgeGraph {
     static final List<String> MONTHS = List.of("JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY",
             "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER");
 
-    /** The predicate a window activity becomes in the facts: one per activity (#112), harvestIn otherwise. */
+    /** The predicate a window activity becomes in the facts: one per activity (#112), harvest and pruning too. */
     static String predicate(String activity) {
-        return "HARVEST".equals(activity) ? "harvestIn" : SowingActivity.valueOf(activity).predicate();
+        return switch (activity) {
+            case "HARVEST" -> "harvestIn";
+            case "PRUNE" -> "pruneIn";
+            default -> SowingActivity.valueOf(activity).predicate();
+        };
     }
 
     /** The months of a window (1-12, wrapping over the year), in order. */

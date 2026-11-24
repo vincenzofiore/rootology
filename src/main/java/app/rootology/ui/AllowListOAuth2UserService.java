@@ -71,12 +71,22 @@ class AllowListOAuth2UserService extends DefaultOAuth2UserService {
         String subject = subject(user);
         String login = resolveLogin(subject, githubLogin(user));
         Set<String> emails = verified.all();
+        if (steps.blocked(login)) {
+            // #165: an admin blocked the account. It signs in to read its block, and nothing is written.
+            return blocked(user, login);
+        }
         if (!requireAllowed(login, token, emails, subject)) {
             // #65: not admitted, but allowed in as a pending person, who can ask for an invitation.
             return pending(subject, login, emails);
         }
         steps.complete(login, token, emails, IdentityProvider.GITHUB, subject, verified.primary());
         return withRoles(user, login, emails);
+    }
+
+    /** The principal of a blocked account (#165): ROLE_BLOCKED alone, and only the internal login. */
+    OAuth2User blocked(OAuth2User user, String login) {
+        return new DefaultOAuth2User(BlockedAccess.authorities(), steps.blockedAttributes(login),
+                SignedIn.LOGIN_ATTRIBUTE);
     }
 
     /** The principal of someone not admitted (#65): no app role, nothing written. */

@@ -44,15 +44,16 @@ class EcocropImportTool {
         lines.add("# Environmental needs of the crops, from FAO ECOCROP (CC BY 4.0), retrieved by EcocropImportTool.");
         lines.add("# Temperatures in degrees C, rainfall in mm per year; empty when ECOCROP gives no value.");
         lines.add("# temp_kill_early: ECOCROP's killing temperature during early growth (frost tolerance of young plants).");
+        lines.add("# An absolute limit that falls inside the optimal range is a slip of the sheet and is left empty.");
         lines.add(HEADER);
         for (Crop crop : new CropCatalog().all().stream().sorted(Comparator.comparing(Crop::id)).toList()) {
             if (crop.ecocropId() == null) {
                 continue;
             }
             Map<String, List<String>> sheet = rows(fetch(crop.ecocropId()));
-            List<String> temp = numbers(sheet, "Temperat. requir.");
-            List<String> rain = numbers(sheet, "Rainfall (annual)");
-            List<String> ph = numbers(sheet, "Soil PH");
+            List<String> temp = ordered(numbers(sheet, "Temperat. requir."));
+            List<String> rain = ordered(numbers(sheet, "Rainfall (annual)"));
+            List<String> ph = ordered(numbers(sheet, "Soil PH"));
             List<String> cycle = numbers(sheet, "Crop cycle");
             if (cycle.stream().allMatch(c -> c.equals("0"))) {
                 cycle = List.of(); // ECOCROP shows 0 when it has no value
@@ -66,7 +67,7 @@ class EcocropImportTool {
                     at(numbers(sheet, "Killing temp. early growth"), 0), "fao-ecocrop"));
         }
         Files.write(OUTPUT, lines);
-        System.out.println("Wrote " + (lines.size() - 4) + " crops to " + OUTPUT);
+        System.out.println("Wrote " + (lines.size() - 5) + " crops to " + OUTPUT);
     }
 
     private String fetch(String id) throws IOException, InterruptedException {
@@ -118,6 +119,20 @@ class EcocropImportTool {
     private static String text(Map<String, List<String>> sheet, String label) {
         return sheet.getOrDefault(label, List.of()).stream().filter(c -> !c.isEmpty()).findFirst()
                 .map(c -> c.replace(",", ";").trim()).orElse("");
+    }
+
+    /** Optimal min, max, absolute min, max: an absolute limit inside the optimal range becomes empty. */
+    static List<String> ordered(List<String> range) {
+        List<String> out = new ArrayList<>(range);
+        if (out.size() > 2 && !out.get(0).isEmpty() && !out.get(2).isEmpty()
+                && Double.parseDouble(out.get(2)) > Double.parseDouble(out.get(0))) {
+            out.set(2, "");
+        }
+        if (out.size() > 3 && !out.get(1).isEmpty() && !out.get(3).isEmpty()
+                && Double.parseDouble(out.get(3)) < Double.parseDouble(out.get(1))) {
+            out.set(3, "");
+        }
+        return out;
     }
 
     private static String at(List<String> values, int i) {

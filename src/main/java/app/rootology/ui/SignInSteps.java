@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import app.rootology.access.AccessRequestService;
+import app.rootology.access.AccountBlockService;
 import app.rootology.notifications.NotificationService;
 import app.rootology.roles.RoleService;
 import app.rootology.spaces.IdentityProvider;
@@ -34,15 +35,30 @@ class SignInSteps {
     private final RoleService roles;
     private final NotificationService notifications;
     private final AccessRequestService accessRequests;
+    private final AccountBlockService blocks;
 
     SignInSteps(SpaceService spaces, IdentityService identities, InvitationService invitations, RoleService roles,
-                NotificationService notifications, AccessRequestService accessRequests) {
+                NotificationService notifications, AccessRequestService accessRequests, AccountBlockService blocks) {
         this.spaces = spaces;
         this.identities = identities;
         this.invitations = invitations;
         this.roles = roles;
         this.notifications = notifications;
         this.accessRequests = accessRequests;
+        this.blocks = blocks;
+    }
+
+    /**
+     * True when an admin blocked the whole account (#165): it signs in with {@link BlockedAccess#AUTHORITY}
+     * alone, and nothing is written for it, so it can only read its block.
+     */
+    boolean blocked(String login) {
+        return blocks.isBlocked(login);
+    }
+
+    /** The attributes of a blocked principal: the internal login and nothing else, since it is nothing's member. */
+    Map<String, Object> blockedAttributes(String login) {
+        return Map.of(SignedIn.LOGIN_ATTRIBUTE, login);
     }
 
     /** True if this session holds a pending invitation that this person may accept. */

@@ -100,3 +100,254 @@ rosemary,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no
 sage,CENTRO,PLANT,3,5,spring,rootology-editorial,no
 sage,CENTRO,PLANT,9,11,autumn,rootology-editorial,no
 sage,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no
+beetroot,CENTRO,SOW,3,7,,rootology-editorial,no
+beetroot,CENTRO,HARVEST,6,11,,rootology-editorial,no
+turnip,CENTRO,SOW,8,9,,rootology-editorial,no
+turnip,CENTRO,HARVEST,10,12,,rootology-editorial,no
+parsnip,CENTRO,SOW,3,5,,rootology-editorial,no
+parsnip,CENTRO,HARVEST,10,2,,rootology-editorial,no
+celeriac,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+celeriac,CENTRO,TRANSPLANT,5,6,,rootology-editorial,no
+celeriac,CENTRO,HARVEST,10,12,,rootology-editorial,no
+sweet-potato,CENTRO,PLANT,5,6,rooted slips,rootology-editorial,no
+sweet-potato,CENTRO,HARVEST,9,10,,rootology-editorial,no
+brussels-sprouts,CENTRO,SOW_SEEDBED,4,5,,rootology-editorial,no
+brussels-sprouts,CENTRO,TRANSPLANT,6,7,,rootology-editorial,no
+brussels-sprouts,CENTRO,HARVEST,11,2,,rootology-editorial,no
+kohlrabi,CENTRO,SOW,3,8,,rootology-editorial,no
+kohlrabi,CENTRO,HARVEST,5,11,,rootology-editorial,no
+borage,CENTRO,SOW,3,5,,rootology-editorial,no
+borage,CENTRO,HARVEST,5,10,,rootology-editorial,no
+purslane,CENTRO,SOW,5,7,,rootology-editorial,no
+purslane,CENTRO,HARVEST,6,9,,rootology-editorial,no
+shallot,CENTRO,PLANT,10,12,bulbs,rootology-editorial,no
+shallot,CENTRO,PLANT,2,3,bulbs,rootology-editorial,no
+shallot,CENTRO,HARVEST,6,7,,rootology-editorial,no
+spring-onion,CENTRO,SOW,2,4,,rootology-editorial,no
+spring-onion,CENTRO,SOW,8,9,,rootology-editorial,no
+spring-onion,CENTRO,HARVEST,4,6,,rootology-editorial,no
+spring-onion,CENTRO,HARVEST,10,12,,rootology-editorial,no
+chickpea,CENTRO,SOW,2,4,,rootology-editorial,no
+chickpea,CENTRO,HARVEST,6,8,,rootology-editorial,no
+lentil,CENTRO,SOW,2,4,,rootology-editorial,no
+lentil,CENTRO,HARVEST,6,7,,rootology-editorial,no
+grass-pea,CENTRO,SOW,2,4,,rootology-editorial,no
+grass-pea,CENTRO,HARVEST,6,7,,rootology-editorial,no
+cowpea,CENTRO,SOW,5,6,,rootology-editorial,no
+cowpea,CENTRO,HARVEST,8,9,,rootology-editorial,no
+runner-bean,CENTRO,SOW,4,6,,rootology-editorial,no
+runner-bean,CENTRO,HARVEST,7,10,,rootology-editorial,no
+sweet-corn,CENTRO,SOW,4,6,,rootology-editorial,no
+sweet-corn,CENTRO,HARVEST,7,9,,rootology-editorial,no
+okra,CENTRO,SOW_SEEDBED,3,4,,rootology-editorial,no
+okra,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
+okra,CENTRO,HARVEST,7,10,,rootology-editorial,no
+dill,CENTRO,SOW,3,6,,rootology-editorial,no
+dill,CENTRO,HARVEST,5,9,,rootology-editorial,no
+coriander,CENTRO,SOW,3,5,,rootology-editorial,no
+coriander,CENTRO,SOW,9,9,,rootology-editorial,no
+coriander,CENTRO,HARVEST,5,7,,rootology-editorial,no
+coriander,CENTRO,HARVEST,10,11,,rootology-editorial,no
+chervil,CENTRO,SOW,2,4,,rootology-editorial,no
+chervil,CENTRO,SOW,8,9,,rootology-editorial,no
+chervil,CENTRO,HARVEST,4,6,,rootology-editorial,no
+chervil,CENTRO,HARVEST,10,12,,rootology-editorial,no
+physalis,CENTRO,SOW_SEEDBED,2,3,,rootology-editorial,no
+physalis,CENTRO,TRANSPLANT,5,5,,rootology-editorial,no
+physalis,CENTRO,HARVEST,8,10,,rootology-editorial,no
+lemon,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lemon,CENTRO,HARVEST,1,12,mostly November to May,rootology-editorial,no
+lemon,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+orange,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+orange,CENTRO,HARVEST,12,4,depends on the variety,rootology-editorial,no
+orange,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+mandarin,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+mandarin,CENTRO,HARVEST,11,2,,rootology-editorial,no
+mandarin,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+clementine,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+clementine,CENTRO,HARVEST,10,1,,rootology-editorial,no
+clementine,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+kumquat,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+kumquat,CENTRO,HARVEST,12,3,,rootology-editorial,no
+kumquat,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+thyme,CENTRO,PLANT,3,5,spring; perennial,rootology-editorial,no
+thyme,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+thyme,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no
+thyme,CENTRO,PRUNE,6,7,light trim after flowering,rootology-editorial,no
+oregano,CENTRO,PLANT,3,5,spring; perennial,rootology-editorial,no
+oregano,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+oregano,CENTRO,HARVEST,5,9,,rootology-editorial,no
+oregano,CENTRO,PRUNE,2,3,cut back the dry stems,rootology-editorial,no
+mint,CENTRO,PLANT,3,5,spring; perennial; spreads: best in a pot,rootology-editorial,no
+mint,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+mint,CENTRO,HARVEST,4,10,,rootology-editorial,no
+mint,CENTRO,PRUNE,2,3,cut back to the ground,rootology-editorial,no
+marjoram,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+marjoram,CENTRO,HARVEST,6,9,,rootology-editorial,no
+chives,CENTRO,SOW,3,4,,rootology-editorial,no
+chives,CENTRO,PLANT,3,4,clumps; spring; perennial,rootology-editorial,no
+chives,CENTRO,PLANT,9,10,clumps; autumn,rootology-editorial,no
+chives,CENTRO,HARVEST,3,10,,rootology-editorial,no
+bay-laurel,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+bay-laurel,CENTRO,PLANT,10,11,autumn,rootology-editorial,no
+bay-laurel,CENTRO,HARVEST,1,12,perennial,rootology-editorial,no
+bay-laurel,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+lavender,CENTRO,PLANT,3,5,spring; perennial,rootology-editorial,no
+lavender,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+lavender,CENTRO,HARVEST,6,7,flowers,rootology-editorial,no
+lavender,CENTRO,PRUNE,8,9,after flowering,rootology-editorial,no
+blueberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+blueberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+blueberry,CENTRO,HARVEST,6,8,,rootology-editorial,no
+blueberry,CENTRO,PRUNE,2,3,late winter; still dormant,rootology-editorial,no
+raspberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+raspberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+raspberry,CENTRO,HARVEST,6,7,,rootology-editorial,no
+raspberry,CENTRO,HARVEST,9,10,everbearing varieties,rootology-editorial,no
+raspberry,CENTRO,PRUNE,8,8,canes that fruited,rootology-editorial,no
+raspberry,CENTRO,PRUNE,2,3,thin the canes,rootology-editorial,no
+blackberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+blackberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+blackberry,CENTRO,HARVEST,7,9,,rootology-editorial,no
+blackberry,CENTRO,PRUNE,9,10,canes that fruited,rootology-editorial,no
+blackberry,CENTRO,PRUNE,2,3,shorten the side shoots,rootology-editorial,no
+red-currant,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+red-currant,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+red-currant,CENTRO,HARVEST,6,7,,rootology-editorial,no
+red-currant,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+black-currant,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+black-currant,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+black-currant,CENTRO,HARVEST,6,7,,rootology-editorial,no
+black-currant,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+gooseberry,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+gooseberry,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+gooseberry,CENTRO,HARVEST,6,7,,rootology-editorial,no
+gooseberry,CENTRO,PRUNE,12,2,dormant,rootology-editorial,no
+aronia,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+aronia,CENTRO,PLANT,2,3,late winter,rootology-editorial,no
+aronia,CENTRO,HARVEST,8,9,,rootology-editorial,no
+aronia,CENTRO,PRUNE,2,3,light; the oldest stems,rootology-editorial,no
+goji,CENTRO,PLANT,10,11,autumn; perennial,rootology-editorial,no
+goji,CENTRO,PLANT,3,4,spring,rootology-editorial,no
+goji,CENTRO,HARVEST,7,10,,rootology-editorial,no
+goji,CENTRO,PRUNE,2,3,,rootology-editorial,no
+apple,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+apple,CENTRO,HARVEST,8,10,depends on the variety,rootology-editorial,no
+apple,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+apple,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+pear,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+pear,CENTRO,HARVEST,7,10,depends on the variety,rootology-editorial,no
+pear,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+pear,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+quince,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+quince,CENTRO,HARVEST,9,10,depends on the variety,rootology-editorial,no
+quince,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+quince,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+peach,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+peach,CENTRO,HARVEST,6,9,depends on the variety,rootology-editorial,no
+peach,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+peach,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+nectarine,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+nectarine,CENTRO,HARVEST,6,9,depends on the variety,rootology-editorial,no
+nectarine,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+nectarine,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+apricot,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+apricot,CENTRO,HARVEST,6,7,depends on the variety,rootology-editorial,no
+apricot,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+apricot,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+plum,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+plum,CENTRO,HARVEST,7,9,depends on the variety,rootology-editorial,no
+plum,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+plum,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+cherry,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+cherry,CENTRO,HARVEST,5,6,depends on the variety,rootology-editorial,no
+cherry,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+cherry,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,HARVEST,6,7,depends on the variety,rootology-editorial,no
+sour-cherry,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+sour-cherry,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+olive,CENTRO,PLANT,3,4,spring; perennial,abruzzo-dpi-2024,no
+olive,CENTRO,HARVEST,10,12,table olives first,rootology-editorial,no
+olive,CENTRO,PRUNE,2,4,end of winter before flowering,rootology-editorial,no
+table-grape,CENTRO,PLANT,11,3,autumn to spring; perennial,abruzzo-dpi-2024,no
+table-grape,CENTRO,HARVEST,8,10,depends on the variety,rootology-editorial,no
+table-grape,CENTRO,PRUNE,1,2,winter pruning before the bleeding,abruzzo-dpi-2024,no
+table-grape,CENTRO,PRUNE,5,6,green pruning,rootology-editorial,no
+fig,CENTRO,PLANT,2,3,late winter; perennial,rootology-editorial,no
+fig,CENTRO,HARVEST,6,9,early figs in June,rootology-editorial,no
+fig,CENTRO,PRUNE,2,3,end of winter,rootology-editorial,no
+persimmon,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+persimmon,CENTRO,HARVEST,10,11,,rootology-editorial,no
+persimmon,CENTRO,PRUNE,1,2,still dormant,rootology-editorial,no
+pomegranate,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+pomegranate,CENTRO,HARVEST,9,11,,rootology-editorial,no
+pomegranate,CENTRO,PRUNE,2,3,end of winter,rootology-editorial,no
+kiwi,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+kiwi,CENTRO,HARVEST,10,11,,rootology-editorial,no
+kiwi,CENTRO,PRUNE,1,2,winter pruning,abruzzo-dpi-2024,no
+kiwi,CENTRO,PRUNE,6,7,summer pruning,rootology-editorial,no
+loquat,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+loquat,CENTRO,HARVEST,5,6,,rootology-editorial,no
+loquat,CENTRO,PRUNE,6,7,after the harvest,rootology-editorial,no
+black-mulberry,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+black-mulberry,CENTRO,HARVEST,6,8,,rootology-editorial,no
+black-mulberry,CENTRO,PRUNE,1,2,still dormant,rootology-editorial,no
+jujube,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+jujube,CENTRO,HARVEST,9,10,,rootology-editorial,no
+jujube,CENTRO,PRUNE,1,2,still dormant,rootology-editorial,no
+almond,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+almond,CENTRO,HARVEST,8,9,,rootology-editorial,no
+almond,CENTRO,PRUNE,1,2,winter pruning,rootology-editorial,no
+walnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+walnut,CENTRO,HARVEST,9,10,,rootology-editorial,no
+walnut,CENTRO,PRUNE,7,7,green pruning; winter cuts heal badly,abruzzo-dpi-2024,no
+hazelnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,rootology-editorial,no
+hazelnut,CENTRO,HARVEST,8,9,,rootology-editorial,no
+hazelnut,CENTRO,PRUNE,1,2,winter pruning; remove the suckers,rootology-editorial,no
+chestnut,CENTRO,PLANT,11,12,late autumn or early winter; perennial,abruzzo-dpi-2024,no
+chestnut,CENTRO,HARVEST,10,11,,rootology-editorial,no
+chestnut,CENTRO,PRUNE,1,3,winter pruning until flowering,abruzzo-dpi-2024,no
+chestnut,CENTRO,PRUNE,7,7,summer pruning,abruzzo-dpi-2024,no
+grapefruit,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+grapefruit,CENTRO,HARVEST,11,3,,rootology-editorial,no
+grapefruit,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+citron,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+citron,CENTRO,HARVEST,10,12,,rootology-editorial,no
+citron,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+bergamot,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+bergamot,CENTRO,HARVEST,11,1,,rootology-editorial,no
+bergamot,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+lime,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lime,CENTRO,HARVEST,9,12,,rootology-editorial,no
+lime,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+lemon-balm,CENTRO,PLANT,3,4,spring,rootology-editorial,no
+lemon-balm,CENTRO,PLANT,9,10,autumn,rootology-editorial,no
+lemon-balm,CENTRO,HARVEST,5,9,perennial,rootology-editorial,no
+lemon-balm,CENTRO,PRUNE,6,6,after flowering,rootology-editorial,no
+tarragon,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+tarragon,CENTRO,HARVEST,5,9,perennial,rootology-editorial,no
+tarragon,CENTRO,PRUNE,3,3,cut back at the end of winter,rootology-editorial,no
+winter-savory,CENTRO,PLANT,3,4,spring; perennial,rootology-editorial,no
+winter-savory,CENTRO,HARVEST,6,9,perennial,rootology-editorial,no
+winter-savory,CENTRO,PRUNE,3,4,end of winter,rootology-editorial,no
+lemon-verbena,CENTRO,PLANT,4,5,young plant; perennial,rootology-editorial,no
+lemon-verbena,CENTRO,HARVEST,6,9,perennial,rootology-editorial,no
+lemon-verbena,CENTRO,PRUNE,3,4,after the last frost,rootology-editorial,no
+asparagus,CENTRO,PLANT,2,4,crowns; perennial,rootology-editorial,no
+asparagus,CENTRO,HARVEST,4,5,from the third year,rootology-editorial,no
+asparagus,CENTRO,PRUNE,11,11,cut the dry stems,rootology-editorial,no
+cardoon,CENTRO,PLANT,4,5,perennial,rootology-editorial,no
+cardoon,CENTRO,HARVEST,10,12,after blanching,rootology-editorial,no
+jerusalem-artichoke,CENTRO,PLANT,2,4,tubers; perennial,rootology-editorial,no
+jerusalem-artichoke,CENTRO,HARVEST,10,3,,rootology-editorial,no
+# Service plants and green manures (#140): sown for their flowers or as green manure, never harvested.
+french-marigold,CENTRO,SOW,4,5,,rootology-editorial,no
+pot-marigold,CENTRO,SOW,3,5,,rootology-editorial,no
+nasturtium,CENTRO,SOW,4,6,,rootology-editorial,no
+phacelia,CENTRO,SOW,3,6,,rootology-editorial,no
+sweet-alyssum,CENTRO,SOW,3,5,,rootology-editorial,no
+white-mustard,CENTRO,SOW,3,8,,rootology-editorial,no
+common-vetch,CENTRO,SOW,3,4,,rootology-editorial,no
+common-vetch,CENTRO,SOW,9,10,,rootology-editorial,no
+crimson-clover,CENTRO,SOW,8,9,,rootology-editorial,no

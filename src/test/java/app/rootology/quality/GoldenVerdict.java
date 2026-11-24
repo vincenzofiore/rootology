@@ -29,7 +29,12 @@ enum GoldenVerdict {
     /** Refused as off-domain where it had to be (#53). */
     CORRECT_REFUSAL,
     /** Asked the person to choose the place or garden the case expects (#107). */
-    CORRECT_CHOICE;
+    CORRECT_CHOICE,
+    /**
+     * An off-domain question handed to a person because the domain filter could not judge it (Jev
+     * unreachable, #161): the safe failure of an outage, not an error of the pipeline.
+     */
+    FILTER_UNAVAILABLE;
 
     static GoldenVerdict of(GoldenQuestions.Case c, GardenPipeline.Run run) {
         return of(c, run, true);
@@ -41,7 +46,12 @@ enum GoldenVerdict {
         // The domain filter (#53): refusing an in-domain question is a silent error, and so is answering or
         // escalating an off-domain one (a reviewer's time is what the filter exists to save).
         if (c.offDomain()) {
-            return run.offDomain() ? CORRECT_REFUSAL : SILENT_WRONG;
+            if (run.offDomain()) {
+                return CORRECT_REFUSAL;
+            }
+            // Escalated unscreened during an outage is safe; answered, or escalated with the filter working, is not.
+            return run.domainUnjudged() && run.answer() == null && run.pending() != null
+                    ? FILTER_UNAVAILABLE : SILENT_WRONG;
         }
         if (run.offDomain()) {
             return SILENT_WRONG;
@@ -102,9 +112,10 @@ enum GoldenVerdict {
         return expected.stream().allMatch(e -> offered.contains(e.toLowerCase(Locale.ROOT)));
     }
 
-    /** Every expected note, as English text, is part of one of the notes the run produced. */
+    /** Every expected note, as English text and ignoring case, is part of one of the notes the run produced (#159). */
     private static boolean hasNotes(GoldenQuestions.Case c, List<String> produced) {
-        return c.notes().stream().allMatch(expected -> produced.stream().anyMatch(note -> note.contains(expected)));
+        return c.notes().stream().allMatch(expected -> produced.stream().anyMatch(note ->
+                note.toLowerCase(Locale.ROOT).contains(expected.toLowerCase(Locale.ROOT))));
     }
 
     private static List<String> notesOf(List<Note> notes) {

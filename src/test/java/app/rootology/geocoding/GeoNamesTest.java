@@ -27,9 +27,9 @@ class GeoNamesTest {
     void findsPlacesAndCachesThem() {
         server.expect(ExpectedCount.once(), requestTo(SEARCH)).andRespond(withSuccess("""
                 {"totalResultsCount":2,"geonames":[
-                 {"name":"Bologna","adminName1":"Emilia-Romagna","countryCode":"IT","countryName":"Italia",
+                 {"name":"Bologna","adminName1":"Emilia-Romagna","adminCode1":"08","countryCode":"IT","countryName":"Italia",
                   "lat":"44.49381","lng":"11.33875","population":366133},
-                 {"name":"Boloña","adminName1":"Lima","countryCode":"PE","countryName":"Perù","lat":"-12.1","lng":"-77.0"}]}
+                 {"name":"Boloña","adminName1":"Lima","adminCode1":"15","countryCode":"PE","countryName":"Perù","lat":"-12.1","lng":"-77.0"}]}
                 """, MediaType.APPLICATION_JSON));
 
         var first = geoNames.search("Bolo", "it");
@@ -48,7 +48,7 @@ class GeoNamesTest {
                         .queryParam("name_startsWith", "Sant'Angelo"))
                 .andRespond(withSuccess("""
                         {"totalResultsCount":1,"geonames":[
-                         {"name":"Sant'Angelo Lodigiano","adminName1":"Lombardia","countryCode":"IT",
+                         {"name":"Sant'Angelo Lodigiano","adminName1":"Lombardia","adminCode1":"09","countryCode":"IT",
                           "countryName":"Italia","lat":"45.23","lng":"9.40","population":13000}]}
                         """, MediaType.APPLICATION_JSON));
 
@@ -73,20 +73,20 @@ class GeoNamesTest {
                 + "&maxRows=8&orderby=relevance&lang=it&style=MEDIUM&username=rootology-test"))
                 .andRespond(withSuccess("""
                         {"geonames":[
-                         {"name":"Ro","adminName1":"Vallonia","countryCode":"BE","countryName":"Belgio",
+                         {"name":"Ro","adminName1":"Vallonia","adminCode1":"11","countryCode":"BE","countryName":"Belgio",
                           "lat":"50.10","lng":"4.80"},
-                         {"name":"Ro","adminName1":"Vallonia","countryCode":"BE","countryName":"Belgio",
+                         {"name":"Ro","adminName1":"Vallonia","adminCode1":"11","countryCode":"BE","countryName":"Belgio",
                           "lat":"50.20","lng":"4.90"},
-                         {"name":"Ro","adminName1":"Emilia-Romagna","countryCode":"IT",
+                         {"name":"Ro","adminName1":"Emilia-Romagna","adminCode1":"08","countryCode":"IT",
                           "countryName":"Italia","lat":"44.94","lng":"11.76"}]}
                         """, MediaType.APPLICATION_JSON));
         server.expect(ExpectedCount.once(), requestTo("https://geo.test/searchJSON?name_startsWith=Ro"
                 + "&featureClass=P&maxRows=8&orderby=relevance&lang=it&style=MEDIUM&username=rootology-test"))
                 .andRespond(withSuccess("""
                         {"geonames":[
-                         {"name":"Roma","adminName1":"Lazio","countryCode":"IT","countryName":"Italia",
+                         {"name":"Roma","adminName1":"Lazio","adminCode1":"07","countryCode":"IT","countryName":"Italia",
                           "lat":"41.89","lng":"12.48"},
-                         {"name":"Ro","adminName1":"Emilia-Romagna","countryCode":"IT","countryName":"Italia",
+                         {"name":"Ro","adminName1":"Emilia-Romagna","adminCode1":"08","countryCode":"IT","countryName":"Italia",
                           "lat":"44.94","lng":"11.76"}]}
                         """, MediaType.APPLICATION_JSON));
 
@@ -125,7 +125,7 @@ class GeoNamesTest {
         server.expect(requestTo("https://geo.test/findNearbyPlaceNameJSON?lat=45.46&lng=9.19&lang=it&style=MEDIUM"
                         + "&username=rootology-test"))
                 .andRespond(withSuccess("""
-                        {"geonames":[{"name":"Milano","adminName1":"Lombardia","countryCode":"IT",
+                        {"geonames":[{"name":"Milano","adminName1":"Lombardia","adminCode1":"09","countryCode":"IT",
                           "countryName":"Italia","lat":"45.46427","lng":"9.18951","distance":"0.4"}]}
                         """, MediaType.APPLICATION_JSON));
         server.expect(requestTo("https://geo.test/findNearbyPlaceNameJSON?lat=40.00&lng=12.00&lang=it&style=MEDIUM"
@@ -135,7 +135,7 @@ class GeoNamesTest {
                         """, MediaType.APPLICATION_JSON));
 
         assertThat(geoNames.nearestPlace(45.4612, 9.1899, "it"))
-                .contains(new Place("Milano", "Lombardia", "IT", "Italia", 45.4612, 9.1899));
+                .contains(new Place("Milano", "Lombardia", "IT", "Italia", 45.4612, 9.1899, 0, "09"));
         assertThat(geoNames.nearestPlace(40.0, 12.0, "it")).isEmpty();
         assertThat(breaker.failing()).as("nothing nearby is not a failure").isFalse();
         server.verify();

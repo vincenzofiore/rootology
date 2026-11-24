@@ -8,8 +8,10 @@ import java.util.Locale;
  * the frost dates corrected for altitude, and the two safe months the window rule uses. A profile with a
  * zone is a reference site named in the question (NORD, CENTRO or SUD); a profile without one is a garden's.
  *
- * <p>lastFrostDay and firstFrostDay are days of the year, null when the site has no such frost. The
- * correction says what the altitude did to the cell's dates, so the person can be told.
+ * <p>lastFrostDay and firstFrostDay are days of the year, null when the site has no such frost.
+ * winterMinimum is the site's 1-in-5 winter minimum in °C (#147), corrected for altitude like the frost
+ * dates, or null when the cell has no value. The correction says what the altitude did to the cell's
+ * dates, so the person can be told.
  */
 public record SiteProfile(
         String zone,
@@ -22,6 +24,7 @@ public record SiteProfile(
         Integer firstFrostDay,
         int firstSafeMonth,
         int lastSafeMonth,
+        Double winterMinimum,
         Correction correction,
         List<String> sources) {
 

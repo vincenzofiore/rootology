@@ -8,6 +8,6 @@ public class PassThroughDomainFilter implements DomainFilter {
 
     @Override
     public Verdict judge(String question) {
-        return Verdict.allowing(1.0);
+        return Verdict.unjudged();
     }
 }

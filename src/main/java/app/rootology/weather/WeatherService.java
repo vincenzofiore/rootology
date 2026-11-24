@@ -62,18 +62,24 @@ public class WeatherService {
         this.breaker = breaker;
     }
 
-    /** The last three days and the coming ones, or empty when there is no usable forecast. */
+    /**
+     * The last three days and the coming ones, or empty when there is no usable forecast. altitudeM is the
+     * garden's elevation in metres, or null when unknown (#135): it is both sent to MET Norway and part of the
+     * cache's key, so two gardens at the same rounded point never share a forecast when their altitudes differ.
+     */
     @Transactional
-    public Optional<Forecast> around(BigDecimal latitude, BigDecimal longitude) {
+    public Optional<Forecast> around(BigDecimal latitude, BigDecimal longitude, Integer altitudeM) {
+        // 2 decimals: the cache's granularity (about 1 km), well within MET Norway's max of 4 (#135).
         BigDecimal lat = latitude.setScale(2, RoundingMode.HALF_UP);
         BigDecimal lon = longitude.setScale(2, RoundingMode.HALF_UP);
         Instant now = clock.instant();
         Optional<Cached> cached = jdbc.sql("SELECT fetched_at, expires_at, last_modified FROM weather_location "
-                        + "WHERE latitude = ? AND longitude = ?").params(lat, lon)
+                        + "WHERE latitude = ? AND longitude = ? AND altitude IS NOT DISTINCT FROM CAST(? AS integer)")
+                .params(lat, lon, altitudeM)
                 .query((rs, i) -> new Cached(rs.getTimestamp(1).toInstant(), rs.getTimestamp(2).toInstant(),
                         rs.getString(3))).optional();
         if (cached.isPresent() && now.isBefore(cached.get().expiresAt())) {
-            return Optional.of(read(lat, lon, now, cached.get().fetchedAt(), false));
+            return Optional.of(read(lat, lon, altitudeM, now, cached.get().fetchedAt(), false));
         }
         Timer.Sample call = breaker.startCall();
         try {
@@ -81,25 +87,26 @@ public class WeatherService {
                 // Recently failing: do not wait for another timeout (#29).
                 throw new ServiceUnavailableException("MET Norway circuit is open");
             }
-            MetNorwayClient.Response response = client.fetch(lat.doubleValue(), lon.doubleValue(),
+            MetNorwayClient.Response response = client.fetch(lat.doubleValue(), lon.doubleValue(), altitudeM,
                     cached.map(Cached::lastModified).orElse(null));
             if (!response.notModified()) {
-                store(lat, lon, response.hours(), now);
+                store(lat, lon, altitudeM, response.hours(), now);
             }
-            jdbc.sql("INSERT INTO weather_location (latitude, longitude, fetched_at, expires_at, last_modified) "
-                            + "VALUES (?, ?, ?, ?, ?) ON CONFLICT (latitude, longitude) DO UPDATE SET "
+            jdbc.sql("INSERT INTO weather_location (latitude, longitude, altitude, fetched_at, expires_at, "
+                            + "last_modified) VALUES (?, ?, ?, ?, ?, ?) "
+                            + "ON CONFLICT (latitude, longitude, altitude) DO UPDATE SET "
                             + "fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at, "
                             + "last_modified = EXCLUDED.last_modified")
-                    .params(lat, lon, ts(now), ts(response.expires()), response.lastModified()).update();
+                    .params(lat, lon, altitudeM, ts(now), ts(response.expires()), response.lastModified()).update();
             breaker.success(call);
-            return Optional.of(read(lat, lon, now, now, false));
+            return Optional.of(read(lat, lon, altitudeM, now, now, false));
         } catch (ServiceUnavailableException e) {
-            return fallback(cached, lat, lon, now);
+            return fallback(cached, lat, lon, altitudeM, now);
         } catch (RuntimeException e) {
             breaker.failure(call);
             // The exception's message may carry the request URL, with the garden's coordinates (#27).
             log.warn("MET Norway unavailable: {}", e.getClass().getSimpleName());
-            return fallback(cached, lat, lon, now);
+            return fallback(cached, lat, lon, altitudeM, now);
         }
     }
 
@@ -109,48 +116,53 @@ public class WeatherService {
      * no stored hour is within an hour of now. It never calls MET Norway and never writes: the overview only
      * shows what questions and the 7:00 alerts job already stored.
      */
-    public Optional<ForecastHour> storedNow(BigDecimal latitude, BigDecimal longitude) {
+    public Optional<ForecastHour> storedNow(BigDecimal latitude, BigDecimal longitude, Integer altitudeM) {
         BigDecimal lat = latitude.setScale(2, RoundingMode.HALF_UP);
         BigDecimal lon = longitude.setScale(2, RoundingMode.HALF_UP);
         Instant now = clock.instant();
         Optional<Instant> fetchedAt = jdbc.sql("SELECT fetched_at FROM weather_location "
-                        + "WHERE latitude = ? AND longitude = ?").params(lat, lon)
+                        + "WHERE latitude = ? AND longitude = ? AND altitude IS NOT DISTINCT FROM CAST(? AS integer)")
+                .params(lat, lon, altitudeM)
                 .query((rs, i) -> rs.getTimestamp(1).toInstant()).optional();
         if (fetchedAt.isEmpty() || Duration.between(fetchedAt.get(), now).compareTo(NOW_MAX_AGE) >= 0) {
             return Optional.empty();
         }
         return jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, step_hours, "
-                        + "symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? "
-                        + "AND valid_at BETWEEN ? AND ?")
-                .params(lat, lon, ts(now.minus(NOW_DISTANCE)), ts(now.plus(NOW_DISTANCE)))
+                        + "symbol_code, wind_speed_ms FROM weather_hour WHERE latitude = ? AND longitude = ? "
+                        + "AND altitude IS NOT DISTINCT FROM CAST(? AS integer) AND valid_at BETWEEN ? AND ?")
+                .params(lat, lon, altitudeM, ts(now.minus(NOW_DISTANCE)), ts(now.plus(NOW_DISTANCE)))
                 .query(WeatherService::hour).list().stream()
                 .min(Comparator.comparingLong(hour -> Math.abs(Duration.between(hour.time(), now).toMillis())));
     }
 
     /** A copy fetched less than a day ago, marked stale; otherwise no weather. */
-    private Optional<Forecast> fallback(Optional<Cached> cached, BigDecimal lat, BigDecimal lon, Instant now) {
+    private Optional<Forecast> fallback(Optional<Cached> cached, BigDecimal lat, BigDecimal lon,
+                                        Integer altitudeM, Instant now) {
         return cached.filter(c -> Duration.between(c.fetchedAt(), now).compareTo(STALE_LIMIT) < 0)
-                .map(c -> read(lat, lon, now, c.fetchedAt(), true));
+                .map(c -> read(lat, lon, altitudeM, now, c.fetchedAt(), true));
     }
 
-    private void store(BigDecimal lat, BigDecimal lon, List<ForecastHour> hours, Instant now) {
+    private void store(BigDecimal lat, BigDecimal lon, Integer altitudeM, List<ForecastHour> hours, Instant now) {
         for (ForecastHour h : hours) {
-            jdbc.sql("INSERT INTO weather_hour (latitude, longitude, valid_at, air_temperature, relative_humidity, "
-                            + "precipitation_mm, step_hours, symbol_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
-                            + "ON CONFLICT (latitude, longitude, valid_at) DO UPDATE SET "
+            jdbc.sql("INSERT INTO weather_hour (latitude, longitude, altitude, valid_at, air_temperature, "
+                            + "relative_humidity, precipitation_mm, step_hours, symbol_code, wind_speed_ms) "
+                            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                            + "ON CONFLICT (latitude, longitude, altitude, valid_at) DO UPDATE SET "
                             + "air_temperature = EXCLUDED.air_temperature, relative_humidity = EXCLUDED.relative_humidity, "
                             + "precipitation_mm = EXCLUDED.precipitation_mm, step_hours = EXCLUDED.step_hours, "
-                            + "symbol_code = EXCLUDED.symbol_code")
-                    .params(lat, lon, ts(h.time()), h.airTemperature(), h.relativeHumidity(), h.precipitation(),
-                            h.stepHours(), h.symbol()).update();
+                            + "symbol_code = EXCLUDED.symbol_code, wind_speed_ms = EXCLUDED.wind_speed_ms")
+                    .params(lat, lon, altitudeM, ts(h.time()), h.airTemperature(), h.relativeHumidity(),
+                            h.precipitation(), h.stepHours(), h.symbol(), h.windSpeed()).update();
         }
         jdbc.sql("DELETE FROM weather_hour WHERE valid_at < ?").params(ts(now.minus(KEPT))).update();
     }
 
-    private Forecast read(BigDecimal lat, BigDecimal lon, Instant now, Instant fetchedAt, boolean stale) {
+    private Forecast read(BigDecimal lat, BigDecimal lon, Integer altitudeM, Instant now, Instant fetchedAt,
+                          boolean stale) {
         List<ForecastHour> hours = jdbc.sql("SELECT valid_at, air_temperature, relative_humidity, precipitation_mm, "
-                        + "step_hours, symbol_code FROM weather_hour WHERE latitude = ? AND longitude = ? AND valid_at >= ? "
-                        + "ORDER BY valid_at").params(lat, lon, ts(now.minus(PAST)))
+                        + "step_hours, symbol_code, wind_speed_ms FROM weather_hour "
+                        + "WHERE latitude = ? AND longitude = ? AND altitude IS NOT DISTINCT FROM CAST(? AS integer) "
+                        + "AND valid_at >= ? ORDER BY valid_at").params(lat, lon, altitudeM, ts(now.minus(PAST)))
                 .query(WeatherService::hour).list();
         return new Forecast(hours, fetchedAt, stale);
     }
@@ -158,7 +170,8 @@ public class WeatherService {
     /** One stored hour, in the column order every query above selects. */
     private static ForecastHour hour(ResultSet rs, int row) throws SQLException {
         return new ForecastHour(rs.getTimestamp(1).toInstant(), rs.getDouble(2),
-                (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6));
+                (Double) rs.getObject(3), (Double) rs.getObject(4), rs.getInt(5), rs.getString(6),
+                (Double) rs.getObject(7));
     }
 
     private static Timestamp ts(Instant instant) {

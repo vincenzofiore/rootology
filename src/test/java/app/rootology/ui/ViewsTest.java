@@ -11,6 +11,7 @@ import com.vaadin.flow.router.Route;
 import app.rootology.TestcontainersConfiguration;
 import app.rootology.experiments.ExperimentRunner;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.SourceCatalog;
 import app.rootology.garden.GardenService;
@@ -67,6 +68,9 @@ class ViewsTest {
     ClimateCells cells;
 
     @Autowired
+    ClimateWindows climateWindows;
+
+    @Autowired
     app.rootology.weather.WeatherService weatherService;
 
     @Autowired
@@ -85,10 +89,19 @@ class ViewsTest {
     app.rootology.notifications.NotificationService notificationService;
 
     @Autowired
+    app.rootology.officialwarnings.OfficialWarnings officialWarnings;
+
+    @Autowired
     app.rootology.notifications.TelegramLinks telegramLinks;
 
     @Autowired
     app.rootology.access.AccessRequestService accessRequests;
+
+    @Autowired
+    app.rootology.access.AccountBlockService blocks;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    app.rootology.access.AccountFlagService accountFlags;
 
     @Autowired
     app.rootology.geocoding.GeoNames geoNames;
@@ -155,12 +168,13 @@ class ViewsTest {
     @Test
     void historySpaceAndCuratorViewsBuild() {
         assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, climateWindows, viewer()).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, STYLE, "")
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
-        assertThat(new GardenHomeView(gardens, cells, weatherService, notificationService, pipeline, history, viewer()).getChildren())
+        assertThat(new GardenHomeView(gardens, cells, climateWindows, crops, weatherService, notificationService, officialWarnings,
+                        pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
@@ -320,7 +334,38 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
     void adminViewShowsPeopleAndHistoryToAnAdmin() {
-        assertThat(new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests).getChildren().filter(Grid.class::isInstance).count()).isEqualTo(2);
+        assertThat(new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests, blocks, accountFlags).getChildren()
+                .filter(Grid.class::isInstance).count()).isEqualTo(2);
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "ADMIN")
+    void aBlockedAccountWithoutUsageIsListedAndCanBeUnblocked() {
+        // #167: the usage grid lists only the last seven days, so a blocked account outside it would vanish.
+        String login = "views-blocked-nobody";
+        spaces.signedIn(login);
+        try {
+            blocks.block("views-test-user", login, "domande fuori tema");
+            AdminView admin = new AdminView(roles, usage, weatherAlerts, viewer(), accessRequests, blocks, accountFlags);
+            assertThat(admin.blockedAccounts().getListDataView().getItems().map(java.util.Map.Entry::getKey))
+                    .contains(login);
+            assertThat(usage.report(7)).as("no usage row to act from").noneMatch(u -> u.login().equals(login));
+
+            blocks.unblock("views-test-user", login);
+            admin.refresh();
+            assertThat(admin.blockedAccounts().getListDataView().getItems().map(java.util.Map.Entry::getKey))
+                    .doesNotContain(login);
+        } finally {
+            if (blocks.blocked().containsKey(login)) {
+                blocks.unblock("views-test-user", login);
+            }
+        }
+
+        Translations translations = new Translations();
+        assertThat(translations.getTranslation("admin.blocked.none", java.util.Locale.ITALIAN))
+                .isEqualTo("Nessun account bloccato.");
+        assertThat(translations.getTranslation("admin.blocked.none", java.util.Locale.ENGLISH))
+                .isEqualTo("No blocked accounts.");
     }
 
     @Test

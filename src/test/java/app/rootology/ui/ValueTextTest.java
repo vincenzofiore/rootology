@@ -26,6 +26,14 @@ class ValueTextTest {
     }
 
     @Test
+    void aControlMethodGetsNoBadge() {
+        // The method is an English sentence the answer's text already says in the page's language (#140).
+        assertThat(ValueText.badge("Spinosad")).isFalse();
+        assertThat(ValueText.badge("Dorifora")).isTrue();
+        assertThat(ValueText.badge("AUGUST")).isTrue();
+    }
+
+    @Test
     void aPestIsNamedAsTheCatalogueNamesIt() {
         assertThat(ValueText.of("Dorifora", Locale.ENGLISH)).isEqualTo("Colorado potato beetle");
         assertThat(ValueText.of("Colorado potato beetle", Locale.ITALIAN)).isEqualTo("Dorifora");
@@ -34,7 +42,7 @@ class ValueTextTest {
     @Test
     void whatTheKnowledgeBaseDoesNotKnowStaysExactlyAsWritten() {
         assertThat(ValueText.of("Aiuola B", Locale.ENGLISH)).isEqualTo("Aiuola B");
-        assertThat(ValueText.of("lavanda", Locale.ITALIAN)).isEqualTo("lavanda");
+        assertThat(ValueText.of("papaya", Locale.ITALIAN)).isEqualTo("papaya");
         assertThat(ValueText.of("SUMMER", Locale.ITALIAN)).isEqualTo("SUMMER");
         assertThat(ValueText.of("", Locale.ITALIAN)).isEmpty();
         assertThat(ValueText.of(null, Locale.ITALIAN)).isNull();

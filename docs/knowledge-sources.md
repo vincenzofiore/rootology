@@ -20,7 +20,7 @@ What the knowledge base needs: crops with taxonomy (family, for rotation rules) 
 
 ## Gaps
 
-- **Italian sowing and harvest calendars**: no open dataset found. The curated calendar is central Italy's (Vasto), reviewed by hand; it is moved to each garden by `frost-shift-v1` from the garden's own climate profile (#62), and refined with the forecast (#18). Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
+- **Italian sowing and harvest calendars**: no open dataset found. For fruit trees, the regional integrated production rules (Regione Abruzzo, DPI 2024 Allegato A) give planting and pruning periods (pome and stone fruit, kiwi, table grape, olive, chestnut, walnut's summer pruning), cited as facts (#139); their reuse licence was not confirmed, so no text is reused. The curated calendar is central Italy's (Vasto), reviewed by hand; it is moved to each garden by `frost-shift-v1` from the garden's own climate profile (#62), and refined with the forecast (#18). Inferred windows are tagged `INFERRED` (see the ontology layer in #16).
 - **Companion and antagonist pairs**: evidence is uneven and often folk knowledge. Keep each pair with its source and a confidence, so Jev can weigh it and the UI can show it; prefer pairs backed by cited studies.
 
 ## Proposed first set
@@ -36,7 +36,7 @@ Every fact keeps its source and license in the curated files, so the attribution
 ## Decisions (owner, 2026-11-03)
 
 - **Commercial use is a goal.** Even if what is sold is mainly support (setup, sensors) rather than the app itself, the data serves a paid service, so it is treated as commercial use: non-commercial sources (PFAF, the non-commercial parts of Practical Plants) are out, and FAO material under a non-commercial licence needs a licence request.
-- **Crops**: a list of typical Italian crops across the four seasons, listed in `docs/crops-v1.md` (39 crops, approved by the owner; months and families still to be verified against the sources on import).
+- **Crops**: a list of typical Italian crops across the four seasons, listed in `docs/crops-v1.md` (39 crops, approved by the owner; months and families still to be verified against the sources on import). 22 annual crops added on 2026-11-18 (#139).
 - **Names and missing data**: no external source is final. The knowledge base must be enrichable over time (missing names, crops, varieties, pairs), with provenance and review: see #24.
 
 ## Weather (#18), checked 2026-11-04
@@ -68,3 +68,15 @@ values (`last_frost_p80`, `first_frost_p20`); the altitude correction is 6.5 °C
 capped at 500 m, skipped on the coast (land fraction below 0.9) and when the altitude is unknown; the window
 rule `frost-shift-v1` never moves a window earlier in spring than Vasto; the south is not moved earlier because
 frost dates do not justify it (temperature would be needed, in a later issue).
+
+## Pest control methods (#140), checked 2026-11-22
+
+| Source | What it gives | License (as found) | Notes |
+|---|---|---|---|
+| [Regulation (EU) 2021/1165, Annex I](https://eur-lex.europa.eu/eli/reg_impl/2021/1165/2026-01-01/eng) | Active substances allowed in organic production, by category | © European Union, reuse authorised with citation (Decision 2011/833/EU) | The list every substance or microorganism must be in. |
+| [EPPO Standard PM 6/3(5)](https://gd.eppo.int/download/standard/124/pm6-3-5-2026-en.pdf) | Biological control agents used safely in the EPPO region, with their target pests | Citation of facts, no text reused | The EPPO Global Database "BCA" data is not imported: its licence for commercial reuse is unclear (ask EPPO). |
+| RHS advice pages (rhs.org.uk) | Practices, mesh, natural enemies, traps per pest | Citation of facts, no text reused | UK climate: months are not reused. |
+| UC IPM (ipm.ucanr.edu) | Practices and organic options per pest | Citation of facts, no text reused | California: months and thresholds are not reused. |
+| EU Pesticides Database | Approval status of substances | Legal notice not found | Not used: nothing is imported. |
+
+Each page is a separate source in `sources.csv`, so a method points to the page it comes from.

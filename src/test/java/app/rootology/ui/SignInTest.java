@@ -54,6 +54,9 @@ class SignInTest {
     app.rootology.access.AccessRequestService accessRequests;
 
     @Autowired
+    app.rootology.access.AccountBlockService blocks;
+
+    @Autowired
     JdbcClient jdbc;
 
     private static final GitHubEmails.Verified VERIFIED =
@@ -66,7 +69,7 @@ class SignInTest {
 
     private AllowListOAuth2UserService service(String... allowed) {
         return new AllowListOAuth2UserService(Set.of(allowed), spaces, identities,
-                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests), mock(GitHubEmails.class));
+                new SignInSteps(spaces, identities, invitations, roles, notifications, accessRequests, blocks), mock(GitHubEmails.class));
     }
 
     private long count(String sql) {

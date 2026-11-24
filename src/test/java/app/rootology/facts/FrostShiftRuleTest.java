@@ -63,18 +63,22 @@ class FrostShiftRuleTest {
     void vastoKeepsEveryWindowAsItIs() {
         List<InferredWindow> inferred = at(42.11, 14.71, 2);
 
-        counts(inferred, 95, 0, 0);
+        counts(inferred, 345, 0, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "garlic", "PLANT", 10)).isEqualTo("10-12");
         assertThat(window(inferred, "cauliflower", "HARVEST", 10)).isEqualTo("10-2");
         assertThat(window(inferred, "cabbage", "TRANSPLANT", 4)).isEqualTo("4-8");
+        // A winter pruning starting in January stays there at Vasto, whose first safe month the rule knows.
+        assertThat(window(inferred, "apple", "PRUNE", 1)).isEqualTo("1-3");
+        assertThat(CELLS.nearest(42.11, 14.71).map(cell -> FrostSeasonRule.profile(cell, 2, null))
+                .orElseThrow().firstSafeMonth()).isEqualTo(FrostShiftRule.VASTO_FIRST_SAFE);
     }
 
     @Test
     void torinoMovesOnlyWhatItsFrostDatesMakeImpossible() {
         List<InferredWindow> inferred = at(45.07, 7.69, 205);
 
-        counts(inferred, 49, 39, 7);
+        counts(inferred, 170, 163, 12);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "basil", "HARVEST", 6)).isEqualTo("7-10");
@@ -96,7 +100,7 @@ class FrostShiftRuleTest {
     void milanoMovesTheSpringSowingsAndTheLateHarvests() {
         List<InferredWindow> inferred = at(45.46, 9.19, 108);
 
-        counts(inferred, 80, 15, 0);
+        counts(inferred, 255, 89, 1);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "cabbage", "HARVEST", 6)).isEqualTo("6-11");
@@ -109,7 +113,7 @@ class FrostShiftRuleTest {
     void palermoKeepsEveryWindowAsVasto() {
         List<InferredWindow> inferred = at(38.12, 13.36, 13);
 
-        counts(inferred, 95, 0, 0);
+        counts(inferred, 345, 0, 0);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
     }
 
@@ -117,7 +121,7 @@ class FrostShiftRuleTest {
     void aostaMovesTheTenderCropsTwoMonthsAndLosesTheWinterHarvests() {
         List<InferredWindow> inferred = at(45.74, 7.32, 585);
 
-        counts(inferred, 19, 66, 10);
+        counts(inferred, 40, 277, 28);
         assertThat(tomatoTransplant(inferred)).isEqualTo("5-6");
         assertThat(window(inferred, "potato", "PLANT", 3)).isEqualTo("4-5");
         assertThat(window(inferred, "potato", "HARVEST", 6)).isEqualTo("7-8");
@@ -126,13 +130,25 @@ class FrostShiftRuleTest {
         assertThat(window(inferred, "garlic", "PLANT", 10)).isEqualTo("9-11");
         assertThat(window(inferred, "spinach", "HARVEST", 11)).isEqualTo("not derived");
         assertThat(window(inferred, "artichoke", "HARVEST", 11)).isEqualTo("not derived");
+        // Citrus (#139): planting and pruning move with the planting, never with the earlier pruning month.
+        assertThat(window(inferred, "lemon", "PLANT", 4)).isEqualTo("5-6");
+        assertThat(window(inferred, "lemon", "PRUNE", 3)).isEqualTo("4-5");
+        assertThat(window(inferred, "lemon", "HARVEST", 1)).isEqualTo("1-12");
+        // Winter pruning waits as many months as Aosta's spring is later than Vasto's (two at most).
+        assertThat(window(inferred, "apple", "PRUNE", 1)).isEqualTo("3-5");
+        assertThat(window(inferred, "thyme", "PRUNE", 6)).isEqualTo("8-9");
+        assertThat(window(inferred, "orange", "HARVEST", 12)).isEqualTo("not derived");
+        // Perennial herbs: the autumn planting comes a month earlier, the harvests end by the frost month.
+        assertThat(window(inferred, "lavender", "PLANT", 9)).isEqualTo("8-9");
+        assertThat(window(inferred, "mint", "HARVEST", 4)).isEqualTo("5-10");
+        assertThat(window(inferred, "marjoram", "PLANT", 4)).isEqualTo("5-6");
     }
 
     @Test
     void lyonMovesLikeTheOtherNorthernPlains() {
         List<InferredWindow> inferred = at(45.76, 4.84, 171);
 
-        counts(inferred, 80, 15, 0);
+        counts(inferred, 255, 89, 1);
         assertThat(tomatoTransplant(inferred)).isEqualTo("4-5");
         assertThat(window(inferred, "basil", "SOW", 3)).isEqualTo("4-6");
         assertThat(window(inferred, "cabbage", "HARVEST", 6)).isEqualTo("6-11");
@@ -141,7 +157,7 @@ class FrostShiftRuleTest {
     @Test
     void yearRoundWindowsNeverMove() {
         WindowRow yearRound = new WindowRow("tomato", "CENTRO", "HARVEST", 1, 12, "", "rootology-editorial", false);
-        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10,
+        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10, null,
                 SiteProfile.Correction.APPLIED, List.of("agera5"));
 
         assertThat(FrostShiftRule.infer(List.of(yearRound), GROUPS, cold)).singleElement()
@@ -167,7 +183,7 @@ class FrostShiftRuleTest {
     @Test
     void aWindowWhoseEndFallsBeforeItsStartIsNotDerived() {
         WindowRow sowing = new WindowRow("lettuce", "CENTRO", "SOW", 5, 6, "", "rootology-editorial", false);
-        SiteProfile dry = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 300, 4, 1,
+        SiteProfile dry = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 300, 4, 1, null,
                 SiteProfile.Correction.APPLIED, List.of("agera5"));
 
         assertThat(FrostShiftRule.infer(List.of(sowing), GROUPS, dry)).isEmpty();

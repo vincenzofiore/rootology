@@ -24,6 +24,8 @@ class Garden {
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String countryCode;
+    /** GeoNames first-level administrative code (for Italy the region, "01"…"20"); null when not known (#136). */
+    private String regionCode;
     /** Metres above sea level from GeoNames GTOPO30 (#62); null when not known. */
     @jakarta.persistence.Column(name = "elevation_m")
     private Integer elevationM;
@@ -56,5 +58,7 @@ class Garden {
     BigDecimal getLatitude() { return latitude; }
     BigDecimal getLongitude() { return longitude; }
     String getCountryCode() { return countryCode; }
+    String getRegionCode() { return regionCode; }
+    void setRegionCode(String regionCode) { this.regionCode = regionCode; }
     Integer getElevationM() { return elevationM; }
 }

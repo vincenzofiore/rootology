@@ -12,15 +12,23 @@ import java.util.Optional;
  * 128,000 cells and is read once at startup.
  *
  * <p>Dates are days of the year (1-366), 0 when the cell has no such frost. Elevation is metres,
- * -9999 when the DEM has no value. Land fraction is kept as a percentage (0-100).
+ * -9999 when the DEM has no value. Land fraction is kept as a percentage (0-100). The winter minimum
+ * (#147) is the lowest daily minimum of December-February reached or passed in one winter in five,
+ * kept in tenths of a degree; {@link #NO_WINTER_MIN} says the cell has no value.
  */
 @org.springframework.stereotype.Component
 public class ClimateCells {
 
-    /** One cell as the rules read it; dates are days of the year, null when there is no such frost. */
+    /** No winter minimum for the cell. */
+    static final short NO_WINTER_MIN = Short.MIN_VALUE;
+
+    /**
+     * One cell as the rules read it; dates are days of the year, null when there is no such frost, and
+     * winterMinimum is the 1-in-5 winter minimum in °C, null when the cell has no value (#147).
+     */
     public record Cell(double latitude, double longitude, int elevationM, double landFraction,
                        Integer lastFrostP50, Integer lastFrostP80, Integer firstFrostP50, Integer firstFrostP20,
-                       int frostYears) {
+                       int frostYears, Double winterMinimum) {
 
         /** The cell as it is shown, for example "45.1/7.7". */
         public String label() {
@@ -37,6 +45,7 @@ public class ClimateCells {
     private final short[] firstFrostP50;
     private final short[] firstFrostP20;
     private final byte[] frostYears;
+    private final short[] winterMinTenths;
     private final Map<Integer, Integer> index;
     /** The extent of the grid in tenths of a degree: outside it nothing is known, not even land or sea. */
     private int minLat = Integer.MAX_VALUE;
@@ -56,12 +65,14 @@ public class ClimateCells {
         this.firstFrostP50 = read.firstFrostP50;
         this.firstFrostP20 = read.firstFrostP20;
         this.frostYears = read.frostYears;
+        this.winterMinTenths = read.winterMinTenths;
         this.index = read.index;
         extent();
     }
 
     ClimateCells(int[] latTenths, int[] lonTenths, short[] elevation, byte[] landPercent, short[] lastFrostP50,
-                 short[] lastFrostP80, short[] firstFrostP50, short[] firstFrostP20, byte[] frostYears) {
+                 short[] lastFrostP80, short[] firstFrostP50, short[] firstFrostP20, byte[] frostYears,
+                 short[] winterMinTenths) {
         this.latTenths = latTenths;
         this.lonTenths = lonTenths;
         this.elevation = elevation;
@@ -71,6 +82,7 @@ public class ClimateCells {
         this.firstFrostP50 = firstFrostP50;
         this.firstFrostP20 = firstFrostP20;
         this.frostYears = frostYears;
+        this.winterMinTenths = winterMinTenths;
         this.index = new HashMap<>(latTenths.length * 2);
         for (int i = 0; i < latTenths.length; i++) {
             index.put(key(latTenths[i], lonTenths[i]), i);
@@ -117,7 +129,7 @@ public class ClimateCells {
     public Cell cell(int i) {
         return new Cell(latTenths[i] / 10.0, lonTenths[i] / 10.0, elevation[i], landPercent[i] / 100.0,
                 day(lastFrostP50[i]), day(lastFrostP80[i]), day(firstFrostP50[i]), day(firstFrostP20[i]),
-                frostYears[i]);
+                frostYears[i], winterMinimum(winterMinTenths[i]));
     }
 
     /**
@@ -143,6 +155,10 @@ public class ClimateCells {
             }
         }
         return best < 0 ? Optional.empty() : Optional.of(cell(best));
+    }
+
+    private static Double winterMinimum(short tenths) {
+        return tenths == NO_WINTER_MIN ? null : tenths / 10.0;
     }
 
     private static Integer day(short value) {

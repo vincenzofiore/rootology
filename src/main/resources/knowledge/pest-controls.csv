@@ -1,0 +1,98 @@
+# Control methods a home gardener can use against each pest or disease (#140), curated by hand from the
+# cited sources (facts only, no text reused). kind: PRACTICE, NATURAL_ENEMY, SERVICE_PLANT, SUBSTANCE,
+# MICROORGANISM or TRAP; agent: the natural enemy's or microorganism's scientific name, or the service crop's id.
+# A SUBSTANCE or MICROORGANISM is allowed in organic production (eu-2021-1165); no brand is ever named, and the
+# answer always says to read the label. evidence: study, extension or traditional, as in crop-pairs.csv.
+pest_id,method,kind,agent,evidence,sources
+1APHIF,Squash small colonies by hand and tolerate light attacks while natural enemies build up,PRACTICE,,extension,rhs-aphids
+1APHIF,Encourage ladybirds; hoverflies; lacewings; parasitoid wasps and earwigs,NATURAL_ENEMY,,extension,rhs-aphids
+1APHIF,Two-spot ladybird released as biological control under cover,NATURAL_ENEMY,Adalia bipunctata,extension,eppo-pm6-3
+1APHIF,Lacewing larvae released as biological control,NATURAL_ENEMY,Chrysoperla carnea,extension,eppo-pm6-3
+1APHIF,Parasitoid wasp released as biological control under cover,NATURAL_ENEMY,Aphidius colemani,extension,eppo-pm6-3;rhs-aphids
+1APHIF,Predatory gall midge released as biological control,NATURAL_ENEMY,Aphidoletes aphidimyza,extension,eppo-pm6-3
+1APHIF,Fatty acids (insecticidal soap) sprayed on the colonies,SUBSTANCE,,traditional,eu-2021-1165;rootology-editorial
+LPTNDE,Hand-pick adults; larvae and the orange egg clusters under the leaves,PRACTICE,,traditional,rootology-editorial
+LPTNDE,Do not grow potato; tomato or aubergine where they grew last year,PRACTICE,,traditional,rootology-editorial
+PIERBR,Cover with fine netting or fleece that does not touch the plants,PRACTICE,,extension,rhs-cabbage-caterpillars
+PIERBR,Inspect the plants and pick off eggs and caterpillars,PRACTICE,,extension,rhs-cabbage-caterpillars
+PIERBR,Parasitoid wasp common in gardens: tolerate light attacks,NATURAL_ENEMY,Cotesia glomerata,extension,rhs-cabbage-caterpillars
+PIERBR,Bacillus thuringiensis ssp. kurstaki on young caterpillars,MICROORGANISM,Bacillus thuringiensis ssp. kurstaki,extension,ucipm-imported-cabbageworm;eu-2021-1165
+PIERBR,Spinosad,SUBSTANCE,,extension,ucipm-imported-cabbageworm;eu-2021-1165
+PLUTMA,Cover with fine netting or fleece that does not touch the plants,PRACTICE,,extension,rhs-cabbage-caterpillars
+PLUTMA,Plant insectary flowers nearby (sweet alyssum; phacelia) to attract its natural enemies,SERVICE_PLANT,sweet-alyssum;phacelia,extension,ucipm-diamondback-moth;rootology-editorial
+PLUTMA,Do not grow brassicas in the same plot in consecutive years; and plant them all at once,PRACTICE,,extension,ucipm-diamondback-moth
+PLUTMA,Bacillus thuringiensis ssp. kurstaki,MICROORGANISM,Bacillus thuringiensis ssp. kurstaki,extension,ucipm-diamondback-moth;eu-2021-1165
+PLUTMA,Spinosad,SUBSTANCE,,extension,ucipm-diamondback-moth;eu-2021-1165
+PLUTMA,Egg parasitoid released as biological control,NATURAL_ENEMY,Trichogramma pintoi,extension,eppo-pm6-3
+1PHYEG,Cover seedlings with fine mesh until about the sixth leaf,PRACTICE,,extension,ucipm-flea-beetles
+1PHYEG,Sow white mustard at the edge of the bed as a trap crop and destroy it with the beetles on it,SERVICE_PLANT,white-mustard,traditional,rootology-editorial
+1PHYEG,Clear plant debris in autumn; where the adults overwinter,PRACTICE,,extension,ucipm-flea-beetles
+1PHYEG,White sticky traps to monitor and catch the adults,TRAP,,extension,ucipm-flea-beetles
+1PHYEG,Sulphur; which may repel them,SUBSTANCE,,extension,ucipm-flea-beetles;eu-2021-1165
+PSILRO,Cover the crop completely with insect-proof mesh; together with crop rotation,PRACTICE,,study,rhs-carrot-fly
+PSILRO,Sow sparsely to avoid thinning: the smell of thinned plants attracts the fly,PRACTICE,,extension,rhs-carrot-fly
+PSILRO,Less susceptible cultivars,PRACTICE,,extension,rhs-carrot-fly
+PSILRO,Pathogenic nematodes watered into the soil against young larvae,NATURAL_ENEMY,Steinernema feltiae,extension,rhs-carrot-fly
+HYLEAN,Insect-proof mesh,PRACTICE,,extension,rhs-onion-fly
+HYLEAN,Encourage ground and rove beetles; which eat root maggots,NATURAL_ENEMY,,extension,rhs-onion-fly
+HYLEAN,Pathogenic nematodes watered into the soil against young larvae,NATURAL_ENEMY,Steinernema feltiae,extension,rhs-onion-fly
+HYLEAN,Rove beetle released outdoors as biological control,NATURAL_ENEMY,Aleochara bilineata,extension,eppo-pm6-3
+THRITB,Predatory bug; which also occurs naturally,NATURAL_ENEMY,Orius laevigatus,extension,rhs-thrips;eppo-pm6-3
+THRITB,Blue sticky traps; in greenhouses only,TRAP,,extension,rhs-thrips
+FRANOC,Predatory bug; which also occurs naturally,NATURAL_ENEMY,Orius laevigatus,extension,rhs-thrips;eppo-pm6-3
+FRANOC,Predatory mite released under cover,NATURAL_ENEMY,Amblyseius swirskii,extension,eppo-pm6-3
+FRANOC,Blue sticky traps; in greenhouses only,TRAP,,extension,rhs-thrips
+TRIAVA,Parasitoid wasp released early under cover,NATURAL_ENEMY,Encarsia formosa,extension,rhs-glasshouse-whitefly;eppo-pm6-3
+TRIAVA,Grow French marigolds beside the crop against glasshouse whitefly,SERVICE_PLANT,french-marigold,traditional,rootology-editorial
+TRIAVA,Predatory bug released under cover (it can damage cherry tomatoes),NATURAL_ENEMY,Macrolophus pygmaeus,extension,eppo-pm6-3
+TRIAVA,Quarantine new plants before bringing them in,PRACTICE,,extension,rhs-glasshouse-whitefly
+TRIAVA,Yellow sticky traps; to monitor rather than control,TRAP,,extension,rhs-glasshouse-whitefly
+TRIAVA,Fatty acids (insecticidal soap),SUBSTANCE,,extension,ucipm-whiteflies-tomato;eu-2021-1165
+TRIAVA,Azadirachtin (neem extract),SUBSTANCE,,extension,ucipm-whiteflies-tomato;eu-2021-1165
+BEMITA,Parasitoid wasps released under cover,NATURAL_ENEMY,Eretmocerus mundus; Encarsia formosa,extension,eppo-pm6-3
+BEMITA,Predatory mite released under cover,NATURAL_ENEMY,Amblyseius swirskii,extension,eppo-pm6-3
+BEMITA,Destroy crop residues and weeds where whiteflies build up,PRACTICE,,extension,ucipm-whiteflies-tomato
+BEMITA,Fatty acids (insecticidal soap),SUBSTANCE,,extension,ucipm-whiteflies-tomato;eu-2021-1165
+BEMITA,Azadirachtin (neem extract),SUBSTANCE,,extension,ucipm-whiteflies-tomato;eu-2021-1165
+TETRUR,Predatory mite released as biological control,NATURAL_ENEMY,Phytoseiulus persimilis,extension,rhs-red-spider-mite;eppo-pm6-3
+TETRUR,Predatory mite for lighter or early infestations,NATURAL_ENEMY,Neoseiulus californicus,extension,rhs-red-spider-mite;eppo-pm6-3
+TETRUR,Predatory gall midge released as biological control,NATURAL_ENEMY,Feltiella acarisuga,extension,eppo-pm6-3
+TETRUR,Spray plants with water and keep the air humid; avoid hot; dry; crowded greenhouses,PRACTICE,,extension,rhs-red-spider-mite
+HELIAR,Pheromone traps to tell when the moths fly; then look for eggs,TRAP,,extension,ucipm-tomato-fruitworm
+HELIAR,Bacillus thuringiensis ssp. kurstaki from egg hatch,MICROORGANISM,Bacillus thuringiensis ssp. kurstaki,extension,ucipm-tomato-fruitworm;eu-2021-1165
+HELIAR,Spinosad,SUBSTANCE,,extension,ucipm-tomato-fruitworm;eu-2021-1165
+HELIAR,Egg parasitoid released as biological control,NATURAL_ENEMY,Trichogramma pintoi,extension,eppo-pm6-3
+GNORAB,Remove and destroy mined leaves and fruit,PRACTICE,,traditional,rootology-editorial
+GNORAB,Pheromone traps to catch the males,TRAP,,traditional,rootology-editorial
+GNORAB,Egg parasitoid released as biological control,NATURAL_ENEMY,Trichogramma cacoeciae,extension,eppo-pm6-3
+1AGRIG,Cultivate the soil regularly: numbers fall within two years after grass is dug up,PRACTICE,,extension,rhs-wireworms
+1AGRIG,Encourage birds and ground beetles,NATURAL_ENEMY,,extension,rhs-wireworms
+1AGRIG,Pathogenic nematodes watered into the soil,NATURAL_ENEMY,Steinernema carpocapsae,extension,eppo-pm6-3
+DERORE,Hand-pick slugs on mild; damp evenings,PRACTICE,,extension,rhs-slugs
+DERORE,Water in the morning rather than in the evening,PRACTICE,,extension,rhs-slugs
+DERORE,Beer traps or upturned fruit skins; emptied every morning,TRAP,,extension,rhs-slugs
+DERORE,Slug-specific nematodes watered into moist soil,NATURAL_ENEMY,Phasmarhabditis hermaphrodita,extension,rhs-slugs;eppo-pm6-3
+DERORE,Ferric phosphate pellets (the RHS advises against any pellets; for wildlife),SUBSTANCE,,traditional,eu-2021-1165;rhs-slugs
+PHYTIN,Rotate for at least four years; keeping tomatoes off that soil too,PRACTICE,,extension,rhs-potato-blight
+PHYTIN,Destroy leftover tubers and volunteer potatoes,PRACTICE,,extension,rhs-potato-blight;purdue-bp80
+PHYTIN,Early potato cultivars; harvested before the disease peaks,PRACTICE,,extension,rhs-potato-blight
+PHYTIN,Copper compounds slow the spread (at most 28 kg of copper per hectare over 7 years),SUBSTANCE,,extension,purdue-bp80;eu-2021-1165
+PSPECU,Resistant cucumber varieties,PRACTICE,,extension,ucipm-cucurbit-downy
+PSPECU,Avoid overhead watering,PRACTICE,,extension,ucipm-cucurbit-downy
+PSPECU,Remove and destroy affected plants; rotate crops,PRACTICE,,extension,rhs-downy-mildews
+BREMLA,Resistant cultivars; where available,PRACTICE,,extension,rhs-lettuce-downy-mildew
+BREMLA,Remove infected leaves promptly,PRACTICE,,extension,rhs-lettuce-downy-mildew
+BREMLA,Rotate lettuce crops,PRACTICE,,extension,rhs-lettuce-downy-mildew
+PODOXA,Resistant varieties; good sanitation and weed control,PRACTICE,,extension,ucipm-cucurbit-powdery
+PODOXA,Water regularly in dry spells and mulch: drought-stressed plants are more susceptible,PRACTICE,,extension,rhs-powdery-mildews
+PODOXA,Sulphur (it can scorch plants in great heat),SUBSTANCE,,extension,ucipm-cucurbit-powdery;eu-2021-1165
+PODOXA,Potassium hydrogen carbonate,SUBSTANCE,,extension,ucipm-cucurbit-powdery;eu-2021-1165
+BOTRCI,Good ventilation and no overcrowding,PRACTICE,,extension,rhs-grey-mould
+BOTRCI,Remove dead and dying leaves; flowers and fruit promptly,PRACTICE,,extension,rhs-grey-mould
+ALTESO,Crop rotation; so infected debris decomposes,PRACTICE,,extension,ucipm-early-blight
+ALTESO,Destroy nightshades and volunteer tomato and potato plants,PRACTICE,,extension,ucipm-early-blight
+ALTESO,Copper compounds (at most 28 kg of copper per hectare over 7 years),SUBSTANCE,,extension,ucipm-early-blight;eu-2021-1165
+PUCCAL,Avoid nitrogen-rich; potassium-poor soil: go easy with nitrogen fertiliser,PRACTICE,,extension,rhs-leek-rust
+PLADBR,Lime acid soils: raising the pH reduces the disease,PRACTICE,,extension,rhs-club-root
+PLADBR,Remove infected plants promptly,PRACTICE,,extension,rhs-club-root
+PLADBR,Control cabbage-family weeds such as shepherd’s purse,PRACTICE,,extension,rhs-club-root

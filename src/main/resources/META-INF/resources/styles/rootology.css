@@ -25,6 +25,21 @@
     --rootology-pest-10pct: light-dark(rgba(196, 120, 0, .14), rgba(227, 179, 65, .14));
     --rootology-waiting: light-dark(#6e40c9, #b392f0);
     --rootology-waiting-10pct: light-dark(rgba(110, 64, 201, .1), rgba(179, 146, 240, .14));
+    /* The weather alerts of #137: heat is warm red, heavy rain teal, strong wind slate, dry days the earth. */
+    --rootology-heat: light-dark(#b02a10, #ff8f6b);
+    --rootology-heat-10pct: light-dark(rgba(176, 42, 16, .1), rgba(255, 143, 107, .14));
+    --rootology-rain: light-dark(#0f6b7a, #63c8d9);
+    --rootology-rain-10pct: light-dark(rgba(15, 107, 122, .1), rgba(99, 200, 217, .14));
+    --rootology-wind: light-dark(#4a5a66, #a9bccb);
+    --rootology-wind-10pct: light-dark(rgba(74, 90, 102, .1), rgba(169, 188, 203, .14));
+    --rootology-earth-10pct: light-dark(rgba(138, 90, 59, .1), rgba(201, 162, 127, .14));
+    /* The levels of MeteoAlarm's official warnings (#136): yellow, orange and red, as MeteoAlarm paints them. */
+    --rootology-level-yellow: light-dark(#8a6d00, #e6d24d);
+    --rootology-level-yellow-10pct: light-dark(rgba(138, 109, 0, .1), rgba(230, 210, 77, .14));
+    --rootology-level-orange: light-dark(#b25500, #ffab5e);
+    --rootology-level-orange-10pct: light-dark(rgba(178, 85, 0, .1), rgba(255, 171, 94, .14));
+    --rootology-level-red: light-dark(#a41b12, #ff8a8a);
+    --rootology-level-red-10pct: light-dark(rgba(164, 27, 18, .1), rgba(255, 138, 138, .14));
     --lumo-base-color: light-dark(#fcfdfa, #111611);
     --lumo-tint: light-dark(#fff, #e4ebe2);
     --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(228, 235, 226, .06));
@@ -329,6 +344,7 @@ vaadin-grid {
 .rootology-signin-provider { font-weight: 600; min-width: 5rem; }
 
 /* The public welcome page (#47): the title, Ask, Know, Grow drawn in a circle (#87), and the ways in. */
+.rootology-welcome-scope { color: var(--lumo-secondary-text-color); font-size: var(--lumo-font-size-s); }
 .rootology-welcome-cycle { width: min(100%, 24rem); margin: var(--lumo-space-m) auto; }
 .rootology-welcome-cycle svg { display: block; width: 100%; height: auto; }
 .rootology-cycle { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -497,6 +513,10 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-garden-card-fact-waiting { color: var(--rootology-waiting); font-weight: 600; }
 .rootology-garden-card-fact.rootology-alert-frost { color: var(--rootology-frost); font-weight: 600; }
 .rootology-garden-card-fact.rootology-alert-blight { color: var(--rootology-pest); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-heat { color: var(--rootology-heat); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-rain { color: var(--rootology-rain); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-wind { color: var(--rootology-wind); font-weight: 600; }
+.rootology-garden-card-fact.rootology-alert-dry { color: var(--rootology-earth); font-weight: 600; }
 /* On the map: the place search and "where I am" at the top left, as in the map apps people know (#87). */
 .rootology-map-overlay {
     position: absolute;
@@ -1123,7 +1143,8 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-frost-icon { width: 0.9em; height: 0.9em; }
 
-/* An alert of #37, coloured by its rule: a frost is ice blue, late blight amber (#87). */
+/* An alert of #37, coloured by its rule: frost ice blue, late blight amber (#87); heat, heavy rain, strong
+   wind and dry days as the tokens above (#137). */
 .rootology-alert {
     display: flex;
     align-items: flex-start;
@@ -1137,6 +1158,14 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-alert-frost .rootology-alert-icon { color: var(--rootology-frost); }
 .rootology-alert-blight { background: var(--rootology-pest-10pct); }
 .rootology-alert-blight .rootology-alert-icon { color: var(--rootology-pest); }
+.rootology-alert-heat { background: var(--rootology-heat-10pct); }
+.rootology-alert-heat .rootology-alert-icon { color: var(--rootology-heat); }
+.rootology-alert-rain { background: var(--rootology-rain-10pct); }
+.rootology-alert-rain .rootology-alert-icon { color: var(--rootology-rain); }
+.rootology-alert-wind { background: var(--rootology-wind-10pct); }
+.rootology-alert-wind .rootology-alert-icon { color: var(--rootology-wind); }
+.rootology-alert-dry { background: var(--rootology-earth-10pct); }
+.rootology-alert-dry .rootology-alert-icon { color: var(--rootology-earth); }
 .rootology-alert-neutral .rootology-alert-icon { color: var(--lumo-secondary-text-color); }
 .rootology-alert-icon {
     flex: none;
@@ -1146,6 +1175,48 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-alert-title {
     display: block;
     font-weight: 600;
+}
+
+/* An official warning of #136: the level's colour on the stripe and on the icons, the neutral one for green
+   or a level the warning does not state. */
+.rootology-official-warning {
+    --rootology-official: var(--lumo-secondary-text-color);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    border-inline-start: 3px solid var(--rootology-official);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-official-yellow { --rootology-official: var(--rootology-level-yellow); background: var(--rootology-level-yellow-10pct); }
+.rootology-official-orange { --rootology-official: var(--rootology-level-orange); background: var(--rootology-level-orange-10pct); }
+.rootology-official-red { --rootology-official: var(--rootology-level-red); background: var(--rootology-level-red-10pct); }
+.rootology-official-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--rootology-official);
+}
+.rootology-official-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.rootology-official-headline {
+    display: block;
+    font-weight: 600;
+}
+.rootology-official-period,
+.rootology-official-issued {
+    display: block;
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-official-issued { color: var(--lumo-secondary-text-color); }
+.rootology-official-link { align-self: flex-start; }
+.rootology-official-disclaimer {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
 }
 
 /* Questions waiting for a person: the count first, then up to three of them. */
@@ -1212,6 +1283,7 @@ rootology-garden-map { display: block; width: 100%; }
 }
 .rootology-grow-chip {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--lumo-space-xs);
     min-height: 1.75rem;
@@ -1329,7 +1401,30 @@ rootology-garden-map { display: block; width: 100%; }
     color: var(--lumo-secondary-text-color);
     font-size: var(--lumo-font-size-xs);
 }
+/* When a crop growing now is usually harvested here (#131): the basket and its months, the sentence as
+   tooltip and aria label; nothing at all when the site has no harvest window for it. */
+.rootology-grow-harvest {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.15rem;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    white-space: nowrap;
+}
+.rootology-harvest-icon {
+    flex: none;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
 /* The harvest on a chip (#85): a small icon button that never makes the chip taller. */
+/* A perennial that does not stand the garden's winter (#147): the snowflake of the cold, in the frost colour. */
+.rootology-grow-frost {
+    flex: none;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--rootology-frost);
+}
 .rootology-grow-chip vaadin-button {
     flex: none;
     width: var(--lumo-icon-size-m);
@@ -2173,4 +2268,121 @@ vaadin-notification-card.rootology-toast-info { --rootology-toast-tone: var(--lu
 }
 .rootology-name-row vaadin-text-field {
     flex: 1 1 14rem;
+}
+
+/* QA view: the experiment's arms, one card each (ComparisonView) */
+.rootology-qa-arms {
+  gap: 1rem;
+}
+
+.rootology-qa-card {
+  border: 1px solid var(--lumo-contrast-20pct);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  width: 15rem;
+}
+
+.rootology-qa-card p {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}
+
+/* Free areas on the garden home (#141): the count, then "Propose"; the count is not a warning, so no violet. */
+.rootology-home-free {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--lumo-space-m);
+}
+.rootology-home-free .rootology-count { color: var(--lumo-body-text-color); }
+
+/* What to put in the free areas (#141): goal chips, then one card per area. Green only where one acts. */
+.rootology-goal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lumo-space-s);
+}
+.rootology-goal-chip {
+    margin: 0;
+    border-radius: 999px;
+    border: 1px solid var(--lumo-contrast-20pct);
+    background: transparent;
+    color: var(--lumo-body-text-color);
+    min-height: 2.75rem;
+}
+.rootology-goal-chip-on {
+    border-color: var(--lumo-success-color-50pct);
+    background: var(--lumo-success-color-10pct);
+    color: var(--lumo-success-text-color);
+}
+.rootology-goal-chip vaadin-icon, .rootology-goal-chip svg { width: var(--lumo-icon-size-s); height: var(--lumo-icon-size-s); }
+.rootology-goal-hint {
+    margin: 0;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-proposal-areas {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-m);
+    width: 100%;
+    max-width: 40rem;
+}
+.rootology-proposal-area {
+    box-sizing: border-box;
+    padding: var(--lumo-space-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    background: var(--lumo-contrast-5pct);
+}
+/* Jev is not sure: the waiting violet edge, as every question waiting for a person (#113). */
+.rootology-proposal-area-waiting { border-inline-start: 3px solid var(--rootology-waiting); }
+.rootology-proposal-area-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--lumo-space-m);
+}
+.rootology-proposal-area-name {
+    margin: 0;
+    font-family: var(--rootology-display-font);
+    font-size: var(--lumo-font-size-l);
+}
+.rootology-proposal-area-facts, .rootology-proposal-crop-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+.rootology-proposal-fact {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lumo-space-xs);
+}
+.rootology-proposal-fact vaadin-icon, .rootology-proposal-fact svg, .rootology-proposal-fact img {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+.rootology-proposal-confidence { width: 4rem; margin: var(--lumo-space-xs) 0 0; flex: none; }
+.rootology-proposal-thinking { margin: var(--lumo-space-m) 0 0; }
+.rootology-proposal-crop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--lumo-space-m);
+    padding-block: var(--lumo-space-s);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+}
+.rootology-proposal-area-head + .rootology-proposal-crop { margin-top: var(--lumo-space-s); }
+.rootology-proposal-crop-name { font-weight: 600; }
+.rootology-proposal-crop vaadin-button { min-height: 2.75rem; color: var(--lumo-success-text-color); }
+.rootology-proposal-waiting {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    margin-top: var(--lumo-space-s);
+    font-size: var(--lumo-font-size-s);
 }

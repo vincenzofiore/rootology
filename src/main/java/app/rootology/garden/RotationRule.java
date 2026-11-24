@@ -14,7 +14,9 @@ import java.util.Optional;
  * Rule `family-rotation-v1`: in the same plot, avoid following a crop with one of the same botanical
  * family (shared pests, diseases and nutrient demands). It looks at the most recent planting in the
  * plot that started before the candidate date. The result is an inferred warning, never a fact
- * of the knowledge base, and it names the rule and the plantings it comes from.
+ * of the knowledge base, and it names the rule and the plantings it comes from. Perennials (#139) stay in place
+ * for years: a perennial candidate is never warned, and a perennial still growing is not "followed" by a crop
+ * planted beside it.
  */
 @Component
 public class RotationRule {
@@ -38,7 +40,8 @@ public class RotationRule {
         Optional<PlantingSummary> previous = plotHistory.stream()
                 .filter(p -> p.plantedOn().isBefore(on) || p.plantedOn().isEqual(on))
                 .max(Comparator.comparing(PlantingSummary::plantedOn));
-        if (family.isEmpty() || previous.isEmpty()) {
+        if (family.isEmpty() || previous.isEmpty() || perennial(candidateCropId)
+                || perennial(previous.get().cropId()) && growingOn(previous.get(), on)) {
             return Optional.empty();
         }
         Optional<String> previousFamily = crops.byId(previous.get().cropId()).map(Crop::family);
@@ -50,5 +53,13 @@ public class RotationRule {
                 candidateName + " and " + previous.get().cropName() + " (since " + previous.get().plantedOn()
                         + ") are both " + family.get() + ": avoid the same family in succession in "
                         + previous.get().plotName() + "."));
+    }
+
+    private boolean perennial(String cropId) {
+        return crops.byId(cropId).map(Crop::perennial).orElse(false);
+    }
+
+    private static boolean growingOn(PlantingSummary planting, LocalDate on) {
+        return planting.endedOn() == null || planting.endedOn().isAfter(on);
     }
 }

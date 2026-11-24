@@ -25,16 +25,21 @@ class FrostSeasonRuleTest {
         SiteProfile torino = at(45.07, 7.69, 205);
         assertThat(torino.firstSafeMonth()).isEqualTo(4);
         assertThat(torino.lastSafeMonth()).isEqualTo(10);
+        // The site's 1-in-5 winter minimum (#147) is corrected like the dates: warmer 38 m below the cell.
+        assertThat(vasto.winterMinimum()).as("a coast keeps the cell's -1.4 °C").isEqualTo(-1.4);
+        assertThat(torino.winterMinimum()).isEqualTo(-10.2);
 
         SiteProfile milano = at(45.46, 9.19, 108);
         assertThat(milano.firstSafeMonth()).isEqualTo(4);
         assertThat(milano.lastSafeMonth()).isEqualTo(11);
+        assertThat(milano.winterMinimum()).as("25 m below the cell's 133 m").isEqualTo(-6.6);
 
         SiteProfile palermo = at(38.12, 13.36, 13);
         assertThat(palermo.lastFrostDay()).isNull();
         assertThat(palermo.firstFrostDay()).isNull();
         assertThat(palermo.firstSafeMonth()).isEqualTo(1);
         assertThat(palermo.lastSafeMonth()).isEqualTo(12);
+        assertThat(palermo.winterMinimum()).as("a coast keeps the cell's 2.4 °C").isEqualTo(2.4);
 
         SiteProfile aosta = at(45.74, 7.32, 585);
         assertThat(aosta.firstSafeMonth()).isEqualTo(5);

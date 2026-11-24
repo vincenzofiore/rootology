@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -24,15 +25,24 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
+import app.rootology.facts.ClimateWindows.ClimateWindow;
+import app.rootology.facts.CropCatalog;
 import app.rootology.facts.FrostSeasonRule;
+import app.rootology.facts.FrostSuitabilityRule;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.PlantingMethod;
+import app.rootology.garden.PlotKind;
 import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
+import app.rootology.officialwarnings.OfficialWarning;
+import app.rootology.officialwarnings.OfficialWarningArea;
+import app.rootology.officialwarnings.OfficialWarnings;
+import app.rootology.officialwarnings.WarningZones;
 import app.rootology.notifications.NotificationView;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.Question;
@@ -43,11 +53,11 @@ import jakarta.annotation.security.PermitAll;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -77,8 +87,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     private final GardenService gardens;
     private final ClimateCells climateCells;
+    private final ClimateWindows climateWindows;
+    private final CropCatalog crops;
     private final WeatherService weather;
     private final NotificationService notifications;
+    private final OfficialWarnings official;
     private final GardenPipeline pipeline;
     private final RunHistory history;
     private final CurrentUser currentUser;
@@ -94,13 +107,17 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long spaceId;
     private long gardenId;
 
-    public GardenHomeView(GardenService gardens, ClimateCells climateCells, WeatherService weather,
-                          NotificationService notifications, GardenPipeline pipeline, RunHistory history,
+    public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
+                          CropCatalog crops, WeatherService weather, NotificationService notifications,
+                          OfficialWarnings official, GardenPipeline pipeline, RunHistory history,
                           CurrentUser currentUser) {
         this.gardens = gardens;
         this.climateCells = climateCells;
+        this.climateWindows = climateWindows;
+        this.crops = crops;
         this.weather = weather;
         this.notifications = notifications;
+        this.official = official;
         this.pipeline = pipeline;
         this.history = history;
         this.currentUser = currentUser;
@@ -170,8 +187,14 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         weatherCard(garden);
         alertsCard();
+        officialWarningsCard(garden);
         questionsCard();
-        growingCard(growing, plots, contributor);
+        if (contributor) {
+            freeAreasCard(plots, growing);
+        }
+        java.util.Optional<SiteProfile> site = HarvestText.site(garden, climateCells);
+        growingCard(growing, plots, contributor,
+                site.map(s -> HarvestText.harvest(s, climateWindows)).orElse(Map.of()), site.orElse(null));
         climateCard(garden);
     }
 
@@ -183,7 +206,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             weatherRow.add(card);
             return;
         }
-        weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
+        weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
             List<DailyForecast> days = DailyForecast.of(forecast, ITALY, LocalDate.now(ITALY), 7);
             if (!days.isEmpty()) {
                 weatherRow.add(new WeatherCard(days, WeatherCard.now(forecast.hours(), Instant.now()),
@@ -194,10 +217,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /** The weather alerts (#37) of this garden in the last three days, coloured by severity. */
     private void alertsCard() {
-        Instant since = Instant.now().minus(ALERT_DAYS, ChronoUnit.DAYS);
-        List<NotificationView> alerts = notifications.of(currentUser.login(), 50).stream()
-                .filter(n -> n.weather() && n.spaceId() == spaceId && n.gardenId() == gardenId
-                        && n.createdAt().isAfter(since)).toList();
+        List<NotificationView> alerts = notifications.weatherAlerts(currentUser.login(), spaceId, gardenId,
+                ALERT_DAYS);
         if (alerts.isEmpty()) {
             return;
         }
@@ -206,12 +227,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         grid.add(card);
     }
 
-    /** One alert: its icon and colour say the rule, then the title and what the morning check saw. */
-    private static Div alert(NotificationView alert) {
+    /**
+     * One alert: its icon and colour say the rule (its short name stays as tooltip and aria label), then the
+     * title and what the morning check saw.
+     */
+    private Div alert(NotificationView alert) {
         AlertSeverity severity = AlertSeverity.of(alert.dedupKey());
-        Icon icon = severity.icon().create();
+        String rule = getTranslation(severity.label());
+        SvgIcon icon = new SvgIcon(severity.icon());
         icon.addClassName("rootology-alert-icon");
-        icon.getElement().setAttribute("aria-hidden", "true");
+        icon.getElement().setAttribute("title", rule);
+        icon.getElement().setAttribute("aria-label", rule);
+        icon.getElement().setAttribute("role", "img");
         Span alertTitle = new Span(alert.title());
         alertTitle.addClassName("rootology-alert-title");
         Div text = new Div(alertTitle, new Span(alert.body()));
@@ -219,6 +246,106 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         line.addClassName("rootology-alert");
         line.addClassName(severity.className());
         return line;
+    }
+
+    /**
+     * The official warnings of the garden's region (#136), apart from the computed alerts and never mixed with
+     * them: the regions of Italy only, nothing for a garden abroad or whose region is not known yet, and nothing
+     * when its region has no active warning. What is shown has the issuing service, the time of issue, the link
+     * and MeteoAlarm's disclaimer; when the feed could not be read for ten minutes the card only says so.
+     */
+    void officialWarningsCard(GardenSummary garden) {
+        Optional<String> zone = WarningZones.emmaId(garden.countryCode(), garden.regionCode());
+        if (zone.isEmpty()) {
+            return;
+        }
+        if (official.stale()) {
+            Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
+            card.content().add(paragraph(getTranslation("home.official.unavailable")), meteoAlarmLink());
+            grid.add(card);
+            return;
+        }
+        List<OfficialWarning> warnings = official.active(zone.get());
+        if (warnings.isEmpty()) {
+            return;
+        }
+        Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
+        warnings.forEach(warning -> card.content().add(officialWarning(warning)));
+        card.content().add(meteoAlarmLink(), disclaimer());
+        grid.add(card);
+    }
+
+    /**
+     * One official warning: the level (its colour and name) and the phenomenon as two icons, then the headline
+     * exactly as MeteoAlarm wrote it in Italian, the part of the region it is about when the issuer names it
+     * (#171), its period and who issued it when.
+     */
+    private Div officialWarning(OfficialWarning warning) {
+        OfficialWarningLevel level = OfficialWarningLevel.of(warning.level());
+        OfficialWarningType type = OfficialWarningType.of(warning.type());
+        Span headline = new Span(warning.headline() == null || warning.headline().isBlank()
+                ? warning.event() : warning.headline());
+        headline.addClassName("rootology-official-headline");
+        Span period = new Span(period(warning));
+        period.addClassName("rootology-official-period");
+        Span issued = new Span(issued(warning));
+        issued.addClassName("rootology-official-issued");
+        Div text = new Div(headline);
+        OfficialWarningArea.of(warning.description()).ifPresent(area -> {
+            Span span = new Span(getTranslation("home.official.area", area));
+            span.addClassName("rootology-official-period");
+            text.add(span);
+        });
+        text.add(period, issued);
+        text.addClassName("rootology-official-text");
+        Div line = new Div(icon(level.icon(), getTranslation(level.label())),
+                icon(type.icon(), getTranslation(type.label())), text);
+        line.addClassName("rootology-official-warning");
+        line.addClassName(level.className());
+        return line;
+    }
+
+    /** An icon that says what it is to a screen reader too, its translated name as tooltip and aria label. */
+    private SvgIcon icon(String drawing, String label) {
+        SvgIcon drawn = new SvgIcon(drawing);
+        drawn.addClassName("rootology-official-icon");
+        drawn.getElement().setAttribute("title", label);
+        drawn.getElement().setAttribute("aria-label", label);
+        drawn.getElement().setAttribute("role", "img");
+        return drawn;
+    }
+
+    /** When the warned phenomenon begins and ends, in Italian time; the one date when the other is missing. */
+    private String period(OfficialWarning warning) {
+        String from = warning.onset() == null ? null : DateText.dateTime(warning.onset(), this);
+        String to = warning.expires() == null ? null : DateText.dateTime(warning.expires(), this);
+        if (from == null) {
+            return to == null ? "" : to;
+        }
+        return to == null ? from : from + " – " + to;
+    }
+
+    /** "Emessa da … il …": the issuing service is always shown with the time of issue, as MeteoAlarm asks. */
+    private String issued(OfficialWarning warning) {
+        String sender = warning.senderName() == null || warning.senderName().isBlank()
+                ? getTranslation("home.official.sender") : warning.senderName();
+        return warning.sent() == null ? sender
+                : getTranslation("home.official.issued", sender, DateText.dateTime(warning.sent(), this));
+    }
+
+    /** MeteoAlarm asks for a link to its site wherever its warnings are shown. */
+    private static Anchor meteoAlarmLink() {
+        Anchor link = new Anchor("https://meteoalarm.org", "meteoalarm.org");
+        link.setTarget("_blank");
+        link.addClassName("rootology-official-link");
+        return link;
+    }
+
+    /** The disclaimer MeteoAlarm requires, unchanged in both languages. */
+    private Paragraph disclaimer() {
+        Paragraph disclaimer = new Paragraph(getTranslation("home.official.disclaimer"));
+        disclaimer.addClassName("rootology-official-disclaimer");
+        return disclaimer;
     }
 
     /**
@@ -273,10 +400,34 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     }
 
     /**
+     * Free areas (#141): how many areas have nothing growing today, and "Propose" to the crops for them. Only
+     * when one is free, and only for a contributor, since a proposal is a question.
+     */
+    private void freeAreasCard(List<PlotSummary> plots, List<PlantingSummary> growing) {
+        java.util.Set<Long> busy = growing.stream().map(PlantingSummary::plotId).collect(Collectors.toSet());
+        long free = plots.stream().filter(p -> !busy.contains(p.id())).count();
+        if (free == 0) {
+            return;
+        }
+        Card card = new Card(MainLayout.PLOTS_ICON, getTranslation("home.free"));
+        Span count = new Span(String.valueOf(free));
+        count.addClassName("rootology-count");
+        count.getElement().setAttribute("aria-label", getTranslation("home.free.count", free));
+        Button propose = new Button(getTranslation("home.free.propose"), drawing(SPROUT),
+                e -> UI.getCurrent().navigate(ProposalsView.class, gardenParameters()));
+        propose.addThemeName("primary");
+        Div row = new Div(count, propose);
+        row.addClassName("rootology-home-free");
+        card.content().add(row);
+        grid.add(card);
+    }
+
+    /**
      * What grows in this garden today, area by area (#130): every area, with a plus beside its name to sow or
      * plant there, and under the areas the way to add one and the link to the areas page (#133).
      */
-    private void growingCard(List<PlantingSummary> growing, List<PlotSummary> plots, boolean contributor) {
+    private void growingCard(List<PlantingSummary> growing, List<PlotSummary> plots, boolean contributor,
+                             Map<String, List<ClimateWindow>> harvest, SiteProfile site) {
         Card card = new Card(drawing(SPROUT), getTranslation("home.growing"));
         if (growing.isEmpty() && (plots.isEmpty() || !contributor)) {
             card.content().add(new EmptyState(getTranslation("home.growing.none")));
@@ -284,8 +435,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         Map<Long, List<PlantingSummary>> byPlot = growing.stream().collect(Collectors.groupingBy(
                 PlantingSummary::plotId, LinkedHashMap::new, Collectors.toList()));
         for (PlotSummary area : plots) {
-            List<PlantingSummary> crops = byPlot.getOrDefault(area.id(), List.of());
-            if (crops.isEmpty() && !contributor) {
+            List<PlantingSummary> plants = byPlot.getOrDefault(area.id(), List.of());
+            if (plants.isEmpty() && !contributor) {
                 continue;
             }
             Div group = new Div();
@@ -301,10 +452,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
                 plotName.add(plant);
             }
             group.add(plotName);
-            if (!crops.isEmpty()) {
+            if (!plants.isEmpty()) {
                 Div chips = new Div();
                 chips.addClassName("rootology-chips");
-                crops.forEach(planting -> chips.add(growChip(planting)));
+                plants.forEach(planting -> chips.add(growChip(planting, harvest.get(planting.cropId()), site,
+                        area.kind())));
                 group.add(chips);
             }
             card.content().add(group);
@@ -345,9 +497,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /**
      * A crop growing now (#130): its name, then how and when it went into the ground, "semina 3 mar" or
-     * "trapianto 10 apr" (nouns, so no agreement with the crop's gender).
+     * "trapianto 10 apr" (nouns, so no agreement with the crop's gender), then when it is usually harvested at
+     * this site (#131), when the site has a HARVEST window for it.
      */
-    private Span growChip(PlantingSummary planting) {
+    private Span growChip(PlantingSummary planting, List<ClimateWindow> harvest, SiteProfile site,
+                          PlotKind areaKind) {
         Span name = new Span(planting.cropName());
         Span chip = new Span(name);
         chip.addClassName("rootology-grow-chip");
@@ -357,7 +511,30 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             when.addClassName("rootology-grow-when");
             chip.add(when);
         }
+        HarvestText.value(harvest, this::getTranslation, NoteText.locale(this)).ifPresent(chip::add);
+        frostMarker(planting, site, areaKind).ifPresent(chip::add);
         return chip;
+    }
+
+    /**
+     * The snowflake of a perennial that does not stand this garden's 1-in-5 winter minimum (#147): the short
+     * verdict as tooltip and aria label, never a guessed one; nothing when the rule says nothing or the crop
+     * survives the winter.
+     */
+    private Optional<Component> frostMarker(PlantingSummary planting, SiteProfile site, PlotKind areaKind) {
+        return crops.byId(planting.cropId())
+                .flatMap(crop -> FrostSuitabilityRule.of(crop, site, areaKind.name()))
+                .filter(result -> !result.survives())
+                .map(result -> {
+                    String said = getTranslation(result.verdict() == FrostSuitabilityRule.Verdict.SHELTER_IN_POT
+                            ? "crop.frost.pot" : "crop.frost.ground");
+                    SvgIcon snowflake = new SvgIcon(FROST);
+                    snowflake.addClassName("rootology-grow-frost");
+                    snowflake.getElement().setAttribute("title", said);
+                    snowflake.getElement().setAttribute("aria-label", said);
+                    snowflake.getElement().setAttribute("role", "img");
+                    return snowflake;
+                });
     }
 
     /**

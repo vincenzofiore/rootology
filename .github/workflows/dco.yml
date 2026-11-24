@@ -1,0 +1,33 @@
+# Developer Certificate of Origin (CONTRIBUTING.md): every commit of a pull request is signed off by its
+# author ("Signed-off-by: Name <email>", from `git commit -s`). No third-party action: plain git.
+name: dco
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sign-off:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every commit is signed off by its author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            email=$(git show -s --format='%ae' "$sha")
+            if ! git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" | grep -qiF "<$email>"; then
+              echo "::error::Commit $sha has no Signed-off-by from its author. Sign off with: git rebase --signoff $BASE"
+              missing=1
+            fi
+          done
+          exit $missing

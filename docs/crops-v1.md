@@ -87,10 +87,235 @@ the app derives every garden's windows from its own climate profile, and only a 
 uses that zone's reference site (NORD = Milan, CENTRO = Vasto, SUD = Palermo). The curated NORD row
 (broad bean, February) applies only when the question names NORD.
 
+## Annual crops added on 2026-11-18 (#139)
+
+Approved by the owner by group (vegetables, annual herbs, physalis). Families, Wikidata and FAO ECOCROP ids were
+checked on 2026-11-18; the months are Vasto's, editorial like the rest of the list, and still to be verified
+(`verified=no`). Romanesco and catalogna are not crops of their own: they are names of broccoli and radicchio,
+to be added as global names through knowledge enrichment (#24).
+
+| Italian | English | Scientific name | Family | Sowing / planting | Harvest |
+|---|---|---|---|---|---|
+| Barbabietola | Beetroot | *Beta vulgaris* (Conditiva group) | Amaranthaceae | Sow Mar-Jul | Jun-Nov |
+| Rapa | Turnip | *Brassica rapa* var. *rapa* | Brassicaceae | Sow Aug-Sep | Oct-Dec |
+| Pastinaca | Parsnip | *Pastinaca sativa* | Apiaceae | Sow Mar-May | Oct-Feb |
+| Sedano rapa | Celeriac | *Apium graveolens* var. *rapaceum* | Apiaceae | Seedbed Feb-Mar, transplant May-Jun | Oct-Dec |
+| Patata dolce | Sweet potato | *Ipomoea batatas* | Convolvulaceae | Plant rooted slips May-Jun | Sep-Oct |
+| Cavolini di Bruxelles | Brussels sprouts | *Brassica oleracea* var. *gemmifera* | Brassicaceae | Seedbed Apr-May, transplant Jun-Jul | Nov-Feb |
+| Cavolo rapa | Kohlrabi | *Brassica oleracea* var. *gongylodes* | Brassicaceae | Sow Mar-Aug | May-Nov |
+| Borragine | Borage | *Borago officinalis* | Boraginaceae | Sow Mar-May | May-Oct |
+| Portulaca | Purslane | *Portulaca oleracea* | Portulacaceae | Sow May-Jul | Jun-Sep |
+| Scalogno | Shallot | *Allium cepa* var. *aggregatum* | Amaryllidaceae | Plant bulbs Oct-Dec and Feb-Mar | Jun-Jul |
+| Cipollotto | Spring onion | *Allium cepa* | Amaryllidaceae | Sow Feb-Apr and Aug-Sep | Apr-Jun, Oct-Dec |
+| Cece | Chickpea | *Cicer arietinum* | Fabaceae | Sow Feb-Apr | Jun-Aug |
+| Lenticchia | Lentil | *Lens culinaris* | Fabaceae | Sow Feb-Apr | Jun-Jul |
+| Cicerchia | Grass pea | *Lathyrus sativus* | Fabaceae | Sow Feb-Apr | Jun-Jul |
+| Fagiolo dall’occhio | Cowpea | *Vigna unguiculata* | Fabaceae | Sow May-Jun | Aug-Sep |
+| Fagiolo di Spagna | Runner bean | *Phaseolus coccineus* | Fabaceae | Sow Apr-Jun | Jul-Oct |
+| Mais dolce | Sweet corn | *Zea mays* (Saccharata group) | Poaceae | Sow Apr-Jun | Jul-Sep |
+| Okra | Okra | *Abelmoschus esculentus* | Malvaceae | Seedbed Mar-Apr, transplant May | Jul-Oct |
+| Aneto | Dill | *Anethum graveolens* | Apiaceae | Sow Mar-Jun | May-Sep |
+| Coriandolo | Coriander | *Coriandrum sativum* | Apiaceae | Sow Mar-May and Sep | May-Jul, Oct-Nov |
+| Cerfoglio | Chervil | *Anthriscus cerefolium* | Apiaceae | Sow Feb-Apr and Aug-Sep | Apr-Jun, Oct-Dec |
+| Alchechengi | Cape gooseberry | *Physalis peruviana* | Solanaceae | Seedbed Feb-Mar, transplant May | Aug-Oct |
+
+## Perennials (#139)
+
+`lifecycle` in `crops-v1.csv` marks the crops that stay in place for years: artichoke, strawberry, rosemary and
+sage. They are left out of the rotation rule, and from their second year the frost alert judges them on
+`frost_hardiness`, the lowest air temperature an established plant stands (ECOCROP's "killing temperature during
+rest" is missing for most of them, and its absolute minimum is where growth stops). The first values are
+editorial, to be reviewed by the owner:
+
+| Crop | Frost hardiness | Source |
+|---|---|---|
+| Carciofo | -5 °C | rootology-editorial |
+| Fragola | -12 °C | rootology-editorial |
+| Rosmarino | -10 °C | rootology-editorial |
+| Salvia | -15 °C | rootology-editorial |
+
+### Citrus (2026-11-20)
+
+Five citrus in a new family, Rutaceae, all `TENDER` (planted in spring after the frosts), with a pruning window
+(`PRUNE`, "Quando si pota il limone?", question kind `PRUNING_TIME`). Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Limone | Q500 | 714 | Apr–May | all year (mostly Nov–May) | Mar–Apr | -3 °C |
+| Arancio | Q3355098 | 720 | Apr–May | Dec–Apr (depends on the variety) | Mar–Apr | -5 °C |
+| Mandarino | Q125337 | 718 | Apr–May | Nov–Feb | Mar–Apr | -6 °C |
+| Clementina | Q460517 | 718 (mandarin, a parent) | Apr–May | Oct–Jan | Mar–Apr | -5 °C |
+| Kumquat | Q124344319 | 1110 (Fortunella japonica) | Apr–May | Dec–Mar | Mar–Apr | -10 °C |
+
+Whether a citrus survives the winter at a given site ("il limone resiste a Torino?") needs the site's typical
+winter minimum, which the climate cells do not hold yet (#147). Until then the frost alert judges a
+growing citrus on the real forecast, and a garden whose spring comes later than Vasto's loses the winter
+harvests (`frost-shift-v1`), so those questions wait for a person.
+
+### Perennial herbs (2026-11-20)
+
+Seven perennial herbs, planted in spring or autumn (`OVERWINTER`, like rosemary and sage) except marjoram, which is
+tender. A pruning window only where there is a real gesture to remember; for marjoram and chives a pruning
+question waits for a person. Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Timo | Q148668 | 2441 | Mar–May, Sep–Oct | all year | Jun–Jul (light trim after flowering) | -15 °C |
+| Origano | Q134283 | 2369 | Mar–May, Sep–Oct | May–Sep | Feb–Mar (the dry stems) | -15 °C |
+| Menta | Q160114 | 7710 (var. crispa) | Mar–May, Sep–Oct (best in a pot) | Apr–Oct | Feb–Mar (to the ground) | -20 °C |
+| Maggiorana | Q22694 | 2368 | Apr–May | Jun–Sep | none | -5 °C |
+| Erba cipollina | Q51148 | 810 | sown Mar–Apr; clumps Mar–Apr, Sep–Oct | Mar–Oct | none | -25 °C |
+| Alloro | Q26006 | 1333 | Mar–Apr, Oct–Nov | all year | Mar–Apr (after the frosts) | -10 °C |
+| Lavanda | Q42081 | 7172 | Mar–May, Sep–Oct | Jun–Jul (flowers) | Aug–Sep (after flowering) | -15 °C |
+
+Lavender, mint and thyme used to be the tests' examples of an unknown crop; papaya, mango and feijoa took their
+place. The experiment's case hard-3 ("Which plants are companions of Lavender?") is unchanged: it reads the
+suite's own graph, which never sees this catalog.
+
+### Berries (2026-11-21)
+
+Eight berry shrubs, all `OVERWINTER`, planted in autumn or at the end of winter, with two new families (Ericaceae,
+Grossulariaceae). Months for CENTRO (Vasto), editorial:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Mirtillo | Q468695 | 10704 (Vaccinium corymbosum) | Oct–Nov, Feb–Mar | Jun–Aug | Feb–Mar (still dormant) | -25 °C |
+| Lampone | Q12252383 | 1877 (ssp. idaeus) | Oct–Nov, Feb–Mar | Jun–Jul, Sep–Oct (everbearing) | Aug (canes that fruited), Feb–Mar (thinning) | -25 °C |
+| Mora | Q13541716 | none (9359 is empty) | Oct–Nov, Feb–Mar | Jul–Sep | Sep–Oct (canes that fruited), Feb–Mar (side shoots) | -20 °C |
+| Ribes rosso | Q146661 | 9285 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Ribes nero | Q146604 | 9282 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Uva spina | Q41503 | 9290 | Oct–Nov, Feb–Mar | Jun–Jul | Dec–Feb (dormant) | -25 °C |
+| Goji | Q196332 | none (7443 is empty) | Oct–Nov, Mar–Apr | Jul–Oct | Feb–Mar | -20 °C |
+| Aronia | Q162774 | none (3116 is *Amelanchier alnifolia*) | Oct–Nov, Feb–Mar | Aug–Sep | Feb–Mar (light, the oldest stems) | -30 °C |
+
+Blueberry and aronia were first proposed with a January–February pruning; `frost-shift-v1` moves an `OVERWINTER`
+window that starts before Vasto's first safe month minus one, so Vasto itself would have moved it. Their pruning
+is February–March, still in dormancy. Without an ECOCROP record, blackberry, goji and aronia cannot be judged
+by the frost and light rules: they stay in the answers with the "not known" notes. Currants and gooseberry
+suffer Vasto's summer heat (part shade): a gardening tip, not a fact of the base.
+
+### Pome and stone fruit (2026-11-21)
+
+Nine fruit trees, all `OVERWINTER`, in the Rosaceae family. Planting and pruning come from the Abruzzo integrated
+production rules (`abruzzo-dpi-2024`, Allegato A, chapters "Drupacee" p. 110 and "Pomacee" p. 124: planting "in
+autunno inoltrato o inizio inverno"; winter pruning "in settembre-ottobre o da gennaio fino alla fioritura", not in
+late autumn; summer pruning in July), cited as facts, no text reused. The September–October winter pruning is left
+out to keep one clear answer. Harvest months are editorial (`rootology-editorial`): the CREA variety lists give
+ripening per variety in days from a reference cultivar (Redhaven ripens 5–10 July in central Italy), not months
+per crop. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|
+| Melo | Q18674606 | 1407 | Nov–Dec | Aug–Oct | Jan–Mar, Jul | -25 °C |
+| Pero | Q146281 | 1832 | Nov–Dec | Jul–Oct | Jan–Mar, Jul | -25 °C |
+| Cotogno | Q43300 | 5117 | Nov–Dec | Sep–Oct | Jan–Mar, Jul | -20 °C |
+| Pesco | Q13189 | 1796 | Nov–Dec | Jun–Sep | Jan–Mar, Jul | -20 °C |
+| Nettarina | Q3408651 | 1796 (peach, same species) | Nov–Dec | Jun–Sep | Jan–Mar, Jul | -20 °C |
+| Albicocco | Q37453 | 2398 | Nov–Dec | Jun–Jul | Jan–Mar, Jul | -20 °C |
+| Susino | Q44120 | 16203 | Nov–Dec | Jul–Sep | Jan–Mar, Jul | -25 °C |
+| Ciliegio | Q165137 | 8965 | Nov–Dec | May–Jun | Jan–Mar, Jul | -25 °C |
+| Amarena | Q131517 | 8970 | Nov–Dec | Jun–Jul | Jan–Mar, Jul | -30 °C |
+
+A January pruning needed a change to `frost-shift-v1`: an `OVERWINTER` pruning window that starts before August now
+moves only by how much a site's first safe month is later than Vasto's (March), so it stays in January at Vasto
+and moves to March–May at Aosta. The same change moves thyme's light trim to August–September at Aosta.
+Late frosts on the flowers (March–April), the real risk for fruit trees, are not modelled yet.
+
+### Other fruit trees (2026-11-21)
+
+Nine more fruit trees. From the Abruzzo integrated production rules (`abruzzo-dpi-2024`, cited as facts): kiwi
+(actinidia) planting "in autunno inoltrato o inizio inverno" and winter pruning "da dicembre fino a febbraio"; table
+grape planting in autumn, winter or spring and dry pruning "dalla caduta foglie fino a prima del pianto"; olive
+planting preferably in spring (in autumn only near the sea, left out since the rule cannot tell the coast). The other
+months are editorial. Winter prunings are January–February, inside the DPI's ranges: a window starting in December
+would move to November at cold sites. Frost hardiness is ECOCROP's killing temperature during rest (`fao-ecocrop`),
+except black mulberry (ECOCROP's -5 °C is not credible) and jujube (no ECOCROP record), editorial. Olive, fig,
+pomegranate and loquat are `HARDY` (planted from a month before the site's first safe month); the others
+`OVERWINTER`. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Group | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|---|
+| Olivo | Q37083 | 1553 | HARDY | Mar–Apr | Oct–Dec | Feb–Apr | -10 °C |
+| Uva da tavola | Q30046 | 2160 | OVERWINTER | Nov–Mar | Aug–Oct | Jan–Feb, May–Jun | -20 °C |
+| Fico | Q36146 | 1071 | HARDY | Feb–Mar | Jun–Sep | Feb–Mar | -12 °C |
+| Kaki | Q158482 | 945 | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Feb | -18 °C |
+| Melograno | Q13188 | 1829 | HARDY | Mar–Apr | Sep–Nov | Feb–Mar | -10 °C |
+| Kiwi | Q343300 | 889 (*Actinidia chinensis*) | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Feb, Jun–Jul | -9 °C |
+| Nespolo del Giappone | Q41505 | 1002 | HARDY | Mar–Apr | May–Jun | Jun–Jul | -10 °C |
+| Gelso nero | Q161040 | 2349 | OVERWINTER | Nov–Dec | Jun–Aug | Jan–Feb | -15 °C |
+| Giuggiolo | Q11181633 | — | OVERWINTER | Nov–Dec | Sep–Oct | Jan–Feb | -25 °C |
+
+### Nuts, citrus, perennial herbs and perennial vegetables (2026-11-22)
+
+Fifteen more perennials. The Abruzzo integrated production rules (`abruzzo-dpi-2024`) give months only for chestnut
+(planting "in autunno inoltrato o inizio inverno", winter pruning "da gennaio fino alla fioritura", summer pruning in
+July, the same text as apple and cherry) and for walnut's green pruning in July. Their citrus chapter repeats the
+autumn planting of the other fruit trees: left out, since spring planting is the practice and the five citrus already
+in the base. Almond, hazelnut and walnut follow apple's months, editorial; everything else is editorial too. Frost
+hardiness is ECOCROP's killing temperature during rest (`fao-ecocrop`) where the sheet has a credible value, editorial
+otherwise (almond and hazelnut: ECOCROP's -5 and -10 °C are not credible; asparagus: -5 °C is for the fern, not the
+crowns; chestnut, Jerusalem artichoke: no value). Lemon balm, tarragon and winter savory are `OVERWINTER` like the
+other perennial herbs (a `HARDY` crop moves every window by the same months, so lemon balm's autumn planting would
+move into winter); lemon verbena and the citrus `TENDER`; asparagus, cardoon and Jerusalem artichoke `HARDY`.
+Artichoke was already in the base. Months for Vasto:
+
+| Crop | Wikidata | ECOCROP | Group | Planting | Harvest | Pruning | Frost hardiness |
+|---|---|---|---|---|---|---|---|
+| Mandorlo | Q39918 | 2397 (*Prunus amygdalus*) | OVERWINTER | Nov–Dec | Aug–Sep | Jan–Feb | -15 °C |
+| Noce | Q46871 | 2315 | OVERWINTER | Nov–Dec | Sep–Oct | Jul (green) | -24 °C |
+| Nocciolo | Q124969 | 2246 | OVERWINTER | Nov–Dec | Aug–Sep | Jan–Feb | -25 °C |
+| Castagno | Q22699 | 2234 | OVERWINTER | Nov–Dec | Oct–Nov | Jan–Mar, Jul | -25 °C |
+| Pompelmo | Q41350 | 717 | TENDER | Apr–May | Nov–Mar | Mar–Apr | -4 °C |
+| Cedro | Q150064 | 716 | TENDER | Apr–May | Oct–Dec | Mar–Apr | -2 °C |
+| Bergamotto | Q109196 | 205644 (*C. aurantium* ssp. *bergamia*) | TENDER | Apr–May | Nov–Jan | Mar–Apr | -3 °C |
+| Lime | Q1520920 | 4631 | TENDER | Apr–May | Sep–Dec | Mar–Apr | -2 °C |
+| Melissa | Q148396 | 2340 | OVERWINTER | Mar–Apr, Sep–Oct | May–Sep | Jun | -20 °C |
+| Dragoncello | Q155814 | 3402 | OVERWINTER | Mar–Apr | May–Sep | Mar | -15 °C |
+| Santoreggia montana | Q160186 | 9584 | OVERWINTER | Mar–Apr | Jun–Sep | Mar–Apr | -20 °C |
+| Cedrina | Q206532 | 3048 (*Aloysia triphylla*) | TENDER | Apr–May | Jun–Sep | Mar–Apr | -8 °C |
+| Asparago | Q28367 | 468 | HARDY | Feb–Apr (crowns) | Apr–May (from the third year) | Nov (dry stems) | -20 °C |
+| Cardo | Q7186137 | 5138 | HARDY | Apr–May | Oct–Dec | — | -10 °C |
+| Topinambur | Q146190 | 1193 | HARDY | Feb–Apr (tubers) | Oct–Mar | — | -25 °C |
+
+Bergamot's ECOCROP sheet gives an absolute minimum pH (6) above the optimal one (5): `EcocropImportTool` leaves an
+absolute limit inside the optimal range empty.
+
+## Service plants and green manures (#140)
+
+Eight crops grown for what they do, not for what they yield: five companion flowers that feed or shelter the natural
+enemies of pests, and three green manures that cover and feed the soil. They are modelled exactly as the other crops
+(names, family checked against Wikidata, ECOCROP record, frost group, Italian article, lifecycle, and a sowing window
+in `sowing-windows.csv`, editorial and `verified=no`). Only their `use` is new: SERVICE instead of FOOD, so they are
+never in a "what can I sow now" answer while their own calendar still answers ("Quando semino la facelia?").
+Borage stays a FOOD crop: it is eaten, and its companion role is already declared in `crop-pairs.csv`.
+
+| Italian | English | Scientific name | Family | Family checked on Wikidata | Wikidata | ECOCROP | Group | Sowing |
+|---|---|---|---|---|---|---|---|---|
+| Tagete | French marigold | *Tagetes patula* | Asteraceae | Q644934 (*Tagetes*: Q147552, Asteraceae) | Q644934 | — | TENDER | Apr–May |
+| Calendula | Pot marigold | *Calendula officinalis* | Asteraceae | Q145930 (*Calendula*: Q147281, Asteraceae) | Q145930 | 4040 | HARDY | Mar–May |
+| Nasturzio | Nasturtium | *Tropaeolum majus* | Tropaeolaceae (new family) | Q156288 (*Tropaeolum*: Q158271, Tropaeolaceae: Q163937) | Q156288 | 2119 (no environmental data) | TENDER | Apr–Jun |
+| Facelia | Phacelia | *Phacelia tanacetifolia* | Boraginaceae | Q158942 (Wikidata also lists Hydrophyllaceae, a family that APG IV places in Boraginaceae) | Q158942 | — | HARDY | Mar–Jun |
+| Alisso | Sweet alyssum | *Lobularia maritima* | Brassicaceae | Q2094356 (*Lobularia*: Q2593152, Anastaticeae, Brassicaceae) | Q2094356 | — | HARDY | Mar–May |
+| Senape bianca | White mustard | *Sinapis alba* | Brassicaceae | Q146202 (*Sinapis*: Q150072, Brassiceae, Brassicaceae) | Q146202 | 9787 | HARDY | Mar–Aug |
+| Veccia | Common vetch | *Vicia sativa* | Fabaceae | Q157071 (*Vicia*: Q147337, Fabeae, Fabaceae) | Q157071 | 238003 (*V. sativa* ssp. *sativa*) | OVERWINTER | Mar–Apr, Sep–Oct |
+| Trifoglio incarnato | Crimson clover | *Trifolium incarnatum* | Fabaceae | Q161361 (*Trifolium*: Q101538, Trifolieae, Fabaceae) | Q161361 | 10534 | OVERWINTER | Aug–Sep |
+
+Environmental needs come from FAO ECOCROP through `EcocropImportTool` for the four crops whose sheet has values
+(pot marigold, white mustard, common vetch, crimson clover). Nasturtium keeps its ECOCROP id 2119 but has no needs
+row, since its sheet gives no environmental data, and *Tagetes*, *Phacelia* and *Lobularia* have no ECOCROP record at
+all (their `ecocrop` is empty). Months are editorial. The three green manures are sown in autumn where they overwinter
+(vetch, crimson clover) and in spring where they are destroyed before the next crop (white mustard), which is why
+vetch carries two sowing windows. The rotation rule treats them like any other annual: a service plant in a plot
+counts through its family, and four of the eight share one with a vegetable (vetch and crimson clover: Fabaceae, like
+pea and broad bean; sweet alyssum and white mustard: Brassicaceae).
+
+Where they act as pest control, they are declared in `pest-controls.csv` with kind SERVICE_PLANT and their id in
+`agent` (see `docs/pests-v1.md`).
+
 ## Notes
 
-- 39 crops in 9 families.
-- Candidates for later, through knowledge enrichment (#24): asparagus, celeriac, beetroot, cardoon, kohlrabi, chicory types (catalogna, puntarelle), oregano and thyme, saffron, corn.
+- 122 crops in 33 families (39 from 2026-11-03, 22 annuals from 2026-11-18, 5 citrus and 7 perennial herbs from 2026-11-20, 8 berries, 9 pome and stone fruit and 9 other fruit trees from 2026-11-21, 4 nuts, 4 citrus, 4 perennial herbs and 3 perennial vegetables from 2026-11-22, 8 service plants and green manures from 2026-11-22).
+- Candidates for later: ornamental flowers that are not service plants.
 - The seasons in this file are a starting point for the ontology's sowing windows; in the app they become a garden's own calendar from its climate profile (#62), refined with the weather (#18) and, later, sensor readings (#21).
 
 ## Italian articles (#111)

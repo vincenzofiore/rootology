@@ -27,6 +27,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
+import app.rootology.facts.ClimateWindows;
+import app.rootology.facts.ClimateWindows.ClimateWindow;
 import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
 import app.rootology.garden.DirectSun;
@@ -65,6 +67,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private final CropCatalog crops;
     private final GeoNames geoNames;
     private final ClimateCells climateCells;
+    private final ClimateWindows climateWindows;
     private final WeatherService weather;
     /** At most a frost marker here (#84): the weather card lives on the garden home. */
     private final Div frostMark = new Div();
@@ -73,6 +76,8 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     /** The page's own context (#56), read from its route. */
     private long spaceId;
     private GardenSummary garden;
+    /** The harvest months of every crop at this garden's site (#131), by crop id. */
+    private Map<String, List<ClimateWindow>> harvest = Map.of();
 
     private final Paragraph gardenInfo = new Paragraph();
     private final Div areaCards = new Div();
@@ -89,13 +94,14 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             getTranslation("empty.plots.add"), () -> areaDialog(null));
 
     public AreasView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
-                     ClimateCells climateCells,
+                     ClimateCells climateCells, ClimateWindows climateWindows,
                      CurrentUser currentUser) {
         this.weather = weather;
         this.gardens = gardens;
         this.crops = crops;
         this.geoNames = geoNames;
         this.climateCells = climateCells;
+        this.climateWindows = climateWindows;
         this.currentUser = currentUser;
         this.login = currentUser.login();
 
@@ -161,6 +167,8 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         String where = garden.town() == null ? getTranslation("garden.notown") : garden.town();
         String inCountry = garden.countryCode() == null ? "" : ", " + garden.countryCode();
         gardenInfo.setText(where + inCountry);
+        harvest = HarvestText.site(garden, climateCells)
+                .map(site -> HarvestText.harvest(site, climateWindows)).orElse(Map.of());
         showFrost(garden);
         showAreas();
     }
@@ -382,6 +390,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                 ChronoUnit.DAYS.between(planting.plantedOn(), LocalDate.now(DateText.ITALY))));
         days.addClassName("rootology-grow-days");
         chip.add(crop, days);
+        // When it is usually harvested here (#131): the months, with the sentence as tooltip.
+        HarvestText.value(harvest.get(planting.cropId()), this::getTranslation, NoteText.locale(this))
+                .ifPresent(chip::add);
         if (contributor) {
             chip.add(RowActions.approve(getTranslation("garden.harvested"), e -> harvestDialog(planting)));
             // A planting put in by mistake is deleted, never harvested (#85): a harvest would count in the rotation.
@@ -400,7 +411,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         if (garden.latitude() == null || garden.longitude() == null) {
             return;
         }
-        weather.around(garden.latitude(), garden.longitude()).ifPresent(forecast -> {
+        weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
             var days = DailyForecast.of(forecast, GardenHomeView.ITALY, LocalDate.now(GardenHomeView.ITALY), 7);
             WeatherCard.firstFrost(days).ifPresent(frost -> {
                 RouterLink link = frostLink(frost);
@@ -417,7 +428,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         String day = frost.day().getDayOfWeek().getDisplayName(TextStyle.SHORT, locale) + " "
                 + frost.day().getDayOfMonth();
         String text = getTranslation("plots.frost", day);
-        Icon icon = VaadinIcon.ASTERISK.create();
+        SvgIcon icon = new SvgIcon(GardenHomeView.FROST);
         icon.getElement().setAttribute("aria-hidden", "true");
         RouterLink link = new RouterLink("", GardenHomeView.class, new RouteParameters(Map.of(
                 Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(garden.id()))));

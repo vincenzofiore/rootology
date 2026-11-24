@@ -8,6 +8,8 @@ import app.rootology.garden.Soil;
 import app.rootology.notifications.NotificationPreferences;
 import app.rootology.notifications.NotificationService;
 import app.rootology.notifications.NotificationView;
+import app.rootology.officialwarnings.OfficialWarning;
+import app.rootology.officialwarnings.OfficialWarnings;
 import app.rootology.spaces.Role;
 import app.rootology.spaces.SpaceService;
 import app.rootology.weather.Forecast;
@@ -33,6 +35,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Weather alerts (#37) on a fixed morning, 4 November 2026, with forecasts made up per garden. */
@@ -42,6 +46,7 @@ class WeatherAlertsTest {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
     static final Instant NOW = Instant.parse("2026-11-04T06:00:00Z");
+    static final Instant START = NOW.minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
 
     @TestBean
     Clock clock;
@@ -52,6 +57,9 @@ class WeatherAlertsTest {
 
     @MockitoBean
     WeatherService weather;
+
+    @MockitoBean
+    OfficialWarnings official;
 
     @Autowired
     WeatherAlerts alerts;
@@ -85,12 +93,39 @@ class WeatherAlertsTest {
     }
 
     private static Optional<Forecast> steady(double temperature, double humidity) {
+        return series(i -> new ForecastHour(START.plus(i, ChronoUnit.HOURS), temperature, humidity, 0.0, 1));
+    }
+
+    /** Six days of hourly steps from yesterday, one per index, so a test can shape a single hour. */
+    private static Optional<Forecast> series(java.util.function.IntFunction<ForecastHour> hour) {
         List<ForecastHour> hours = new ArrayList<>();
-        Instant start = NOW.minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
         for (int i = 0; i < 24 * 6; i++) {
-            hours.add(new ForecastHour(start.plus(i, ChronoUnit.HOURS), temperature, humidity, 0.0, 1));
+            hours.add(hour.apply(i));
         }
         return Optional.of(new Forecast(hours, NOW, false));
+    }
+
+    /** A garden with these crops and the region GeoNames gave it (countryCode null means Italy). */
+    private long gardenWithRegion(String owner, String country, String region, String lat, String lon) {
+        spaces.signedIn(owner);
+        long space = app.rootology.TestSpaces.personal(spaces, owner);
+        var garden = gardens.saveGarden(space, owner, null, "Orto di " + owner, null, new BigDecimal(lat),
+                new BigDecimal(lon), country);
+        gardens.setRegion(garden.id(), region);
+        var plot = gardens.savePlot(space, owner, garden.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.plant(space, owner, plot.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+        return garden.id();
+    }
+
+    /** An Abruzzo garden: GeoNames region "01", MeteoAlarm zone IT013. */
+    private long abruzzoGarden(String owner) {
+        return gardenWithRegion(owner, "IT", "01", "42.35", "13.40");
+    }
+
+    /** A warning of one zone as MeteoAlarm's feed writes it; the level and type are what the line reads. */
+    private static OfficialWarning warning(String zone, String area, int level, int type) {
+        return new OfficialWarning("w-" + zone + "-" + level + "-" + type, zone, area, level, type, "event",
+                "severity", null, null, null, null, null, null, null, null);
     }
 
     private List<NotificationView> weatherOf(String login) {
@@ -99,9 +134,10 @@ class WeatherAlertsTest {
 
     @Test
     void frostWarnsEveryMemberOnceNamingCropsAtRiskAndUnknownOnes() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("fabio", "gaia", "45.46", "9.19", "lettuce", "garlic", "tomato");
-        when(weather.around(eq(new BigDecimal("45.46")), eq(new BigDecimal("9.19")))).thenReturn(steady(-2.0, 80.0));
+        when(weather.around(eq(new BigDecimal("45.46")), eq(new BigDecimal("9.19")), any()))
+                .thenReturn(steady(-2.0, 80.0));
 
         alerts.check();
 
@@ -117,10 +153,32 @@ class WeatherAlertsTest {
     }
 
     @Test
+    void anEstablishedPerennialIsJudgedOnItsOwnHardinessAYoungOneOnItsYoungPlants() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        spaces.signedIn("ottavio");
+        long space = app.rootology.TestSpaces.personal(spaces, "ottavio");
+        var garden = gardens.saveGarden(space, "ottavio", null, "Orto di ottavio", null, new BigDecimal("44.49"),
+                new BigDecimal("11.34"), "IT");
+        var old = gardens.savePlot(space, "ottavio", garden.id(), null, "Aiuola vecchia", PlotKind.GROUND, Soil.LOAMY, null);
+        var young = gardens.savePlot(space, "ottavio", garden.id(), null, "Aiuola nuova", PlotKind.GROUND, Soil.LOAMY, null);
+        // Artichoke: young plants die at 0 °C (ECOCROP), an established plant stands -5 °C (crops-v1.csv).
+        gardens.plant(space, "ottavio", old.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2025, 4, 1), null);
+        gardens.plant(space, "ottavio", young.id(), "artichoke", PlantingMethod.TRANSPLANTED, LocalDate.of(2026, 9, 1), null);
+        when(weather.around(eq(new BigDecimal("44.49")), eq(new BigDecimal("11.34")), any()))
+                .thenReturn(steady(-2.0, 80.0));
+
+        alerts.check();
+
+        assertThat(weatherOf("ottavio")).singleElement().satisfies(n -> assertThat(n.body())
+                .contains("A rischio: Carciofo (Aiuola nuova)").doesNotContain("Aiuola vecchia"));
+    }
+
+    @Test
     void frostInAGreenhouseSaysTheOutdoorMinimumWasUsed() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden(PlotKind.GREENHOUSE, "rita", "sara", "45.07", "7.69", "lettuce");
-        when(weather.around(eq(new BigDecimal("45.07")), eq(new BigDecimal("7.69")))).thenReturn(steady(-2.0, 80.0));
+        when(weather.around(eq(new BigDecimal("45.07")), eq(new BigDecimal("7.69")), any()))
+                .thenReturn(steady(-2.0, 80.0));
 
         alerts.check();
 
@@ -131,9 +189,10 @@ class WeatherAlertsTest {
 
     @Test
     void warmHumidDaysWarnOfLateBlightOnTomatoAndPotato() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("ilaria", "luca", "41.90", "12.50", "tomato", "lettuce");
-        when(weather.around(eq(new BigDecimal("41.90")), eq(new BigDecimal("12.50")))).thenReturn(steady(14.0, 95.0));
+        when(weather.around(eq(new BigDecimal("41.90")), eq(new BigDecimal("12.50")), any()))
+                .thenReturn(steady(14.0, 95.0));
 
         alerts.check();
 
@@ -145,26 +204,198 @@ class WeatherAlertsTest {
 
     @Test
     void noForecastOrMildWeatherMeansNoAlert() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("marco", "nadia", "40.85", "14.27", "tomato");
         alerts.check();
         assertThat(weatherOf("marco")).isEmpty();
 
-        when(weather.around(eq(new BigDecimal("40.85")), eq(new BigDecimal("14.27")))).thenReturn(steady(15.0, 60.0));
+        when(weather.around(eq(new BigDecimal("40.85")), eq(new BigDecimal("14.27")), any()))
+                .thenReturn(steady(15.0, 60.0));
         alerts.check();
         assertThat(weatherOf("marco")).isEmpty();
     }
 
     @Test
+    void heatWarnsNamingCropsBeyondTheirLimitAndThoseNotChecked() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        // Lattuga stands 30 degrees C (ECOCROP); the songino has no record, so it is named, never guessed.
+        garden("paola", "quinto", "38.11", "13.35", "lettuce", "lambs-lettuce");
+        when(weather.around(eq(new BigDecimal("38.11")), eq(new BigDecimal("13.35")), any()))
+                .thenReturn(steady(31.0, 60.0));
+
+        alerts.check();
+
+        assertThat(weatherOf("paola")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Rischio caldo estremo");
+            assertThat(n.body()).contains("31,0 °C").contains("A rischio: Lattuga (Aiuola A)")
+                    .contains("Limite di caldo non noto: Valerianella (songino) (Aiuola A)")
+                    .contains("heat-v1").contains("FAO ECOCROP");
+        });
+    }
+
+    @Test
+    void thirtyMillimetresInADayWarnOfHeavyRain() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("rosa", "tino", "37.51", "15.08", "lettuce");
+        // 1.5 mm an hour through the whole of 5 November: 36 mm that day, well over the 30 of the rule.
+        LocalDate wetDay = LocalDate.of(2026, 11, 5);
+        when(weather.around(eq(new BigDecimal("37.51")), eq(new BigDecimal("15.08")), any()))
+                .thenReturn(series(i -> {
+            Instant time = START.plus(i, ChronoUnit.HOURS);
+            boolean wet = LocalDate.ofInstant(time, ITALY).equals(wetDay);
+            return new ForecastHour(time, 15.0, 70.0, wet ? 1.5 : 0.0, 1);
+        }));
+
+        alerts.check();
+
+        assertThat(weatherOf("rosa")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Pioggia intensa");
+            assertThat(n.body()).contains("in un giorno").contains("heavy-rain-v1");
+        });
+    }
+
+    @Test
+    void strongWindIsWordedAsAPossibilityNeverACertainty() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("sonia", "ugo", "44.06", "9.66", "lettuce");
+        when(weather.around(eq(new BigDecimal("44.06")), eq(new BigDecimal("9.66")), any()))
+                .thenReturn(series(i ->
+                new ForecastHour(START.plus(i, ChronoUnit.HOURS), 15.0, 70.0, 0.0, 1, null,
+                        i == 30 ? 12.0 : 5.0)));
+
+        alerts.check();
+
+        assertThat(weatherOf("sonia")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Possibile vento forte");
+            assertThat(n.body()).contains("12,0 m/s").contains("circa 43 km/h").contains("wind-v1")
+                    .contains("Possibile vento forte");
+        });
+    }
+
+    @Test
+    void dryWarmDaysAskForWaterOnlyInPotsPlantersAndRaisedBeds() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden(PlotKind.POT, "teresa", "vera", "41.56", "14.66", "lettuce");
+        garden(PlotKind.GROUND, "walter", "xenia", "41.57", "14.67", "lettuce");
+        Optional<Forecast> dry = steady(26.0, 60.0);
+        when(weather.around(eq(new BigDecimal("41.56")), eq(new BigDecimal("14.66")), any()))
+                .thenReturn(dry);
+        when(weather.around(eq(new BigDecimal("41.57")), eq(new BigDecimal("14.67")), any()))
+                .thenReturn(dry);
+
+        alerts.check();
+
+        assertThat(weatherOf("teresa")).singleElement().satisfies(n -> {
+            assertThat(n.title()).startsWith("Promemoria: annaffiare");
+            assertThat(n.body()).contains("Lattuga (Aiuola A)").contains("dry-days-v1");
+        });
+        assertThat(weatherOf("walter")).as("open ground is not the reminder's business").isEmpty();
+    }
+
+    @Test
+    void aFailingGardenDoesNotStopTheAlertsOfTheOthers() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("bianca", "carlo", "45.00", "9.00", "lettuce");
+        garden("dario", "elena", "46.00", "10.00", "lettuce");
+        when(weather.around(eq(new BigDecimal("45.00")), eq(new BigDecimal("9.00")), any()))
+                .thenThrow(new IllegalStateException("forecast unavailable"));
+        when(weather.around(eq(new BigDecimal("46.00")), eq(new BigDecimal("10.00")), any()))
+                .thenReturn(steady(-2.0, 80.0));
+
+        assertThat(alerts.check()).as("the garden that did not fail still gets its alert").isEqualTo(1);
+
+        assertThat(weatherOf("dario")).singleElement()
+                .satisfies(n -> assertThat(n.title()).startsWith("Rischio gelo"));
+        assertThat(weatherOf("bianca")).as("the failing garden writes nothing").isEmpty();
+    }
+
+    @Test
     void weatherEmailsFollowTheirOwnPreference() {
-        when(weather.around(any(), any())).thenReturn(Optional.empty());
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
         garden("olga", "pino", "43.77", "11.25", "lettuce");
         notifications.save("olga", new NotificationPreferences("olga@example.org", true, true, true, true, null, null));
         notifications.save("pino", new NotificationPreferences("pino@example.org", true, false, true, true, null, null));
-        when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")))).thenReturn(steady(-3.0, 80.0));
+        when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")), any()))
+                .thenReturn(steady(-3.0, 80.0));
 
         alerts.check();
 
         assertThat(notifications.digest()).as("olga only: pino does not want weather emails").isEqualTo(1);
+    }
+
+    @Test
+    void theOfficialWarningsOfTheRegionBecomeOneLinePerGardenAndDay() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        long garden = abruzzoGarden("og-giorgio");
+        when(official.stale()).thenReturn(false);
+        when(official.active("IT013")).thenReturn(List.of(warning("IT013", "Abruzzo", 3, 1),
+                warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+        alerts.check();
+
+        assertThat(weatherOf("og-giorgio")).as("the same line, never twice").singleElement().satisfies(n -> {
+            assertThat(n.title()).isEqualTo("Allerte ufficiali in Abruzzo");
+            assertThat(n.body()).startsWith("2 allerte attive, la più alta arancione (vento).")
+                    .contains("Fonte: MeteoAlarm, Servizio Meteorologico dell’Aeronautica Militare.")
+                    .contains("Il dettaglio è nella pagina dell’orto.")
+                    .as("never the warning's own text").doesNotContain("Yellow Rain Warning");
+            assertThat(n.dedupKey()).isEqualTo("official:" + garden + ":2026-11-04");
+        });
+    }
+
+    @Test
+    void aStaleFeedIsNeverAnnounced() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-irene");
+        when(official.stale()).thenReturn(true);
+        when(official.active(any())).thenReturn(List.of(warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-irene")).as("a feed that may be old is never announced").isEmpty();
+        verify(official, never()).active(any());
+    }
+
+    @Test
+    void anEmptyRegionSaysNothing() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-gina");
+        when(official.stale()).thenReturn(false);
+        when(official.active(any())).thenReturn(List.of());
+
+        alerts.check();
+
+        assertThat(weatherOf("og-gina")).as("no active warning, no line").isEmpty();
+    }
+
+    @Test
+    void aGardenAbroadOrWithoutARegionHasNoOfficialLine() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("og-karim", "og-kim", "41.90", "12.50", "lettuce"); // no region filled yet
+        gardenWithRegion("og-lorenzo", "FR", "11", "48.85", "2.35"); // a first-level code, but of France
+        when(official.stale()).thenReturn(false);
+        when(official.active(any())).thenReturn(List.of(warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-karim")).isEmpty();
+        assertThat(weatherOf("og-lorenzo")).isEmpty();
+    }
+
+    @Test
+    void aFailingOfficialReadDoesNotStopTheNextGarden() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-nadia"); // IT013
+        gardenWithRegion("og-paolo", "IT", "09", "41.90", "12.50"); // Lazio, IT003
+        when(official.stale()).thenReturn(false);
+        when(official.active("IT013")).thenThrow(new IllegalStateException("feed unavailable"));
+        when(official.active("IT003")).thenReturn(List.of(warning("IT003", "Lazio", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-nadia")).as("the garden whose step failed writes nothing").isEmpty();
+        assertThat(weatherOf("og-paolo")).singleElement()
+                .satisfies(n -> assertThat(n.title()).isEqualTo("Allerte ufficiali in Lazio"));
     }
 }

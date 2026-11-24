@@ -39,6 +39,13 @@ class GoldenVerdictTest {
                 .isEqualTo(GoldenVerdict.CORRECT_ESCALATION);
     }
 
+    @Test
+    void theExpectedNoteIsFoundIgnoringCase() {
+        assertThat(GoldenVerdict.of(expected(List.of("INSIDE ONE OF THE SPACE'S GARDENS")),
+                escalated(List.of(Note.of(Note.Kind.NO_GARDEN_FOR_QUESTION)))))
+                .isEqualTo(GoldenVerdict.CORRECT_ESCALATION);
+    }
+
     /** An off-domain case: refused, with no values and no escalation expected (#53). */
     private static GoldenQuestions.Case offDomain() {
         return new GoldenQuestions.Case("off-1", "Come si fa il punto zig-zag a macchina?",
@@ -72,6 +79,21 @@ class GoldenVerdictTest {
         GardenPipeline.Run escalated = new GardenPipeline.Run(null, review, null, false, null);
 
         assertThat(GoldenVerdict.of(offDomain(), escalated)).isEqualTo(GoldenVerdict.SILENT_WRONG);
+    }
+
+    @Test
+    void anOffDomainQuestionEscalatedWhileTheFilterWasDownIsNoError() {
+        GardenPipeline.PendingReview review = new GardenPipeline.PendingReview("process", RunContext.NONE,
+                new Question("off-1", "Come si fa il punto zig-zag a macchina?"),
+                Decision.escalated("the question does not fit any supported shape"), null, List.of(), Instant.now());
+        GardenPipeline.Run unscreened = new GardenPipeline.Run(null, review, null, false, null, null, null, true);
+        GardenPipeline.Run answered = new GardenPipeline.Run(new app.rootology.pipeline.PipelineAnswer(
+                "off-1", List.of("Basilico"), 1.0, false, false, null, "text", List.of(), List.of(), null),
+                null, null, false, null, null, null, true);
+
+        assertThat(GoldenVerdict.of(offDomain(), unscreened)).isEqualTo(GoldenVerdict.FILTER_UNAVAILABLE);
+        assertThat(GoldenVerdict.of(offDomain(), answered)).as("an answer is wrong, filter or not")
+                .isEqualTo(GoldenVerdict.SILENT_WRONG);
     }
 
     @Test

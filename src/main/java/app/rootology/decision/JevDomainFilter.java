@@ -62,18 +62,18 @@ public class JevDomainFilter implements DomainFilter {
     public Verdict judge(String question) {
         // When Jev cannot be reached, a person decides as usual: the filter never refuses on a failure (#29).
         if (!breaker.allowsCall()) {
-            return Verdict.allowing(1.0);
+            return Verdict.unjudged();
         }
         Timer.Sample call = breaker.startCall();
         try {
             double probability = probability(question);
             breaker.success(call);
-            return new Verdict(probability < REFUSE_BELOW, probability);
+            return new Verdict(probability < REFUSE_BELOW, probability, true);
         } catch (RuntimeException e) {
             breaker.failure(call);
             // The exception's message may carry the response body, which repeats the question (#27, #41).
             log.warn("Jev domain check failed: {}", e.getClass().getSimpleName());
-            return Verdict.allowing(1.0);
+            return Verdict.unjudged();
         }
     }
 

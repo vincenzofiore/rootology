@@ -1,0 +1,29 @@
+name: Bug
+description: Something in Rootology does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thank you. Do not include personal data, keys or the address of a garden. A security problem goes
+        through SECURITY.md, not here.
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The page and the steps, or the question you asked.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The answer or the error, and a screenshot if it helps.
+    validations:
+      required: true
