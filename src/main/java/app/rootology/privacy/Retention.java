@@ -25,5 +25,7 @@ public record Retention(
         /** Invitation requests a rejected person may not renew before (#65), kept after the decision. */
         Duration rejectedAccessRequests,
         /** Invitation requests still waiting, and approvals never used (#65). */
-        Duration pendingAccessRequests) {
+        Duration pendingAccessRequests,
+        /** Account flags once an admin decided them (#165); one still waiting is kept. */
+        Duration accountFlags) {
 }

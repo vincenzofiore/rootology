@@ -39,6 +39,11 @@ public record NotificationView(long id, long spaceId, long gardenId, String kind
         return "ACCESS_REQUEST".equals(kind);
     }
 
+    /** A flagged account (#165): no space, it leads to the Administration page, and only an admin sees it. */
+    public boolean accountFlag() {
+        return "ACCOUNT_FLAG".equals(kind);
+    }
+
     /** The asker's own question was answered (#51): it leads to the answer, not to a waiting question. */
     public boolean answered() {
         return "ESCALATION_ANSWERED".equals(kind);

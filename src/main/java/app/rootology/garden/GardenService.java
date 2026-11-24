@@ -50,6 +50,15 @@ public class GardenService {
         return gardens.findBySpaceIdOrderById(spaceId).stream().map(GardenService::summary).toList();
     }
 
+    /**
+     * True when the space has a garden (#165): a system read, with no person, since the nightly signal asks it
+     * about spaces nobody is looking at.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasGarden(long spaceId) {
+        return gardens.existsBySpaceId(spaceId);
+    }
+
     /** Coordinates are optional and rounded to 0.01 degrees, so only a coarse location is stored. */
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,

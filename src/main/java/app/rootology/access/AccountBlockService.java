@@ -46,16 +46,19 @@ public class AccountBlockService {
     private final RoleService roles;
     private final IdentityService identities;
     private final MailService mail;
+    private final AccountFlagRepository flags;
     private final Clock clock;
     /** The controller's contact named in the email, from {@code ROOTOLOGY_PRIVACY_CONTACT}; blank when none. */
     private final String contact;
 
     AccountBlockService(AccountBlocks accounts, RoleService roles, IdentityService identities, MailService mail,
-                        Clock clock, @Value("${rootology.privacy.contact:}") String contact) {
+                        AccountFlagRepository flags, Clock clock,
+                        @Value("${rootology.privacy.contact:}") String contact) {
         this.accounts = accounts;
         this.roles = roles;
         this.identities = identities;
         this.mail = mail;
+        this.flags = flags;
         this.clock = clock;
         this.contact = contact == null || contact.isBlank() ? null : contact.trim();
     }
@@ -103,6 +106,10 @@ public class AccountBlockService {
         }
         String text = checkedReason(reason);
         accounts.block(who, by, text, clock.instant());
+        // A flag that was waiting is closed by this decision, wherever the admin blocked from (#165): the
+        // account is never flagged again, also after an unblock.
+        flags.findByLoginAndStatus(who, AccountFlagStatus.OPEN)
+                .ifPresent(flag -> flag.decide(AccountFlagStatus.BLOCKED, by, clock.instant()));
         log.info("{} blocked the account of {}", by, who);
         return email(who, address -> AccountBlockEmail.blocked(address, text, contact));
     }

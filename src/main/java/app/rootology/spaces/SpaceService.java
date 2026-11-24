@@ -151,6 +151,16 @@ public class SpaceService {
         return checked;
     }
 
+    /**
+     * When the person first signed in (#165), empty for someone added to a space who never did: a system
+     * read, with no role, since the nightly signal is about the account and not about a space.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Instant> firstLoginAt(String githubLogin) {
+        return users.findByLogin(normalizeLogin(githubLogin))
+                .map(AppUser::getFirstLoginAt);
+    }
+
     /** The spaces this person belongs to, oldest first (their personal space comes first). */
     @Transactional(readOnly = true)
     public List<SpaceSummary> spacesOf(String githubLogin) {

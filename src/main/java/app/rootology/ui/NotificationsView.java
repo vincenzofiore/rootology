@@ -127,8 +127,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             refresh();
             return;
         }
-        if (n.accessRequest()) {
-            // #65: it is about the app, not about a space, and only an admin can decide.
+        if (n.accessRequest() || n.accountFlag()) {
+            // #65, #165: it is about the app, not about a space, and only an admin can decide.
             getUI().ifPresent(ui -> ui.navigate(AdminView.class));
             refresh();
             return;
@@ -157,7 +157,8 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
      * context at all. Same space and garden: it opens directly.
      */
     boolean asksBeforeOpening(NotificationView n) {
-        return !n.accessRequest() && (contextSpace != n.spaceId() || contextGarden != n.gardenId());
+        return !n.accessRequest() && !n.accountFlag()
+                && (contextSpace != n.spaceId() || contextGarden != n.gardenId());
     }
 
     /**
@@ -180,7 +181,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             parameters.put(Routed.GARDEN, String.valueOf(n.gardenId()));
         }
         com.vaadin.flow.router.RouteParameters route = new com.vaadin.flow.router.RouteParameters(parameters);
-        if (n.accessRequest()) {
+        if (n.accessRequest() || n.accountFlag()) {
             return new Target(AdminView.class, new com.vaadin.flow.router.RouteParameters(Map.of()));
         }
         if (n.weather()) {
@@ -201,7 +202,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** Its space, and its garden when it has one: a garden alone is ambiguous across spaces (#56). */
     private String where(NotificationView n) {
-        if (n.accessRequest()) {
+        if (n.accessRequest() || n.accountFlag()) {
             return getTranslation("notifications.where.admin");
         }
         if (n.membership() && n.spaceName() != null) {
@@ -227,9 +228,19 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
                             getTranslation("role." + event.substring(5)))
                     : getTranslation("notifications.membership." + event.toLowerCase(java.util.Locale.ROOT), name(n.askedBy()));
         }
-        return n.weather() ? n.title()
-                : n.accessRequest() ? getTranslation("notifications.accessrequest")
-                : n.answered() ? getTranslation("notifications.answered") : getTranslation("notifications.waiting");
+        if (n.weather()) {
+            return n.title();
+        }
+        if (n.accessRequest()) {
+            return getTranslation("notifications.accessrequest");
+        }
+        if (n.accountFlag()) {
+            return getTranslation("notifications.accountflag");
+        }
+        if (n.answered()) {
+            return getTranslation("notifications.answered");
+        }
+        return getTranslation("notifications.waiting");
     }
 
     /** What the notification says beyond its title, in the page's language (#94). */
@@ -239,7 +250,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
 
     /** Waiting for a person or answered by one; the other kinds carry their news in the title (#93). */
     String status(NotificationView n) {
-        if (n.weather() || n.answered() || n.accessRequest() || n.membership()) {
+        if (n.weather() || n.answered() || n.accessRequest() || n.membership() || n.accountFlag()) {
             return "";
         }
         return n.resolvedAt() == null ? getTranslation("notifications.status.waiting")

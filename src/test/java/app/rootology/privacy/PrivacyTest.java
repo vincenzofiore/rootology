@@ -228,6 +228,67 @@ class PrivacyTest {
         assertThat(count("select count(*) from pipeline_run where question = 'a recent question'")).isEqualTo(1);
     }
 
+    @Test
+    void theExportHoldsTheFlagsOfTheAccount() {
+        spaces.signedIn("flg-exp-fay");
+        flag("flg-exp-fay", "DISMISSED", Instant.now(), "flg-exp-admin");
+
+        String json = new String(export.export("flg-exp-fay"), StandardCharsets.UTF_8);
+
+        assertThat(json).contains("\"accountFlags\"", "\"login\" : \"flg-exp-fay\"",
+                "\"judgedQuestions\" : 8", "\"offDomainQuestions\" : 7", "\"daysWithoutGarden\" : 12",
+                "\"status\" : \"DISMISSED\"", "\"decidedBy\" : \"flg-exp-admin\"");
+    }
+
+    @Test
+    void theNightlyJobDeletesOnlyDecidedFlagsOlderThanTheRetention() {
+        Instant old = Instant.now().minus(retention.accountFlags()).minus(Duration.ofDays(1));
+        flag("flg-ret-open", "OPEN", null, null, old);
+        flag("flg-ret-old", "DISMISSED", old, "flg-ret-admin", old);
+        flag("flg-ret-new", "BLOCKED", Instant.now(), "flg-ret-admin", Instant.now());
+
+        retentionJob.run();
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-open'"))
+                .as("one still waiting for an admin stays").isEqualTo(1);
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-old'")).isZero();
+        assertThat(count("select count(*) from account_flag where login = 'flg-ret-new'")).isEqualTo(1);
+    }
+
+    @Test
+    void deletingAnAccountRemovesItsFlagsAndNamesNoOne() {
+        spaces.signedIn("flg-del-ada");
+        spaces.signedIn("flg-del-bob");
+        // Ada was flagged, and Bob, the admin, decided it; Bob was flagged too.
+        flag("flg-del-ada", "DISMISSED", Instant.now(), "flg-del-bob");
+        flag("flg-del-bob", "DISMISSED", Instant.now(), "flg-del-bob");
+
+        deletion.delete("flg-del-bob");
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-del-bob'")).isZero();
+        assertThat(jdbc.sql("select decided_by from account_flag where login = 'flg-del-ada'")
+                .query(String.class).single()).isEqualTo(AccountDeletion.DELETED_USER);
+
+        deletion.delete("flg-del-ada");
+
+        assertThat(count("select count(*) from account_flag where login = 'flg-del-ada'")).isZero();
+    }
+
+    /** One account flag (#165), with the decision when it has one; flagged_at and decided_at as given. */
+    private void flag(String login, String status, Instant decidedAt, String decidedBy) {
+        flag(login, status, decidedAt, decidedBy, Instant.now());
+    }
+
+    private void flag(String login, String status, Instant decidedAt, String decidedBy, Instant flaggedAt) {
+        jdbc.sql("""
+                insert into account_flag (login, flagged_at, judged_questions, off_domain_questions,
+                    days_without_garden, status, decided_by, decided_at)
+                values (:l, :flagged, 8, 7, 12, :status, cast(:by as varchar), cast(:decided as timestamptz))""")
+                .param("l", login).param("flagged", Timestamp.from(flaggedAt)).param("status", status)
+                .param("by", decidedBy).param("decided", decidedAt == null ? null : Timestamp.from(decidedAt))
+                .update();
+    }
+
     private long personalSpace(String login) {
         return app.rootology.TestSpaces.personal(spaces, login);
     }

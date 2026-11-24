@@ -1,6 +1,7 @@
 package app.rootology.notifications;
 
 import app.rootology.access.AccessRequested;
+import app.rootology.access.AccountFlagged;
 import app.rootology.mail.MailService;
 import app.rootology.mail.OutgoingMail;
 import app.rootology.pipeline.EscalationResolved;
@@ -144,6 +145,26 @@ public class NotificationService {
             jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, title, body, created_at) "
                             + "VALUES (?, NULL, NULL, 'ACCESS_REQUEST', ?, ?, ?)")
                     .params(admin, "A new invitation request", "A new invitation request is waiting",
+                            Timestamp.from(clock.instant()))
+                    .update();
+        }
+        if (!admins.isEmpty()) {
+            events.publishEvent(new NotificationsChanged(admins));
+        }
+    }
+
+    /**
+     * A flagged account (#165): one notification per admin, with no space. It says the login and the counts
+     * that raised the flag, never a question, and links the Administration page, where an admin decides.
+     */
+    @EventListener
+    @Transactional
+    void on(AccountFlagged flagged) {
+        Set<String> admins = new HashSet<>(roles.holders(AppRole.ADMIN));
+        for (String admin : admins) {
+            jdbc.sql("INSERT INTO notification (recipient, space_id, garden_id, kind, title, body, created_at) "
+                            + "VALUES (?, NULL, NULL, 'ACCOUNT_FLAG', ?, ?, ?)")
+                    .params(admin, "An account was flagged", AccountFlagText.line(flagged),
                             Timestamp.from(clock.instant()))
                     .update();
         }
@@ -397,6 +418,9 @@ public class NotificationService {
         if (p.accessRequest()) {
             return TelegramMessages.accessRequest(adminLink());
         }
+        if (p.accountFlag()) {
+            return TelegramMessages.accountFlag(p.body(), adminLink());
+        }
         if (p.membership()) {
             return TelegramMessages.membership(p.event(), p.spaceName(), membershipLink(p));
         }
@@ -442,6 +466,7 @@ public class NotificationService {
         List<Pending> weather = pending.stream().filter(Pending::weather).toList();
         List<Pending> requests = pending.stream().filter(Pending::accessRequest).toList();
         List<Pending> memberships = pending.stream().filter(Pending::membership).toList();
+        List<Pending> flags = pending.stream().filter(Pending::accountFlag).toList();
         String subject;
         if (!weather.isEmpty()) {
             subject = questions.isEmpty() && answers.isEmpty()
@@ -473,6 +498,10 @@ public class NotificationService {
         if (!memberships.isEmpty()) {
             String extra = memberships.size() == 1 ? MembershipText.subject(memberships.getFirst().event(),
                     memberships.getFirst().spaceName()) : "cambiamenti nei tuoi spazi";
+            subject = subject == null ? "Rootology: " + extra : subject + " e " + extra;
+        }
+        if (!flags.isEmpty()) {
+            String extra = AccountFlagText.subject(flags.size());
             subject = subject == null ? "Rootology: " + extra : subject + " e " + extra;
         }
         StringBuilder text = new StringBuilder("Ciao,\n\n");
@@ -537,6 +566,19 @@ public class NotificationService {
                 html.append("<br><a href=\"").append(HtmlUtils.htmlEscape(membershipLink(p))).append("\">Rootology</a></p>");
             }
         }
+        if (!flags.isEmpty()) {
+            // The login and the counts only (#165): never a question, and nothing to the flagged person.
+            text.append(flags.size() == 1 ? "un account è stato segnalato:\n"
+                    : "alcuni account sono stati segnalati:\n");
+            flags.forEach(p -> text.append("- ").append(p.body()).append("\n  Amministrazione: ")
+                    .append(adminLink()).append('\n'));
+            html.append("<p>").append(flags.size() == 1 ? "Un account è stato segnalato:"
+                    : "Alcuni account sono stati segnalati:").append("</p><ul>");
+            flags.forEach(p -> html.append("<li>").append(HtmlUtils.htmlEscape(p.body()))
+                    .append(" — <a href=\"").append(HtmlUtils.htmlEscape(adminLink()))
+                    .append("\">Amministrazione</a></li>"));
+            html.append("</ul>");
+        }
         text.append("Puoi cambiare queste email nelle preferenze di notifica di Rootology.\n");
         html.append("<p style=\"color:#666\">Puoi cambiare queste email nelle preferenze di notifica di Rootology.</p>");
         return new OutgoingMail(to, subject, text.toString(), html.toString());
@@ -588,7 +630,7 @@ public class NotificationService {
 
         /** Where it happened, as the notification page shows it: space · garden, or the space alone. */
         String place() {
-            if (accessRequest()) {
+            if (accessRequest() || accountFlag()) {
                 return "Amministrazione";
             }
             return gardenName == null ? spaceName : spaceName + " · " + gardenName;
@@ -596,6 +638,11 @@ public class NotificationService {
 
         boolean accessRequest() {
             return "ACCESS_REQUEST".equals(kind);
+        }
+
+        /** A flagged account (#165): about the app, not about a space, and it leads to the admin page. */
+        boolean accountFlag() {
+            return "ACCOUNT_FLAG".equals(kind);
         }
 
         boolean weather() {
@@ -611,7 +658,7 @@ public class NotificationService {
         }
 
         boolean waiting() {
-            return !weather() && !answered() && !accessRequest() && !membership();
+            return !weather() && !answered() && !accessRequest() && !membership() && !accountFlag();
         }
     }
 

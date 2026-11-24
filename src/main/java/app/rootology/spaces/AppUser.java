@@ -51,6 +51,11 @@ class AppUser {
         return firstLoginAt != null;
     }
 
+    /** When the person first signed in (#165), null until then. */
+    Instant getFirstLoginAt() {
+        return firstLoginAt;
+    }
+
     void markFirstLogin(Instant now) {
         this.firstLoginAt = now;
     }

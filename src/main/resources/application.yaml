@@ -126,6 +126,8 @@ rootology:
     # 90 days, so a forgotten request does not stay forever.
     rejected-access-requests: P30D
     pending-access-requests: P90D
+    # Account flags (#165) once an admin decided them; one still waiting for a decision stays.
+    account-flags: P365D
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:
@@ -140,6 +142,15 @@ rootology:
     # Emails of waiting questions (#26): grouped once at least this old, checked this often.
     group-window: PT2M
     digest-every: PT1M
+  suspicious:
+    # Accounts that only create useless traffic (#165), flagged every night and decided by an admin, never by
+    # the system: a signed-in account, a member of no space with a garden for at least this many days, whose
+    # last judged questions are off-domain by at least this share (with at least min-judged of them).
+    cron: "0 45 3 * * *"
+    days-without-garden: 7
+    judged-questions: 10
+    min-judged: 5
+    off-domain-share: 0.70
   invitations:
     # Invitations each owner may create per day (#25).
     daily-limit: 20
