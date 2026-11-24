@@ -6,7 +6,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.SvgIcon;
 import app.rootology.facts.ClimateCells;
 import app.rootology.facts.ClimateWindows;
 import app.rootology.garden.GardenService;
@@ -60,10 +60,11 @@ class OfficialWarningsCardTest {
         assertThat(spans(row))
                 .as("the headline as MeteoAlarm wrote it, its period and the issuer line")
                 .containsExactly(HEADLINE, "24 nov, 11:00 – 25 nov, 01:00", "!{home.official.issued}!");
-        assertThat(all(row).filter(Icon.class::isInstance).map(Icon.class::cast)
-                .map(icon -> String.valueOf(icon.getElement().getAttribute("aria-label"))).toList())
-                .as("the level first, then the phenomenon, each named for a screen reader")
-                .containsExactly("!{warning.level.orange}!", "!{warning.type.wind}!");
+        assertThat(all(row).filter(SvgIcon.class::isInstance).map(SvgIcon.class::cast)
+                .map(icon -> icon.getElement().getAttribute("aria-label") + " " + icon.getSrc()).toList())
+                .as("the warning triangle first, then the phenomenon's drawing, each named for a screen reader")
+                .containsExactly("!{warning.level.orange}! icons/alerts/warning.svg",
+                        "!{warning.type.wind}! icons/alerts/wind.svg");
         assertThat(all(card).filter(Anchor.class::isInstance).map(Anchor.class::cast)
                 .map(Anchor::getHref).toList())
                 .as("MeteoAlarm asks for its link").containsExactly("https://meteoalarm.org");

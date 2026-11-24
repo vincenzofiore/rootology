@@ -29,6 +29,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- The weather alerts and the official warnings have their own drawings: a warning triangle in the level’s colour, a snowflake, a thermometer, a cloud with rain and lightning, a gust, a spotted leaf, a watering can (#169).
 - The welcome page says up front that Rootology is designed for vegetable gardens in Italy, and the garden dialog says what that means for a garden abroad (#164).
 - The months when a pest or disease threatens a crop follow the garden's climate: "what threatens my garden this month" moves them as that crop's own sowing and harvest windows move, so a garden in Turin no longer sees a pest in the months its crop's season has left behind, while Vasto and Palermo keep the months written for central Italy (#162).
 - A crop named with its plant form is found: "fig tree", "albero di fico", "piante di limoni" (#139).

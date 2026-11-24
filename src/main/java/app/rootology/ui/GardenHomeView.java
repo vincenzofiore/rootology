@@ -233,7 +233,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private Div alert(NotificationView alert) {
         AlertSeverity severity = AlertSeverity.of(alert.dedupKey());
         String rule = getTranslation(severity.label());
-        Icon icon = severity.icon().create();
+        SvgIcon icon = new SvgIcon(severity.icon());
         icon.addClassName("rootology-alert-icon");
         icon.getElement().setAttribute("title", rule);
         icon.getElement().setAttribute("aria-label", rule);
@@ -298,8 +298,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     }
 
     /** An icon that says what it is to a screen reader too, its translated name as tooltip and aria label. */
-    private Icon icon(VaadinIcon symbol, String label) {
-        Icon drawn = symbol.create();
+    private SvgIcon icon(String drawing, String label) {
+        SvgIcon drawn = new SvgIcon(drawing);
         drawn.addClassName("rootology-official-icon");
         drawn.getElement().setAttribute("title", label);
         drawn.getElement().setAttribute("aria-label", label);

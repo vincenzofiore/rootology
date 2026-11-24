@@ -428,7 +428,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         String day = frost.day().getDayOfWeek().getDisplayName(TextStyle.SHORT, locale) + " "
                 + frost.day().getDayOfMonth();
         String text = getTranslation("plots.frost", day);
-        Icon icon = VaadinIcon.ASTERISK.create();
+        SvgIcon icon = new SvgIcon(GardenHomeView.FROST);
         icon.getElement().setAttribute("aria-hidden", "true");
         RouterLink link = new RouterLink("", GardenHomeView.class, new RouteParameters(Map.of(
                 Routed.SPACE, String.valueOf(spaceId), Routed.GARDEN, String.valueOf(garden.id()))));

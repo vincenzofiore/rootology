@@ -413,7 +413,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                 counts.waiting() > 0 ? "rootology-garden-card-fact-waiting" : null));
         if (!counts.alerts().isEmpty()) {
             AlertSeverity gravest = counts.alerts().getFirst();
-            facts.add(fact(gravest.icon().create(), counts.alerts().size(), getTranslation("home.alerts"),
+            facts.add(fact(new SvgIcon(gravest.icon()), counts.alerts().size(), getTranslation("home.alerts"),
                     gravest.className()));
         }
         return facts;
