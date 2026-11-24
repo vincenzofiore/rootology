@@ -37,6 +37,7 @@ import java.util.Optional;
  * forecast; crops whose frost tolerance is unknown are named as such, never guessed. Each event has a key
  * (garden, rule, day), so the same forecast frost is notified once even if seen on several mornings.
  * Six rules over the same horizon: frost, late blight, heat, heavy rain, strong wind and dry days (#137).
+ * After them, one line when the garden's region has active official MeteoAlarm warnings (#168).
  */
 @Component
 public class WeatherAlerts {
@@ -56,15 +57,17 @@ public class WeatherAlerts {
     private final KnowledgeGraph knowledge;
     private final CropCatalog crops;
     private final NotificationService notifications;
+    private final OfficialWarningAlert official;
     private final Clock clock;
 
     WeatherAlerts(GardenService gardens, WeatherService weather, KnowledgeGraph knowledge, CropCatalog crops,
-                  NotificationService notifications, Clock clock) {
+                  NotificationService notifications, OfficialWarningAlert official, Clock clock) {
         this.gardens = gardens;
         this.weather = weather;
         this.knowledge = knowledge;
         this.crops = crops;
         this.notifications = notifications;
+        this.official = official;
         this.clock = clock;
     }
 
@@ -86,17 +89,7 @@ public class WeatherAlerts {
         int alerts = 0;
         for (GrowingGarden garden : gardens.locatedGardensGrowing(today)) {
             try {
-                if (garden.growing().isEmpty()) {
-                    continue;
-                }
-                Optional<Forecast> forecast = weather.around(garden.garden().latitude(),
-                        garden.garden().longitude(), garden.garden().elevationM());
-                if (forecast.isEmpty()) {
-                    continue; // no weather today: no alert, never a guess
-                }
-                Forecast f = forecast.get();
-                alerts += frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
-                        + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
+                alerts += computed(garden, today) + official.check(garden, today);
             } catch (RuntimeException e) {
                 // The type only: a message may carry the garden's coordinates (no personal data in the logs).
                 log.warn("Weather alerts failed for garden {}: {}", garden.garden().id(), e.getClass().getSimpleName());
@@ -104,6 +97,21 @@ public class WeatherAlerts {
             }
         }
         return alerts;
+    }
+
+    /** The six rules (#37, #137) over the forecast of what grows here; nothing to check means no alert. */
+    private int computed(GrowingGarden garden, LocalDate today) {
+        if (garden.growing().isEmpty()) {
+            return 0;
+        }
+        Optional<Forecast> forecast = weather.around(garden.garden().latitude(),
+                garden.garden().longitude(), garden.garden().elevationM());
+        if (forecast.isEmpty()) {
+            return 0; // no weather today: no alert, never a guess
+        }
+        Forecast f = forecast.get();
+        return frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
+                + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
     }
 
     private int frost(GrowingGarden garden, Forecast forecast, LocalDate today) {

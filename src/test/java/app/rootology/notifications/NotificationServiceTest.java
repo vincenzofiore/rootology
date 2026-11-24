@@ -422,6 +422,9 @@ class NotificationServiceTest {
         notifications.weatherAlert(space, roof, "wind:other-garden", "Vento forte", "Raffiche possibili");
         now = today.minus(Duration.ofHours(2));
         notifications.weatherAlert(space, garden, "rain:this-morning", "Pioggia intensa", "30 mm in un giorno");
+        // The line on the official warnings (#168): the card on the garden home shows those, never this list.
+        notifications.weatherAlert(space, garden, "official:" + garden + ":2026-11-04", "Allerte ufficiali in Abruzzo",
+                "1 allerta attiva, la più alta gialla (pioggia).");
         notifications.weatherAlert(other, elsewhere, "frost:another-space", "Rischio gelo", "Minima prevista -2 °C");
 
         // A busy space: sixty newer notifications of other kinds, which used to push the alerts out of the
@@ -451,6 +454,9 @@ class NotificationServiceTest {
                 .extracting(NotificationView::dedupKey)
                 .as("a space's alerts stay in that space")
                 .containsExactly("frost:another-space");
+        assertThat(notifications.of("w-vera", 200)).extracting(NotificationView::dedupKey)
+                .as("the official line is still a notification like the rest")
+                .contains("official:" + garden + ":2026-11-04");
     }
 
     @Test

@@ -8,6 +8,8 @@ import app.rootology.garden.Soil;
 import app.rootology.notifications.NotificationPreferences;
 import app.rootology.notifications.NotificationService;
 import app.rootology.notifications.NotificationView;
+import app.rootology.officialwarnings.OfficialWarning;
+import app.rootology.officialwarnings.OfficialWarnings;
 import app.rootology.spaces.Role;
 import app.rootology.spaces.SpaceService;
 import app.rootology.weather.Forecast;
@@ -33,6 +35,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Weather alerts (#37) on a fixed morning, 4 November 2026, with forecasts made up per garden. */
@@ -53,6 +57,9 @@ class WeatherAlertsTest {
 
     @MockitoBean
     WeatherService weather;
+
+    @MockitoBean
+    OfficialWarnings official;
 
     @Autowired
     WeatherAlerts alerts;
@@ -96,6 +103,29 @@ class WeatherAlertsTest {
             hours.add(hour.apply(i));
         }
         return Optional.of(new Forecast(hours, NOW, false));
+    }
+
+    /** A garden with these crops and the region GeoNames gave it (countryCode null means Italy). */
+    private long gardenWithRegion(String owner, String country, String region, String lat, String lon) {
+        spaces.signedIn(owner);
+        long space = app.rootology.TestSpaces.personal(spaces, owner);
+        var garden = gardens.saveGarden(space, owner, null, "Orto di " + owner, null, new BigDecimal(lat),
+                new BigDecimal(lon), country);
+        gardens.setRegion(garden.id(), region);
+        var plot = gardens.savePlot(space, owner, garden.id(), null, "Aiuola A", PlotKind.GROUND, Soil.LOAMY, null);
+        gardens.plant(space, owner, plot.id(), "lettuce", PlantingMethod.SOWN, LocalDate.of(2026, 10, 1), null);
+        return garden.id();
+    }
+
+    /** An Abruzzo garden: GeoNames region "01", MeteoAlarm zone IT013. */
+    private long abruzzoGarden(String owner) {
+        return gardenWithRegion(owner, "IT", "01", "42.35", "13.40");
+    }
+
+    /** A warning of one zone as MeteoAlarm's feed writes it; the level and type are what the line reads. */
+    private static OfficialWarning warning(String zone, String area, int level, int type) {
+        return new OfficialWarning("w-" + zone + "-" + level + "-" + type, zone, area, level, type, "event",
+                "severity", null, null, null, null, null, null, null, null);
     }
 
     private List<NotificationView> weatherOf(String login) {
@@ -291,5 +321,81 @@ class WeatherAlertsTest {
         alerts.check();
 
         assertThat(notifications.digest()).as("olga only: pino does not want weather emails").isEqualTo(1);
+    }
+
+    @Test
+    void theOfficialWarningsOfTheRegionBecomeOneLinePerGardenAndDay() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        long garden = abruzzoGarden("og-giorgio");
+        when(official.stale()).thenReturn(false);
+        when(official.active("IT013")).thenReturn(List.of(warning("IT013", "Abruzzo", 3, 1),
+                warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+        alerts.check();
+
+        assertThat(weatherOf("og-giorgio")).as("the same line, never twice").singleElement().satisfies(n -> {
+            assertThat(n.title()).isEqualTo("Allerte ufficiali in Abruzzo");
+            assertThat(n.body()).startsWith("2 allerte attive, la più alta arancione (vento).")
+                    .contains("Fonte: MeteoAlarm, Servizio Meteorologico dell’Aeronautica Militare.")
+                    .contains("Il dettaglio è nella pagina dell’orto.")
+                    .as("never the warning's own text").doesNotContain("Yellow Rain Warning");
+            assertThat(n.dedupKey()).isEqualTo("official:" + garden + ":2026-11-04");
+        });
+    }
+
+    @Test
+    void aStaleFeedIsNeverAnnounced() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-irene");
+        when(official.stale()).thenReturn(true);
+        when(official.active(any())).thenReturn(List.of(warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-irene")).as("a feed that may be old is never announced").isEmpty();
+        verify(official, never()).active(any());
+    }
+
+    @Test
+    void anEmptyRegionSaysNothing() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-gina");
+        when(official.stale()).thenReturn(false);
+        when(official.active(any())).thenReturn(List.of());
+
+        alerts.check();
+
+        assertThat(weatherOf("og-gina")).as("no active warning, no line").isEmpty();
+    }
+
+    @Test
+    void aGardenAbroadOrWithoutARegionHasNoOfficialLine() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        garden("og-karim", "og-kim", "41.90", "12.50", "lettuce"); // no region filled yet
+        gardenWithRegion("og-lorenzo", "FR", "11", "48.85", "2.35"); // a first-level code, but of France
+        when(official.stale()).thenReturn(false);
+        when(official.active(any())).thenReturn(List.of(warning("IT013", "Abruzzo", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-karim")).isEmpty();
+        assertThat(weatherOf("og-lorenzo")).isEmpty();
+    }
+
+    @Test
+    void aFailingOfficialReadDoesNotStopTheNextGarden() {
+        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        abruzzoGarden("og-nadia"); // IT013
+        gardenWithRegion("og-paolo", "IT", "09", "41.90", "12.50"); // Lazio, IT003
+        when(official.stale()).thenReturn(false);
+        when(official.active("IT013")).thenThrow(new IllegalStateException("feed unavailable"));
+        when(official.active("IT003")).thenReturn(List.of(warning("IT003", "Lazio", 2, 10)));
+
+        alerts.check();
+
+        assertThat(weatherOf("og-nadia")).as("the garden whose step failed writes nothing").isEmpty();
+        assertThat(weatherOf("og-paolo")).singleElement()
+                .satisfies(n -> assertThat(n.title()).isEqualTo("Allerte ufficiali in Lazio"));
     }
 }

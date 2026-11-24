@@ -209,13 +209,15 @@ public class NotificationService {
     /**
      * The weather alerts (#37) a person got in a space's gardens in the last {@code days}, newest first: every
      * one of them, however many other notifications arrived meanwhile (#155). {@code gardenId} 0 asks for every
-     * garden of the space, a garden id for that one alone, as the garden home does.
+     * garden of the space, a garden id for that one alone, as the garden home does. The line on the official
+     * warnings (#168, dedup key {@code official:}) is left out: the card on the garden home shows those.
      */
     @Transactional(readOnly = true)
     public List<NotificationView> weatherAlerts(String login, long spaceId, long gardenId, int days) {
         Instant since = clock.instant().minus(Duration.ofDays(days));
         var query = jdbc.sql("SELECT " + COLUMNS + " FROM notification "
                 + "WHERE recipient = ? AND kind = 'WEATHER_ALERT' AND space_id = ?"
+                + " AND (dedup_key IS NULL OR dedup_key NOT LIKE 'official:%')"
                 + (gardenId > 0 ? " AND garden_id = ?" : "") + " AND created_at > ? "
                 + "ORDER BY created_at DESC, id DESC")
                 .param(normalize(login)).param(spaceId);
