@@ -1264,6 +1264,15 @@ rootology-garden-map { display: block; width: 100%; }
     background: var(--lumo-contrast-5pct);
 }
 .rootology-alerts-computed > span[class*="rootology-alert-"] { display: inline-flex; background: none; }
+/* A question of the garden home, answered in a dialog over it (#178): as wide as an answer on Ask. */
+.rootology-question-dialog::part(overlay) { width: min(44rem, 100vw - 2 * var(--lumo-space-m)); }
+.rootology-question-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--lumo-space-s);
+}
+.rootology-question-dialog-body > .rootology-thinking-question { margin: 0; }
+
 /* The dialog of a group: the official warnings, then the computed alerts, each under its own heading. */
 .rootology-alerts-dialog::part(overlay) { max-width: min(40rem, 100vw - 2 * var(--lumo-space-m)); }
 .rootology-alerts-detail,

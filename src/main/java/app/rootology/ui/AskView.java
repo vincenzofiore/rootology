@@ -33,9 +33,7 @@ import app.rootology.history.PipelineRunRecord;
 import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.history.RunHistory;
 import app.rootology.facts.SourceCatalog;
-import app.rootology.resilience.ServiceUnavailableException;
 import app.rootology.spaces.SpaceAccessException;
-import app.rootology.usage.UsageLimitException;
 import app.rootology.usage.UsageService;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.HumanAnswer;
@@ -581,23 +579,30 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         question.clear();
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
         stack(thinking);
-        executor.execute(() -> {
-            try {
-                GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", asked), context, askAnyway);
-                asking = false;
-                update(ui, () -> finished(thinking, asked, run, context, login, mayAsk));
-            } catch (UsageLimitException ex) {
-                asking = false;
-                int limit = ex.limit();
-                update(ui, () -> failed(thinking, asked, getTranslation("ask.limit", limit), mayAsk));
-            } catch (ServiceUnavailableException ex) {
-                asking = false;
-                update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
-            } catch (RuntimeException ex) {
-                asking = false;
-                update(ui, () -> failedWith(thinking, ex));
+        QuestionRunner.start(executor, ui, this,
+                () -> pipeline.askKnowledgeBase(new Question("ask", asked), context, askAnyway),
+                () -> asking = false, outcome(thinking, asked, context, login, mayAsk));
+    }
+
+    /** What a question of this page does once it ends, back on the UI thread. */
+    private QuestionRunner.Outcome outcome(ThinkingCard thinking, String asked, RunContext context, String login,
+                                           boolean mayAsk) {
+        return new QuestionRunner.Outcome() {
+            @Override
+            public void finished(GardenPipeline.Run run) {
+                AskView.this.finished(thinking, asked, run, context, login, mayAsk);
             }
-        });
+
+            @Override
+            public void failed(String text) {
+                AskView.this.failed(thinking, asked, text, mayAsk);
+            }
+
+            @Override
+            public void failedWith(RuntimeException ex) {
+                AskView.this.failedWith(thinking, ex);
+            }
+        };
     }
 
     /** Back on the UI thread: the thinking card goes and the answer takes its place, above the older ones. */
@@ -653,29 +658,27 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         askButton.setEnabled(false);
         ThinkingCard thinking = new ThinkingCard(asked, getTranslation("card.thinking.seconds"));
         stack(thinking);
-        executor.execute(() -> {
-            try {
-                GardenPipeline.Run run = gardenId > 0
+        QuestionRunner.Outcome here = outcome(thinking, asked, context, login, mayAsk);
+        QuestionRunner.start(executor, ui, this,
+                () -> gardenId > 0
                         ? pipeline.continueWith(new Question("ask", asked), intent, context, gardenId)
-                        : pipeline.continueWith(new Question("ask", asked), intent, context, place);
-                asking = false;
-                if (gardenId > 0) {
-                    update(ui, () -> continuedIn(run, asked, gardenId, thinking));
-                } else {
-                    update(ui, () -> finished(thinking, asked, run, context, login, mayAsk));
-                }
-            } catch (UsageLimitException ex) {
-                asking = false;
-                int limit = ex.limit();
-                update(ui, () -> failed(thinking, asked, getTranslation("ask.limit", limit), mayAsk));
-            } catch (ServiceUnavailableException ex) {
-                asking = false;
-                update(ui, () -> failed(thinking, asked, getTranslation("error.claude"), mayAsk));
-            } catch (RuntimeException ex) {
-                asking = false;
-                update(ui, () -> failedWith(thinking, ex));
-            }
-        });
+                        : pipeline.continueWith(new Question("ask", asked), intent, context, place),
+                () -> asking = false, gardenId <= 0 ? here : new QuestionRunner.Outcome() {
+                    @Override
+                    public void finished(GardenPipeline.Run run) {
+                        continuedIn(run, asked, gardenId, thinking);
+                    }
+
+                    @Override
+                    public void failed(String text) {
+                        here.failed(text);
+                    }
+
+                    @Override
+                    public void failedWith(RuntimeException ex) {
+                        here.failedWith(ex);
+                    }
+                });
     }
 
     /**
@@ -763,29 +766,6 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private void copy(String asked, String answer) {
         getUI().ifPresent(ui -> ui.getPage().executeJs("navigator.clipboard.writeText($0)", asked + "\n\n" + answer));
         Toasts.done(getTranslation("ask.copied"));
-    }
-
-    /**
-     * A change to the page from the background thread (#82). A page that is gone drops it quietly: the answer
-     * is in History anyway.
-     */
-    private void update(UI ui, Runnable change) {
-        if (ui == null) {
-            change.run();
-            return;
-        }
-        if (ui.isClosing()) {
-            return;
-        }
-        try {
-            ui.access(() -> {
-                if (isAttached()) {
-                    change.run();
-                }
-            });
-        } catch (com.vaadin.flow.component.UIDetachedException | IllegalStateException detached) {
-            // The visit ended while the question ran: nothing to show.
-        }
     }
 
     /** The context this page asks in (#56): its route's space and garden, never the session's. */

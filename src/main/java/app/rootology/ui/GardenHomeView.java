@@ -97,6 +97,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final GardenPipeline pipeline;
     private final RunHistory history;
     private final CurrentUser currentUser;
+    /** The dialog a question of the home is answered in (#178). */
+    private final QuestionDialogs questions;
     private final PageHeader title = new PageHeader("");
     private final Span place = new Span();
     private final TextField question = new TextField();
@@ -116,11 +118,15 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     /** The page's own context (#56), read from its route. */
     private long spaceId;
     private long gardenId;
+    /** The garden's name, so an answer's card does not say it again (#121). */
+    private String gardenName;
+    /** The day the page was opened, in Italian time: what grows is read for it, also after a question. */
+    private LocalDate today;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
                           CropCatalog crops, WeatherService weather, NotificationService notifications,
                           OfficialWarnings official, GardenPipeline pipeline, RunHistory history,
-                          CurrentUser currentUser) {
+                          CurrentUser currentUser, QuestionDialogs questions) {
         this.gardens = gardens;
         this.climateCells = climateCells;
         this.climateWindows = climateWindows;
@@ -131,6 +137,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         this.pipeline = pipeline;
         this.history = history;
         this.currentUser = currentUser;
+        this.questions = questions;
         question.setMaxLength(Question.MAX_LENGTH);
         question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setPrefixComponent(VaadinIcon.COMMENT_ELLIPSIS_O.create());
@@ -164,13 +171,23 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         add(title, alertsRow, firstSteps, grid);
     }
 
-    /** Hands the question to this garden's Ask page, which answers it as the page opens. */
+    /**
+     * Answers the question here, in a dialog over the home (#178); once it is closed the home is read again, so
+     * the questions card and the first steps count the new question.
+     */
     private void ask() {
         if (question.getValue().isBlank()) {
             return;
         }
-        UI.getCurrent().navigate(AskView.class, gardenParameters(),
-                QueryParameters.simple(Map.of(AskView.QUESTION, question.getValue().trim())));
+        String asked = question.getValue().trim();
+        question.clear();
+        QuestionDialog dialog = questions.ask(spaceId, gardenId, gardenName, asked);
+        dialog.addOpenedChangeListener(e -> {
+            if (!e.isOpened()) {
+                show();
+            }
+        });
+        dialog.open();
     }
 
     /** The areas page with one of its dialogs open (#133): a new area, or a planting in an area. */
@@ -192,9 +209,16 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
+        today = LocalDate.now(ITALY);
+        show();
+    }
+
+    /** The home of the page's garden, read again after a question of the home (#178). */
+    private void show() {
         boolean contributor = currentUser.canContribute(spaceId);
         form.setVisible(contributor);
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
+        gardenName = garden.name();
         title.setHeading(garden.name());
         // Where the garden is, beside its name (#132): town and country, as on the areas page.
         place.setText(garden.town() == null ? getTranslation("garden.notown")
@@ -207,7 +231,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         weatherRow.removeAll();
         grid.add(weatherRow);
         List<PlotSummary> plots = gardens.plots(spaceId, currentUser.login(), gardenId);
-        List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(ITALY));
+        List<PlantingSummary> growing = gardens.growingOn(spaceId, currentUser.login(), gardenId, today);
         boolean asked = !history.recent(spaceId, gardenId, currentUser.login()).isEmpty();
         FirstSteps steps = FirstSteps.of(garden, plots, growing, asked);
         if (!steps.allDone()) {

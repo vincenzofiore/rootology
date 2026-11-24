@@ -174,7 +174,8 @@ class ViewsTest {
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, climateWindows, crops, weatherService, notificationService, officialWarnings,
-                        pipeline, history, viewer()).getChildren())
+                        pipeline, history, viewer(), new QuestionDialogs(pipeline, sourceCatalog, enrichment, viewer(),
+                        crops, knowledge, gardens, geoNames, cells, Runnable::run)).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
