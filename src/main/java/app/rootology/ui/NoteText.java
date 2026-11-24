@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.icon.SvgIcon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import app.rootology.decision.Note;
 
@@ -63,22 +64,22 @@ final class NoteText {
                 || note.kind() == Note.Kind.NO_COORDINATES_RISK;
     }
 
-    static VaadinIcon icon(Note note) {
+    static Component icon(Note note) {
         return switch (note.kind()) {
             case FORECAST_MINIMUM, FROST_EXCLUDED, FROST_UNKNOWN, GREENHOUSE_OUTDOOR_MINIMUM, FROST_SUITABILITY ->
-                    VaadinIcon.ASTERISK;
-            case SMITH_PERIOD -> VaadinIcon.DROP;
-            case NO_SMITH_PERIOD, LIGHT_IN_PLOT, LIGHT_ANYWHERE, LIGHT_UNKNOWN -> VaadinIcon.SUN_O;
-            case OUTSIDE_ITALY -> VaadinIcon.GLOBE;
+                    new SvgIcon(GardenHomeView.FROST);
+            case SMITH_PERIOD -> new SvgIcon("icons/alerts/blight.svg");
+            case NO_SMITH_PERIOD, LIGHT_IN_PLOT, LIGHT_ANYWHERE, LIGHT_UNKNOWN -> VaadinIcon.SUN_O.create();
+            case OUTSIDE_ITALY -> VaadinIcon.GLOBE.create();
             case WINDOWS_FROM_CLIMATE, NO_CLIMATE_PROFILE, ALTITUDE_MISSING, ALTITUDE_COAST, ALTITUDE_CAPPED ->
-                    VaadinIcon.SUN_O;
-            case NO_COORDINATES_FROST, NO_COORDINATES_RISK -> VaadinIcon.MAP_MARKER;
-            case ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS -> VaadinIcon.COMPASS;
-            case GARDEN_GONE, NO_GARDEN_FOR_QUESTION, READ_THE_LABEL -> VaadinIcon.WARNING;
-            case GARDEN_OF_QUESTION, GARDEN_NOT_FOUND -> VaadinIcon.HOME_O;
-            case PLACE_OF_QUESTION, PLACE_NOT_FOUND -> VaadinIcon.MAP_MARKER;
-            case PLOT_NOT_FOUND, PLOT_AMBIGUOUS -> VaadinIcon.GRID;
-            default -> VaadinIcon.CLOUD_O;
+                    VaadinIcon.SUN_O.create();
+            case NO_COORDINATES_FROST, NO_COORDINATES_RISK -> VaadinIcon.MAP_MARKER.create();
+            case ZONE_OF_QUESTION, NO_GARDEN_DEFAULTS -> VaadinIcon.COMPASS.create();
+            case GARDEN_GONE, NO_GARDEN_FOR_QUESTION, READ_THE_LABEL -> VaadinIcon.WARNING.create();
+            case GARDEN_OF_QUESTION, GARDEN_NOT_FOUND -> VaadinIcon.HOME_O.create();
+            case PLACE_OF_QUESTION, PLACE_NOT_FOUND -> VaadinIcon.MAP_MARKER.create();
+            case PLOT_NOT_FOUND, PLOT_AMBIGUOUS -> VaadinIcon.GRID.create();
+            default -> VaadinIcon.CLOUD_O.create();
         };
     }
 

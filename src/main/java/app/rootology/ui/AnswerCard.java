@@ -7,6 +7,7 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.AbstractIcon;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.progressbar.ProgressBar;
@@ -95,7 +96,7 @@ class AnswerCard extends Div {
             // Said for what it is (#114): alone, "ultime gelate metà febbraio (dall’orto)" read as a stray line.
             Span label = new Span(getTranslation("card.why.context"));
             label.addClassName(FontWeight.SEMIBOLD);
-            why().add(line(VaadinIcon.CALENDAR_O, new Span(label, new Span(" " + detail))));
+            why().add(line(VaadinIcon.CALENDAR_O.create(), new Span(label, new Span(" " + detail))));
         }
         return whyLast();
     }
@@ -231,7 +232,7 @@ class AnswerCard extends Div {
         row.getElement().setAttribute("title", getTranslation("card.confidence", confidence));
         add(row);
         // What the number means (#111): "Affidabilità media" alone says nothing to a gardener.
-        why().add(line(VaadinIcon.QUESTION_CIRCLE_O, getTranslation("card.confidence.meaning")));
+        why().add(line(VaadinIcon.QUESTION_CIRCLE_O.create(), getTranslation("card.confidence.meaning")));
         return whyLast();
     }
 
@@ -247,7 +248,7 @@ class AnswerCard extends Div {
         add(new Paragraph(getTranslation("card.waiting.promise")));
         if (reason != null && !reason.isBlank()) {
             Span words = new Span(getTranslation("card.waiting.reason", ReasonText.text(reason, this)));
-            why().add(line(VaadinIcon.INFO_CIRCLE_O, ReasonText.withNumber(words, reason, this)));
+            why().add(line(VaadinIcon.INFO_CIRCLE_O.create(), ReasonText.withNumber(words, reason, this)));
         }
         return whyLast();
     }
@@ -311,7 +312,7 @@ class AnswerCard extends Div {
         why().add(sourcesTitle());
         for (SourceLine line : lines) {
             Component text = line.url() == null ? new Span(line.text()) : link(line.text(), line.url());
-            why().add(line(line.icon(), text));
+            why().add(line(line.icon().create(), text));
         }
         return whyLast();
     }
@@ -323,7 +324,7 @@ class AnswerCard extends Div {
      */
     AnswerCard noSources() {
         why().add(sourcesTitle());
-        why().add(line(VaadinIcon.BOOK, getTranslation("ask.sources.before")));
+        why().add(line(VaadinIcon.BOOK.create(), getTranslation("ask.sources.before")));
         return whyLast();
     }
 
@@ -360,14 +361,13 @@ class AnswerCard extends Div {
         return this;
     }
 
-    private static Div line(VaadinIcon icon, String text) {
+    private static Div line(Component icon, String text) {
         return line(icon, new Span(text));
     }
 
-    private static Div line(VaadinIcon icon, Component text) {
-        Icon i = icon.create();
-        i.addClassName("rootology-why-icon");
-        Div row = new Div(i, text);
+    private static Div line(Component icon, Component text) {
+        icon.addClassName("rootology-why-icon");
+        Div row = new Div(icon, text);
         row.addClassName("rootology-why-line");
         return row;
     }
@@ -402,24 +402,25 @@ class AnswerCard extends Div {
         return chip;
     }
 
-    private static Div callout(VaadinIcon icon, NoteText.Tone tone, String text) {
-        Icon i = icon.create();
-        i.setSize("1.1em");
+    private static Div callout(Component icon, NoteText.Tone tone, String text) {
+        if (icon instanceof AbstractIcon<?> sized) {
+            sized.setSize("1.1em");
+        }
         Span body = new Span(text);
-        Div callout = new Div(i, body);
+        Div callout = new Div(icon, body);
         callout.addClassNames(Display.FLEX, AlignItems.START, Gap.SMALL, Padding.SMALL, BorderRadius.MEDIUM, FontSize.SMALL);
         switch (tone) {
             case RISK -> {
                 callout.addClassNames(Background.ERROR_10);
-                i.addClassNames(TextColor.ERROR);
+                icon.addClassName(TextColor.ERROR);
             }
             case MISSING -> {
                 callout.addClassNames(Background.WARNING_10);
-                i.addClassNames(TextColor.WARNING);
+                icon.addClassName(TextColor.WARNING);
             }
             case INFO -> {
                 callout.addClassNames(Background.CONTRAST_5);
-                i.addClassNames(TextColor.SECONDARY);
+                icon.addClassName(TextColor.SECONDARY);
             }
         }
         return callout;
