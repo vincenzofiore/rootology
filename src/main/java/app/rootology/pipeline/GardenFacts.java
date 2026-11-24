@@ -1,10 +1,16 @@
 package app.rootology.pipeline;
 
+import app.rootology.decision.Note;
+import app.rootology.decision.QueryKind;
+import app.rootology.garden.GardenViews.PlotSummary;
+import app.rootology.garden.PlotKind;
 import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.CuratedKnowledge.WindowRow;
 import app.rootology.facts.Fact;
+import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.FrostShiftRule;
+import app.rootology.facts.FrostSuitabilityRule;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.PestShiftRule;
 import app.rootology.facts.SourcedFact;
@@ -16,7 +22,11 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Facts about the run's garden, for the questions about "my garden" (#55): only that garden's plots and
@@ -131,6 +141,88 @@ class GardenFacts {
                             plotName), List.of(SOURCE), RotationRule.ID))));
         }
         return facts;
+    }
+
+    /** The facts of frost-suitability-v1 and the notes that say them, for one question (#147). */
+    record FrostSuitability(List<SourcedFact> facts, List<Note> notes) {
+
+        static final FrostSuitability NONE = new FrostSuitability(List.of(), List.of());
+    }
+
+    /** The question kinds with a site and a crop, where frost-suitability-v1 can say something (#147). */
+    private static final Set<QueryKind> FROST_KINDS = Set.of(QueryKind.SOWING_TIME, QueryKind.SOW_NOW,
+            QueryKind.SOW_IN_PLOT, QueryKind.PROPOSE_IN_AREA);
+
+    /** One crop's fact and note, when the rule has something to say about it. */
+    private record Said(SourcedFact fact, Note note) {
+    }
+
+    /**
+     * Rule frost-suitability-v1 (#147) on the perennials a question about sowing or planting is about: a crop
+     * that does not stand the site's 1-in-5 winter minimum becomes an INFERRED reading (crop, survivesWinter,
+     * no|only in a pot) with the crop's hardiness source and the site's, and a note that quotes the two numbers
+     * and the verdict. In a pot or a planter the verdict is to shelter it in winter, in a greenhouse the rule
+     * says nothing, and open ground (a plot in the ground or a raised bed, or no plot at all) does not survive
+     * it. A crop that stands the winter says nothing.
+     */
+    FrostSuitability frost(QuestionContext context, RunContext run, List<SourcedFact> facts) {
+        if (!FROST_KINDS.contains(context.intent().kind()) || context.climate() == null) {
+            return FrostSuitability.NONE;
+        }
+        String areaKind = areaKind(context, run);
+        Long space = context.hasSpace() ? context.spaceId() : null;
+        List<SourcedFact> added = new ArrayList<>();
+        List<Note> notes = new ArrayList<>();
+        for (String subject : facts.stream().map(f -> f.fact().subject()).distinct().toList()) {
+            frostOf(subject, context, space, areaKind).ifPresent(said -> {
+                added.add(said.fact());
+                notes.add(said.note());
+            });
+        }
+        return new FrostSuitability(added, notes);
+    }
+
+    /**
+     * The area the verdict is for: the question's own area when it names one; otherwise, in a garden whose
+     * areas are all pots or planters, a pot (its perennials can be moved); otherwise open ground (null).
+     */
+    private String areaKind(QuestionContext context, RunContext run) {
+        if ((context.intent().kind() == QueryKind.SOW_IN_PLOT || context.intent().kind() == QueryKind.PROPOSE_IN_AREA)
+                && context.plot() != null && context.plot().found() != null) {
+            return context.plot().found().kind().name();
+        }
+        if (!context.hasSpace() || context.gardenId() <= 0) {
+            return null;
+        }
+        List<PlotSummary> plots = gardens.plots(context.spaceId(), run.startedBy(), context.gardenId());
+        boolean onlyPots = !plots.isEmpty() && plots.stream()
+                .allMatch(p -> p.kind() == PlotKind.POT || p.kind() == PlotKind.PLANTER);
+        return onlyPots ? PlotKind.POT.name() : null;
+    }
+
+    /** What the rule says about one subject of the question, or empty when it says nothing (#147). */
+    private Optional<Said> frostOf(String subject, QuestionContext context, Long space, String areaKind) {
+        var crop = knowledge.resolve(subject, space).flatMap(found -> crops.byId(found.id()));
+        if (crop.isEmpty()) {
+            return Optional.empty();
+        }
+        var result = FrostSuitabilityRule.of(crop.get(), context.climate(), areaKind)
+                .filter(found -> !found.survives());
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+        LinkedHashSet<String> sources = new LinkedHashSet<>();
+        sources.add(crop.get().hardinessSource());
+        sources.add(FrostSeasonRule.AGERA5);
+        SourcedFact fact = new SourcedFact(new Fact(subject, "survivesWinter",
+                result.get().verdict() == FrostSuitabilityRule.Verdict.SHELTER_IN_POT
+                        ? "only in a pot, sheltered in winter" : "no"),
+                List.copyOf(sources), FrostSuitabilityRule.ID);
+        Note note = Note.of(Note.Kind.FROST_SUITABILITY, subject,
+                String.format(Locale.ROOT, "%.1f", result.get().hardiness()),
+                String.format(Locale.ROOT, "%.1f", result.get().winterMinimum()),
+                result.get().verdict().name());
+        return Optional.of(new Said(fact, note));
     }
 
     private List<PlantingSummary> now(QuestionContext context, RunContext run) {

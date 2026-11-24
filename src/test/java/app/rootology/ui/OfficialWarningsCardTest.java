@@ -123,7 +123,7 @@ class OfficialWarningsCardTest {
 
     private static GardenHomeView view(OfficialWarnings official) {
         return new GardenHomeView(mock(GardenService.class), mock(ClimateCells.class), mock(ClimateWindows.class),
-                mock(WeatherService.class), mock(NotificationService.class), official, mock(GardenPipeline.class),
+                mock(app.rootology.facts.CropCatalog.class), mock(WeatherService.class), mock(NotificationService.class), official, mock(GardenPipeline.class),
                 mock(RunHistory.class), mock(CurrentUser.class));
     }
 

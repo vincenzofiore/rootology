@@ -269,7 +269,7 @@ public class GardenPipelineAgent {
         Intent full = context.intent();
         // The asking space also sees the facts its members added (#24), tagged PROPOSED.
         Long space = context.hasSpace() ? context.spaceId() : null;
-        List<SourcedFact> facts = switch (full.kind()) {
+        List<SourcedFact> facts = new java.util.ArrayList<>(switch (full.kind()) {
             case SOWING_TIME, HARVEST_TIME, PRUNING_TIME -> climate.windowFacts(full.subject(), context.climate(), space);
             case SOW_NOW -> climate.sowingFacts(full.month(), context.climate(), full.languageOrDefault());
             case GROWING_NOW -> garden.growing(context, run, full.languageOrDefault());
@@ -278,7 +278,10 @@ public class GardenPipelineAgent {
             case CONTROL_METHODS -> knowledge.controlFacts(full.subject(), space);
             case PROPOSE_IN_AREA -> garden.proposals(context, run, full.languageOrDefault());
             default -> knowledge.factsAbout(full.subject(), full.languageOrDefault(), space);
-        };
+        });
+        // Will a perennial stand the site's 1-in-5 winter minimum? Only where the question has a site and a crop
+        // (#147): the perennial does not survive open ground there, and the note says so.
+        GardenFacts.FrostSuitability frost = garden.frost(context, run, facts);
         // The local forecast (#18) for questions about now: frost for sowing, blight for pest risk.
         WeatherFacts.Result local = switch (full.kind()) {
             case SOW_NOW, SOW_IN_PLOT -> weather.frost(context, facts.stream()
@@ -292,6 +295,7 @@ public class GardenPipelineAgent {
             case SOW_IN_PLOT -> light.inPlot(context, facts);
             default -> LightFacts.Result.NONE;
         };
+        facts.addAll(frost.facts());
         List<Reading> readings = new java.util.ArrayList<>(facts.stream()
                 .map(f -> new Reading(f.fact(), f.derivedBy() != null ? Reading.Source.INFERRED
                         : f.proposed() ? Reading.Source.PROPOSED : Reading.Source.CURATED,
@@ -300,6 +304,7 @@ public class GardenPipelineAgent {
         readings.addAll(local.readings());
         readings.addAll(exposure.readings());
         List<app.rootology.decision.Note> notes = new java.util.ArrayList<>(context.notes());
+        notes.addAll(frost.notes());
         notes.addAll(local.notes());
         notes.addAll(exposure.notes());
         if (facts.stream().anyMatch(f -> f.fact().predicate().equals("controlKind")

@@ -1,9 +1,10 @@
 # The climate profile of a garden (#62)
 
 Every garden with coordinates gets its own sowing and harvest calendar from the climate of its site, instead
-of an Italian zone. Two rules do the work: `frost-season-v1` turns the site's frost dates into two safe months,
-and `frost-shift-v1` moves the curated central-Italy windows only where those months make them impossible.
-This page describes the file, how it is made, both rules, what they produce in twelve places, and their limits.
+of an Italian zone. Three rules do the work: `frost-season-v1` turns the site's frost dates into two safe
+months, `frost-shift-v1` moves the curated central-Italy windows only where those months make them impossible,
+and `frost-suitability-v1` says whether a perennial stands the site's winter. This page describes the file, how
+it is made, the rules, what they produce in twelve places, and their limits.
 
 ## The file
 
@@ -66,6 +67,11 @@ later and the first frost earlier by the same number of days. It is capped at 50
 and it is not applied when the garden's altitude is not known or is -9999 (a note), and when the garden is on
 the coast, below its cell, with a land fraction below 0.9 (a note). Frost-free dates are never shifted.
 
+The site's winter minimum moves with the same correction and the same cases, because it is a temperature too:
+6.5 °C per 1000 m colder above the cell and warmer below it, capped at 500 m, and the cell's own value when the
+altitude is unknown or on a coast below the cell. A garden 38 m below its cell, as Turin is, is 0.2 °C warmer
+than the cell.
+
 The garden's altitude comes from GeoNames `gtopo30` at about 1 km, requested when a garden is saved or its
 coordinates change. Saving never depends on it: a failed lookup leaves the altitude unknown, and the profile
 says so.
@@ -100,6 +106,24 @@ altitude correction: NORD = Milan (45.46, 9.19), CENTRO = Vasto (42.11, 14.71), 
 The curated NORD row (broad bean, February) applies only when the question names NORD, and then it wins over
 the derived broad bean sowing. Vasto itself (CENTRO named in the question, or the default outside a garden)
 gets the curated rows as they are, tagged curated, not inferred.
+
+## `frost-suitability-v1`
+
+Will a perennial survive the winter at a site (#147)? The rule reads two numbers: the crop's frost hardiness
+(`frost_hardiness` in `crops-v1.csv`, the lowest air temperature an established plant stands) and the site's
+1-in-5 winter minimum (`winter_min_p20`, corrected for altitude like the frost dates). It answers only for a
+perennial with a known hardiness, at a site with a known winter minimum.
+
+| Crop vs site | In the ground or a raised bed, or no area named | In a pot or a planter | In a greenhouse |
+|---|---|---|---|
+| hardiness above the winter minimum: it does not stand the cold | does not survive the winter here in open ground; in a pot, sheltered in winter | shelter it in winter (it can be moved) | the rule says nothing: the greenhouse protects it |
+| hardiness at or below the winter minimum | survives: nothing is said, and no note | survives: nothing is said | survives: nothing is said |
+
+In the answers about sowing and planting (`SOWING_TIME`, `SOW_NOW`, `SOW_IN_PLOT`, `PROPOSE_IN_AREA`) a
+perennial that does not stand the winter becomes an INFERRED reading, `survivesWinter`, with the crop's
+hardiness source and `agera5`, and a note that quotes both numbers and the verdict. `crop-proposal-v1` does not
+propose such a crop for a plot in the ground or a raised bed; in a pot or a planter it may propose it, with the
+note. On the garden home the crop's chip gets a snowflake with the short verdict as tooltip and aria label.
 
 ## Twelve places
 

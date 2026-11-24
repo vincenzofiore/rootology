@@ -157,7 +157,7 @@ class FrostShiftRuleTest {
     @Test
     void yearRoundWindowsNeverMove() {
         WindowRow yearRound = new WindowRow("tomato", "CENTRO", "HARVEST", 1, 12, "", "rootology-editorial", false);
-        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10,
+        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10, null,
                 SiteProfile.Correction.APPLIED, List.of("agera5"));
 
         assertThat(FrostShiftRule.infer(List.of(yearRound), GROUPS, cold)).singleElement()
@@ -183,7 +183,7 @@ class FrostShiftRuleTest {
     @Test
     void aWindowWhoseEndFallsBeforeItsStartIsNotDerived() {
         WindowRow sowing = new WindowRow("lettuce", "CENTRO", "SOW", 5, 6, "", "rootology-editorial", false);
-        SiteProfile dry = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 300, 4, 1,
+        SiteProfile dry = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 300, 4, 1, null,
                 SiteProfile.Correction.APPLIED, List.of("agera5"));
 
         assertThat(FrostShiftRule.infer(List.of(sowing), GROUPS, dry)).isEmpty();

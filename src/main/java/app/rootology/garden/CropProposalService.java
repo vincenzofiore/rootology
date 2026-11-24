@@ -5,6 +5,7 @@ import app.rootology.facts.ClimateWindows.ClimateWindow;
 import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.CropTraits;
+import app.rootology.facts.FrostSuitabilityRule;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.CropProposalRule.AreaFacts;
 import app.rootology.garden.CropProposalRule.CropFacts;
@@ -106,7 +107,7 @@ public class CropProposalService {
             if (busy.contains(plot.id())) {
                 continue;
             }
-            List<CropFacts> candidates = candidates(spaceId, login, plot, day, growing, windowsOfMonth);
+            List<CropFacts> candidates = candidates(spaceId, login, plot, day, growing, windowsOfMonth, site);
             areas.add(new AreaProposals(plot.id(), plot.name(), CropProposalRule.propose(
                     new AreaFacts(plot.id(), plot.name(), plot.directSunIn(month), families), candidates, goals)));
         }
@@ -137,19 +138,20 @@ public class CropProposalService {
      * the antagonists growing in it, its light need and, for the goals, its cycle and service-plant rows.
      */
     private List<CropFacts> candidates(long spaceId, String login, PlotSummary plot, LocalDate day,
-                                       List<PlantingSummary> growing, Map<String, List<Window>> windowsOfMonth) {
+                                       List<PlantingSummary> growing, Map<String, List<Window>> windowsOfMonth,
+                                       SiteProfile site) {
         List<PlantingSummary> history = gardens.plantings(spaceId, login, plot.id());
         Set<String> neighbours = growing.stream().filter(p -> p.plotId() == plot.id())
                 .map(PlantingSummary::cropId).collect(Collectors.toSet());
         List<CropFacts> facts = new ArrayList<>();
         for (Map.Entry<String, List<Window>> entry : windowsOfMonth.entrySet()) {
-            facts.add(cropFacts(entry.getKey(), entry.getValue(), history, neighbours, day));
+            facts.add(cropFacts(entry.getKey(), entry.getValue(), history, neighbours, day, site, plot));
         }
         return facts;
     }
 
     private CropFacts cropFacts(String cropId, List<Window> windows, List<PlantingSummary> history,
-                                Set<String> neighbours, LocalDate day) {
+                                Set<String> neighbours, LocalDate day, SiteProfile site, PlotSummary plot) {
         Crop crop = crops.byId(cropId).orElseThrow(() -> new IllegalStateException("Unknown crop: " + cropId));
         boolean antagonistInArea = neighbours.stream().anyMatch(other -> !other.equals(cropId)
                 && traits.antagonists(cropId, other));
@@ -159,7 +161,9 @@ public class CropProposalService {
                 traits.lightOptimum(cropId).flatMap(LightRule::needs).orElse(null),
                 windows, rotation.check(history, cropId, day).isPresent(), antagonistInArea,
                 beneficial.isPresent(), beneficial.map(CropTraits.Beneficial::traditionalOnly).orElse(false),
-                beneficial.map(CropTraits.Beneficial::sources).orElse(List.of()), crop.perennial());
+                beneficial.map(CropTraits.Beneficial::sources).orElse(List.of()), crop.perennial(),
+                // A perennial that does not stand the area's winter in open ground is not proposed for it (#147).
+                FrostSuitabilityRule.of(crop, site, plot.kind().name()).orElse(null));
     }
 
     /** The families of the crops growing in the garden on the day, for the VARIETY goal. */

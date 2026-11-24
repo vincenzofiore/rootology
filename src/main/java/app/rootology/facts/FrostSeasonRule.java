@@ -9,6 +9,10 @@ import java.util.List;
  * 500 m; a garden on the coast (a cell with less than 90 % land, below its altitude) and a garden whose
  * altitude is not known keep the cell's dates as they are. Frost-free dates are never shifted.
  *
+ * <p>The site's winter minimum (#147) is corrected the same way: colder above the cell, warmer below,
+ * by the same lapse rate and with the same cases (capped, missing altitude, coast), since it is a
+ * temperature and the frost dates are read from it too.
+ *
  * <p>The first safe month is the month of the last frost, or the next month when the frost is after the
  * 15th, and January when there is no last frost. The last safe month is the month of the first frost, or
  * the previous month when the frost is on or before the 15th, and December when there is no first frost.
@@ -64,7 +68,20 @@ public final class FrostSeasonRule {
         Integer first = cell.firstFrostP20() == null ? null
                 : (int) Math.round(Math.min(365, cell.firstFrostP20() - days));
         return new SiteProfile(zone, cell.latitude(), cell.longitude(), cell.elevationM(), altitude,
-                cell.landFraction(), last, first, firstSafeMonth(last), lastSafeMonth(first), correction, sources);
+                cell.landFraction(), last, first, firstSafeMonth(last), lastSafeMonth(first),
+                winterMinimum(cell, correction, days), correction, sources);
+    }
+
+    /** The cell's 1-in-5 winter minimum (#147), moved by the same altitude difference as the dates. */
+    static Double winterMinimum(ClimateCells.Cell cell, SiteProfile.Correction correction, double days) {
+        if (cell.winterMinimum() == null) {
+            return null;
+        }
+        // The dates move by `days` of a season; the temperature by the same altitude difference, colder above.
+        double degrees = days * DEGREES_PER_DAY * -1;
+        double corrected = correction == SiteProfile.Correction.MISSING
+                || correction == SiteProfile.Correction.COAST ? cell.winterMinimum() : cell.winterMinimum() + degrees;
+        return Math.round(corrected * 10) / 10.0;
     }
 
     /** The month of the last frost, or the next month when it is after the 15th; January without a last frost. */

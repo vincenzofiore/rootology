@@ -34,7 +34,7 @@ class CropProposalRuleTest {
                                   List<Window> windows, boolean rotationWarning, boolean antagonistInArea,
                                   boolean beneficial, boolean traditionalOnly, List<String> beneficialSources) {
         return new CropFacts(id, family, service, cycle, lightNeed, windows, rotationWarning, antagonistInArea,
-                beneficial, traditionalOnly, beneficialSources, false);
+                beneficial, traditionalOnly, beneficialSources, false, null);
     }
 
     private static AreaFacts area(DirectSun sun) {
@@ -205,7 +205,7 @@ class CropProposalRuleTest {
     @Test
     void anAnnualComesBeforeAPerennialOfTheSameScore() {
         CropFacts aronia = new CropFacts("aronia", "Rosaceae", false, 60.0, DirectSun.PART_SHADE, List.of(window()),
-                false, false, false, false, List.of(), true);
+                false, false, false, false, List.of(), true, null);
         List<Proposal> proposals = CropProposalRule.propose(SUNNY, List.of(aronia, crop("zucchini", "Cucurbitaceae")),
                 List.of(Goal.VARIETY));
 

@@ -15,6 +15,8 @@
 #   NORD, plot Aiuola with garlic since 2026-10-15, and "Orto di Palermo", 38.12, 13.36, SUD, plot Aiuola with
 #   broad bean since 2026-10-20; asked in Turin, in Palermo, or outside both at the space level)
 #   | balcony ("Balcone" in Palermo, 38.12, 13.36, SUD; one plot "Davanzale", container, declared part shade)
+#   | milano ("Orto di Milano", 45.46, 9.19, IT, 120 m; one plot "Aiuola", ground)
+#   | turin-terrace ("Terrazzo di Torino", 45.07, 7.69, IT, 205 m; one plot "Vaso", pot)
 #   | two-terraces-small, two-terraces-space (one space in Vasto with "Terrazzo grande", plot Vasca with
 #   lettuce since 2026-10-01, and "Terrazzo piccolo", plot Vaso with garlic since 2026-10-15; asked on the
 #   small terrace or at the space level)
@@ -67,6 +69,50 @@ cases:
     expect:
       answer: [FEBRUARY, MARCH, APRIL, MAY]
       activities: {FEBRUARY: [SOW_SEEDBED], MARCH: [SOW_SEEDBED], APRIL: [TRANSPLANT], MAY: [TRANSPLANT]}
+
+  # Will a perennial stand the garden's winter (#147, frost-suitability-v1)? Vasto's cell is -1.4 °C,
+  # corrected to -1.5 °C at 144 m: the lemon, which stands -3 °C, survives, and nothing is said about it.
+  - id: plant-lemon-in-a-vasto-garden
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: two-terraces-small
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+
+  # Turin's cell is -10.4 °C, -10.2 °C at 205 m: the lemon (-3 °C) does not survive the winter there in open
+  # ground, and the answer says so. The planting window is still April-May, as at Vasto.
+  - id: plant-lemon-in-a-turin-garden
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: two-gardens-north
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+      notes: [does not survive the winter here in open ground]
+
+  # The same lemon on a terrace in Turin whose only area is a pot: the verdict is the pot's, shelter it in winter.
+  - id: plant-lemon-on-a-turin-terrace
+    question: Quando posso piantare un limone?
+    intent: {kind: SOWING_TIME, subject: limone, language: it}
+    garden: turin-terrace
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
+      notes: [in a pot, shelter it in winter]
+
+  # Milan's cell is -6.8 °C, -6.7 °C at 120 m: the kumquat, which stands -10 °C, survives the winter.
+  - id: plant-kumquat-in-a-milan-garden
+    question: Quando posso piantare un kumquat?
+    intent: {kind: SOWING_TIME, subject: kumquat, language: it}
+    garden: milano
+    weather: missing
+    expect:
+      answer: [APRIL, MAY]
+      activities: {APRIL: [PLANT], MAY: [PLANT]}
 
   # A crop named in the plural, as questions usually do (#108): the same answer as the singular.
   - id: sowing-tomato-plural

@@ -50,6 +50,8 @@ public class JevDecisionLayer implements DecisionLayer {
             "light-need-v1", "`light-need-v1` flags a crop that needs more direct sun than the plot gets.",
             "pest-shift-v1", "`pest-shift-v1` gives threatens: the curated months a pest or disease is active on a "
                     + "crop, moved as that crop's own calendar moves at the site.",
+            "frost-suitability-v1", "`frost-suitability-v1` gives survives-winter: whether an established perennial "
+                    + "stands the site's 1-in-5 winter minimum, from its frost hardiness.",
             "crop-proposal-v1", "`crop-proposal-v1` gives proposedFor, meetsGoal and uncertainty: the crops that "
                     + "can go in a free area this month, ranked by the person's goals, and what is not known about them.");
 

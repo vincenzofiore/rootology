@@ -1418,6 +1418,13 @@ rootology-garden-map { display: block; width: 100%; }
     height: var(--lumo-icon-size-s);
 }
 /* The harvest on a chip (#85): a small icon button that never makes the chip taller. */
+/* A perennial that does not stand the garden's winter (#147): the snowflake of the cold, in the frost colour. */
+.rootology-grow-frost {
+    flex: none;
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+    color: var(--rootology-frost);
+}
 .rootology-grow-chip vaadin-button {
     flex: none;
     width: var(--lumo-icon-size-m);

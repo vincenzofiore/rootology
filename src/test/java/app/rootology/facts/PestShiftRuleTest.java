@@ -100,7 +100,7 @@ class PestShiftRuleTest {
         // A window the site does not derive leaves the row curated: the crop's only window is a winter harvest,
         // which this site does not derive at all.
         WindowRow winterHarvest = new WindowRow("tomato", "CENTRO", "HARVEST", 11, 12, "", "rootology-editorial", false);
-        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10,
+        SiteProfile cold = new SiteProfile(null, 45.1, 7.7, 243, 205, 0.98, 96, 313, 4, 10, null,
                 SiteProfile.Correction.APPLIED, List.of("agera5"));
 
         PestShiftRule.Shifted row = PestShiftRule.shift("tomato", 5, 9, List.of(winterHarvest),

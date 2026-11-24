@@ -27,13 +27,16 @@ import com.vaadin.flow.router.RouterLink;
 import app.rootology.facts.ClimateCells;
 import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.ClimateWindows.ClimateWindow;
+import app.rootology.facts.CropCatalog;
 import app.rootology.facts.FrostSeasonRule;
+import app.rootology.facts.FrostSuitabilityRule;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.PlantingMethod;
+import app.rootology.garden.PlotKind;
 import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
 import app.rootology.officialwarnings.OfficialWarning;
@@ -84,6 +87,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final GardenService gardens;
     private final ClimateCells climateCells;
     private final ClimateWindows climateWindows;
+    private final CropCatalog crops;
     private final WeatherService weather;
     private final NotificationService notifications;
     private final OfficialWarnings official;
@@ -103,11 +107,13 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long gardenId;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
-                          WeatherService weather, NotificationService notifications, OfficialWarnings official,
-                          GardenPipeline pipeline, RunHistory history, CurrentUser currentUser) {
+                          CropCatalog crops, WeatherService weather, NotificationService notifications,
+                          OfficialWarnings official, GardenPipeline pipeline, RunHistory history,
+                          CurrentUser currentUser) {
         this.gardens = gardens;
         this.climateCells = climateCells;
         this.climateWindows = climateWindows;
+        this.crops = crops;
         this.weather = weather;
         this.notifications = notifications;
         this.official = official;
@@ -185,7 +191,9 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         if (contributor) {
             freeAreasCard(plots, growing);
         }
-        growingCard(growing, plots, contributor, harvest(garden));
+        java.util.Optional<SiteProfile> site = HarvestText.site(garden, climateCells);
+        growingCard(growing, plots, contributor,
+                site.map(s -> HarvestText.harvest(s, climateWindows)).orElse(Map.of()), site.orElse(null));
         climateCard(garden);
     }
 
@@ -406,18 +414,12 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         grid.add(card);
     }
 
-    /** The harvest months of every crop at this garden's site (#131), by crop id; empty when it has none. */
-    private Map<String, List<ClimateWindow>> harvest(GardenSummary garden) {
-        return HarvestText.site(garden, climateCells)
-                .map(site -> HarvestText.harvest(site, climateWindows)).orElse(Map.of());
-    }
-
     /**
      * What grows in this garden today, area by area (#130): every area, with a plus beside its name to sow or
      * plant there, and under the areas the way to add one and the link to the areas page (#133).
      */
     private void growingCard(List<PlantingSummary> growing, List<PlotSummary> plots, boolean contributor,
-                             Map<String, List<ClimateWindow>> harvest) {
+                             Map<String, List<ClimateWindow>> harvest, SiteProfile site) {
         Card card = new Card(drawing(SPROUT), getTranslation("home.growing"));
         if (growing.isEmpty() && (plots.isEmpty() || !contributor)) {
             card.content().add(new EmptyState(getTranslation("home.growing.none")));
@@ -425,8 +427,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         Map<Long, List<PlantingSummary>> byPlot = growing.stream().collect(Collectors.groupingBy(
                 PlantingSummary::plotId, LinkedHashMap::new, Collectors.toList()));
         for (PlotSummary area : plots) {
-            List<PlantingSummary> crops = byPlot.getOrDefault(area.id(), List.of());
-            if (crops.isEmpty() && !contributor) {
+            List<PlantingSummary> plants = byPlot.getOrDefault(area.id(), List.of());
+            if (plants.isEmpty() && !contributor) {
                 continue;
             }
             Div group = new Div();
@@ -442,10 +444,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
                 plotName.add(plant);
             }
             group.add(plotName);
-            if (!crops.isEmpty()) {
+            if (!plants.isEmpty()) {
                 Div chips = new Div();
                 chips.addClassName("rootology-chips");
-                crops.forEach(planting -> chips.add(growChip(planting, harvest.get(planting.cropId()))));
+                plants.forEach(planting -> chips.add(growChip(planting, harvest.get(planting.cropId()), site,
+                        area.kind())));
                 group.add(chips);
             }
             card.content().add(group);
@@ -489,7 +492,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
      * "trapianto 10 apr" (nouns, so no agreement with the crop's gender), then when it is usually harvested at
      * this site (#131), when the site has a HARVEST window for it.
      */
-    private Span growChip(PlantingSummary planting, List<ClimateWindow> harvest) {
+    private Span growChip(PlantingSummary planting, List<ClimateWindow> harvest, SiteProfile site,
+                          PlotKind areaKind) {
         Span name = new Span(planting.cropName());
         Span chip = new Span(name);
         chip.addClassName("rootology-grow-chip");
@@ -500,7 +504,29 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             chip.add(when);
         }
         HarvestText.value(harvest, this::getTranslation, NoteText.locale(this)).ifPresent(chip::add);
+        frostMarker(planting, site, areaKind).ifPresent(chip::add);
         return chip;
+    }
+
+    /**
+     * The snowflake of a perennial that does not stand this garden's 1-in-5 winter minimum (#147): the short
+     * verdict as tooltip and aria label, never a guessed one; nothing when the rule says nothing or the crop
+     * survives the winter.
+     */
+    private Optional<Component> frostMarker(PlantingSummary planting, SiteProfile site, PlotKind areaKind) {
+        return crops.byId(planting.cropId())
+                .flatMap(crop -> FrostSuitabilityRule.of(crop, site, areaKind.name()))
+                .filter(result -> !result.survives())
+                .map(result -> {
+                    String said = getTranslation(result.verdict() == FrostSuitabilityRule.Verdict.SHELTER_IN_POT
+                            ? "crop.frost.pot" : "crop.frost.ground");
+                    SvgIcon snowflake = new SvgIcon(FROST);
+                    snowflake.addClassName("rootology-grow-frost");
+                    snowflake.getElement().setAttribute("title", said);
+                    snowflake.getElement().setAttribute("aria-label", said);
+                    snowflake.getElement().setAttribute("role", "img");
+                    return snowflake;
+                });
     }
 
     /**

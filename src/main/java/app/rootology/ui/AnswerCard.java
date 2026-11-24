@@ -279,7 +279,7 @@ class AnswerCard extends Div {
                 Div warning = callout(NoteText.icon(note), NoteText.Tone.MISSING, NoteText.text(note, this));
                 // Frost and late blight keep their own colours (#87): ice blue and amber.
                 String state = switch (note.kind()) {
-                    case FROST_EXCLUDED -> "rootology-callout-frost";
+                    case FROST_EXCLUDED, FROST_SUITABILITY -> "rootology-callout-frost";
                     case SMITH_PERIOD -> "rootology-callout-pest";
                     default -> null;
                 };

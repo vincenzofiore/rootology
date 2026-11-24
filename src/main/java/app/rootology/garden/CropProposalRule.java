@@ -1,5 +1,7 @@
 package app.rootology.garden;
 
+import app.rootology.facts.FrostSuitabilityRule;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -16,7 +18,10 @@ import java.util.Set;
  * activity SOW, TRANSPLANT or PLANT at the site (a seedbed, SOW_SEEDBED, is not sown in the area); the
  * rotation rule (`family-rotation-v1`) gives no warning for the area; light (`light-need-v1`) does not
  * exclude it (and when the area's direct sun or the crop's need is unknown, the crop stays a candidate with
- * the uncertainty LIGHT_UNKNOWN); and it is not an antagonist of a crop growing in the same area that day.
+ * the uncertainty LIGHT_UNKNOWN); it is not an antagonist of a crop growing in the same area that day; and a
+ * perennial that does not survive the winter there in open ground (`frost-suitability-v1`, #147) is not
+ * proposed for a plot in the ground or a raised bed, while in a pot or a planter it stays a candidate and the
+ * answer says to shelter it.
  *
  * <p>One or two goals rank the candidates, and their points are summed:
  * QUICK_HARVEST, for FOOD crops only, gives 1 - (cycleMinDays / longest cycleMinDays among the area's
@@ -61,7 +66,8 @@ public final class CropProposalRule {
     public record CropFacts(String cropId, String family, boolean service, Double cycleMinDays,
                             DirectSun lightNeed, List<Window> windows, boolean rotationWarning,
                             boolean antagonistInArea, boolean beneficial, boolean beneficialTraditionalOnly,
-                            List<String> beneficialSources, boolean perennial) {
+                            List<String> beneficialSources, boolean perennial,
+                            FrostSuitabilityRule.Result frost) {
 
         public CropFacts {
             windows = List.copyOf(windows);
@@ -121,7 +127,8 @@ public final class CropProposalRule {
     }
 
     private static boolean candidate(CropFacts crop, AreaFacts area) {
-        if (crop.windows().isEmpty() || crop.rotationWarning() || crop.antagonistInArea()) {
+        if (crop.windows().isEmpty() || crop.rotationWarning() || crop.antagonistInArea()
+                || crop.frost() != null && crop.frost().verdict() == FrostSuitabilityRule.Verdict.NOT_IN_OPEN_GROUND) {
             return false;
         }
         return area.directSun() == null || crop.lightNeed() == null

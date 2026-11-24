@@ -70,7 +70,9 @@ public record Note(Kind kind, List<String> args) {
         /** The garden is on the coast below its cell: the cell's frost dates were not corrected (#62). */
         ALTITUDE_COAST,
         /** The altitude difference was capped at 500 m (#62). */
-        ALTITUDE_CAPPED
+        ALTITUDE_CAPPED,
+        /** args: crop, its hardiness (°C, one decimal), the site's winter minimum (°C, one decimal), verdict (#147). */
+        FROST_SUITABILITY
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -140,6 +142,18 @@ public record Note(Kind kind, List<String> args) {
                     + "corrected for altitude.";
             case ALTITUDE_CAPPED -> "The garden's altitude is more than 500 m from its climate cell's: the frost "
                     + "dates were corrected by a capped 500 m.";
+            case FROST_SUITABILITY -> arg(0) + " stands " + arg(1) + " °C and this site's 1-in-5 winter minimum "
+                    + "is " + arg(2) + " °C: " + frostVerdict(arg(3));
+        };
+    }
+
+    /** The verdict of frost-suitability-v1 as a sentence (#147). */
+    private static String frostVerdict(String verdict) {
+        return switch (verdict) {
+            case "NOT_IN_OPEN_GROUND" -> "it does not survive the winter here in open ground: in a pot, sheltered "
+                    + "in winter.";
+            case "SHELTER_IN_POT" -> "in a pot, shelter it in winter.";
+            default -> "";
         };
     }
 

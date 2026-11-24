@@ -173,7 +173,7 @@ class ViewsTest {
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
-        assertThat(new GardenHomeView(gardens, cells, climateWindows, weatherService, notificationService, officialWarnings,
+        assertThat(new GardenHomeView(gardens, cells, climateWindows, crops, weatherService, notificationService, officialWarnings,
                         pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();

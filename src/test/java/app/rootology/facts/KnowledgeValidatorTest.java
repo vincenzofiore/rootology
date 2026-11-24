@@ -92,7 +92,8 @@ class KnowledgeValidatorTest {
         assertThat(KnowledgeValidator.validateCells(new ClimateCells())).isEmpty();
 
         ClimateCells bad = new ClimateCells(new int[]{0}, new int[]{0}, new short[]{-10_000}, new byte[]{101},
-                new short[]{0}, new short[]{400}, new short[]{0}, new short[]{0}, new byte[]{31});
+                new short[]{0}, new short[]{400}, new short[]{0}, new short[]{0}, new byte[]{31},
+                new short[]{ClimateCells.NO_WINTER_MIN});
 
         assertThat(KnowledgeValidator.validateCells(bad)).anyMatch(p -> p.contains("elevation -10000"))
                 .anyMatch(p -> p.contains("land fraction 1.01"))
