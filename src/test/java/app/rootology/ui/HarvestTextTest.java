@@ -110,18 +110,18 @@ class HarvestTextTest {
 
     @Test
     void aGardenWithoutCoordinatesUsesTheSiteOfItsQuestions() {
-        GardenSummary nowhere = new GardenSummary(1, "Orto", null, null, null, null, null);
+        GardenSummary nowhere = new GardenSummary(1, "Orto", null, null, null, null, null, null);
         assertThat(HarvestText.site(nowhere, CELLS)).isPresent();
         assertThat(HarvestText.site(nowhere, CELLS).orElseThrow().zone()).isEqualTo("CENTRO");
         // A garden abroad with no coordinates has no profile, and its crops get no months.
-        GardenSummary abroad = new GardenSummary(2, "Garden", null, null, null, "FR", null);
+        GardenSummary abroad = new GardenSummary(2, "Garden", null, null, null, "FR", null, null);
         assertThat(HarvestText.site(abroad, CELLS)).isEmpty();
         assertThat(HarvestText.site(null, CELLS)).isEmpty();
     }
 
     private static SiteProfile site(double latitude, double longitude, String country) {
         GardenSummary garden = new GardenSummary(1, "Orto", "Vasto", BigDecimal.valueOf(latitude),
-                BigDecimal.valueOf(longitude), country, null);
+                BigDecimal.valueOf(longitude), country, null, null);
         return HarvestText.site(garden, CELLS).orElseThrow();
     }
 

@@ -2,15 +2,22 @@ package app.rootology.geocoding;
 
 /**
  * A populated place found by name: its region, ISO country code, coordinates (WGS84) and population,
- * which tells two places of the same name apart (#107).
+ * which tells two places of the same name apart (#107). adminCode1 is GeoNames' first-level
+ * administrative code (for Italy the region, "01"…"20"), or null when GeoNames did not give it (#136).
  */
 public record Place(String name, String region, String countryCode, String countryName, double latitude,
-                    double longitude, long population) {
+                    double longitude, long population, String adminCode1) {
 
     /** A place whose population GeoNames did not give. */
     public Place(String name, String region, String countryCode, String countryName, double latitude,
                  double longitude) {
-        this(name, region, countryCode, countryName, latitude, longitude, 0);
+        this(name, region, countryCode, countryName, latitude, longitude, 0, null);
+    }
+
+    /** A place whose first-level administrative code GeoNames did not give. */
+    public Place(String name, String region, String countryCode, String countryName, double latitude,
+                 double longitude, long population) {
+        this(name, region, countryCode, countryName, latitude, longitude, population, null);
     }
 
     /**

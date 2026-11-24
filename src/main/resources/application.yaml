@@ -183,6 +183,13 @@ rootology:
     # A free GeoNames account with "free web services" enabled; empty means place search is not offered.
     base-url: https://secure.geonames.org
     username: ${ROOTOLOGY_GEONAMES_USERNAME:}
+  meteoalarm:
+    # Official Italian warnings (#136): one plain GET of the feed every few minutes, since it sends no ETag
+    # or Last-Modified (about 40-60 MB a day); the CAP document of a warning is fetched once, when it is new.
+    # enabled also switches the garden region lookup on GeoNames. Off in tests, so no test calls either.
+    base-url: https://feeds.meteoalarm.org
+    refresh-ms: 150000
+    enabled: true
   weather:
     # MET Norway asks every app to identify itself, with a way to reach its maintainer.
     base-url: https://api.met.no

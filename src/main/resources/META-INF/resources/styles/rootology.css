@@ -33,6 +33,13 @@
     --rootology-wind: light-dark(#4a5a66, #a9bccb);
     --rootology-wind-10pct: light-dark(rgba(74, 90, 102, .1), rgba(169, 188, 203, .14));
     --rootology-earth-10pct: light-dark(rgba(138, 90, 59, .1), rgba(201, 162, 127, .14));
+    /* The levels of MeteoAlarm's official warnings (#136): yellow, orange and red, as MeteoAlarm paints them. */
+    --rootology-level-yellow: light-dark(#8a6d00, #e6d24d);
+    --rootology-level-yellow-10pct: light-dark(rgba(138, 109, 0, .1), rgba(230, 210, 77, .14));
+    --rootology-level-orange: light-dark(#b25500, #ffab5e);
+    --rootology-level-orange-10pct: light-dark(rgba(178, 85, 0, .1), rgba(255, 171, 94, .14));
+    --rootology-level-red: light-dark(#a41b12, #ff8a8a);
+    --rootology-level-red-10pct: light-dark(rgba(164, 27, 18, .1), rgba(255, 138, 138, .14));
     --lumo-base-color: light-dark(#fcfdfa, #111611);
     --lumo-tint: light-dark(#fff, #e4ebe2);
     --lumo-tint-5pct: light-dark(hsla(0, 0%, 100%, .3), rgba(228, 235, 226, .06));
@@ -1168,6 +1175,48 @@ rootology-garden-map { display: block; width: 100%; }
 .rootology-alert-title {
     display: block;
     font-weight: 600;
+}
+
+/* An official warning of #136: the level's colour on the stripe and on the icons, the neutral one for green
+   or a level the warning does not state. */
+.rootology-official-warning {
+    --rootology-official: var(--lumo-secondary-text-color);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    border-inline-start: 3px solid var(--rootology-official);
+    background: var(--lumo-contrast-5pct);
+}
+.rootology-official-yellow { --rootology-official: var(--rootology-level-yellow); background: var(--rootology-level-yellow-10pct); }
+.rootology-official-orange { --rootology-official: var(--rootology-level-orange); background: var(--rootology-level-orange-10pct); }
+.rootology-official-red { --rootology-official: var(--rootology-level-red); background: var(--rootology-level-red-10pct); }
+.rootology-official-icon {
+    flex: none;
+    width: var(--lumo-icon-size-m);
+    height: var(--lumo-icon-size-m);
+    color: var(--rootology-official);
+}
+.rootology-official-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.rootology-official-headline {
+    display: block;
+    font-weight: 600;
+}
+.rootology-official-period,
+.rootology-official-issued {
+    display: block;
+    font-size: var(--lumo-font-size-xs);
+}
+.rootology-official-issued { color: var(--lumo-secondary-text-color); }
+.rootology-official-link { align-self: flex-start; }
+.rootology-official-disclaimer {
+    margin: 0;
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-xs);
 }
 
 /* Questions waiting for a person: the count first, then up to three of them. */

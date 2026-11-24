@@ -359,6 +359,49 @@ class GardenServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void theRegionFollowsThePlaceAndIsClearedWhenItMovesOrLosesItsCoordinates() {
+        long space = spaceOf("region");
+        GardenSummary garden = gardens.saveGarden(space, "region", null, "Orto", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        gardens.setRegion(garden.id(), "13");
+        assertThat(gardens.garden(space, "region", garden.id()).orElseThrow().regionCode()).isEqualTo("13");
+
+        GardenSummary same = gardens.saveGarden(space, "region", garden.id(), "Orto", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        assertThat(same.regionCode()).as("the same place keeps the region").isEqualTo("13");
+
+        GardenSummary moved = gardens.saveGarden(space, "region", garden.id(), "Orto", "Trivento",
+                new BigDecimal("41.78"), new BigDecimal("14.55"), "IT");
+        assertThat(moved.regionCode()).as("a moved garden loses the region of its old place").isNull();
+
+        gardens.setRegion(garden.id(), "13");
+        GardenSummary cleared = gardens.saveGarden(space, "region", garden.id(), "Orto", "Vasto", null, null, "IT");
+        assertThat(cleared.regionCode()).as("cleared coordinates lose the region").isNull();
+
+        assertThatThrownBy(() -> gardens.setRegion(garden.id(), "Lombardia"))
+                .as("a region is a GeoNames code, not a name").isInstanceOf(IllegalArgumentException.class);
+        gardens.setRegion(garden.id(), null);
+        assertThat(gardens.garden(space, "region", garden.id()).orElseThrow().regionCode()).isNull();
+    }
+
+    @Test
+    void withoutRegionListsOnlyItalianGardensWithCoordinatesAndNoRegion() {
+        long space = spaceOf("regions");
+        GardenSummary italian = gardens.saveGarden(space, "regions", null, "Italiano", "Vasto",
+                new BigDecimal("42.11"), new BigDecimal("14.71"), "IT");
+        GardenSummary known = gardens.saveGarden(space, "regions", null, "Con regione", "Vasto",
+                new BigDecimal("42.12"), new BigDecimal("14.72"), "IT");
+        gardens.setRegion(known.id(), "13");
+        GardenSummary foreign = gardens.saveGarden(space, "regions", null, "Straniero", "Lyon",
+                new BigDecimal("45.76"), new BigDecimal("4.84"), "FR");
+        GardenSummary nowhere = gardens.saveGarden(space, "regions", null, "Senza posto", "Vasto", null, null, "IT");
+
+        assertThat(gardens.withoutRegion()).extracting(GardenSummary::id)
+                .contains(italian.id())
+                .doesNotContain(known.id(), foreign.id(), nowhere.id());
+    }
+
     /** A new place is announced so its forecast can be fetched (#67); a save that keeps the place is not. */
     @Test
     void aGardenThatGetsANewPlaceIsAnnounced() {

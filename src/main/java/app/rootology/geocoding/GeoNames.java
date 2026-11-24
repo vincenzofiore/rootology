@@ -125,7 +125,7 @@ public class GeoNames {
                 .map(r -> r.geonames() == null ? List.<Place>of() : r.geonames().stream()
                         .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(),
                                 Double.parseDouble(g.lat()), Double.parseDouble(g.lng()),
-                                g.population() == null ? 0 : g.population()))
+                                g.population() == null ? 0 : g.population(), g.adminCode1()))
                         .toList())
                 .orElse(null);
     }
@@ -149,7 +149,7 @@ public class GeoNames {
                 .flatMap(r -> r.geonames() == null ? Optional.empty() : r.geonames().stream().findFirst())
                 .filter(g -> g.countryCode() != null && g.countryCode().matches("[A-Z]{2}"))
                 .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(), latitude, longitude,
-                        g.population() == null ? 0 : g.population()));
+                        g.population() == null ? 0 : g.population(), g.adminCode1()));
     }
 
     /**
@@ -221,6 +221,6 @@ public class GeoNames {
     }
 
     record Entry(String name, String adminName1, String countryCode, String countryName, String lat, String lng,
-                 Long population) {
+                 Long population, String adminCode1) {
     }
 }

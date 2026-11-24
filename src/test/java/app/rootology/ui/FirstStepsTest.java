@@ -56,6 +56,6 @@ class FirstStepsTest {
     }
 
     private static GardenSummary garden(BigDecimal latitude, BigDecimal longitude) {
-        return new GardenSummary(1, "Orto", "Milano", latitude, longitude, "IT", 120);
+        return new GardenSummary(1, "Orto", "Milano", latitude, longitude, "IT", null, 120);
     }
 }

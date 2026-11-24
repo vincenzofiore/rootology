@@ -89,6 +89,9 @@ class ViewsTest {
     app.rootology.notifications.NotificationService notificationService;
 
     @Autowired
+    app.rootology.officialwarnings.OfficialWarnings officialWarnings;
+
+    @Autowired
     app.rootology.notifications.TelegramLinks telegramLinks;
 
     @Autowired
@@ -170,8 +173,8 @@ class ViewsTest {
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
-        assertThat(new GardenHomeView(gardens, cells, climateWindows, weatherService, notificationService, pipeline, history,
-                        viewer()).getChildren())
+        assertThat(new GardenHomeView(gardens, cells, climateWindows, weatherService, notificationService, officialWarnings,
+                        pipeline, history, viewer()).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();

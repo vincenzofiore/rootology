@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -35,6 +36,9 @@ import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.PlantingMethod;
 import app.rootology.history.RunHistory;
 import app.rootology.notifications.NotificationService;
+import app.rootology.officialwarnings.OfficialWarning;
+import app.rootology.officialwarnings.OfficialWarnings;
+import app.rootology.officialwarnings.WarningZones;
 import app.rootology.notifications.NotificationView;
 import app.rootology.pipeline.GardenPipeline;
 import app.rootology.pipeline.Question;
@@ -49,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -81,6 +86,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final ClimateWindows climateWindows;
     private final WeatherService weather;
     private final NotificationService notifications;
+    private final OfficialWarnings official;
     private final GardenPipeline pipeline;
     private final RunHistory history;
     private final CurrentUser currentUser;
@@ -97,13 +103,14 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long gardenId;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
-                          WeatherService weather, NotificationService notifications, GardenPipeline pipeline,
-                          RunHistory history, CurrentUser currentUser) {
+                          WeatherService weather, NotificationService notifications, OfficialWarnings official,
+                          GardenPipeline pipeline, RunHistory history, CurrentUser currentUser) {
         this.gardens = gardens;
         this.climateCells = climateCells;
         this.climateWindows = climateWindows;
         this.weather = weather;
         this.notifications = notifications;
+        this.official = official;
         this.pipeline = pipeline;
         this.history = history;
         this.currentUser = currentUser;
@@ -173,6 +180,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         weatherCard(garden);
         alertsCard();
+        officialWarningsCard(garden);
         questionsCard();
         if (contributor) {
             freeAreasCard(plots, growing);
@@ -229,6 +237,99 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         line.addClassName("rootology-alert");
         line.addClassName(severity.className());
         return line;
+    }
+
+    /**
+     * The official warnings of the garden's region (#136), apart from the computed alerts and never mixed with
+     * them: the regions of Italy only, nothing for a garden abroad or whose region is not known yet, and nothing
+     * when its region has no active warning. What is shown has the issuing service, the time of issue, the link
+     * and MeteoAlarm's disclaimer; when the feed could not be read for ten minutes the card only says so.
+     */
+    void officialWarningsCard(GardenSummary garden) {
+        Optional<String> zone = WarningZones.emmaId(garden.countryCode(), garden.regionCode());
+        if (zone.isEmpty()) {
+            return;
+        }
+        if (official.stale()) {
+            Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
+            card.content().add(paragraph(getTranslation("home.official.unavailable")), meteoAlarmLink());
+            grid.add(card);
+            return;
+        }
+        List<OfficialWarning> warnings = official.active(zone.get());
+        if (warnings.isEmpty()) {
+            return;
+        }
+        Card card = new Card(VaadinIcon.MEGAPHONE, getTranslation("home.official"));
+        warnings.forEach(warning -> card.content().add(officialWarning(warning)));
+        card.content().add(meteoAlarmLink(), disclaimer());
+        grid.add(card);
+    }
+
+    /**
+     * One official warning: the level (its colour and name) and the phenomenon as two icons, then the headline
+     * exactly as MeteoAlarm wrote it in Italian, its period and who issued it when.
+     */
+    private Div officialWarning(OfficialWarning warning) {
+        OfficialWarningLevel level = OfficialWarningLevel.of(warning.level());
+        OfficialWarningType type = OfficialWarningType.of(warning.type());
+        Span headline = new Span(warning.headline() == null || warning.headline().isBlank()
+                ? warning.event() : warning.headline());
+        headline.addClassName("rootology-official-headline");
+        Span period = new Span(period(warning));
+        period.addClassName("rootology-official-period");
+        Span issued = new Span(issued(warning));
+        issued.addClassName("rootology-official-issued");
+        Div text = new Div(headline, period, issued);
+        text.addClassName("rootology-official-text");
+        Div line = new Div(icon(level.icon(), getTranslation(level.label())),
+                icon(type.icon(), getTranslation(type.label())), text);
+        line.addClassName("rootology-official-warning");
+        line.addClassName(level.className());
+        return line;
+    }
+
+    /** An icon that says what it is to a screen reader too, its translated name as tooltip and aria label. */
+    private Icon icon(VaadinIcon symbol, String label) {
+        Icon drawn = symbol.create();
+        drawn.addClassName("rootology-official-icon");
+        drawn.getElement().setAttribute("title", label);
+        drawn.getElement().setAttribute("aria-label", label);
+        drawn.getElement().setAttribute("role", "img");
+        return drawn;
+    }
+
+    /** When the warned phenomenon begins and ends, in Italian time; the one date when the other is missing. */
+    private String period(OfficialWarning warning) {
+        String from = warning.onset() == null ? null : DateText.dateTime(warning.onset(), this);
+        String to = warning.expires() == null ? null : DateText.dateTime(warning.expires(), this);
+        if (from == null) {
+            return to == null ? "" : to;
+        }
+        return to == null ? from : from + " – " + to;
+    }
+
+    /** "Emessa da … il …": the issuing service is always shown with the time of issue, as MeteoAlarm asks. */
+    private String issued(OfficialWarning warning) {
+        String sender = warning.senderName() == null || warning.senderName().isBlank()
+                ? getTranslation("home.official.sender") : warning.senderName();
+        return warning.sent() == null ? sender
+                : getTranslation("home.official.issued", sender, DateText.dateTime(warning.sent(), this));
+    }
+
+    /** MeteoAlarm asks for a link to its site wherever its warnings are shown. */
+    private static Anchor meteoAlarmLink() {
+        Anchor link = new Anchor("https://meteoalarm.org", "meteoalarm.org");
+        link.setTarget("_blank");
+        link.addClassName("rootology-official-link");
+        return link;
+    }
+
+    /** The disclaimer MeteoAlarm requires, unchanged in both languages. */
+    private Paragraph disclaimer() {
+        Paragraph disclaimer = new Paragraph(getTranslation("home.official.disclaimer"));
+        disclaimer.addClassName("rootology-official-disclaimer");
+        return disclaimer;
     }
 
     /**
