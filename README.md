@@ -7,11 +7,11 @@
 with an Italian and an English interface.
 
 <p align="center">
-  <img src="docs/screenshots/answer.png" alt="An answer to “What can I do against aphids?”: the methods with how well each is supported, a note to read the label, and a high confidence" width="500">
+  <img src="docs/screenshots/answer.png" alt="An answer to “What can I do against aphids?”: the methods with how well each is supported, a note to read the label, and a high confidence" width="460">
   &nbsp;
-  <img src="docs/screenshots/phone-dark.png" alt="The garden home on a phone, dark theme: the frost days ahead, the garden’s climate and what grows now" width="170">
+  <img src="docs/screenshots/phone-dark.png" alt="The garden home on a phone, dark theme: the frost days ahead, the garden’s climate and what grows now" width="155">
   &nbsp;
-  <img src="docs/screenshots/phone-light.png" alt="The same garden home in the light theme" width="170">
+  <img src="docs/screenshots/phone-light.png" alt="The same garden home in the light theme" width="155">
 </p>
 
 ## What it does
