@@ -77,8 +77,11 @@ instead of declaring its own properties, clock or doubles:
 - `notifications.SettableClockContext`: a settable clock (`now`, set by each class in `@BeforeEach`), the scheduled jobs
   once an hour, a mocked `TelegramClient` and a spied `MailService`; for notifications, access and usage.
 - `pipeline.PipelineContext`: Embabel's base with no Jev key, a mocked `WeatherService` and spied
-  `DomainFilter` and `DecisionLayer`. Stub a spy with `doReturn(...).when(spy)`, never `when(spy.method())`,
-  which calls the real method.
+  `DomainFilter` and `DecisionLayer`.
+
+Stub a shared mock or spy with `doReturn(...).when(mock).method(...)`, never `when(mock.method())`: on a spy
+that form calls the real method, and on any shared double a scheduled job calling it from another thread can
+take the stub (Mockito's `WrongTypeOfReturnValue`, seen in CI after #174).
 
 To see which classes make their own context, add `digital.pragmatech.testing:spring-test-profiler` (test
 scope, MIT) on a local branch and read `target/spring-test-profiler/latest.html` after a run; it is not kept

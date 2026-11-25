@@ -27,10 +27,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /** Notifications of waiting questions (#26): who gets them, their state, and the grouped emails (Mailpit). */
 class NotificationServiceTest extends SettableClockContext {
@@ -493,7 +493,7 @@ class NotificationServiceTest extends SettableClockContext {
         notifications.save("tgo", new NotificationPreferences(null, true, true, true, true, null, null));
         long garden = gardens.saveGarden(space, "tgo", null, "Balcony", null, null, null).id();
         linked("tgo", 700_000_001L);
-        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+        doReturn(TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
 
         waiting("tg-1", space, "tgm", "Quali sono le compagne della lavanda?");
         notifications.weatherAlert(space, garden, "frost:" + garden, "Rischio gelo", "Minima prevista -2 °C");
@@ -519,7 +519,7 @@ class NotificationServiceTest extends SettableClockContext {
                 LocalTime.of(10, 0), LocalTime.of(12, 0)));
         long garden = gardens.saveGarden(space, "tga", null, "Balcony", null, null, null).id();
         linked("tga", 700_000_002L);
-        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+        doReturn(TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
 
         waiting("tg-2", space, "tgb", "Domanda?");
         notifications.weatherAlert(space, garden, "blight:" + garden, "Rischio peronospora", "Periodo caldo");
@@ -552,7 +552,7 @@ class NotificationServiceTest extends SettableClockContext {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("tgk", "tgl", "tgm2");
         linked("tgk", 700_000_004L);
-        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.CHAT_GONE);
+        doReturn(TelegramClient.Delivery.CHAT_GONE).when(telegram).send(anyLong(), anyString());
 
         waiting("tg-4", space, "tgl", "Domanda?");
         assertThat(notifications.telegramDigest()).as("not delivered").isZero();
@@ -568,7 +568,7 @@ class NotificationServiceTest extends SettableClockContext {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("tgn", "tgp", "tgq");
         linked("tgn", 700_000_005L);
-        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.DROPPED);
+        doReturn(TelegramClient.Delivery.DROPPED).when(telegram).send(anyLong(), anyString());
 
         waiting("tg-5", space, "tgp", "Domanda?");
         assertThat(notifications.telegramDigest()).isZero();
@@ -582,9 +582,7 @@ class NotificationServiceTest extends SettableClockContext {
         now = Instant.parse("2026-11-04T10:00:00Z");
         long space = space("tgr", "tgs", "tgt");
         linked("tgr", 700_000_006L);
-        when(telegram.send(anyLong(), anyString()))
-                .thenReturn(TelegramClient.Delivery.UNAVAILABLE)
-                .thenReturn(TelegramClient.Delivery.SENT);
+        doReturn(TelegramClient.Delivery.UNAVAILABLE, TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
 
         waiting("tg-6", space, "tgs", "Domanda?");
         assertThat(notifications.telegramDigest()).as("Telegram is down").isZero();

@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -99,7 +100,7 @@ class QuestionContextPipelineTest extends PipelineContext {
     void theForecastIsTheRunsGardenAndTheQuestionWinsOnTheZone() {
         long space = spaceOf("ctx-weather");
         long north = garden(space, "ctx-weather", "Orto di Milano", "45.46", "9.19");
-        org.mockito.Mockito.when(weatherService.around(any(), any(), any())).thenReturn(java.util.Optional.empty());
+        doReturn(java.util.Optional.empty()).when(weatherService).around(any(), any(), any());
 
         var centre = ask("ctx-weather", space, north, "Cosa semino adesso?",
                 new Intent(QueryKind.SOW_NOW, null, null, "it"));

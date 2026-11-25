@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -126,7 +127,7 @@ class AccountFlagNotificationsTest extends SettableClockContext {
         suspiciousAccount("flag-mailer");
         try {
             flags.evaluate();
-            when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+            doReturn(TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
 
             now = START.plus(Duration.ofMinutes(3));
             assertThat(notifications.digest()).isGreaterThanOrEqualTo(1);

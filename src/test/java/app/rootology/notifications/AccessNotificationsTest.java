@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -92,7 +93,7 @@ class AccessNotificationsTest extends SettableClockContext {
         now = START;
         admin("acc-admin-mail");
         telegramLinked("acc-admin-mail");
-        when(telegram.send(anyLong(), anyString())).thenReturn(TelegramClient.Delivery.SENT);
+        doReturn(TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
 
         requests.request(IdentityProvider.GITHUB, "acc-notify-2", "acc-asker-two", "asker2@example.org",
                 "My tomatoes need help");

@@ -66,7 +66,7 @@ class ContinueWithTest extends PipelineContext {
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
         doReturn(DomainFilter.Verdict.allowing(0.98)).when(domainFilter).judge(text);
-        when(weatherService.around(any(), any(), any())).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(weatherService).around(any(), any(), any());
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", text), run);
         assertThat(asked.choice()).as("no garden, no place, no zone: the person chooses").isNotNull();
@@ -121,7 +121,7 @@ class ContinueWithTest extends PipelineContext {
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
         doReturn(DomainFilter.Verdict.allowing(0.98)).when(domainFilter).judge(text);
-        when(weatherService.around(any(), any(), any())).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(weatherService).around(any(), any(), any());
         for (int i = 0; i < usage.defaultLimit() - 1; i++) {
             usage.record("cont-limit", space, UsageKind.QUESTION, new RunUsage(2, 0, 0, 0, 1));
         }
