@@ -71,7 +71,7 @@ Phase 1, a personal assistant for a few invited users, still open:
 - Quality: #27 observability, part 2 (traces, a place for metrics); #157 audit follow-up (load, unread code, contribution guardrails).
 - Knowledge and climate: #148 remove the Italian zones (places and climate cells only); #158 local time from the garden's coordinates; #163 what is Italy-specific before other countries.
 - Later: #52 review policy per space and second opinions; #34 more collaborator roles; #99 support the project; #90 layout of areas in the garden (blocked: its value is being evaluated; step 1 on `feature/90-garden-plan`).
-- Tooling: #129 ponytail trial; #145 Spring Boot 4.1.4 when it is out; #172 LLM provider by configuration; #174 Spring Test Profiler.
+- Tooling: #129 ponytail trial; #145 Spring Boot 4.1.4 when it is out; #172 LLM provider by configuration.
 
 Phase 2, precision agriculture (umbrella #22): #21 the owner's weather station as the first real sensor (SOSA/SSN), then field sensors and operational decisions that escalate on missing or uncertain readings; #9 Embabel DICE may fit here.
 

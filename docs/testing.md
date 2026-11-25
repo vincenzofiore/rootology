@@ -3,6 +3,22 @@
 `./mvnw test` is offline and free: no test calls Claude, Jev or MET Norway. It needs Docker, because
 `TestcontainersConfiguration` starts the real databases and a mail catcher.
 
+## Which kind of test
+
+Take the first level that can test the behaviour:
+
+1. **A plain unit test, no Spring**: the default for rules, calculations, parsing and texts. If logic can
+   only be tested by starting Spring, that is usually a sign it belongs in a plain class of its own.
+2. **One of the shared contexts**: when the database, the wiring or security is the point. Extend
+   `notifications.SettableClockContext` (moves time) or `pipeline.PipelineContext` (the agent), or use the
+   main one exactly: `@Import(TestcontainersConfiguration.class)` and a bare `@SpringBootTest`. Add no
+   properties, mocks or `@TestBean` of the class's own: read a configured value with `@Value` instead.
+3. **A context of its own, only with a reason**: a real HTTP port, a property that changes the behaviour
+   under test. Write the reason in the class's javadoc. A slice test (`@DataJpaTest`, `@WebMvcTest`) is
+   one of these too: it makes its own context, so it is worth it only if it is lighter and shared.
+
+Each new context costs 3-4 s of every build (see the numbers of #174 below).
+
 ## Code quality gates (#151)
 
 `./mvnw verify` also runs PMD, CPD and JaCoCo, so CI runs them with the tests:
