@@ -3,8 +3,6 @@ package app.rootology.pipeline;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.Intent;
 import app.rootology.decision.QueryKind;
 import app.rootology.notifications.NotificationPreferences;
@@ -17,9 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,9 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * What a question leaves behind for operations (#27): the domain metrics count it with the right outcome, and
  * the logs of the whole run, notifications included, hold neither the question's text nor the asker's address.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = {"rootology.jev.api-key=", "rootology.notifications.group-window=PT0S"})
-class ObservabilityTest extends EmbabelMockitoIntegrationTest {
+class ObservabilityTest extends PipelineContext {
 
     @Autowired
     GardenPipeline pipeline;
@@ -46,10 +39,6 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     MeterRegistry meters;
-
-    /** Never the real service in tests. */
-    @MockitoBean
-    app.rootology.weather.WeatherService weatherService;
 
     private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
     private final Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);

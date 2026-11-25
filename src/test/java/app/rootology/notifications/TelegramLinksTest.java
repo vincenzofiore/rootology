@@ -1,17 +1,12 @@
 package app.rootology.notifications;
 
-import app.rootology.TestcontainersConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.bean.override.convention.TestBean;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,39 +14,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Linking a Telegram chat (#38) on a real database: a one-time code that only exists as a hash, its ten minutes,
  * one chat per person, and the link that Telegram stopped delivering to.
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {"rootology.telegram.poll-every=PT1H", "rootology.telegram.send-every=PT1H"})
-class TelegramLinksTest {
-
-    static Instant now = Instant.parse("2026-11-10T09:00:00Z");
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return new Clock() {
-            @Override
-            public ZoneId getZone() {
-                return ZoneId.of("Europe/Rome");
-            }
-
-            @Override
-            public Clock withZone(ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now;
-            }
-        };
-    }
+class TelegramLinksTest extends NotificationsContext {
 
     @Autowired
     TelegramLinks links;
 
     @Autowired
     JdbcClient jdbc;
+
+    @BeforeEach
+    void start() {
+        now = Instant.parse("2026-11-10T09:00:00Z");
+    }
 
     @Test
     void aCodeLinksOnePrivateChatAndWorksOnce() {

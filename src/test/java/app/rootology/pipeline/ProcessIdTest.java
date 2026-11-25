@@ -2,11 +2,7 @@ package app.rootology.pipeline;
 
 import com.embabel.agent.core.Agent;
 import com.embabel.agent.core.ProcessOptions;
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import app.rootology.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
 import java.util.UUID;
@@ -18,9 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * so Embabel must hand out ids that cannot repeat. The ids are taken from the platform, the way Embabel
  * creates every agent process, so this also proves the platform really uses our generator.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
-class ProcessIdTest extends EmbabelMockitoIntegrationTest {
+class ProcessIdTest extends PipelineContext {
 
     @Test
     void everyAgentProcessGetsItsOwnUuid() {

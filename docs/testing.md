@@ -51,6 +51,23 @@ contexts as properties from a `DynamicPropertyRegistrar`.
 
 Do not enable `withReuse()`: it needs a per-user setting and would keep containers after the run.
 
+### One context per group (#174)
+
+Every new context costs 3-4 s, so tests of the same area share one. Two overrides are the same only if they
+use the same `@TestBean` factory method and, for by-type mocks, the same field name: a copy in each class is
+a new context. So the shared configuration lives in one base class per group, and a new test extends it
+instead of declaring its own properties, clock or doubles:
+
+- `notifications.NotificationsContext`: notification properties, a settable clock (`now`, reset by each class
+  in `@BeforeEach`), a mocked `TelegramClient` and a spied `MailService`.
+- `pipeline.PipelineContext`: Embabel's base with no Jev key, a mocked `WeatherService` and spied
+  `DomainFilter` and `DecisionLayer`. Stub a spy with `doReturn(...).when(spy)`, never `when(spy.method())`,
+  which calls the real method.
+
+To see which classes make their own context, add `digital.pragmatech.testing:spring-test-profiler` (test
+scope, MIT) on a local branch and read `target/spring-test-profiler/latest.html` after a run; it is not kept
+in the build.
+
 ### Limits
 
 - Neo4j: `server.memory.heap.initial_size=256m`, `server.memory.heap.max_size=512m`,

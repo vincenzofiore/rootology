@@ -1,6 +1,5 @@
 package app.rootology.pipeline;
 
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.DomainFilter;
 import app.rootology.decision.Intent;
 import app.rootology.decision.QueryKind;
@@ -12,14 +11,9 @@ import app.rootology.spaces.SpaceService;
 import app.rootology.usage.RunUsage;
 import app.rootology.usage.UsageKind;
 import app.rootology.usage.UsageService;
-import app.rootology.weather.WeatherService;
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +21,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -36,9 +31,7 @@ import static org.mockito.Mockito.when;
  * Continuing a question after the person chose a place or a garden (#107): the same question again with the
  * intent Claude already understood, no second understanding call, no domain filter and no daily limit.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
-class ContinueWithTest extends EmbabelMockitoIntegrationTest {
+class ContinueWithTest extends PipelineContext {
 
     @Autowired
     GardenPipeline pipeline;
@@ -54,12 +47,6 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     JdbcClient jdbc;
-
-    @MockitoBean
-    WeatherService weather;
-
-    @MockitoBean
-    DomainFilter domainFilter;
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
@@ -78,8 +65,8 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         String text = "Cosa posso seminare adesso?";
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
-        when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        doReturn(DomainFilter.Verdict.allowing(0.98)).when(domainFilter).judge(text);
+        when(weatherService.around(any(), any(), any())).thenReturn(Optional.empty());
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", text), run);
         assertThat(asked.choice()).as("no garden, no place, no zone: the person chooses").isNotNull();
@@ -113,7 +100,7 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         String text = "Cosa cresce nel mio orto?";
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.GROWING_NOW, null, null, "it"));
-        when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.allowing(0.98));
+        doReturn(DomainFilter.Verdict.allowing(0.98)).when(domainFilter).judge(text);
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", text), run);
         assertThat(asked.choice().kind()).as("no garden named").isEqualTo(QuestionContext.Choice.Kind.GARDEN);
@@ -133,8 +120,8 @@ class ContinueWithTest extends EmbabelMockitoIntegrationTest {
         String text = "Cosa posso seminare adesso?";
         whenCreateObject(prompt -> prompt.contains("Question: " + text + "\n"), Intent.class)
                 .thenReturn(new Intent(QueryKind.SOW_NOW, null, null, "it"));
-        when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.allowing(0.98));
-        when(weather.around(any(), any(), any())).thenReturn(Optional.empty());
+        doReturn(DomainFilter.Verdict.allowing(0.98)).when(domainFilter).judge(text);
+        when(weatherService.around(any(), any(), any())).thenReturn(Optional.empty());
         for (int i = 0; i < usage.defaultLimit() - 1; i++) {
             usage.record("cont-limit", space, UsageKind.QUESTION, new RunUsage(2, 0, 0, 0, 1));
         }

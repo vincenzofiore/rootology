@@ -1,8 +1,5 @@
 package app.rootology.pipeline;
 
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import app.rootology.TestcontainersConfiguration;
-import app.rootology.decision.DecisionLayer;
 import app.rootology.decision.Intent;
 import app.rootology.decision.Note;
 import app.rootology.decision.QueryKind;
@@ -12,13 +9,8 @@ import app.rootology.garden.PlotKind;
 import app.rootology.garden.Soil;
 import app.rootology.history.RunHistory;
 import app.rootology.spaces.SpaceService;
-import app.rootology.weather.WeatherService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,9 +25,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
  * The context of a question reaches the facts, the forecast, the answer and the history (#55): only the
  * run's garden is read, ambiguity escalates before the decision layer, and what was used is stored.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
-class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
+class QuestionContextPipelineTest extends PipelineContext {
 
     @Autowired
     GardenPipeline pipeline;
@@ -48,13 +38,6 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     RunHistory history;
-
-    @MockitoBean
-    WeatherService weather;
-
-    /** The real stub, watched: an escalation the context decides must not reach the decision layer. */
-    @MockitoSpyBean
-    DecisionLayer decisionLayer;
 
     @org.junit.jupiter.api.BeforeEach
     void stubPhrasing() {
@@ -116,7 +99,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
     void theForecastIsTheRunsGardenAndTheQuestionWinsOnTheZone() {
         long space = spaceOf("ctx-weather");
         long north = garden(space, "ctx-weather", "Orto di Milano", "45.46", "9.19");
-        org.mockito.Mockito.when(weather.around(any(), any(), any())).thenReturn(java.util.Optional.empty());
+        org.mockito.Mockito.when(weatherService.around(any(), any(), any())).thenReturn(java.util.Optional.empty());
 
         var centre = ask("ctx-weather", space, north, "Cosa semino adesso?",
                 new Intent(QueryKind.SOW_NOW, null, null, "it"));
@@ -124,7 +107,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
                 new Intent(QueryKind.SOW_NOW, null, null, "it", "SUD", null));
 
         // The forecast is the run's garden's; a question naming another zone keeps it and says so.
-        verify(weather, org.mockito.Mockito.times(2)).around(new BigDecimal("45.46"), new BigDecimal("9.19"), null);
+        verify(weatherService, org.mockito.Mockito.times(2)).around(new BigDecimal("45.46"), new BigDecimal("9.19"), null);
         assertThat(centre.answer().context().zone()).isNull();
         assertThat(centre.answer().context().climateFrom()).isEqualTo(ContextSnapshot.ClimateFrom.GARDEN);
         assertThat(south.answer().context().zone()).isEqualTo("SUD");
@@ -148,7 +131,7 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         assertThat(run.choice().why()).isEqualTo(QuestionContext.Choice.Why.MISSING);
         assertThat(run.intent()).as("the understood intent comes back for the continuation").isNotNull();
         assertThat(history.recent(space, 0, "ctx-space")).as("no history row").isEmpty();
-        org.mockito.Mockito.verifyNoInteractions(weather);
+        org.mockito.Mockito.verifyNoInteractions(weatherService);
         verify(decisionLayer, never()).decide(any(), any());
     }
 

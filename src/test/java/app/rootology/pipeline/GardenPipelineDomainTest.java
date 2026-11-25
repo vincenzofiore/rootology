@@ -1,7 +1,5 @@
 package app.rootology.pipeline;
 
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.DomainFilter;
 import app.rootology.decision.Intent;
 import app.rootology.decision.QueryKind;
@@ -15,11 +13,9 @@ import io.micrometer.core.instrument.search.Search;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
@@ -31,9 +27,7 @@ import static org.mockito.Mockito.when;
  * and counted, and "Ask anyway" takes the normal path; the suite and the answers to waiting questions never
  * reach the filter.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
-class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
+class GardenPipelineDomainTest extends PipelineContext {
 
     @Autowired
     GardenPipeline pipeline;
@@ -52,14 +46,6 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
 
     @Autowired
     MeterRegistry meters;
-
-    /** Never the real service in tests. */
-    @MockitoBean
-    app.rootology.weather.WeatherService weatherService;
-
-    /** Offline the real filter is not used: each test says what Jev would answer. */
-    @MockitoBean
-    DomainFilter domainFilter;
 
     @BeforeEach
     void stubPhrasing() {
@@ -88,7 +74,7 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aQuestionClearlyOutsideGardensIsRefusedWithoutAClaudeCall() {
         String text = "Come si fa il punto zig-zag a macchina? 7132";
-        when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.refusing(0.02));
+        doReturn(DomainFilter.Verdict.refusing(0.02)).when(domainFilter).judge(text);
         RunContext run = inAGarden("nina");
         double before = questions("off_domain");
 
@@ -106,7 +92,7 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     @Test
     void aRefusedQuestionIsStoredWithItsSpaceAndGardenAndCountsAgainstTheLimit() {
         String text = "How do I change a car tyre? 8123";
-        when(domainFilter.judge(text)).thenReturn(DomainFilter.Verdict.refusing(0.01));
+        doReturn(DomainFilter.Verdict.refusing(0.01)).when(domainFilter).judge(text);
         RunContext run = inAGarden("otto");
 
         pipeline.askKnowledgeBase(new Question("ask", text), run);
@@ -127,8 +113,8 @@ class GardenPipelineDomainTest extends EmbabelMockitoIntegrationTest {
     void aQuestionTheFilterCouldNotJudgeGoesOnAndSaysSo() {
         whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9102"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
-        when(domainFilter.judge("How do I change a car tyre? 9102")).thenReturn(DomainFilter.Verdict.unjudged());
-        when(domainFilter.judge("How do I change a car tyre? 9103")).thenReturn(DomainFilter.Verdict.allowing(0.9));
+        doReturn(DomainFilter.Verdict.unjudged()).when(domainFilter).judge("How do I change a car tyre? 9102");
+        doReturn(DomainFilter.Verdict.allowing(0.9)).when(domainFilter).judge("How do I change a car tyre? 9103");
         whenCreateObject(prompt -> prompt.contains("Question: How do I change a car tyre? 9103"), Intent.class)
                 .thenReturn(Intent.of(QueryKind.COMPANIONS, "tomato"));
         RunContext run = signedIn("piero");

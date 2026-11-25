@@ -1,7 +1,5 @@
 package app.rootology.pipeline;
 
-import com.embabel.agent.test.integration.EmbabelMockitoIntegrationTest;
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.decision.Intent;
 import app.rootology.decision.QueryKind;
 import app.rootology.facts.Contribution;
@@ -16,8 +14,6 @@ import app.rootology.spaces.SpaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -29,10 +25,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Runs the pipeline agent on the real Embabel platform with the LLM mocked and the
  * deterministic stub decision layer forced, so the wiring is checked without any API call.
  */
-@Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "rootology.jev.api-key=")
 @org.springframework.test.context.event.RecordApplicationEvents
-class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
+class GardenPipelineAgentTest extends PipelineContext {
 
     @Autowired
     GardenPipeline pipeline;
@@ -98,10 +92,6 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
 
         assertThat(run.answer().text()).startsWith("Answer: ").contains("Basil");
     }
-
-    /** Never the real service in tests: by default it has no forecast, as when MET Norway is down. */
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
-    app.rootology.weather.WeatherService weatherService;
 
     /** A garden of the person's space, in Milan (zone NORD); the question is asked inside it (#55). */
     private RunContext withGarden(String login) {

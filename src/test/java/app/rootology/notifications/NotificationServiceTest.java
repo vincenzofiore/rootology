@@ -1,6 +1,5 @@
 package app.rootology.notifications;
 
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.garden.GardenService;
 import app.rootology.pipeline.EscalationResolved;
 import app.rootology.pipeline.EscalationWaiting;
@@ -10,19 +9,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.bean.override.convention.TestBean;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.sql.Timestamp;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -39,35 +33,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Notifications of waiting questions (#26): who gets them, their state, and the grouped emails (Mailpit). */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {"rootology.notifications.digest-every=PT1H",
-        "rootology.telegram.send-every=PT1H", "rootology.telegram.poll-every=PT1H"})
-class NotificationServiceTest {
+class NotificationServiceTest extends NotificationsContext {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
-    static Instant now = Instant.parse("2026-11-04T10:00:00Z");
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return new Clock() {
-            @Override
-            public ZoneId getZone() {
-                return ITALY;
-            }
-
-            @Override
-            public Clock withZone(ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now;
-            }
-        };
-    }
 
     @Autowired
     NotificationService notifications;
@@ -87,10 +55,6 @@ class NotificationServiceTest {
     @Autowired
     TelegramLinks telegramLinks;
 
-    /** Never the real Telegram (#38): the tests say what each send answers. */
-    @MockitoBean
-    TelegramClient telegram;
-
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
 
@@ -100,6 +64,7 @@ class NotificationServiceTest {
      */
     @BeforeEach
     void emptyTheOutbox() {
+        now = Instant.parse("2026-11-04T10:00:00Z");
         jdbc.sql("delete from notification").update();
     }
 

@@ -1,6 +1,5 @@
 package app.rootology.notifications;
 
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.access.AccountFlagService;
 import app.rootology.spaces.SpaceService;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,20 +7,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.bean.override.convention.TestBean;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.sql.Timestamp;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -34,37 +27,9 @@ import static org.mockito.Mockito.when;
  * The admins are told of a flagged account (#165) through the same outbox as everything else: one row each
  * with no space, an email digest and a Telegram message that say the login and the counts, never a question.
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {"rootology.notifications.digest-every=PT1H",
-        "rootology.telegram.send-every=PT1H", "rootology.telegram.poll-every=PT1H"})
-class AccountFlagNotificationsTest {
+class AccountFlagNotificationsTest extends NotificationsContext {
 
     static final Instant START = Instant.parse("2026-11-20T10:00:00Z");
-
-    /** Moved forward before a digest: emails wait for the grouping window, Telegram does not. */
-    static Instant now = START;
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return new Clock() {
-            @Override
-            public ZoneId getZone() {
-                return ZoneId.of("Europe/Rome");
-            }
-
-            @Override
-            public Clock withZone(ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now;
-            }
-        };
-    }
 
     @Autowired
     AccountFlagService flags;
@@ -77,9 +42,6 @@ class AccountFlagNotificationsTest {
 
     @Autowired
     JdbcClient jdbc;
-
-    @MockitoBean
-    TelegramClient telegram;
 
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
