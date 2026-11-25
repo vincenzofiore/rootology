@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A question about a crop or an organism the knowledge base does not know (for example “aglione”) is answered at once with “I don’t know it yet” and no longer waits for a person; a member can propose it as another name of a known crop, and curators see the names asked and not found (#180).
 - A question asked on the garden home is answered there, in a dialog over the page, with "OK" to stay and "Go to questions" to open it on the Questions page; an off-topic refusal, the choice of a place or garden and a question waiting for a person are handled in the dialog too (#178).
 - A question asked on the gardens overview is answered there too, in the same dialog (#179).
 - The garden home shows every warning first: one compact row under the title with the region's official warnings grouped by level (the level, each phenomenon, when the last one ends) and the alerts Rootology computed in one group of their own, each group opening its detail in a dialog; the two warning cards are gone, and what grows now comes right after the weather (#176).

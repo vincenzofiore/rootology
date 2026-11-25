@@ -268,7 +268,13 @@ public class GardenPipelineAgent {
         }
         Intent full = context.intent();
         // The asking space also sees the facts its members added (#24), tagged PROPOSED.
-        Long space = context.hasSpace() ? context.spaceId() : null;
+        Long space = context.spaceOrNull();
+        if (unknown(full, space)) {
+            // A crop or organism the base does not know (#180): said as such, with no Jev call and no person
+            // waiting, whose answer would have no source and never become knowledge.
+            return new GraphFacts(List.of(), List.of(app.rootology.decision.Note.of(
+                    app.rootology.decision.Note.Kind.UNKNOWN_SUBJECT, full.subject().trim())));
+        }
         List<SourcedFact> facts = new java.util.ArrayList<>(switch (full.kind()) {
             case SOWING_TIME, HARVEST_TIME, PRUNING_TIME -> climate.windowFacts(full.subject(), context.climate(), space);
             case SOW_NOW -> climate.sowingFacts(full.month(), context.climate(), full.languageOrDefault());
@@ -326,6 +332,10 @@ public class GardenPipelineAgent {
             // Nothing to decide yet (#107): the run ends with the choice, never with a value.
             return new Decision(List.of(), 0.0, false, "");
         }
+        if (unknownSubject(facts)) {
+            // Nothing to decide about a name the base does not know (#180): no value, no escalation.
+            return new Decision(List.of(), 0.0, false, "");
+        }
         return context.refusal() == null ? decisionLayer.decide(context.intent(), facts)
                 : Decision.escalated(context.refusal());
     }
@@ -353,6 +363,11 @@ public class GardenPipelineAgent {
             // A choice is the whole run (#107): no Claude phrasing, no answer, no history row.
             return new PipelineAnswer(question.id(), List.of(), 0.0, false, false, null, "",
                     List.of(), List.of(), null);
+        }
+        if (unknownSubject(facts)) {
+            // A fixed answer (#180), worded by the UI in the page's language: no Claude phrasing to invent around it.
+            return new PipelineAnswer(question.id(), List.of(), 0.0, false, false, null,
+                    facts.notes().getFirst().english(), List.of(), facts.notes(), questionContext.snapshot());
         }
         String prompt = resolution.answeredByHuman()
                 ? HUMAN_PHRASE_PROMPT.formatted(question.text(), resolution.answer(),
@@ -385,6 +400,22 @@ public class GardenPipelineAgent {
         return new PipelineAnswer(question.id(), resolution.answer(), resolution.confidence(),
                 resolution.escalated(), resolution.answeredByHuman(), resolution.reviewer(), text,
                 sourcesOf(resolution.answer(), facts), facts.notes(), questionContext.snapshot(), activities);
+    }
+
+    /** Question kinds whose subject is a crop or an organism of the knowledge base (#180), not a plot. */
+    static final Set<QueryKind> NAMED_SUBJECT = java.util.EnumSet.of(QueryKind.COMPANIONS, QueryKind.RELEVANT_PESTS,
+            QueryKind.COMPANIONS_OF_SHARED_REPELLERS, QueryKind.ACTIVE_SEASONS, QueryKind.ANTAGONISTS,
+            QueryKind.SOWING_TIME, QueryKind.HARVEST_TIME, QueryKind.PRUNING_TIME, QueryKind.CONTROL_METHODS);
+
+    /** Whether the question names a crop or organism the base does not know, here or as this space's alias (#180). */
+    private boolean unknown(Intent intent, Long space) {
+        return NAMED_SUBJECT.contains(intent.kind()) && intent.subject() != null && !intent.subject().isBlank()
+                && knowledge.resolve(intent.subject(), space).isEmpty();
+    }
+
+    /** Whether the facts say the question's subject is unknown to the base (#180). */
+    static boolean unknownSubject(GraphFacts facts) {
+        return facts.notes().stream().anyMatch(n -> n.kind() == app.rootology.decision.Note.Kind.UNKNOWN_SUBJECT);
     }
 
     /**

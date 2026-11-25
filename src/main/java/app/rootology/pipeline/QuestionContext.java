@@ -140,6 +140,11 @@ public record QuestionContext(
         return spaceId > 0;
     }
 
+    /** The asking space for the knowledge base's lookups (its aliases and proposed facts), null outside one. */
+    Long spaceOrNull() {
+        return hasSpace() ? spaceId : null;
+    }
+
     /** The same context, saying the domain filter could not judge the question (#165). */
     QuestionContext markDomainUnjudged() {
         return new QuestionContext(spaceId, gardenId, intent, plot, weather, climate, snapshot, refusal, notes,

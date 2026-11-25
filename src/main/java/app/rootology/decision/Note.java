@@ -72,7 +72,12 @@ public record Note(Kind kind, List<String> args) {
         /** The altitude difference was capped at 500 m (#62). */
         ALTITUDE_CAPPED,
         /** args: crop, its hardiness (°C, one decimal), the site's winter minimum (°C, one decimal), verdict (#147). */
-        FROST_SUITABILITY
+        FROST_SUITABILITY,
+        /**
+         * args: the crop or organism as the question names it, which the knowledge base does not know (#180):
+         * the whole answer, with no value, no decision and no person waiting.
+         */
+        UNKNOWN_SUBJECT
     }
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH);
@@ -144,6 +149,8 @@ public record Note(Kind kind, List<String> args) {
                     + "dates were corrected by a capped 500 m.";
             case FROST_SUITABILITY -> arg(0) + " stands " + arg(1) + " °C and this site's 1-in-5 winter minimum "
                     + "is " + arg(2) + " °C: " + frostVerdict(arg(3));
+            case UNKNOWN_SUBJECT -> "The knowledge base does not know \"" + arg(0) + "\" yet: no crop or organism "
+                    + "has that name, so nothing is answered.";
         };
     }
 

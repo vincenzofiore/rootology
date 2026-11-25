@@ -29,8 +29,11 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
     private final Grid<ProposalSummary> queue = new Grid<>();
     private final TextField note = new TextField(getTranslation("knowledge.note"));
 
+    /** How far back the names asked and not found are counted (#180). */
+    static final java.time.Duration UNKNOWN_SINCE = java.time.Duration.ofDays(90);
+
     public CuratorView(KnowledgeEnrichment enrichment, CropCatalog crops, KnowledgeGraph knowledge,
-                       CurrentUser currentUser) {
+                       CurrentUser currentUser, app.rootology.history.RunHistory history, java.time.Clock clock) {
         this.enrichment = enrichment;
         this.currentUser = currentUser;
         this.text = new ProposalText(crops, knowledge);
@@ -47,6 +50,21 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
         queue.setAllRowsVisible(true);
         add(new PageHeader(getTranslation("knowledge.curator")), new Paragraph(getTranslation("knowledge.curator.intro")),
                 note, queue);
+        // What people asked about and the base does not have (#180): the candidates to add, with their sources.
+        var unknown = history.unknownNames(clock.instant().minus(UNKNOWN_SINCE));
+        if (!unknown.isEmpty()) {
+            Grid<app.rootology.history.RunHistory.UnknownName> names = new Grid<>();
+            names.addColumn(app.rootology.history.RunHistory.UnknownName::name)
+                    .setHeader(getTranslation("knowledge.curator.unknown.name")).setFlexGrow(2);
+            names.addColumn(app.rootology.history.RunHistory.UnknownName::questions)
+                    .setHeader(getTranslation("knowledge.curator.unknown.count")).setAutoWidth(true);
+            names.addColumn(n -> DateText.date(n.last().atZone(GardenHomeView.ITALY).toLocalDate(), this))
+                    .setHeader(getTranslation("knowledge.curator.unknown.last")).setAutoWidth(true);
+            names.setItems(unknown);
+            names.setAllRowsVisible(true);
+            add(new com.vaadin.flow.component.html.H2(getTranslation("knowledge.curator.unknown")),
+                    new Paragraph(getTranslation("knowledge.curator.unknown.intro")), names);
+        }
         refresh();
     }
 

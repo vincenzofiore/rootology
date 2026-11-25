@@ -114,7 +114,7 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
         String text = "Which plants are companions of zzyzxberry? 9384";
         String email = "pia.private@example.test";
         whenCreateObject(prompt -> prompt.contains(text), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "zzyzxberry"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         double before = questions("escalated");
 
         GardenPipeline.Run run = pipeline.askKnowledgeBase(new Question("ask", text), signedIn("pia", email));
@@ -130,7 +130,7 @@ class ObservabilityTest extends EmbabelMockitoIntegrationTest {
         String text = "Which plants are companions of zzyzxberry? 5521";
         String email = "ugo.private@example.test";
         whenCreateObject(prompt -> prompt.contains(text), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "zzyzxberry"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         double escalated = questions("escalated");
         double answered = questions("answered");
 

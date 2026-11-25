@@ -488,10 +488,11 @@ cases:
                "Grow French marigolds beside the crop against glasshouse whitefly"]
       notes: [read the label]
 
+  # A pest the base does not know (#180): said as such, no value, no person waiting (owner, 2026-11-25).
   - id: control-unknown-pest
     question: Cosa posso fare contro la cimice asiatica?
     intent: {kind: CONTROL_METHODS, subject: cimice asiatica, language: it}
-    expect: {escalate: not in the dataset}
+    expect: {answer: [], notes: ['does not know "cimice asiatica"']}
 
   # The space's garden.
   - id: growing-now
@@ -564,16 +565,26 @@ cases:
     spaceFacts: [{alias: tomato, name: pomodorino, language: it}]
     expect: {answer: [Basilico, Cipolla, Prezzemolo, Carota]}
 
+  # Another space's alias is not known here (#24): the name is unknown in this space (#180).
   - id: space-alias-not-in-another-space
     question: Quali piante sono compagne del pomodorino?
     intent: {kind: COMPANIONS, subject: pomodorino, language: it}
-    expect: {escalate: not in the dataset}
+    expect: {answer: [], notes: ['does not know "pomodorino"']}
 
-  # Questions that must go to a person.
+  # A crop the base does not know (#180): said as such, no value, no person waiting (owner, 2026-11-25).
   - id: unknown-crop
     question: Quali sono le compagne della papaya?
     intent: {kind: COMPANIONS, subject: papaya, language: it}
-    expect: {escalate: not in the dataset}
+    expect: {answer: [], notes: ['does not know "papaya"']}
+
+  # The name stays as asked (#180): aglione (Allium ampeloprasum) is not garlic, and the base does not know it.
+  - id: unknown-crop-near-a-known-one
+    question: Quando si semina l’aglione?
+    intent: {kind: SOWING_TIME, subject: aglione, language: it}
+    garden: rome
+    expect: {answer: [], notes: ['does not know "aglione"']}
+
+  # Questions that must go to a person.
 
   # A plain weather forecast is not about the garden (#53): refused, where it used to wait for a person.
   - id: out-of-scope

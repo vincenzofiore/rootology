@@ -352,8 +352,9 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(mine.answer().answer()).containsExactlyInAnyOrder("Basilico", "Cipolla", "Prezzemolo", "Carota",
                 "Lattuga");
         assertThat(mine.answer().sources()).contains("proposal-9002", "cornell-1999");
-        assertThat(theirs.answer()).isNull();
-        assertThat(theirs.pending().decision().reason()).isEqualTo("pomodorino is not in the dataset");
+        assertThat(theirs.answer().answer()).as("another space's alias is unknown here (#180)").isEmpty();
+        assertThat(theirs.answer().notes()).extracting(app.rootology.decision.Note::kind)
+                .containsExactly(app.rootology.decision.Note.Kind.UNKNOWN_SUBJECT);
     }
 
     @Test
@@ -451,7 +452,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void aWaitingQuestionAndItsAnswerAreAnnouncedForNotifications() {
         RunContext run = signedIn("yara");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of mango?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "mango"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of mango?"), run);
@@ -460,7 +461,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
         assertThat(applicationEvents.stream(EscalationWaiting.class)).singleElement().satisfies(e -> {
             assertThat(e.spaceId()).isEqualTo(run.spaceId());
             assertThat(e.askedBy()).isEqualTo("yara");
-            assertThat(e.reason()).isEqualTo("mango is not in the dataset");
+            assertThat(e.reason()).isEqualTo("active season of tomato is not declared");
         });
         assertThat(applicationEvents.stream(EscalationResolved.class)).singleElement()
                 .extracting(EscalationResolved::reviewer).isEqualTo("yara");
@@ -501,7 +502,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void aQuestionSomeoneElseIsAnsweringIsNotAnsweredTwice() {
         RunContext run = signedIn("ugo");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of guava?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "guava"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
                 && prompt.contains("companions of guava")).thenReturn("answered once");
         String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of guava?"), run)
@@ -525,7 +526,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void anAnswerThatCannotBeFinishedLeavesTheQuestionWaiting() {
         RunContext run = signedIn("vito");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of lychee?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "lychee"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
                 && prompt.contains("companions of lychee")).thenReturn("answered later");
         String processId = pipeline.askKnowledgeBase(new Question("ask", "Which plants are companions of lychee?"), run)
@@ -548,7 +549,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void aWaitingQuestionSurvivesTheLossOfItsAgentAndCanStillBeAnswered() {
         RunContext run = signedIn("zeno");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of feijoa?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "feijoa"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")
                 && prompt.contains("companions of feijoa")).thenReturn("a person answered after the restart");
 
@@ -576,7 +577,7 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     void everyQuestionAndEveryAnswerToAnEscalationIsRecorded() {
         RunContext run = signedIn("xavier");
         whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
+                .thenReturn(Intent.of(QueryKind.ACTIVE_SEASONS, "tomato"));
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
         GardenPipeline.Run asked = pipeline.askKnowledgeBase(
@@ -589,15 +590,17 @@ class GardenPipelineAgentTest extends EmbabelMockitoIntegrationTest {
     }
 
     @Test
-    void anUnknownCropInARealQuestionWaitsForAPerson() {
-        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of papaya?"), Intent.class)
-                .thenReturn(Intent.of(QueryKind.COMPANIONS, "papaya"));
+    void anUnknownCropIsSaidAtOnceWithItsNameAsAskedAndNoPersonWaits() {
+        whenCreateObject(prompt -> prompt.contains("Question: Which plants are companions of Aglione?"), Intent.class)
+                .thenReturn(Intent.of(QueryKind.COMPANIONS, "Aglione"));
 
         GardenPipeline.Run run = pipeline.askKnowledgeBase(
-                new Question("ask", "Which plants are companions of papaya?"), signedIn("omar"));
+                new Question("ask", "Which plants are companions of Aglione?"), signedIn("omar"));
 
-        assertThat(run.answer()).isNull();
-        assertThat(run.pending().decision().reason()).isEqualTo("papaya is not in the dataset");
+        assertThat(run.pending()).isNull();
+        assertThat(run.answer().answer()).isEmpty();
+        assertThat(run.answer().notes()).containsExactly(
+                app.rootology.decision.Note.of(app.rootology.decision.Note.Kind.UNKNOWN_SUBJECT, "Aglione"));
     }
 
     @Test

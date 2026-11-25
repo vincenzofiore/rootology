@@ -372,7 +372,7 @@ class ViewsTest {
     @Test
     @org.springframework.security.test.context.support.WithMockUser(username = "views-test-user", roles = "CURATOR")
     void curatorViewBuildsAndIsForCuratorsOnly() {
-        assertThat(new CuratorView(enrichment, crops, knowledge, viewer()).getChildren()).isNotEmpty();
+        assertThat(new CuratorView(enrichment, crops, knowledge, viewer(), history, java.time.Clock.systemUTC()).getChildren()).isNotEmpty();
         assertThat(CuratorView.class.getAnnotation(jakarta.annotation.security.RolesAllowed.class).value())
                 .containsExactly("CURATOR");
     }

@@ -263,6 +263,16 @@ class AnswerCard extends Div {
     }
 
     /** A question clearly outside gardens (#53): a fixed sentence, no values and no confidence. */
+    /**
+     * A crop or organism the knowledge base does not know (#180): said plainly, with no value and no confidence,
+     * and the ways to add it.
+     */
+    AnswerCard unknown(String name) {
+        add(header(VaadinIcon.QUESTION_CIRCLE_O, TextColor.SECONDARY, getTranslation("card.unknown", name)));
+        add(new Paragraph(getTranslation("card.unknown.text")));
+        return whyLast();
+    }
+
     AnswerCard refused(String text) {
         add(header(VaadinIcon.INFO_CIRCLE_O, TextColor.SECONDARY, getTranslation("card.offdomain")));
         add(new Paragraph(text));

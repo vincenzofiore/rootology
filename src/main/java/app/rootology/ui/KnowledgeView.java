@@ -55,6 +55,8 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     }
 
     static final String ALIAS = "ALIAS";
+    /** From an answer that did not know a name (#180): the alias form, with that name already in it. */
+    static final String ALIAS_NAME = "alias";
     static final String PAIR = "PAIR";
     static final String HOST = "HOST";
 
@@ -65,6 +67,9 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
     private final List<Option> organisms;
     private final ProposalText text;
     private final Paragraph askedAbout = new Paragraph();
+    /** The proposal's kind and the alias's other name, so a link can open the form already filled (#180). */
+    private RadioButtonGroup<String> kind;
+    private TextField aliasName;
     private final Grid<ProposalSummary> mine = new Grid<>();
     /** What the page shows when the space has proposed nothing yet (#81). */
     private final EmptyState empty = new EmptyState(getTranslation("empty.proposals"))
@@ -137,10 +142,15 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         if (!question.isEmpty()) {
             askedAbout.setText(getTranslation("knowledge.asked", question.getFirst()));
         }
+        event.getLocation().getQueryParameters().getSingleParameter(ALIAS_NAME).filter(n -> !n.isBlank())
+                .filter(n -> contributor).ifPresent(n -> {
+                    kind.setValue(ALIAS);
+                    aliasName.setValue(n.strip());
+                });
     }
 
     private VerticalLayout form() {
-        RadioButtonGroup<String> kind = new RadioButtonGroup<>(getTranslation("knowledge.missing"), ALIAS, PAIR, HOST);
+        kind = new RadioButtonGroup<>(getTranslation("knowledge.missing"), ALIAS, PAIR, HOST);
         kind.setItemLabelGenerator(k -> getTranslation("knowledge.kind." + k));
         kind.setValue(ALIAS);
 
@@ -148,6 +158,7 @@ public class KnowledgeView extends VerticalLayout implements BeforeEnterObserver
         named.addAll(organisms);
         ComboBox<Option> target = combo(getTranslation("knowledge.target"), named);
         TextField name = new TextField(getTranslation("knowledge.othername"));
+        aliasName = name;
         RadioButtonGroup<String> language = new RadioButtonGroup<>(getTranslation("knowledge.language"), "it", "en");
         language.setItemLabelGenerator(l -> getTranslation("knowledge.language." + l));
         language.setValue("it");

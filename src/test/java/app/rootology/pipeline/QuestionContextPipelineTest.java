@@ -247,9 +247,9 @@ class QuestionContextPipelineTest extends EmbabelMockitoIntegrationTest {
         long garden = garden(space, "ctx-restart", "Orto", "45.46", "9.19");
         whenGenerateText(prompt -> prompt.contains("A person of the space answered this question")).thenReturn("answered");
 
-        var asked = ask("ctx-restart", space, garden, "Quando semino la papaya?",
-                new Intent(QueryKind.SOWING_TIME, "papaya", null, "it"));
-        assertThat(asked.pending().decision().reason()).contains("papaya");
+        var asked = ask("ctx-restart", space, garden, "Quando poto il pomodoro?",
+                new Intent(QueryKind.PRUNING_TIME, "pomodoro", null, "it"));
+        assertThat(asked.pending().decision().reason()).contains("pruning");
         assertThat(asked.pending().snapshot().gardenName()).as("whoever answers sees the context").isEqualTo("Orto");
         assertThat(pipeline.pending(space, garden, "ctx-restart")).singleElement()
                 .satisfies(review -> assertThat(review.snapshot().climateFrom())

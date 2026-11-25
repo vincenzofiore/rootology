@@ -20,6 +20,13 @@ public interface PipelineRunRepository extends JpaRepository<PipelineRunRecord, 
      * The last questions one person asked that the domain filter judged (#165): the runs where it could not
      * judge (#161) and the ones answered from a waiting question are left out. For the nightly signal only.
      */
+    /** The runs since then whose notes say the question named a crop or organism the base does not know (#180). */
+    @Query("""
+            select r from PipelineRunRecord r
+            where r.finishedAt >= :since and r.notesJson like '%UNKNOWN_SUBJECT%'
+            order by r.finishedAt desc""")
+    List<PipelineRunRecord> withUnknownSubject(@Param("since") java.time.Instant since);
+
     @Query("""
             select r from PipelineRunRecord r
             where r.startedBy = :login and r.domainUnjudged = false and r.answeredByHuman = false

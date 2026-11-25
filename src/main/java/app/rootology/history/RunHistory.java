@@ -130,6 +130,34 @@ public class RunHistory {
         }
     }
 
+    /**
+     * The crops and organisms asked about since then and missing from the knowledge base (#180), for curators:
+     * each name once, ignoring case, with how many questions named it and the last time, the most asked first.
+     * A system read across spaces: only the names leave it, never a question, a person or a space.
+     */
+    @Transactional(readOnly = true)
+    public List<UnknownName> unknownNames(java.time.Instant since) {
+        return count(repository.withUnknownSubject(since).stream().flatMap(run -> notesOf(run).stream()
+                .filter(n -> n.kind() == Note.Kind.UNKNOWN_SUBJECT)
+                .map(n -> new UnknownName(n.arg(0), 1, run.getFinishedAt()))));
+    }
+
+    /** Each name once, ignoring case and keeping its first spelling, the most asked first, then the latest. */
+    static List<UnknownName> count(java.util.stream.Stream<UnknownName> asked) {
+        Map<String, UnknownName> byName = new java.util.LinkedHashMap<>();
+        asked.forEach(one -> byName.merge(one.name().toLowerCase(java.util.Locale.ROOT), one,
+                (seen, again) -> new UnknownName(seen.name(), seen.questions() + again.questions(),
+                        seen.last().isAfter(again.last()) ? seen.last() : again.last())));
+        return byName.values().stream()
+                .sorted(java.util.Comparator.comparingInt(UnknownName::questions).reversed()
+                        .thenComparing(UnknownName::last, java.util.Comparator.reverseOrder()))
+                .toList();
+    }
+
+    /** A name asked and not found (#180), as first written, with its count and the last time it was asked. */
+    public record UnknownName(String name, int questions, java.time.Instant last) {
+    }
+
     private static List<Note> notesOf(PipelineRunRecord run) {
         if (run.getNotesJson() == null) {
             return List.of();

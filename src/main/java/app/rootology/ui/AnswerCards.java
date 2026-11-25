@@ -59,6 +59,20 @@ final class AnswerCards {
         if (answer.context() != null) {
             card.context(answer.context(), pageGarden);
         }
+        java.util.Optional<String> unknown = answer.notes().stream()
+                .filter(n -> n.kind() == app.rootology.decision.Note.Kind.UNKNOWN_SUBJECT)
+                .map(n -> n.arg(0)).findFirst();
+        if (unknown.isPresent()) {
+            // A name the base does not know (#180): no values, no sources; a member may say it is another name.
+            card.unknown(unknown.get());
+            if (user.canContribute(spaceId)) {
+                card.extra(new com.vaadin.flow.component.html.Anchor("spaces/" + spaceId + "/knowledge?"
+                        + KnowledgeView.ALIAS_NAME + "=" + java.net.URLEncoder.encode(unknown.get(),
+                        java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20"),
+                        in.getTranslation("card.unknown.alias")));
+            }
+            return card;
+        }
         CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, in)
                 .ifPresent(card::verdict);
         if (answer.answeredByHuman()) {

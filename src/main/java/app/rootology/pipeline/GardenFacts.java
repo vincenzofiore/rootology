@@ -170,7 +170,7 @@ class GardenFacts {
             return FrostSuitability.NONE;
         }
         String areaKind = areaKind(context, run);
-        Long space = context.hasSpace() ? context.spaceId() : null;
+        Long space = context.spaceOrNull();
         List<SourcedFact> added = new ArrayList<>();
         List<Note> notes = new ArrayList<>();
         for (String subject : facts.stream().map(f -> f.fact().subject()).distinct().toList()) {
