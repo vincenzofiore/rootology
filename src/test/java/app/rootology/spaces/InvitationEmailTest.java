@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Invitations by email (#25), with a real SMTP server (Mailpit) catching what is sent. */
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {"rootology.base-url=https://rootology.example", "rootology.invitations.daily-limit=3"})
+@SpringBootTest
 class InvitationEmailTest {
 
     @Autowired
@@ -36,6 +36,12 @@ class InvitationEmailTest {
 
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
+
+    @Value("${rootology.base-url}")
+    String baseUrl;
+
+    @Value("${rootology.invitations.daily-limit}")
+    int dailyLimit;
 
     private long spaceOf(String login) {
         spaces.signedIn(login);
@@ -69,8 +75,8 @@ class InvitationEmailTest {
 
         assertThat(message.path("Subject").asString()).isEqualTo("Invito a \"ada\" su Rootology");
         assertThat(message.path("Text").asString()).contains("ada ti invita a unirti")
-                .contains("https://rootology.example/invite/" + token).contains("come membro");
-        assertThat(message.path("HTML").asString()).contains("href=\"https://rootology.example/invite/" + token + "\"");
+                .contains(baseUrl + "/invite/" + token).contains("come membro");
+        assertThat(message.path("HTML").asString()).contains("href=\"" + baseUrl + "/invite/" + token + "\"");
     }
 
     @Test
@@ -93,12 +99,12 @@ class InvitationEmailTest {
     @Test
     void anOwnerCreatesAtMostTheDailyLimitOfInvitations() {
         long garden = spaceOf("elio");
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < dailyLimit; i++) {
             invitations.create(garden, "elio", Role.MEMBER, null);
         }
 
         assertThatThrownBy(() -> invitations.create(garden, "elio", Role.MEMBER, null, "f@example.org"))
-                .isInstanceOf(SpaceAccessException.class).hasMessageContaining("3 invitations");
+                .isInstanceOf(SpaceAccessException.class).hasMessageContaining(dailyLimit + " invitations");
         assertThatThrownBy(() -> invitations.create(spaceOf("gino"), "gino", Role.MEMBER, null, "not-an-address"))
                 .isInstanceOf(IllegalArgumentException.class);
     }

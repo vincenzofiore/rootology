@@ -12,16 +12,18 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
- * One Spring context for the notification tests (#174): the same properties, clock and doubles in every
- * subclass, so the context cache starts it once. A subclass sets {@link #now} in its own {@code @BeforeEach}.
+ * One Spring context for the tests that move time (#174): the same properties, clock and doubles in every
+ * subclass, so the context cache starts it once. The scheduled jobs run once an hour, so they do not race
+ * the tests. It lives here because {@link TelegramClient} is package-private. A subclass sets {@link #now} in
+ * its own {@code @BeforeEach}.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = {"rootology.notifications.digest-every=PT1H",
         "rootology.telegram.send-every=PT1H", "rootology.telegram.poll-every=PT1H"})
-abstract class NotificationsContext {
+public abstract class SettableClockContext {
 
     /** Static because the clock bean is shared by every test class of this context. */
-    static Instant now = Instant.parse("2026-11-04T10:00:00Z");
+    protected static Instant now = Instant.parse("2026-11-04T10:00:00Z");
 
     @TestBean
     Clock clock;
@@ -47,9 +49,9 @@ abstract class NotificationsContext {
 
     /** Never the real Telegram (#38): the tests say what each send answers. */
     @MockitoBean
-    TelegramClient telegram;
+    protected TelegramClient telegram;
 
     /** The real sender unless a test stubs it, as the digest failure tests do. */
     @MockitoSpyBean
-    MailService mail;
+    protected MailService mail;
 }

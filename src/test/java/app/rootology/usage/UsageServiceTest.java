@@ -1,68 +1,43 @@
 package app.rootology.usage;
 
-import app.rootology.TestcontainersConfiguration;
+import app.rootology.notifications.SettableClockContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.convention.TestBean;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = "rootology.usage.daily-questions=2")
-class UsageServiceTest {
+class UsageServiceTest extends SettableClockContext {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 
-    /** 23:30 in Italy, so a question recorded now belongs to today and not to tomorrow. */
-    static Instant now = Instant.parse("2026-11-04T22:30:00Z");
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return new Clock() {
-            @Override
-            public ZoneId getZone() {
-                return ITALY;
-            }
-
-            @Override
-            public Clock withZone(ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now;
-            }
-        };
-    }
-
     @Autowired
     UsageService usage;
+
+    @Value("${rootology.usage.daily-questions}")
+    int dailyLimit;
 
     private static final RunUsage QUESTION = new RunUsage(2, 1200, 80, 0.0049, 1);
 
     @Test
     void theDailyLimitStopsQuestionsUntilMidnightInItaly() {
-        now = Instant.parse("2026-11-04T22:30:00Z");
+        now = Instant.parse("2026-11-04T22:30:00Z"); // 23:30 in Italy: still today
         usage.record("Mara", 1, UsageKind.QUESTION, QUESTION);
         usage.record("mara", 1, UsageKind.REVIEW, new RunUsage(1, 300, 40, 0.001, 0));
-        usage.requireQuestionAvailable("mara");
-        usage.record("mara", 1, UsageKind.QUESTION, QUESTION);
+        for (int i = 1; i < dailyLimit; i++) {
+            usage.requireQuestionAvailable("mara");
+            usage.record("mara", 1, UsageKind.QUESTION, QUESTION);
+        }
 
-        assertThat(usage.today("MARA")).isEqualTo(new UsageService.Today(2, 2));
+        assertThat(usage.today("MARA")).isEqualTo(new UsageService.Today(dailyLimit, dailyLimit));
         assertThatThrownBy(() -> usage.requireQuestionAvailable("mara")).isInstanceOf(UsageLimitException.class)
-                .hasMessageContaining("2 questions for today");
+                .hasMessageContaining(dailyLimit + " questions for today");
 
         now = Instant.parse("2026-11-04T23:05:00Z"); // 00:05 in Italy: a new day
         assertThat(usage.today("mara").used()).isZero();
@@ -88,7 +63,7 @@ class UsageServiceTest {
         });
 
         usage.setLimit("root", "nico", null);
-        assertThat(usage.today("nico").limit()).isEqualTo(2);
+        assertThat(usage.today("nico").limit()).isEqualTo(dailyLimit);
         assertThatThrownBy(() -> usage.setLimit("root", "nico", -1)).isInstanceOf(IllegalArgumentException.class);
     }
 

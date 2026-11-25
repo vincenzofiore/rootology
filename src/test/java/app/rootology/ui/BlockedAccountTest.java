@@ -22,7 +22,6 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -45,7 +44,6 @@ import static org.mockito.Mockito.when;
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
-@TestPropertySource(properties = "rootology.jev.api-key=")
 class BlockedAccountTest {
 
     @Autowired

@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
  * The admins are told of a flagged account (#165) through the same outbox as everything else: one row each
  * with no space, an email digest and a Telegram message that say the login and the counts, never a question.
  */
-class AccountFlagNotificationsTest extends NotificationsContext {
+class AccountFlagNotificationsTest extends SettableClockContext {
 
     static final Instant START = Instant.parse("2026-11-20T10:00:00Z");
 

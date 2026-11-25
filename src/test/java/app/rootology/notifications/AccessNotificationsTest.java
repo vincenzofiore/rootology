@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
  * each with no space, an email digest and a Telegram message that say only that something waits, never the
  * motivation, the login or the address.
  */
-class AccessNotificationsTest extends NotificationsContext {
+class AccessNotificationsTest extends SettableClockContext {
 
     static final Instant START = Instant.parse("2026-11-04T10:00:00Z");
 

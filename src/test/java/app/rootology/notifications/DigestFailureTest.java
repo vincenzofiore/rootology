@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
  * The digest does not lose emails when SMTP fails (#153): the rows are marked only after a successful send,
  * so a failed send leaves them for the next run.
  */
-class DigestFailureTest extends NotificationsContext {
+class DigestFailureTest extends SettableClockContext {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 

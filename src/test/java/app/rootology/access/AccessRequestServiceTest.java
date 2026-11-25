@@ -1,22 +1,17 @@
 package app.rootology.access;
 
-import app.rootology.TestcontainersConfiguration;
+import app.rootology.notifications.SettableClockContext;
 import app.rootology.privacy.RetentionJob;
 import app.rootology.spaces.IdentityProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.convention.TestBean;
 
 import java.sql.Timestamp;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,18 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * rules, the waiting time after a rejection, who may decide, and the retention. Each test uses its own
  * identities.
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-class AccessRequestServiceTest {
+class AccessRequestServiceTest extends SettableClockContext {
 
     static final Instant NOW = Instant.parse("2026-11-04T10:00:00Z");
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return Clock.fixed(NOW, ZoneId.of("Europe/Rome"));
-    }
 
     @Autowired
     AccessRequestService requests;
@@ -51,6 +37,7 @@ class AccessRequestServiceTest {
     /** Every test starts from no request, so the cap and the lists are only its own. */
     @BeforeEach
     void clean() {
+        now = NOW;
         jdbc.sql("delete from access_request").update();
     }
 

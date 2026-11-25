@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Linking a Telegram chat (#38) on a real database: a one-time code that only exists as a hash, its ten minutes,
  * one chat per person, and the link that Telegram stopped delivering to.
  */
-class TelegramLinksTest extends NotificationsContext {
+class TelegramLinksTest extends SettableClockContext {
 
     @Autowired
     TelegramLinks links;

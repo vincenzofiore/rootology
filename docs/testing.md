@@ -58,8 +58,8 @@ use the same `@TestBean` factory method and, for by-type mocks, the same field n
 a new context. So the shared configuration lives in one base class per group, and a new test extends it
 instead of declaring its own properties, clock or doubles:
 
-- `notifications.NotificationsContext`: notification properties, a settable clock (`now`, reset by each class
-  in `@BeforeEach`), a mocked `TelegramClient` and a spied `MailService`.
+- `notifications.SettableClockContext`: a settable clock (`now`, set by each class in `@BeforeEach`), the scheduled jobs
+  once an hour, a mocked `TelegramClient` and a spied `MailService`; for notifications, access and usage.
 - `pipeline.PipelineContext`: Embabel's base with no Jev key, a mocked `WeatherService` and spied
   `DomainFilter` and `DecisionLayer`. Stub a spy with `doReturn(...).when(spy)`, never `when(spy.method())`,
   which calls the real method.
@@ -75,7 +75,7 @@ in the build.
   memory, and long runs used to end with Neo4j OOMKilled or unreachable (#68).
 - Postgres: `max_connections=300`, and `spring.datasource.hikari.maximum-pool-size=4` (with
   `minimum-idle=0`) in `src/test/resources/config/application.properties`. Every cached context keeps its
-  own pool: the default pool of 10 over about 17 contexts is more than Postgres' default of 100.
+  own pool: the default pool of 10 over the 9 contexts is more than Postgres' default of 100.
 
 ## Isolation: the data is shared now
 
@@ -131,3 +131,16 @@ The contexts did not change: 6 of them come from the pipeline tests on Embabel's
 each class really needs (a fixed `Clock`, a mocked weather service or Telegram client, MockMvc, a random
 port, the invitation and usage limits). The containers did: one set instead of one per context is what
 removed the time and the out-of-memory failures.
+
+## Numbers (#174, macOS, Docker Desktop, `./mvnw clean verify`)
+
+| | Before | Notifications and pipeline grouped | Access, usage and properties too |
+|---|---|---|---|
+| Spring contexts | 24 | 15 | 9 |
+| Time creating them | 128 s | 89 s | 67 s |
+| Wall clock | 215 s | 165 s | 145 s |
+| Tests | 921, 0 failures | 921, 0 failures | 921, 0 failures |
+
+The 9 left: the main one, `SettableClockContext`, `PipelineContext`, `WeatherAlertsTest` (a zero grouping
+window), `GoldenQuestionsTest` (the quality suite), the random port of `PublicSeoTest` and
+`LoggedOutPageTest`, `SecurityTest` (MockMvc), `ContextResolverTest` and `WeatherServiceTest` (a mock each).

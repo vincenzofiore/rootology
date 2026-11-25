@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Notifications of waiting questions (#26): who gets them, their state, and the grouped emails (Mailpit). */
-class NotificationServiceTest extends NotificationsContext {
+class NotificationServiceTest extends SettableClockContext {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 

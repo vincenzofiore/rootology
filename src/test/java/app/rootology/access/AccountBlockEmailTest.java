@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * again after an unblock. Addressed to the verified address the app knows, and to none when it knows none.
  */
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = "rootology.privacy.contact=privacy@example.org")
+@SpringBootTest
 class AccountBlockEmailTest {
 
     @Autowired
@@ -40,6 +40,9 @@ class AccountBlockEmailTest {
 
     @Value("${rootology.test.mailpit-api}")
     String mailpit;
+
+    @Value("${rootology.privacy.contact}")
+    String contact;
 
     /** The message to this address with this subject, waiting for the background send. */
     private JsonNode message(String address, String subject) throws InterruptedException {
@@ -72,8 +75,8 @@ class AccountBlockEmailTest {
 
         JsonNode blocked = message("blkmail-ada@example.org", "Il tuo account Rootology è bloccato");
         assertThat(blocked.path("Text").asString()).contains("bloccato", "Motivo: domande fuori tema",
-                "privacy@example.org", "non sono stati cancellati");
-        assertThat(blocked.path("HTML").asString()).contains("domande fuori tema", "privacy@example.org");
+                contact, "non sono stati cancellati");
+        assertThat(blocked.path("HTML").asString()).contains("domande fuori tema", contact);
 
         assertThat(blocks.unblock("blkmail-admin", "blkmail-ada")).isTrue();
 

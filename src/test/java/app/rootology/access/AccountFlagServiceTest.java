@@ -1,23 +1,20 @@
 package app.rootology.access;
 
+import app.rootology.notifications.SettableClockContext;
 import app.rootology.TestSpaces;
-import app.rootology.TestcontainersConfiguration;
 import app.rootology.spaces.Role;
 import app.rootology.spaces.SpaceService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.convention.TestBean;
 
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,33 +25,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * of the signal, the two decisions (an admin only), and the rule that an account is flagged once. Each test
  * uses its own logins, so the shared database never confuses two of them.
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-class AccountFlagServiceTest {
+class AccountFlagServiceTest extends SettableClockContext {
 
-    /** The signal reads "now" from the Clock bean, which this test moves to speak of days precisely. */
-    static Instant now = Instant.parse("2026-11-20T10:00:00Z");
-
-    @TestBean
-    Clock clock;
-
-    static Clock clock() {
-        return new Clock() {
-            @Override
-            public ZoneId getZone() {
-                return ZoneId.of("Europe/Rome");
-            }
-
-            @Override
-            public Clock withZone(ZoneId zone) {
-                return this;
-            }
-
-            @Override
-            public Instant instant() {
-                return now;
-            }
-        };
+    /** The signal reads "now" from the Clock bean, set here to speak of days precisely. */
+    @BeforeEach
+    void setTheClock() {
+        now = Instant.parse("2026-11-20T10:00:00Z");
     }
 
     @Autowired
