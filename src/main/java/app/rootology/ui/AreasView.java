@@ -635,8 +635,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
 
     /** A crop's name in the page's language: Italian, or English for an English page. */
     private String cropName(String cropId, String fallback) {
-        boolean english = getLocale() != null && getLocale().getLanguage().equals("en");
-        return crops.byId(cropId).map(c -> english ? c.englishName() : c.italianName()).orElse(fallback);
+        return crops.byId(cropId).map(c -> c.name(getLocale())).orElse(fallback);
     }
 
     @Override

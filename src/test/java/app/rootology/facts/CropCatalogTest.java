@@ -20,6 +20,16 @@ class CropCatalogTest {
     }
 
     @Test
+    void aCropIsNamedInThePagesLanguage() {
+        Crop lettuce = catalog.byId("lettuce").orElseThrow();
+
+        assertThat(lettuce.name(java.util.Locale.ENGLISH)).isEqualTo("Lettuce");
+        assertThat(lettuce.name(java.util.Locale.UK)).isEqualTo("Lettuce");
+        assertThat(lettuce.name(java.util.Locale.ITALIAN)).isEqualTo("Lattuga");
+        assertThat(lettuce.name(null)).as("Italian unless the page is English").isEqualTo("Lattuga");
+    }
+
+    @Test
     void everyCropHasNamesAndAFamily() {
         assertThat(catalog.all()).allSatisfy(c -> {
             assertThat(c.id()).matches("[a-z-]+");

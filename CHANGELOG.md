@@ -18,6 +18,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 ### Fixed
 
 - MeteoAlarm's disclaimer reads exactly as its terms give it ("National Meteorological and Hydrological Services") (#175).
+- On an English page, the garden home names the crops growing now in English, as the areas page already did (#182).
 
 ## [0.6.0] - 2026-11-24
 

@@ -670,7 +670,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
      */
     private Span growChip(PlantingSummary planting, List<ClimateWindow> harvest, SiteProfile site,
                           PlotKind areaKind) {
-        Span name = new Span(planting.cropName());
+        Span name = new Span(crops.byId(planting.cropId()).map(c -> c.name(NoteText.locale(this)))
+                .orElse(planting.cropName()));
         Span chip = new Span(name);
         chip.addClassName("rootology-grow-chip");
         if (planting.plantedOn() != null && planting.method() != null) {

@@ -28,6 +28,11 @@ public record Crop(String id, String italianName, String englishName, String sci
         return "SERVICE".equals(use);
     }
 
+    /** The name in a page's language: English for an English page, Italian otherwise (#182). */
+    public String name(java.util.Locale locale) {
+        return locale != null && "en".equals(locale.getLanguage()) ? englishName : italianName;
+    }
+
     /** The articles a crop's Italian name may take. */
     public static final java.util.Set<String> ITALIAN_ARTICLES =
             java.util.Set.of("il", "lo", "la", "l’", "i", "gli", "le");
