@@ -196,18 +196,18 @@ class AccountLinkingTest {
 
     @Test
     void anotherAccountOfAProviderThePersonAlreadyHasIsRefused() {
-        google("carla@example.org").signIn(googleUser("google-204", "carla@example.org"), null);
-        PendingLink.start("carla", IdentityProvider.GITHUB);
+        google("link-carla@example.org").signIn(googleUser("google-204", "link-carla@example.org"), null);
+        PendingLink.start("link-carla", IdentityProvider.GITHUB);
         github().link(githubUser(204, "carla-at-github"), GitHubEmails.Verified.NONE, PendingLink.current());
 
-        PendingLink.start("carla", IdentityProvider.GOOGLE);
+        PendingLink.start("link-carla", IdentityProvider.GOOGLE);
         assertThatThrownBy(() -> google().link(googleUser("google-205", "other@example.org"), PendingLink.current()))
                 .isInstanceOfSatisfying(OAuth2AuthenticationException.class,
                         refused -> assertThat(codeOf(refused)).isEqualTo("already-linked"));
 
         assertThat(identities.loginOf(IdentityProvider.GOOGLE, "google-205")).isEmpty();
-        assertThat(identities.loginOf(IdentityProvider.GOOGLE, "google-204")).contains("carla");
-        assertThat(identitiesOf("carla")).isEqualTo(2);
+        assertThat(identities.loginOf(IdentityProvider.GOOGLE, "google-204")).contains("link-carla");
+        assertThat(identitiesOf("link-carla")).isEqualTo(2);
     }
 
     @Test
