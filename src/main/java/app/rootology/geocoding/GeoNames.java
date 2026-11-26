@@ -117,17 +117,45 @@ public class GeoNames {
 
     /** One search by name; null when GeoNames failed, so nothing is cached. */
     private List<Place> places(String parameter, String text, String lang) {
+        // style=FULL for the alternate names: with a lang, "name" is the alternate name that matched the
+        // text typed, even an old one ("Lion" for Lyon), so the place is named from its own names (#184).
         return call(() -> restClient.get()
                 .uri(u -> u.path("/searchJSON").queryParam(parameter, text).queryParam("featureClass", "P")
                         .queryParam("maxRows", MAX_ROWS).queryParam("orderby", "relevance").queryParam("lang", lang)
-                        .queryParam("style", "MEDIUM").queryParam("username", username).build())
+                        .queryParam("style", "FULL").queryParam("username", username).build())
                 .retrieve().body(SearchResult.class))
                 .map(r -> r.geonames() == null ? List.<Place>of() : r.geonames().stream()
-                        .map(g -> new Place(g.name(), g.adminName1(), g.countryCode(), g.countryName(),
+                        .map(g -> new Place(displayName(g, lang), g.adminName1(), g.countryCode(), g.countryName(),
                                 Double.parseDouble(g.lat()), Double.parseDouble(g.lng()),
                                 g.population() == null ? 0 : g.population(), g.adminCode1()))
                         .toList())
                 .orElse(null);
+    }
+
+    /**
+     * The place's name in the search language: its preferred alternate name there, else the first one that is
+     * not a short form, else its main name. Never the raw "name", which is what happened to match the text
+     * typed (#184).
+     */
+    static String displayName(Entry place, String lang) {
+        List<AlternateName> names = place.alternateNames() == null ? List.of() : place.alternateNames();
+        String first = null;
+        for (AlternateName alternate : names) {
+            if (alternate.name() == null || !lang.equalsIgnoreCase(alternate.lang())) {
+                continue;
+            }
+            if (Boolean.TRUE.equals(alternate.isPreferredName())) {
+                return alternate.name();
+            }
+            if (first == null && !Boolean.TRUE.equals(alternate.isShortName())) {
+                first = alternate.name();
+            }
+        }
+        if (first != null) {
+            return first;
+        }
+        // A FULL reply always has the main name; a reply without it is malformed and the raw name is the last resort.
+        return place.toponymName() == null || place.toponymName().isBlank() ? place.name() : place.toponymName();
     }
 
     /**
@@ -220,7 +248,12 @@ public class GeoNames {
     record ElevationResult(Integer gtopo30, Status status) implements Reply {
     }
 
-    record Entry(String name, String adminName1, String countryCode, String countryName, String lat, String lng,
-                 Long population, String adminCode1) {
+    record Entry(String name, String toponymName, List<AlternateName> alternateNames, String adminName1,
+                 String countryCode, String countryName, String lat, String lng, Long population,
+                 String adminCode1) {
+    }
+
+    /** One of a place's other names (style=FULL): its language, whether it is the preferred one and if it is short. */
+    record AlternateName(String name, String lang, Boolean isPreferredName, Boolean isShortName) {
     }
 }
