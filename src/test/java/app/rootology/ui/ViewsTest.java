@@ -62,6 +62,9 @@ class ViewsTest {
     GardenService gardens;
 
     @Autowired
+    app.rootology.garden.CropProposalService proposals;
+
+    @Autowired
     CropCatalog crops;
 
     @Autowired
@@ -69,6 +72,9 @@ class ViewsTest {
 
     @Autowired
     ClimateWindows climateWindows;
+
+    @Autowired
+    java.time.Clock clock;
 
     @Autowired
     app.rootology.weather.WeatherService weatherService;
@@ -168,7 +174,7 @@ class ViewsTest {
     @Test
     void historySpaceAndCuratorViewsBuild() {
         assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
-        assertThat(new AreasView(gardens, crops, geoNames, weatherService, cells, climateWindows, viewer()).getChildren()).isNotEmpty();
+        assertThat(new AreasView(gardens, crops, proposals, geoNames, weatherService, cells, climateWindows, viewer(), clock).getChildren()).isNotEmpty();
         assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "")
                 .getChildren()).isNotEmpty();
         assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();

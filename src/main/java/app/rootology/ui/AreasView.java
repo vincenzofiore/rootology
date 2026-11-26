@@ -31,6 +31,7 @@ import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.ClimateWindows.ClimateWindow;
 import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
+import app.rootology.garden.CropProposalService;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
 import app.rootology.garden.LightRule;
@@ -47,6 +48,7 @@ import app.rootology.weather.DailyForecast;
 import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
@@ -65,6 +67,10 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
 
     private final GardenService gardens;
     private final CropCatalog crops;
+    /** What the rules say about a crop in an area (#185): the same computation as the proposals. */
+    private final CropProposalService proposals;
+    /** "Today" for the planting dialog, never the machine's (#150). */
+    private final Clock clock;
     private final GeoNames geoNames;
     private final ClimateCells climateCells;
     private final ClimateWindows climateWindows;
@@ -93,12 +99,14 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private final EmptyState noAreas = new EmptyState(getTranslation("empty.plots"),
             getTranslation("empty.plots.add"), () -> areaDialog(null));
 
-    public AreasView(GardenService gardens, CropCatalog crops, GeoNames geoNames, WeatherService weather,
-                     ClimateCells climateCells, ClimateWindows climateWindows,
-                     CurrentUser currentUser) {
+    public AreasView(GardenService gardens, CropCatalog crops, CropProposalService proposals, GeoNames geoNames,
+                     WeatherService weather, ClimateCells climateCells, ClimateWindows climateWindows,
+                     CurrentUser currentUser, Clock clock) {
         this.weather = weather;
         this.gardens = gardens;
         this.crops = crops;
+        this.proposals = proposals;
+        this.clock = clock;
         this.geoNames = geoNames;
         this.climateCells = climateCells;
         this.climateWindows = climateWindows;
@@ -590,25 +598,32 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     }
 
     private void plantingDialog(PlotSummary area) {
+        Dialog dialog = plantingDialogOf(area);
+        if (dialog != null) {
+            dialog.open();
+        }
+    }
+
+    /** The planting dialog's fields and save, unopened: the test chooses a crop and reads its checks (#185). */
+    Dialog plantingDialogOf(PlotSummary area) {
         ComboBox<Crop> crop = new ComboBox<>(getTranslation("garden.crop"), crops.all());
         crop.setItemLabelGenerator(c -> cropName(c.id(), c.italianName()));
         ComboBox<PlantingMethod> method = new ComboBox<>(getTranslation("garden.method"), PlantingMethod.values());
         method.setItemLabelGenerator(m -> getTranslation("method." + m.name()));
         method.setValue(PlantingMethod.TRANSPLANTED);
-        DatePicker date = new DatePicker(getTranslation("garden.date"), LocalDate.now());
+        DatePicker date = new DatePicker(getTranslation("garden.date"),
+                LocalDate.ofInstant(clock.instant(), clock.getZone()));
         TextField notes = new TextField(getTranslation("garden.notes.field"));
-        Paragraph rotationWarning = new Paragraph();
-        rotationWarning.addClassNames(com.vaadin.flow.theme.lumo.LumoUtility.TextColor.ERROR);
-        Runnable checkRotation = () -> rotationWarning.setText(crop.getValue() == null || date.getValue() == null ? ""
-                : gardens.rotationWarning(spaceId, login, area.id(), crop.getValue().id(), date.getValue())
-                .map(w -> getTranslation("garden.rotation", cropName(crop.getValue().id(), crop.getValue().italianName()),
-                        cropName(w.previous().cropId(), w.previous().cropName()),
-                        DateText.date(w.previous().plantedOn(), this),
-                        w.family(), w.previous().plotName(), w.rule())).orElse(""));
-        crop.addValueChangeListener(e -> checkRotation.run());
-        date.addValueChangeListener(e -> checkRotation.run());
+        // The category and the checks of the chosen crop, under the field (#185): help, never a block.
+        Div checks = new Div();
+        // The month of the chosen date, so a planting dated in another month is checked for that month.
+        Runnable check = () -> showChecks(checks, crop.getValue(), date.getValue(), area);
+        crop.addValueChangeListener(e -> check.run());
+        date.addValueChangeListener(e -> check.run());
+        Div cropField = new Div(crop, checks);
+        cropField.addClassName("rootology-planting-crop");
         Dialog dialog = new Dialog(getTranslation("garden.sowin", area.name()));
-        dialog.add(new FormLayout(crop, method, date, notes), rotationWarning);
+        dialog.add(cropField, new FormLayout(method, date, notes));
         dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
                 new Button(getTranslation("common.save"), e -> {
             try {
@@ -620,7 +635,18 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                 UiErrors.show(this, ex);
             }
         }));
-        dialog.open();
+        return dialog;
+    }
+
+    /** Reads the rules for the chosen crop and shows them; nothing when no crop is chosen (#185). */
+    private void showChecks(Div into, Crop crop, LocalDate date, PlotSummary area) {
+        into.removeAll();
+        if (crop == null || garden == null) {
+            return;
+        }
+        into.add(PlantingChecks.of(date == null ? proposals.checks(spaceId, login, garden.id(), area.id(), crop.id())
+                        : proposals.checks(spaceId, login, garden.id(), area.id(), crop.id(), date.getMonth()),
+                this::getTranslation, id -> cropName(id, id)));
     }
 
     /** Runs an action, shows its error if any, and refreshes the garden's areas. */

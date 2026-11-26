@@ -48,7 +48,6 @@ Method <app.rootology.ui.AnswerCards.of(app.rootology.pipeline.PipelineAnswer, l
 Method <app.rootology.ui.AreasView.areaCard(app.rootology.garden.GardenViews$PlotSummary)> calls method <java.time.LocalDate.now(java.time.ZoneId)> in (AreasView.java:211)
 Method <app.rootology.ui.AreasView.chip(app.rootology.garden.GardenViews$PlotSummary, app.rootology.garden.GardenViews$PlantingSummary)> calls method <java.time.LocalDate.now(java.time.ZoneId)> in (AreasView.java:390)
 Method <app.rootology.ui.AreasView.harvestDialog(app.rootology.garden.GardenViews$PlantingSummary)> calls method <java.time.LocalDate.now(java.time.ZoneId)> in (AreasView.java:553)
-Method <app.rootology.ui.AreasView.plantingDialog(app.rootology.garden.GardenViews$PlotSummary)> calls method <java.time.LocalDate.now()> in (AreasView.java:598)
 Method <app.rootology.ui.AreasView.seasonLevel(int, int)> calls method <java.time.LocalDate.now(java.time.ZoneId)> in (AreasView.java:531)
 Method <app.rootology.ui.AreasView.showFrost(app.rootology.garden.GardenViews$GardenSummary)> calls method <java.time.LocalDate.now(java.time.ZoneId)> in (AreasView.java:415)
 Method <app.rootology.ui.AskView.failed(app.rootology.ui.ThinkingCard, java.lang.String, java.lang.String, boolean)> calls method <java.time.Instant.now()> in (AskView.java:934)

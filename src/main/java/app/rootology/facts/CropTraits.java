@@ -17,9 +17,10 @@ import java.util.Set;
 
 /**
  * What the curated files say about one crop besides its calendar (#141): FAO ECOCROP's cycle and light
- * optimum (`crop-needs.csv`), the antagonist pairs declared in either direction (`crop-pairs.csv`) and the
- * service plants that control a pest or disease (`pest-controls.csv`). Read once from the same files
- * {@link ClimateWindows} reads, so a rule about crops does not go through Neo4j for facts that are curated.
+ * optimum (`crop-needs.csv`), the antagonist pairs declared in either direction and the companions as declared
+ * (`crop-pairs.csv`) and the service plants that control a pest or disease (`pest-controls.csv`). Read once
+ * from the same files {@link ClimateWindows} reads, so a rule about crops does not go through Neo4j for facts
+ * that are curated.
  */
 @Component
 public class CropTraits {
@@ -34,6 +35,7 @@ public class CropTraits {
 
     private final Map<String, NeedRow> needs;
     private final Set<String> antagonists;
+    private final Map<String, Set<String>> companions;
     private final Map<String, Beneficial> beneficials;
 
     public CropTraits(CropCatalog crops) {
@@ -42,6 +44,7 @@ public class CropTraits {
         knowledge.needs().forEach(n -> byCrop.put(n.cropId(), n));
         this.needs = Map.copyOf(byCrop);
         this.antagonists = antagonists(knowledge.pairs());
+        this.companions = companions(knowledge.pairs());
         this.beneficials = beneficials(knowledge.controls());
     }
 
@@ -60,6 +63,14 @@ public class CropTraits {
         return antagonists.contains(key(cropId, otherCropId));
     }
 
+    /**
+     * The crops the curated pairs declare companions of this one, in the direction the file declares: a pair is
+     * never reversed, as the knowledge base never infers it (#185).
+     */
+    public Set<String> companions(String cropId) {
+        return companions.getOrDefault(cropId, Set.of());
+    }
+
     /** The service-plant rows that name this crop as their agent; empty when there are none. */
     public Optional<Beneficial> beneficial(String cropId) {
         return Optional.ofNullable(beneficials.get(cropId));
@@ -72,6 +83,16 @@ public class CropTraits {
             result.add(key(p.partnerId(), p.cropId()));
         });
         return Set.copyOf(result);
+    }
+
+    /** The declared companions of each crop, by crop: a pair is kept as the file declares it. */
+    private static Map<String, Set<String>> companions(List<PairRow> pairs) {
+        Map<String, Set<String>> result = new HashMap<>();
+        pairs.stream().filter(p -> "COMPANION".equals(p.relation())).forEach(p ->
+                result.computeIfAbsent(p.cropId(), k -> new HashSet<>()).add(p.partnerId()));
+        Map<String, Set<String>> copy = new HashMap<>();
+        result.forEach((cropId, partners) -> copy.put(cropId, Set.copyOf(partners)));
+        return Map.copyOf(copy);
     }
 
     /** The sources of every SERVICE_PLANT row that names the crop, and whether all of them are traditional. */

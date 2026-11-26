@@ -40,6 +40,9 @@ import java.util.stream.Collectors;
  * <p>A free area is a plot with nothing growing on the first day of the month, as {@link GardenService}
  * reads plantings. Access follows the garden: only a member of the space reads the proposal, and a garden of
  * another space is unknown.
+ *
+ * <p>Since #185 the per-crop, per-area facts are one method, {@link #checks}, which the planting dialog reads
+ * for the crop a person chooses: the proposals use the same computation, so the two can never disagree.
  */
 @Component
 public class CropProposalService {
@@ -58,6 +61,51 @@ public class CropProposalService {
 
         public Proposals {
             areas = List.copyOf(areas);
+        }
+    }
+
+    /** The light verdict of `light-need-v1` for one crop in one area (#185): unknown until both values are known. */
+    public enum Light {
+        ENOUGH, TOO_DARK, UNKNOWN
+    }
+
+    /**
+     * What the garden's rules say about one crop in one area (#185): the facts `crop-proposal-v1` judges, plus
+     * the names of the companions and antagonists growing there and the rotation warning itself, so the
+     * planting dialog and the proposals can never disagree.
+     *
+     * <p>rotation is the `family-rotation-v1` warning, or null when the rule says nothing; frost is what
+     * `frost-suitability-v1` says, or null when it says nothing; inWindow is false when the crop has no
+     * SOW, TRANSPLANT or PLANT window at the site this month.
+     */
+    public record CropChecks(CropFacts facts, List<String> companionsInArea, List<String> antagonistsInArea,
+                             RotationRule.RotationWarning rotation, Light light) {
+
+        public CropChecks {
+            companionsInArea = List.copyOf(companionsInArea);
+            antagonistsInArea = List.copyOf(antagonistsInArea);
+        }
+
+        public String cropId() {
+            return facts.cropId();
+        }
+
+        public String family() {
+            return facts.family();
+        }
+
+        /** A service plant or green manure, not food (#140). */
+        public boolean service() {
+            return facts.service();
+        }
+
+        /** A window of the month that puts the crop in the area; false is "outside its window". */
+        public boolean inWindow() {
+            return !facts.windows().isEmpty();
+        }
+
+        public FrostSuitabilityRule.Result frost() {
+            return facts.frost();
         }
     }
 
@@ -107,11 +155,42 @@ public class CropProposalService {
             if (busy.contains(plot.id())) {
                 continue;
             }
-            List<CropFacts> candidates = candidates(spaceId, login, plot, day, growing, windowsOfMonth, site);
+            List<PlantingSummary> inArea = inArea(growing, plot);
+            List<PlantingSummary> history = gardens.plantings(spaceId, login, plot.id());
+            List<CropFacts> candidates = windowsOfMonth.entrySet().stream()
+                    .map(entry -> checksOf(entry.getKey(), entry.getValue(), inArea, history, day, site, plot, month))
+                    .map(CropChecks::facts).toList();
             areas.add(new AreaProposals(plot.id(), plot.name(), CropProposalRule.propose(
                     new AreaFacts(plot.id(), plot.name(), plot.directSunIn(month), families), candidates, goals)));
         }
         return new Proposals(garden.id(), garden.name(), month, own.isPresent(), areas);
+    }
+
+    /** The checks for the current month in Italy, as the planting dialog shows them (#185). */
+    @Transactional(readOnly = true)
+    public CropChecks checks(long spaceId, String login, long gardenId, long areaId, String cropId) {
+        return checks(spaceId, login, gardenId, areaId, cropId, today().getMonth());
+    }
+
+    /**
+     * What the rules say about one crop in one area in a month (#185). The same facts `propose` builds, so a
+     * crop the dialog warns about is the crop the proposals leave out. The access checks are the proposals':
+     * only a member of the space reads the garden, and a garden or area of another space is unknown.
+     */
+    @Transactional(readOnly = true)
+    public CropChecks checks(long spaceId, String login, long gardenId, long areaId, String cropId, Month month) {
+        crops.byId(cropId).orElseThrow(() -> new IllegalArgumentException("Unknown crop: " + cropId));
+        GardenSummary garden = gardens.garden(spaceId, login, gardenId)
+                .orElseThrow(() -> new IllegalArgumentException("No such garden in this space"));
+        SiteProfile site = sites.profile(garden).orElseGet(sites::defaultProfile);
+        LocalDate day = firstDayOf(month, today());
+        PlotSummary plot = gardens.plots(spaceId, login, gardenId).stream()
+                .filter(p -> p.id() == areaId).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No such area in this garden"));
+        List<PlantingSummary> inArea = inArea(gardens.growingOn(spaceId, login, gardenId, day), plot);
+        List<PlantingSummary> history = gardens.plantings(spaceId, login, plot.id());
+        List<Window> cropWindows = windowsOfMonth(site, month).getOrDefault(cropId, List.of());
+        return checksOf(cropId, cropWindows, inArea, history, day, site, plot, month);
     }
 
     /**
@@ -134,36 +213,46 @@ public class CropProposalService {
     }
 
     /**
-     * The crops with a window this month, each with what the rule needs for this area: the rotation warning,
-     * the antagonists growing in it, its light need and, for the goals, its cycle and service-plant rows.
+     * The facts and the checks for one crop in one area: the rotation warning, the companions and antagonists
+     * growing there, the light verdict and frost suitability, all from the rules the proposals use (#185).
      */
-    private List<CropFacts> candidates(long spaceId, String login, PlotSummary plot, LocalDate day,
-                                       List<PlantingSummary> growing, Map<String, List<Window>> windowsOfMonth,
-                                       SiteProfile site) {
-        List<PlantingSummary> history = gardens.plantings(spaceId, login, plot.id());
-        Set<String> neighbours = growing.stream().filter(p -> p.plotId() == plot.id())
-                .map(PlantingSummary::cropId).collect(Collectors.toSet());
-        List<CropFacts> facts = new ArrayList<>();
-        for (Map.Entry<String, List<Window>> entry : windowsOfMonth.entrySet()) {
-            facts.add(cropFacts(entry.getKey(), entry.getValue(), history, neighbours, day, site, plot));
-        }
-        return facts;
+    private CropChecks checksOf(String cropId, List<Window> windows, List<PlantingSummary> inArea,
+                                List<PlantingSummary> history, LocalDate day, SiteProfile site, PlotSummary plot,
+                                Month month) {
+        Crop crop = crops.byId(cropId).orElseThrow(() -> new IllegalStateException("Unknown crop: " + cropId));
+        Optional<RotationRule.RotationWarning> rotationWarning = rotation.check(history, cropId, day);
+        Set<String> companions = traits.companions(cropId);
+        List<String> companionsInArea = inArea.stream().map(PlantingSummary::cropId)
+                .filter(other -> !other.equals(cropId) && companions.contains(other))
+                .distinct().sorted().toList();
+        List<String> antagonistsInArea = inArea.stream().map(PlantingSummary::cropId)
+                .filter(other -> !other.equals(cropId) && traits.antagonists(cropId, other))
+                .distinct().sorted().toList();
+        DirectSun sun = plot.directSunIn(month);
+        Optional<DirectSun> lightNeed = traits.lightOptimum(cropId).flatMap(LightRule::needs);
+        Light light = sun == null || lightNeed.isEmpty() ? Light.UNKNOWN
+                : LightRule.tooDark(sun, lightNeed.get()) ? Light.TOO_DARK : Light.ENOUGH;
+        return new CropChecks(cropFacts(crop, windows, rotationWarning.isPresent(), !antagonistsInArea.isEmpty(),
+                site, plot), companionsInArea, antagonistsInArea, rotationWarning.orElse(null), light);
     }
 
-    private CropFacts cropFacts(String cropId, List<Window> windows, List<PlantingSummary> history,
-                                Set<String> neighbours, LocalDate day, SiteProfile site, PlotSummary plot) {
-        Crop crop = crops.byId(cropId).orElseThrow(() -> new IllegalStateException("Unknown crop: " + cropId));
-        boolean antagonistInArea = neighbours.stream().anyMatch(other -> !other.equals(cropId)
-                && traits.antagonists(cropId, other));
+    private CropFacts cropFacts(Crop crop, List<Window> windows, boolean rotationWarning, boolean antagonistInArea,
+                                SiteProfile site, PlotSummary plot) {
+        String cropId = crop.id();
         Optional<CropTraits.Beneficial> beneficial = traits.beneficial(cropId);
         return new CropFacts(cropId, crop.family(), crop.service(),
                 traits.cycleMinDays(cropId).orElse(null),
                 traits.lightOptimum(cropId).flatMap(LightRule::needs).orElse(null),
-                windows, rotation.check(history, cropId, day).isPresent(), antagonistInArea,
+                windows, rotationWarning, antagonistInArea,
                 beneficial.isPresent(), beneficial.map(CropTraits.Beneficial::traditionalOnly).orElse(false),
                 beneficial.map(CropTraits.Beneficial::sources).orElse(List.of()), crop.perennial(),
                 // A perennial that does not stand the area's winter in open ground is not proposed for it (#147).
                 FrostSuitabilityRule.of(crop, site, plot.kind().name()).orElse(null));
+    }
+
+    /** The crops growing in one area on the day: the neighbours the companion and antagonist checks read. */
+    private static List<PlantingSummary> inArea(List<PlantingSummary> growing, PlotSummary plot) {
+        return growing.stream().filter(p -> p.plotId() == plot.id()).toList();
     }
 
     /** The families of the crops growing in the garden on the day, for the VARIETY goal. */

@@ -717,6 +717,27 @@ rootology-garden-map { display: block; width: 100%; }
 }
 /* A hint in a dialog that asks the person to check before saving (#66: a garden in open sea). */
 .rootology-warning { color: var(--lumo-warning-text-color); }
+/* The planting dialog (#185): the crop's category and one icon per check under the crop field, the sentence
+   in the tooltip and in what a screen reader says. Good in the app's positive colour, warnings in the warning
+   one, an unknown in the neutral one: a help before saving, never a block. */
+.rootology-planting-crop vaadin-combo-box { width: 100%; }
+.rootology-planting-checks {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    margin-top: var(--lumo-space-xs);
+    font-size: var(--lumo-font-size-s);
+}
+.rootology-planting-category { color: var(--lumo-secondary-text-color); }
+.rootology-planting-check { display: inline-flex; align-items: center; gap: var(--lumo-space-xs); }
+.rootology-planting-check vaadin-icon, .rootology-planting-check svg {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+.rootology-planting-check-good { color: var(--lumo-success-text-color); }
+.rootology-planting-check-warning { color: var(--lumo-warning-text-color); }
+.rootology-planting-check-unknown { color: var(--lumo-secondary-text-color); }
 /* The search that moves the map to a place, as wide as the map's frame allows. */
 .rootology-map-popup-title { margin: 0 0 var(--lumo-space-xs); font-weight: 600; }
 .rootology-map-popup-garden + .rootology-map-popup-garden {

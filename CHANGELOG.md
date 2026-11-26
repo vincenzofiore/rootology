@@ -6,6 +6,10 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ## [Unreleased]
 
+### Added
+
+- The dialog that adds a planting to an area shows, under the crop field, the crop's family and use and one icon per check the garden's rules give: a companion or an antagonist already growing there, the same family as the crop before it, too little light (or an unknown one), a month outside its sowing or planting window and a winter it does not stand in open ground; each is a warning with its sentence as tooltip, never a block, and it comes from the same code as the proposals for the free areas (#185).
+
 ### Changed
 
 - A question about a crop or an organism the knowledge base does not know (for example “aglione”) is answered at once with “I don’t know it yet” and no longer waits for a person; a member can propose it as another name of a known crop, and curators see the names asked and not found (#180).

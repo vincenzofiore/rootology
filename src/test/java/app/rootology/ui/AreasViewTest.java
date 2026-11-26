@@ -2,9 +2,22 @@ package app.rootology.ui;
 
 import org.junit.jupiter.api.Test;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
+import app.rootology.garden.CropProposalRule.CropFacts;
+import app.rootology.garden.CropProposalRule.Window;
+import app.rootology.garden.CropProposalService.CropChecks;
+import app.rootology.garden.CropProposalService.Light;
+import app.rootology.garden.DirectSun;
+import app.rootology.garden.GardenViews.PlantingSummary;
+import app.rootology.garden.PlantingMethod;
+import app.rootology.garden.RotationRule;
+
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,6 +132,73 @@ class AreasViewTest {
 
         app.rootology.garden.GardenViews.PlotSummary none = sun(null, null, null);
         assertThat(none.directSunIn(java.time.Month.JULY)).as("nothing declared").isNull();
+    }
+
+
+    @Test
+    void aChosenCropShowsItsCategoryAndOneIconPerCheckWithItsSentence() {
+        // #185: the category names the family and the use, then one icon per check that applies, good, warning
+        // or unknown, each with its sentence as tooltip and as what a screen reader says.
+        CropChecks checks = new CropChecks(
+                facts("tomato", "Solanaceae", false,
+                        List.of(new Window("TRANSPLANT", 4, true, true, List.of("rootology-editorial"))),
+                        true, true),
+                List.of("basil"), List.of("potato"),
+                new RotationRule.RotationWarning(RotationRule.ID, "Solanaceae",
+                        new PlantingSummary(1, 7, "Area", app.rootology.garden.PlotKind.GROUND, "potato",
+                                "patata", PlantingMethod.SOWN, LocalDate.of(2025, 3, 1),
+                                LocalDate.of(2025, 8, 1), null),
+                        "tomato", "reason"),
+                Light.TOO_DARK);
+
+        Div row = PlantingChecks.of(checks, italian(), AreasViewTest::cropName);
+
+        assertThat(row.getChildren().map(Component::getElement).map(e -> e.getText()).toList())
+                .as("the category first").anyMatch(text -> text.contains("Solanaceae · commestibile"));
+        assertThat(check(row, "rootology-planting-check-good"))
+                .containsExactly("Buona vicina: basilico cresce già qui.");
+        assertThat(check(row, "rootology-planting-check-warning"))
+                .containsExactly("Antagonista: patata cresce già qui.",
+                        "Stessa famiglia di patata, la coltura precedente (Solanaceae).",
+                        "Sole diretto insufficiente: pomodoro ne chiede più di quanto prenda l’area.");
+        assertThat(check(row, "rootology-planting-check-unknown")).isEmpty();
+    }
+
+    @Test
+    void aCropWithNothingToSayShowsOnlyItsCategory() {
+        CropChecks checks = new CropChecks(facts("carrot", "Apiaceae", false,
+                List.of(new Window("SOW", 4, true, true, List.of("rootology-editorial"))), false, false),
+                List.of(), List.of(), null, Light.ENOUGH);
+
+        Div row = PlantingChecks.of(checks, italian(), AreasViewTest::cropName);
+
+        assertThat(row.getChildren().map(Component::getElement).map(e -> e.getText()).toList())
+                .containsExactly("Apiaceae · commestibile");
+        assertThat(check(row, "rootology-planting-check")).isEmpty();
+    }
+
+    private static CropFacts facts(String cropId, String family, boolean service, List<Window> windows,
+                                   boolean rotation, boolean antagonist) {
+        return new CropFacts(cropId, family, service, 60.0, DirectSun.PART_SHADE, windows, rotation, antagonist,
+                false, false, List.of(), false, null);
+    }
+
+    /** The crops of the checks of this test, by their Italian names. */
+    private static String cropName(String cropId) {
+        return Map.of("tomato", "pomodoro", "basil", "basilico", "potato", "patata", "carrot", "carota")
+                .getOrDefault(cropId, cropId);
+    }
+
+    /** The sentences of the checks of one tone, from their tooltip and their aria label. */
+    private static List<String> check(Div row, String tone) {
+        return row.getChildren().filter(Span.class::isInstance).map(Span.class::cast)
+                .filter(span -> span.getClassNames().contains(tone))
+                .map(span -> {
+                    String sentence = String.valueOf(span.getElement().getAttribute("aria-label"));
+                    assertThat(span.getElement().getAttribute("title")).as("the same tooltip").isEqualTo(sentence);
+                    assertThat(span.getElement().getAttribute("role")).isEqualTo("img");
+                    return sentence;
+                }).toList();
     }
 
     private static app.rootology.garden.GardenViews.PlotSummary sun(app.rootology.garden.DirectSun level,

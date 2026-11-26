@@ -53,6 +53,9 @@ class AreasSunHoursTest {
     CropCatalog crops;
 
     @Autowired
+    app.rootology.garden.CropProposalService proposals;
+
+    @Autowired
     GeoNames geoNames;
 
     @Autowired
@@ -64,14 +67,17 @@ class AreasSunHoursTest {
     @Autowired
     ClimateWindows climateWindows;
 
+    @Autowired
+    java.time.Clock clock;
+
     @Test
     void theDialogSavesTheHoursAndTheCardShowsThemBesideTheSun() {
         String login = "areas-sun-" + Long.toString(System.nanoTime(), 36);
         spaces.signedIn(login);
         long space = personalSpace(login);
         long garden = gardens.saveGarden(space, login, null, "Balcone", null, null, null).id();
-        AreasView view = new AreasView(gardens, crops, geoNames, weather, climateCells, climateWindows,
-                new CurrentUser(spaces, login));
+        AreasView view = new AreasView(gardens, crops, proposals, geoNames, weather, climateCells, climateWindows,
+                new CurrentUser(spaces, login), clock);
         view.beforeEnter(entering(space, garden));
 
         Dialog dialog = view.areaDialogOf(null);
