@@ -2019,6 +2019,15 @@ vaadin-button.rootology-filter-chip[focus-ring] {
     display: flex;
     flex-wrap: wrap;
     gap: var(--lumo-space-xs);
+    min-width: 0;
+}
+
+/* A long value wraps inside the card (#183): never past its edge, on a phone too. */
+.rootology-history-card-values > * {
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 .rootology-history-card-context {
     overflow-wrap: anywhere;

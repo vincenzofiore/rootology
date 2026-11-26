@@ -19,6 +19,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 - MeteoAlarm's disclaimer reads exactly as its terms give it ("National Meteorological and Hydrological Services") (#175).
 - On an English page, the garden home names the crops growing now in English, as the areas page already did (#182).
+- In the history, the card of an answer about control methods no longer lists the knowledge base's English labels (the answer's own text already says them, as the answer card does), a card left with no values shows none, and a long value wraps inside the card instead of running past its edge (#183).
 
 ## [0.6.0] - 2026-11-24
 

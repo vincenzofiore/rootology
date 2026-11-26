@@ -414,8 +414,11 @@ class HistoryPanel extends Div {
         card.add(question);
         if (entry.run() != null) {
             Div badges = values(entry.run());
-            badges.addClassName("rootology-history-card-values");
-            card.add(badges);
+            // A question with nothing left to show keeps its question and its outcome (#183): no empty row.
+            if (badges.getComponentCount() > 0) {
+                badges.addClassName("rootology-history-card-values");
+                card.add(badges);
+            }
         }
         if (othersAsk) {
             card.add(askedBy);
@@ -450,7 +453,8 @@ class HistoryPanel extends Div {
 
     /**
      * The answer's values as small badges (#110: in the page's language, all of them, since a card is the
-     * scannable summary of a question), and nothing when the question was refused (#53).
+     * scannable summary of a question), without the control methods its sentence already says (#183), and
+     * nothing when the question was refused (#53).
      */
     private Div values(PipelineRunRecord run) {
         Div badges = new Div();
@@ -471,7 +475,9 @@ class HistoryPanel extends Div {
             badges.add(line);
             return badges;
         }
-        run.getAnswer().forEach(value -> {
+        // As the answer's card does (#110, #140): a control method is a sentence the answer's text says, so
+        // its English label never becomes a badge here (#183). The other values stay in the page's language.
+        run.getAnswer().stream().filter(ValueText::badge).forEach(value -> {
             Badge badge = new Badge(ValueText.of(value, this));
             // Values are read, not acted on: neutral, so green stays where the person acts (#113).
             badge.addThemeVariants(BadgeVariant.SMALL, BadgeVariant.CONTRAST);

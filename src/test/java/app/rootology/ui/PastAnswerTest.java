@@ -168,6 +168,53 @@ class PastAnswerTest {
                 .containsExactly("Orto sul tetto · novembre");
     }
 
+    @Test
+    void aControlMethodAnswerCardSaysNoEnglishMethodAndKeepsTheCropValues() {
+        // #183: a control method is a sentence the answer's text says, so its English label is no badge; the
+        // other values stay, in the page's language.
+        String login = "past-controls-" + Long.toString(System.nanoTime(), 36);
+        spaces.signedIn(login);
+        long space = app.rootology.TestSpaces.personal(spaces, login);
+        insertAnsweredRun(space, login, "Cosa posso fare contro gli afidi?",
+                "'{\"Encourage ladybirds; hoverflies; lacewings; parasitoid wasps and earwigs\","
+                        + "\"Two-spot ladybird released as biological control under cover\"}'");
+        insertAnsweredRun(space, login, "Quando semino il pomodoro?", "'{tomato}'");
+        AskView ask = askView(login);
+
+        ask.beforeEnter(opening(space, "none"));
+
+        Component methods = historyCard(ask, "Cosa posso fare contro gli afidi?");
+        assertThat(text(methods)).as("no control-method label in the card")
+                .doesNotContain("Encourage ladybirds", "Two-spot ladybird");
+        assertThat(all(methods)).as("no empty values row either")
+                .noneMatch(c -> c.getClassNames().contains("rootology-history-card-values"));
+        Component crops = historyCard(ask, "Quando semino il pomodoro?");
+        assertThat(all(crops)).as("the values row of a crop answer stays")
+                .anyMatch(c -> c.getClassNames().contains("rootology-history-card-values"));
+        assertThat(text(crops)).as("the crop in the page's language").contains("Pomodoro")
+                .doesNotContain("tomato");
+    }
+
+    /** The card of one question in the history (#183). */
+    private static Component historyCard(AskView ask, String question) {
+        return all(ask.historyPanel())
+                .filter(c -> c.getClassNames().contains("rootology-history-card"))
+                .filter(c -> text(c).contains(question))
+                .findFirst().orElseThrow();
+    }
+
+    /** A finished answer as the pipeline stores it, with the answer's values as a SQL array literal (#183). */
+    private void insertAnsweredRun(long space, String login, String question, String answer) {
+        jdbc.sql("INSERT INTO pipeline_run (process_id, space_id, started_by, question_id, question, "
+                        + "noise_dropout, noise_spurious, noise_mislabel, noise_near_subject, noise_seed, "
+                        + "decision_answer, decision_confidence, decision_escalated, decision_reason, answer, "
+                        + "answered_by_human, answer_text, off_domain, finished_at) "
+                        + "VALUES (?, ?, ?, 'ask', ?, 0, 0, 0, false, 0, '{}'::text[], 0.9, false, 'rule', "
+                        + answer + "::text[], false, 'La risposta.', false, ?)")
+                .params(UUID.randomUUID().toString(), space, login, question, Timestamp.from(Instant.now()))
+                .update();
+    }
+
     private AskView askView(String login) {
         return new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
                 crops, knowledge, geoNames, cells, runHistory);
