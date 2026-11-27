@@ -221,7 +221,9 @@ public class CropProposalService {
         Optional<RotationRule.RotationWarning> rotationWarning = rotation.check(history, cropId, day);
         Set<String> companions = traits.companions(cropId);
         List<String> companionsInArea = inArea.stream().map(PlantingSummary::cropId)
-                .filter(other -> !other.equals(cropId) && companions.contains(other))
+                // a person planting reads a pair both ways; the pipeline keeps the declared direction
+                .filter(other -> !other.equals(cropId)
+                        && (companions.contains(other) || traits.companions(other).contains(cropId)))
                 .distinct().sorted().toList();
         List<String> antagonistsInArea = inArea.stream().map(PlantingSummary::cropId)
                 .filter(other -> !other.equals(cropId) && traits.antagonists(cropId, other))

@@ -156,7 +156,7 @@ class AreasViewTest {
         assertThat(row.getChildren().map(Component::getElement).map(e -> e.getText()).toList())
                 .as("the category first").anyMatch(text -> text.contains("Solanaceae · commestibile"));
         assertThat(check(row, "rootology-planting-check-good"))
-                .containsExactly("Buona vicina: basilico cresce già qui.");
+                .containsExactly("Sta bene con basilico, che cresce già qui.");
         assertThat(check(row, "rootology-planting-check-warning"))
                 .containsExactly("Antagonista: patata cresce già qui.",
                         "Stessa famiglia di patata, la coltura precedente (Solanaceae).",

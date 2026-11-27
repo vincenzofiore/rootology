@@ -216,6 +216,10 @@ class CropProposalServiceTest {
 
         assertThat(proposals.checks(space, LOGIN, garden.id(), antagonists, "carrot").companionsInArea())
                 .as("potato is no companion of carrot").isEmpty();
+
+        gardens.plant(space, LOGIN, antagonists, "carrot", PlantingMethod.SOWN, today, null);
+        assertThat(proposals.checks(space, LOGIN, garden.id(), antagonists, "onion").companionsInArea())
+                .as("the pair carrot-onion is read both ways").containsExactly("carrot");
     }
 
     @Test

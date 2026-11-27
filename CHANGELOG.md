@@ -8,7 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
-- The dialog that adds a planting to an area shows, under the crop field, the crop's family and use and one icon per check the garden's rules give: a companion or an antagonist already growing there, the same family as the crop before it, too little light (or an unknown one), a month outside its sowing or planting window and a winter it does not stand in open ground; each is a warning with its sentence as tooltip, never a block, and it comes from the same code as the proposals for the free areas (#185).
+- The dialog that adds a planting to an area shows, under the crop field, the crop's family and use and one icon per check the garden's rules give: a companion (whichever way the pair is declared) or an antagonist already growing there, the same family as the crop before it, too little light (or an unknown one), a month outside its sowing or planting window and a winter it does not stand in open ground; each is a warning with its sentence as tooltip, never a block, and it comes from the same code as the proposals for the free areas (#185).
 
 ### Changed
 
