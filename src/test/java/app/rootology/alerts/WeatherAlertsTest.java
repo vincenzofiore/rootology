@@ -41,7 +41,8 @@ import static org.mockito.Mockito.when;
 
 /** Weather alerts (#37) on a fixed morning, 4 November 2026, with forecasts made up per garden. */
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {"rootology.notifications.digest-every=PT1H", "rootology.notifications.group-window=PT0S"})
+@SpringBootTest(properties = {"rootology.alerts.cron=0 0 0 1 1 *",
+        "rootology.notifications.digest-every=PT1H", "rootology.notifications.group-window=PT0S"})
 class WeatherAlertsTest {
 
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");

@@ -124,6 +124,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private String gardenName;
     /** The day the page was opened, at the garden (#158): what grows is read for it, also after a question. */
     private LocalDate today;
+    /** The page garden's own zone (#158): the dates on the page (official warnings, a planting) follow it. */
+    private ZoneId pageZone;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
                           CropCatalog crops, WeatherService weather, NotificationService notifications,
@@ -215,12 +217,18 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         show();
     }
 
+    /** The clock at the page garden's own zone (#158), for the dates the page shows. */
+    private Clock gardenClock(ZoneId zone) {
+        return clock.withZone(zone == null ? clock.getZone() : zone);
+    }
+
     /** The home of the page's garden, read again after a question of the home (#178). */
     private void show() {
         boolean contributor = currentUser.canContribute(spaceId);
         form.setVisible(contributor);
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
         gardenName = garden.name();
+        pageZone = GardenTime.zone(garden, clock);
         today = GardenTime.today(garden, clock);
         title.setHeading(garden.name());
         // Where the garden is, beside its name (#132): town and country, as on the areas page.
@@ -276,6 +284,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
      * level, then the alerts the app computed in the last three days as one group. No row when there is neither.
      */
     void alerts(GardenSummary garden) {
+        pageZone = GardenTime.zone(garden, clock);
         officialWarnings(garden);
         computedAlerts();
         alertsRow.setVisible(!alertDialogs.isEmpty());
@@ -408,7 +417,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         Optional<Instant> last = warnings.stream().map(OfficialWarning::expires).filter(java.util.Objects::nonNull)
                 .max(Instant::compareTo);
         if (last.isPresent()) {
-            String until = getTranslation("home.official.until", DateText.dateTime(last.get(), this));
+            String until = getTranslation("home.official.until",
+                    DateText.dateTime(last.get(), gardenClock(pageZone), this));
             shown.add(new Span(until));
             name = name + ", " + until;
         }
@@ -468,10 +478,10 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         return drawn;
     }
 
-    /** When the warned phenomenon begins and ends, in Italian time; the one date when the other is missing. */
+    /** When the warned phenomenon begins and ends, at the garden's zone (#158); the one date when the other is missing. */
     private String period(OfficialWarning warning) {
-        String from = warning.onset() == null ? null : DateText.dateTime(warning.onset(), this);
-        String to = warning.expires() == null ? null : DateText.dateTime(warning.expires(), this);
+        String from = warning.onset() == null ? null : DateText.dateTime(warning.onset(), gardenClock(pageZone), this);
+        String to = warning.expires() == null ? null : DateText.dateTime(warning.expires(), gardenClock(pageZone), this);
         if (from == null) {
             return to == null ? "" : to;
         }
@@ -483,7 +493,8 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         String sender = warning.senderName() == null || warning.senderName().isBlank()
                 ? getTranslation("home.official.sender") : warning.senderName();
         return warning.sent() == null ? sender
-                : getTranslation("home.official.issued", sender, DateText.dateTime(warning.sent(), this));
+                : getTranslation("home.official.issued", sender,
+                        DateText.dateTime(warning.sent(), gardenClock(pageZone), this));
     }
 
     /** MeteoAlarm asks for a link to its site wherever its warnings are shown. */
@@ -680,7 +691,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         chip.addClassName("rootology-grow-chip");
         if (planting.plantedOn() != null && planting.method() != null) {
             Span when = new Span(getTranslation(planting.method() == PlantingMethod.SOWN ? "home.growing.sown"
-                    : "home.growing.transplanted", DateText.date(planting.plantedOn(), this)));
+                    : "home.growing.transplanted", DateText.date(planting.plantedOn(), gardenClock(pageZone), this)));
             when.addClassName("rootology-grow-when");
             chip.add(when);
         }

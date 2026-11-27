@@ -269,8 +269,8 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         String dates = getTranslation("area.past.dates",
                 DateText.fullDate(planting.plantedOn(), NoteText.locale(this)),
                 DateText.fullDate(planting.endedOn(), NoteText.locale(this)));
-        Span span = new Span(DateText.date(planting.plantedOn(), this) + " → "
-                + DateText.date(planting.endedOn(), this));
+        Span span = new Span(DateText.date(planting.plantedOn(), gardenClock(), this) + " → "
+                + DateText.date(planting.endedOn(), gardenClock(), this));
         span.addClassName("rootology-past-dates");
         span.getElement().setAttribute("title", dates);
         span.getElement().setAttribute("aria-label", dates);
@@ -287,7 +287,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private void deletePlanting(PlantingSummary planting) {
         RowActions.confirmDelete(getTranslation("garden.planting.delete.title"),
                 getTranslation("garden.planting.delete.text", cropName(planting.cropId(), planting.cropName()),
-                        DateText.date(planting.plantedOn(), this)),
+                        DateText.date(planting.plantedOn(), gardenClock(), this)),
                 null, getTranslation("garden.planting.delete.button"), getTranslation("common.cancel"),
                 () -> act(() -> gardens.deletePlanting(spaceId, login, planting.id())));
     }
@@ -313,7 +313,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             return null;
         }
         return getTranslation("area.sun.declared", currentUser.nameOf(area.sunDeclaredBy()),
-                DateText.dateTime(area.sunDeclaredAt(), this));
+                DateText.dateTime(area.sunDeclaredAt(), gardenClock(), this));
     }
 
     /**
@@ -557,6 +557,11 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     /** Today at the garden (#158), what the areas' season, the plantings' age and a harvest are read against. */
     private LocalDate today() {
         return GardenTime.today(garden, clock);
+    }
+
+    /** The clock at the garden's zone (#158), for the dates the page shows. */
+    private Clock gardenClock() {
+        return clock.withZone(GardenTime.zone(garden, clock));
     }
 
     /** Today at the latest, and never before the day it was sown or planted (#85). */

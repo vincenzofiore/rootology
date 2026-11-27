@@ -3,6 +3,7 @@ package app.rootology.alerts;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.GrowingGarden;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.PlotKind;
@@ -19,18 +20,21 @@ import app.rootology.weather.WeatherService;
 import app.rootology.weather.WindRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The morning check of #37. An alert names the garden, the plots and the crops at risk, the rule and the
@@ -38,6 +42,8 @@ import java.util.Optional;
  * (garden, rule, day), so the same forecast frost is notified once even if seen on several mornings.
  * Six rules over the same horizon: frost, late blight, heat, heavy rain, strong wind and dry days (#137).
  * After them, one line when the garden's region has active official MeteoAlarm warnings (#168).
+ * Each garden is checked at 7:00 of its own local time (#158): the job runs every hour and takes the gardens
+ * whose zone says 7, and every day, hour and date of the rules is the garden's own.
  */
 @Component
 public class WeatherAlerts {
@@ -59,9 +65,12 @@ public class WeatherAlerts {
     private final NotificationService notifications;
     private final OfficialWarningAlert official;
     private final Clock clock;
+    /** The local hour of the garden at which it is checked (#158). */
+    private final int morningHour;
 
     WeatherAlerts(GardenService gardens, WeatherService weather, KnowledgeGraph knowledge, CropCatalog crops,
-                  NotificationService notifications, OfficialWarningAlert official, Clock clock) {
+                  NotificationService notifications, OfficialWarningAlert official, Clock clock,
+                  @Value("${rootology.alerts.hour}") int morningHour) {
         this.gardens = gardens;
         this.weather = weather;
         this.knowledge = knowledge;
@@ -69,38 +78,53 @@ public class WeatherAlerts {
         this.notifications = notifications;
         this.official = official;
         this.clock = clock;
+        this.morningHour = morningHour;
     }
 
-    @Scheduled(cron = "${rootology.alerts.cron}", zone = "Europe/Rome")
-    void everyMorning() {
-        int alerts = check();
+    /** The hourly tick (#158): only the gardens whose own local hour is the configured one. */
+    @Scheduled(cron = "${rootology.alerts.cron}")
+    void everyHour() {
+        int alerts = check(morningHour);
         log.info("Weather alerts: {} new", alerts);
     }
 
     /** The same check on demand, for an admin trying it out (Admin view); still never repeats an alert. */
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public int checkNow() {
-        return check();
+        return check(null);
     }
 
-    /** Checks every garden with coordinates; returns the number of new alerts (one per garden and event). */
+    /** Checks every garden with coordinates, on its own day; returns the number of new alerts (one per event). */
     public int check() {
-        LocalDate today = LocalDate.now(clock);
+        return check(null);
+    }
+
+    /**
+     * Checks the gardens with coordinates whose local hour is {@code localHour}, or every one of them when it is
+     * null. A garden's day is its own (#158), so what grows there is read once per distinct local day.
+     */
+    private int check(Integer localHour) {
         int alerts = 0;
-        for (GrowingGarden garden : gardens.locatedGardensGrowing(today)) {
-            try {
-                alerts += computed(garden, today) + official.check(garden, today);
-            } catch (RuntimeException e) {
-                // The type only: a message may carry the garden's coordinates (no personal data in the logs).
-                log.warn("Weather alerts failed for garden {}: {}", garden.garden().id(), e.getClass().getSimpleName());
-                log.debug("Weather alerts failure for garden {}", garden.garden().id(), e);
+        for (Map.Entry<LocalDate, Set<Long>> day : GardenDays.due(gardens, clock, localHour).entrySet()) {
+            for (GrowingGarden garden : gardens.locatedGardensGrowing(day.getKey())) {
+                if (!day.getValue().contains(garden.garden().id())) {
+                    continue;
+                }
+                try {
+                    alerts += computed(garden, day.getKey(), GardenTime.zone(garden.garden(), clock))
+                            + official.check(garden, day.getKey());
+                } catch (RuntimeException e) {
+                    // The type only: a message may carry the garden's coordinates (no personal data in the logs).
+                    log.warn("Weather alerts failed for garden {}: {}", garden.garden().id(), e.getClass().getSimpleName());
+                    log.debug("Weather alerts failure for garden {}", garden.garden().id(), e);
+                }
             }
         }
         return alerts;
     }
 
     /** The six rules (#37, #137) over the forecast of what grows here; nothing to check means no alert. */
-    private int computed(GrowingGarden garden, LocalDate today) {
+    private int computed(GrowingGarden garden, LocalDate today, ZoneId zone) {
         if (garden.growing().isEmpty()) {
             return 0;
         }
@@ -110,11 +134,11 @@ public class WeatherAlerts {
             return 0; // no weather today: no alert, never a guess
         }
         Forecast f = forecast.get();
-        return frost(garden, f, today) + blight(garden, f, today) + heat(garden, f, today)
-                + heavyRain(garden, f, today) + wind(garden, f) + dryDays(garden, f, today);
+        return frost(garden, f, today, zone) + blight(garden, f, today, zone) + heat(garden, f, today, zone)
+                + heavyRain(garden, f, today, zone) + wind(garden, f, zone) + dryDays(garden, f, today, zone);
     }
 
-    private int frost(GrowingGarden garden, Forecast forecast, LocalDate today) {
+    private int frost(GrowingGarden garden, Forecast forecast, LocalDate today, ZoneId zone) {
         Optional<ForecastHour> coldest = FrostRule.coldest(forecast, clock.instant(), HORIZON);
         if (coldest.isEmpty()) {
             return 0;
@@ -141,7 +165,7 @@ public class WeatherAlerts {
         if (atRisk.isEmpty() && !unknownWorthIt) {
             return 0;
         }
-        LocalDate day = LocalDate.ofInstant(coldest.get().time(), clock.getZone());
+        LocalDate day = LocalDate.ofInstant(coldest.get().time(), zone);
         String body = String.format(Locale.ITALIAN, "Minima prevista %.1f °C a %s (MET Norway, %s).", minimum,
                 garden.garden().name(), FrostRule.ID)
                 + (atRisk.isEmpty() ? "" : " A rischio: " + String.join(", ", atRisk) + ".")
@@ -165,14 +189,13 @@ public class WeatherAlerts {
                 && !p.plantedOn().isAfter(today.minusYears(1));
     }
 
-    private int blight(GrowingGarden garden, Forecast forecast, LocalDate today) {
+    private int blight(GrowingGarden garden, Forecast forecast, LocalDate today, ZoneId zone) {
         List<String> hosts = garden.growing().stream().filter(p -> SmithPeriodRule.HOSTS.contains(p.cropId()))
                 .map(p -> name(p) + " (" + p.plotName() + ")").distinct().toList();
         if (hosts.isEmpty()) {
             return 0;
         }
-        Optional<LocalDate> period = SmithPeriodRule.firstPeriod(forecast, today, today.plusDays(ALERT_DAYS),
-                clock.getZone());
+        Optional<LocalDate> period = SmithPeriodRule.firstPeriod(forecast, today, today.plusDays(ALERT_DAYS), zone);
         if (period.isEmpty()) {
             return 0;
         }
@@ -187,9 +210,9 @@ public class WeatherAlerts {
      * heat-v1 (#137): the first day whose maximum reaches the absolute maximum of a crop growing here. Crops
      * without an ECOCROP value are named as not checked, as the frost rule does with the killing temperature.
      */
-    private int heat(GrowingGarden garden, Forecast forecast, LocalDate today) {
+    private int heat(GrowingGarden garden, Forecast forecast, LocalDate today, ZoneId zone) {
         Map<String, Double> upper = knowledge.upperTemperatures();
-        for (DailyForecast day : DailyForecast.of(forecast, clock.getZone(), today, ALERT_DAYS)) {
+        for (DailyForecast day : DailyForecast.of(forecast, zone, today, ALERT_DAYS)) {
             List<String> atRisk = new ArrayList<>();
             List<String> unknown = new ArrayList<>();
             for (PlantingSummary p : garden.growing()) {
@@ -217,10 +240,10 @@ public class WeatherAlerts {
      * heavy-rain-v1 (#137): the first day totalling at least 30 mm, or the first hour bringing at least 10 mm
      * on a one-hour step; the earlier of the two, the day's total first when they fall on the same day.
      */
-    private int heavyRain(GrowingGarden garden, Forecast forecast, LocalDate today) {
-        Optional<DailyForecast> heavyDay = HeavyRainRule.firstHeavyDay(forecast, today, ALERT_DAYS, clock.getZone());
+    private int heavyRain(GrowingGarden garden, Forecast forecast, LocalDate today, ZoneId zone) {
+        Optional<DailyForecast> heavyDay = HeavyRainRule.firstHeavyDay(forecast, today, ALERT_DAYS, zone);
         Optional<ForecastHour> heavyHour = HeavyRainRule.firstHeavyHour(forecast, clock.instant(), HORIZON);
-        LocalDate hourDay = heavyHour.map(h -> LocalDate.ofInstant(h.time(), clock.getZone())).orElse(null);
+        LocalDate hourDay = heavyHour.map(h -> LocalDate.ofInstant(h.time(), zone)).orElse(null);
         boolean dayFirst = heavyDay.isPresent() && (hourDay == null || !hourDay.isBefore(heavyDay.get().day()));
         if (dayFirst) {
             DailyForecast day = heavyDay.get();
@@ -242,14 +265,14 @@ public class WeatherAlerts {
      * wind-v1 (#137): the strongest step of the horizon reaches 11 m/s. MET Norway has no gusts and is
      * unreliable in complex terrain at 9 km: the wording says a possible strong wind, never a certainty.
      */
-    private int wind(GrowingGarden garden, Forecast forecast) {
+    private int wind(GrowingGarden garden, Forecast forecast, ZoneId zone) {
         Optional<ForecastHour> strongest = WindRule.strongest(forecast, clock.instant(), HORIZON)
                 .filter(h -> WindRule.strong(h.windSpeed()));
         if (strongest.isEmpty()) {
             return 0;
         }
         double speed = strongest.get().windSpeed();
-        LocalDate day = LocalDate.ofInstant(strongest.get().time(), clock.getZone());
+        LocalDate day = LocalDate.ofInstant(strongest.get().time(), zone);
         String body = String.format(Locale.ITALIAN,
                 "Vento medio previsto %.1f m/s (circa %d km/h) a %s (MET Norway, %s). Possibile vento forte: in terreno "
                         + "complesso la previsione a 9 km può sbagliare.",
@@ -262,7 +285,7 @@ public class WeatherAlerts {
      * dry-days-v1 (#137): three days nearly without rain and one of them warm, as a reminder to water. Only the
      * areas that dry out first count: pots, planters and raised beds, never open ground or a greenhouse.
      */
-    private int dryDays(GrowingGarden garden, Forecast forecast, LocalDate today) {
+    private int dryDays(GrowingGarden garden, Forecast forecast, LocalDate today, ZoneId zone) {
         List<PlantingSummary> thirsty = garden.growing().stream()
                 .filter(p -> p.plotKind() == PlotKind.POT || p.plotKind() == PlotKind.PLANTER
                         || p.plotKind() == PlotKind.RAISED_BED)
@@ -270,7 +293,7 @@ public class WeatherAlerts {
         if (thirsty.isEmpty()) {
             return 0;
         }
-        List<DailyForecast> days = DailyForecast.of(forecast, clock.getZone(), today, ALERT_DAYS);
+        List<DailyForecast> days = DailyForecast.of(forecast, zone, today, ALERT_DAYS);
         if (!DryDaysRule.dryAndWarm(days)) {
             return 0;
         }

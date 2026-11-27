@@ -339,6 +339,18 @@ public class GardenService {
      * in it on that day, across all spaces. No person acts here, so there is no membership check; never
      * shown as such in the UI.
      */
+    /**
+     * For system jobs, not for people: every garden with coordinates, across all spaces, without what grows in
+     * it. The morning alerts read the zone and the day of each before asking for its growing (#158).
+     */
+    @Transactional(readOnly = true)
+    public List<GardenSummary> locatedGardens() {
+        return gardens.findAll().stream()
+                .filter(g -> g.getLatitude() != null && g.getLongitude() != null)
+                .map(GardenService::summary)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<GardenViews.GrowingGarden> locatedGardensGrowing(LocalDate day) {
         java.util.Map<Long, List<PlantingSummary>> byGarden = new java.util.HashMap<>();

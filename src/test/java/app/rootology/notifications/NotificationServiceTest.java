@@ -16,11 +16,14 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -334,6 +337,75 @@ class NotificationServiceTest extends SettableClockContext {
         now = now.plus(Duration.ofHours(2)); // 13:03 in Italy: the email waits for the end of the quiet hours
         assertThat(notifications.digest()).isEqualTo(1);
         messagesTo("n-eva@example.org");
+    }
+
+    /** The Text of every email Mailpit received for this address, oldest or newest first. */
+    private List<String> bodiesTo(String address) throws InterruptedException {
+        JsonNode found = messagesTo(address);
+        List<String> bodies = new ArrayList<>();
+        for (JsonNode message : found.path("messages")) {
+            String id = message.path("ID").asString();
+            bodies.add(JsonMapper.builder().build().readTree(RestClient.create(mailpit).get()
+                    .uri("/api/v1/message/" + id).retrieve().body(String.class)).path("Text").asString());
+        }
+        return bodies;
+    }
+
+    /**
+     * The quiet hours are the local ones of the place each notification happened in (#158): 11:00 in Rome is
+     * quiet for an Italian garden while 05:00 in New York is not, so only the New York alert goes now and the
+     * Italian one at the next run after the quiet hours.
+     */
+    @Test
+    void theQuietHoursFollowTheGardenOfEachNotification() throws Exception {
+        now = Instant.parse("2026-11-04T10:00:00Z"); // 11:00 in Rome, 05:00 in New York
+        long space = space("z-mail", "z-mail-m", "z-mail-g");
+        notifications.save("z-mail", new NotificationPreferences("z-mail@example.org", true, true, true, true,
+                LocalTime.of(10, 0), LocalTime.of(12, 0)));
+        long newYork = gardens.saveGarden(space, "z-mail", null, "New York", null, new BigDecimal("40.71"),
+                new BigDecimal("-74.00"), "US", null, "America/New_York").id();
+        long rome = gardens.saveGarden(space, "z-mail", null, "Rome", null, new BigDecimal("41.90"),
+                new BigDecimal("12.50"), "IT", null, "Europe/Rome").id();
+        notifications.weatherAlert(space, newYork, "frost:" + newYork, "Rischio gelo", "Minima prevista -2 °C");
+        notifications.weatherAlert(space, rome, "rain:" + rome, "Pioggia intensa", "Previsti 30 mm");
+        now = now.plus(Duration.ofMinutes(3));
+
+        assertThat(notifications.digest()).as("only the New York alert: 05:00 there").isEqualTo(1);
+        assertThat(bodiesTo("z-mail@example.org")).singleElement().satisfies(body ->
+                assertThat(body).contains("Rischio gelo").doesNotContain("Pioggia intensa"));
+
+        now = Instant.parse("2026-11-04T11:30:00Z"); // 12:30 in Rome: after the quiet hours
+        assertThat(notifications.digest()).as("the held Italian alert goes now").isEqualTo(1);
+        assertThat(bodiesTo("z-mail@example.org")).anySatisfy(body -> assertThat(body)
+                .contains("Pioggia intensa").doesNotContain("Rischio gelo"));
+        assertThat(notifications.digest()).as("never twice").isZero();
+    }
+
+    /** The same on the phone (#38, #158): held per notification, at the garden's own quiet hours. */
+    @Test
+    void telegramQuietHoursFollowTheGardenOfEachNotification() {
+        now = Instant.parse("2026-11-04T10:00:00Z"); // 11:00 in Rome, 05:00 in New York
+        long space = space("z-tg", "z-tg-m", "z-tg-g");
+        notifications.save("z-tg", new NotificationPreferences(null, true, true, true, true,
+                LocalTime.of(10, 0), LocalTime.of(12, 0)));
+        long newYork = gardens.saveGarden(space, "z-tg", null, "New York", null, new BigDecimal("40.71"),
+                new BigDecimal("-74.00"), "US", null, "America/New_York").id();
+        long rome = gardens.saveGarden(space, "z-tg", null, "Rome", null, new BigDecimal("41.90"),
+                new BigDecimal("12.50"), "IT", null, "Europe/Rome").id();
+        linked("z-tg", 700_000_009L);
+        doReturn(TelegramClient.Delivery.SENT).when(telegram).send(anyLong(), anyString());
+        notifications.weatherAlert(space, newYork, "frost:" + newYork, "Rischio gelo", "Minima prevista -2 °C");
+        notifications.weatherAlert(space, rome, "rain:" + rome, "Pioggia intensa", "Previsti 30 mm");
+
+        assertThat(notifications.telegramDigest()).as("only the New York alert: 05:00 there").isEqualTo(1);
+
+        now = Instant.parse("2026-11-04T11:30:00Z"); // 12:30 in Rome: after the quiet hours
+        assertThat(notifications.telegramDigest()).as("the held Italian alert goes now").isEqualTo(1);
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(telegram, times(2)).send(eq(700_000_009L), text.capture());
+        assertThat(text.getAllValues().get(0)).contains("Rischio gelo").doesNotContain("Pioggia intensa");
+        assertThat(text.getAllValues().get(1)).contains("Pioggia intensa").doesNotContain("Rischio gelo");
     }
 
     @Test

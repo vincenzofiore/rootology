@@ -184,7 +184,7 @@ class ViewsTest {
                         crops, knowledge, gardens, geoNames, cells, Runnable::run, clock), clock).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
-        assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
+        assertThat(new NotificationsView(notificationService, gardens, viewer(), clock).getChildren()).isNotEmpty();
         assertThat(new AccountView(viewer(), dataExport, accountDeletion, authentication, identityService, "not-set")
                 .getChildren()).isNotEmpty();
         assertThat(new NotificationSettingsView(notificationService, viewer(), telegramLinks).getChildren()).isNotEmpty();
@@ -204,24 +204,24 @@ class ViewsTest {
         long otherGarden = registeredGarden(mine, me.login());
         long strangerGarden = registeredGarden(other, "notifications-other-space");
 
-        NotificationsView fromGarden = new NotificationsView(notificationService, gardens, me);
+        NotificationsView fromGarden = new NotificationsView(notificationService, gardens, me, clock);
         fromGarden.beforeEnter(notificationsFrom(mine, garden));
         assertThat(fromGarden.asksBeforeOpening(notification(mine, garden))).as("same garden").isFalse();
         assertThat(fromGarden.asksBeforeOpening(notification(mine, otherGarden))).as("another garden").isTrue();
         assertThat(fromGarden.asksBeforeOpening(notification(mine))).as("the space level while in a garden").isTrue();
         assertThat(fromGarden.asksBeforeOpening(notification(other))).as("another space").isTrue();
 
-        NotificationsView fromSpace = new NotificationsView(notificationService, gardens, me);
+        NotificationsView fromSpace = new NotificationsView(notificationService, gardens, me, clock);
         fromSpace.beforeEnter(notificationsFrom(mine, 0));
         assertThat(fromSpace.asksBeforeOpening(notification(mine))).as("the space level, from there").isFalse();
         assertThat(fromSpace.asksBeforeOpening(notification(mine, garden))).as("a garden, from the space level").isTrue();
 
-        NotificationsView fromNowhere = new NotificationsView(notificationService, gardens, me);
+        NotificationsView fromNowhere = new NotificationsView(notificationService, gardens, me, clock);
         fromNowhere.beforeEnter(notificationsFrom(0, 0));
         assertThat(fromNowhere.asksBeforeOpening(notification(mine))).as("no context").isTrue();
         assertThat(fromNowhere.asksBeforeOpening(notification(mine, garden))).as("no context, a garden").isTrue();
 
-        NotificationsView fromAStranger = new NotificationsView(notificationService, gardens, me);
+        NotificationsView fromAStranger = new NotificationsView(notificationService, gardens, me, clock);
         fromAStranger.beforeEnter(notificationsFrom(other, strangerGarden));
         assertThat(fromAStranger.asksBeforeOpening(notification(mine))).as("a space the person is not in is ignored").isTrue();
     }
@@ -231,7 +231,7 @@ class ViewsTest {
         CurrentUser me = viewer();
         long mine = personalSpace(me.login());
         long garden = registeredGarden(mine, me.login());
-        NotificationsView view = new NotificationsView(notificationService, gardens, me);
+        NotificationsView view = new NotificationsView(notificationService, gardens, me, clock);
 
         NotificationsView.Target alertOfAGarden = view.target(weather(mine, garden));
         assertThat(alertOfAGarden.view()).isEqualTo(GardenHomeView.class);
@@ -248,7 +248,7 @@ class ViewsTest {
     void aNotificationCardSaysWhatHappenedAndWhetherItIsUnread() {
         // Without a Vaadin session getTranslation hands back the key itself (#93): the test checks which
         // text each kind gets.
-        NotificationsView view = new NotificationsView(notificationService, gardens, viewer());
+        NotificationsView view = new NotificationsView(notificationService, gardens, viewer(), clock);
         app.rootology.notifications.NotificationView waiting = notification(1);
         assertThat(waiting.unread()).isTrue();
         assertThat(view.what(waiting)).contains("notifications.waiting");
@@ -472,7 +472,7 @@ class ViewsTest {
     void anAnsweredQuestionsNotificationOpensItsAnswerInAsk() {
         CurrentUser me = viewer();
         long mine = personalSpace(me.login());
-        NotificationsView view = new NotificationsView(notificationService, gardens, me);
+        NotificationsView view = new NotificationsView(notificationService, gardens, me, clock);
 
         NotificationsView.Target target = view.target(new app.rootology.notifications.NotificationView(3, mine, 0,
                 "ESCALATION_ANSWERED", "p-7", "title", "body", java.time.Instant.now(), null, null, null, null, "mia"));

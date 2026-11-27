@@ -371,7 +371,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             card = AnswerCards.ofPast(answer, run.getFinishedAt(), zone(run.getGardenId()),
                     run.getSources() != null, spaceId, currentUser, pageGarden, sources, enrichment, this);
         }
-        Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
+        Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card, zone(run.getGardenId()));
         item.setId(key);
         stack(item);
         history.opened(key);
@@ -397,12 +397,14 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 answer -> AnswerCards.of(answer, clock.instant(), zone(gardenId), spaceId, currentUser, pageGarden, sources,
                         enrichment, this),
                 // At the space level the question may be another garden's: the card says which (#109).
-                gardenId == 0, true, pageGarden);
+                gardenId == 0, true, pageGarden)
+                .inZone(clock.withZone(zone(review.context().gardenId())));
         card.askedBy(currentUser.nameOf(review.context().startedBy()));
         if (contributor) {
             card.extra(propose(review.question().text()));
         }
-        Div item = item(review.question().text(), review.askedAt(), contributor, null, card);
+        Div item = item(review.question().text(), review.askedAt(), contributor, null, card,
+                zone(review.context().gardenId()));
         item.setId(key);
         stack(item);
         history.opened(key);
@@ -636,7 +638,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             if (mayAsk) {
                 card.extra(new Button(getTranslation("ask.offdomain.anyway"), e -> ask(asked, true)));
             }
-            stack(item(asked, Instant.now(), mayAsk, null, card));
+            stack(item(asked, Instant.now(), mayAsk, null, card, zone(gardenId)));
             return;
         }
         if (run.choice() != null) {
@@ -651,17 +653,18 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                             new HumanAnswer(values, note, login)),
                     answer -> AnswerCards.of(answer, clock.instant(), zone(context.gardenId()), context.spaceId(),
                             currentUser, pageGarden, sources, enrichment, this),
-                    false, true, pageGarden);
+                    false, true, pageGarden)
+                    .inZone(clock.withZone(zone(context.gardenId())));
             card.askedBy(currentUser.nameOf(run.pending().context().startedBy()));
             card.extra(propose(asked));
-            stack(item(asked, run.pending().askedAt(), mayAsk, null, card));
+            stack(item(asked, run.pending().askedAt(), mayAsk, null, card, zone(context.gardenId())));
             return;
         }
         AnswerCard card = AnswerCards.of(run.answer(), clock.instant(), zone(context.gardenId()), context.spaceId(),
                 currentUser, pageGarden, sources, enrichment, this);
         // A place's answer can become a garden there, with every field already filled in (#107).
         choice.gardenHere(run, spaceId).ifPresent(card::extra);
-        stack(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
+        stack(item(asked, Instant.now(), mayAsk, run.answer().text(), card, zone(gardenId)));
     }
 
     /**
@@ -727,7 +730,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** The question could not be answered (#82): what to say instead of the answer, in the same stack. */
     private void failed(ThinkingCard thinking, String asked, String text, boolean mayAsk) {
         clear(thinking);
-        stack(item(asked, Instant.now(), mayAsk, null, new Paragraph(text)));
+        stack(item(asked, Instant.now(), mayAsk, null, new Paragraph(text), zone(gardenId)));
     }
 
     /**
@@ -757,8 +760,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
      * One item of the stack (#82), the same in every state (#113): when it was asked and the question, the card,
      * and under it "ask again" and "copy".
      */
-    private Div item(String asked, Instant at, boolean mayAsk, String copyText, Component content) {
-        Div item = new Div(asked(asked, DateText.dateTime(at == null ? Instant.now() : at, this)), content);
+    private Div item(String asked, Instant at, boolean mayAsk, String copyText, Component content, ZoneId zone) {
+        Div item = new Div(asked(asked, DateText.dateTime(at == null ? clock.instant() : at,
+                clock.withZone(zone), this)), content);
         item.addClassName("rootology-ask-item");
         HorizontalLayout actions = new HorizontalLayout();
         actions.addClassName("rootology-ask-actions");

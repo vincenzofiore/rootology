@@ -1,9 +1,12 @@
 package app.rootology.ui;
 
+import com.vaadin.flow.component.html.Div;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +40,17 @@ class DateTextTest {
 
         assertThat(DateText.dateTime(at, today, DateText.ITALY, Locale.ITALIAN)).isEqualTo("3 mag, 14:05");
         assertThat(DateText.fullDateTime(at, DateText.ITALY, Locale.ITALIAN)).isEqualTo("3 maggio 2026, 14:05");
+    }
+
+    @Test
+    void aGardenDateIsShownInTheGardenZoneAndAnItalianOneInItaly() {
+        // 01:30 on 4 May in Rome, still 19:30 on 3 May in New York.
+        Instant at = Instant.parse("2026-05-03T23:30:00Z");
+        Div page = new Div();
+
+        assertThat(DateText.dateTime(at, Clock.fixed(at, DateText.ITALY), page)).isEqualTo("4 mag, 01:30");
+        assertThat(DateText.dateTime(at, Clock.fixed(at, ZoneId.of("America/New_York")), page))
+                .as("the garden's own day and hour (#158)").isEqualTo("3 mag, 19:30");
     }
 
     @Test

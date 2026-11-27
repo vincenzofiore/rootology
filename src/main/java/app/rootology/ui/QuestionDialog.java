@@ -176,7 +176,8 @@ class QuestionDialog extends Dialog {
                     answer -> AnswerCards.of(answer, services.clock.instant(), zone(context.gardenId()),
                             context.spaceId(), services.currentUser, gardenName, services.sources,
                             services.enrichment, this),
-                    false, true, gardenName);
+                    false, true, gardenName)
+                    .inZone(services.clock.withZone(zone(context.gardenId())));
             card.askedBy(services.currentUser.nameOf(run.pending().context().startedBy()));
             show(asked(asked), card);
             return;

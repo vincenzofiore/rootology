@@ -18,8 +18,15 @@ public final class GardenTime {
 
     /** The garden's zone, else the app's own (the Clock bean's): never null. */
     public static ZoneId zone(GardenSummary garden, Clock clock) {
-        return garden == null || garden.timeZone() == null ? clock.getZone()
-                : stored(garden.timeZone()).orElse(clock.getZone());
+        return garden == null ? clock.getZone() : zone(garden.timeZone(), clock);
+    }
+
+    /**
+     * The zone of a garden read from a row by its stored id (#158): the app's own (the Clock bean's) when there
+     * is none or this JVM does not know it. Never null.
+     */
+    public static ZoneId zone(String storedId, Clock clock) {
+        return storedId == null ? clock.getZone() : stored(storedId).orElse(clock.getZone());
     }
 
     /**

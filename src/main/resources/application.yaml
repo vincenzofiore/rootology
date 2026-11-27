@@ -131,8 +131,10 @@ rootology:
   mail:
     from: ${ROOTOLOGY_SMTP_FROM:Rootology <rootology@localhost>}
   alerts:
-    # Weather alerts (#37): every morning at 7, Italian time.
-    cron: "0 0 7 * * *"
+    # Weather alerts (#37, #158): every hour, for the gardens whose own local time is `hour` (7), so each
+    # garden is checked in the morning there and not at 7 in Italy.
+    cron: "0 0 * * * *"
+    hour: 7
   operations:
     # Operational alerts to the admins (#27): an open circuit or a nearly full disk, checked this often.
     check-every: PT1M

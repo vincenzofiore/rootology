@@ -106,7 +106,7 @@ class WeatherCard extends Div {
         if (at.atZone(zone).toLocalDate().equals(java.time.LocalDate.ofInstant(clock.instant(), zone))) {
             return getTranslation(key + ".today", DateTimeFormatter.ofPattern("HH:mm").format(at.atZone(zone)));
         }
-        return getTranslation(key, DateText.dateTime(at, this));
+        return getTranslation(key, DateText.dateTime(at, clock, this));
     }
 
     /**

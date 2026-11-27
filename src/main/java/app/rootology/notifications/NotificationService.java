@@ -2,6 +2,7 @@ package app.rootology.notifications;
 
 import app.rootology.access.AccessRequested;
 import app.rootology.access.AccountFlagged;
+import app.rootology.garden.GardenTime;
 import app.rootology.mail.MailService;
 import app.rootology.mail.OutgoingMail;
 import app.rootology.pipeline.EscalationResolved;
@@ -41,8 +42,8 @@ import java.util.stream.Collectors;
 /**
  * Notifications (#26), and weather alerts (#37). A waiting question notifies the space's owners and members, the asker included
  * (in a personal space nobody else can answer); guests are not notified, since they cannot answer. Emails
- * go out as a digest: notifications at least `group-window` old are grouped per person, outside their quiet
- * hours, and dropped once the question is answered. The same rows are the outbox of Telegram (#38): prompt, one
+ * go out as a digest: notifications at least `group-window` old are grouped per person, each held while it is
+ * quiet where it happened (#158), and dropped once the question is answered. The same rows are the outbox of Telegram (#38): prompt, one
  * message per person per tick, with its own delivery mark and its own preferences, and the shared quiet hours.
  */
 @Service
@@ -318,7 +319,8 @@ public class NotificationService {
 
     /**
      * One email per person with every question still waiting that is at least group-window old and not yet
-     * emailed; skipped during their quiet hours (it goes at the next run after them). Each email is sent
+     * emailed; a notification is held while it is quiet at its own place (#158: the garden's local time, the
+     * Clock bean's for what has no garden), and goes at the next run after the quiet hours. Each email is sent
      * synchronously (the job already runs in the background) and its rows are marked only when it went out,
      * so a failed send is picked up by the next run. No transaction around it: a slow SMTP server must not hold
      * one open, and a later failure must not roll back the marks of emails already sent. Returns the emails sent.
@@ -329,13 +331,15 @@ public class NotificationService {
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : byRecipient.entrySet()) {
             NotificationPreferences prefs = preferences(e.getKey());
-            if (prefs.quietAt(LocalTime.now(clock))) {
+            // What is quiet where it happened stays unmarked, for the next run after the quiet hours.
+            List<Pending> due = e.getValue().stream().filter(p -> !quietAt(prefs, p, now)).toList();
+            if (due.isEmpty()) {
                 continue;
             }
-            List<Pending> wanted = e.getValue().stream()
+            List<Pending> wanted = due.stream()
                     .filter(p -> p.weather() ? prefs.emailWeather() : prefs.emailEscalations()).toList();
             // Not wanted, or no address: handled without sending, as always.
-            List<Pending> unwanted = e.getValue().stream().filter(p -> !wanted.contains(p)).toList();
+            List<Pending> unwanted = due.stream().filter(p -> !wanted.contains(p)).toList();
             markEmailed(unwanted, now);
             if (wanted.isEmpty() || prefs.email() == null) {
                 markEmailed(wanted, now);
@@ -356,7 +360,8 @@ public class NotificationService {
 
     /**
      * The same outbox on the phone (#38): one plain-text message per person with everything not yet sent there,
-     * promptly (no grouping window), skipped during the shared quiet hours. It says where and links, never the
+     * promptly (no grouping window), each notification held while it is quiet where it happened (#158). It says
+     * where and links, never the
      * question, the answer or a weather alert's body. A person with no working link is marked and gets nothing.
      * Returns the messages sent.
      */
@@ -367,29 +372,29 @@ public class NotificationService {
         int sent = 0;
         for (Map.Entry<String, List<Pending>> e : pending(TELEGRAM_MARK, null).entrySet()) {
             NotificationPreferences prefs = preferences(e.getKey());
-            if (prefs.quietAt(LocalTime.now(clock))) {
+            List<Pending> due = e.getValue().stream().filter(p -> !quietAt(prefs, p, now)).toList();
+            if (due.isEmpty()) {
                 continue;
             }
-            List<Pending> all = e.getValue();
-            List<Pending> wanted = all.stream()
+            List<Pending> wanted = due.stream()
                     .filter(p -> p.weather() ? prefs.telegramWeather() : prefs.telegramEscalations()).toList();
             Optional<TelegramLinks.Link> link = telegramLinks.of(e.getKey()).filter(TelegramLinks.Link::working);
             if (link.isEmpty() || wanted.isEmpty()) {
-                markTelegramed(all, now);
+                markTelegramed(due, now);
                 continue;
             }
             String text = TelegramMessages.digest(wanted.stream().map(this::telegramItem).toList());
             switch (telegram.send(link.get().chatId(), text)) {
                 case SENT -> {
                     sent++;
-                    markTelegramed(all, now);
+                    markTelegramed(due, now);
                 }
                 // One message lost (our own bad request): the chat is fine, and it is not retried.
-                case DROPPED -> markTelegramed(all, now);
+                case DROPPED -> markTelegramed(due, now);
                 // The bot is blocked or the chat is gone: never send there again, and say so in the app.
                 case CHAT_GONE -> {
                     telegramLinks.fail(link.get().chatId());
-                    markTelegramed(all, now);
+                    markTelegramed(due, now);
                 }
                 // Rate limited, Telegram down or an open circuit: the next tick tries again.
                 case RETRY, UNAVAILABLE -> {
@@ -400,6 +405,11 @@ public class NotificationService {
             log.info("Sent {} Telegram messages", sent);
         }
         return sent;
+    }
+
+    /** Whether the quiet hours are on now where the notification happened (#158). */
+    private boolean quietAt(NotificationPreferences prefs, Pending p, Instant now) {
+        return prefs.quietAt(LocalTime.ofInstant(now, GardenTime.zone(p.timeZone(), clock)));
     }
 
     private void markEmailed(List<Pending> rows, Instant now) {
@@ -444,7 +454,7 @@ public class NotificationService {
         var query = jdbc.sql("SELECT n.id, n.recipient, n.kind, n.title, n.body, "
                         + "COALESCE(ur.display_name, n.resolved_by), n.space_id, "
                         + "n.garden_id, COALESCE(n.space_name, s.name), g.name, COALESCE(ua.display_name, n.asked_by), "
-                        + "n.event FROM notification n "
+                        + "n.event, g.time_zone FROM notification n "
                         + "LEFT JOIN space s ON s.id = n.space_id "
                         + "LEFT JOIN garden g ON g.id = n.garden_id "
                         + "LEFT JOIN app_user ua ON ua.login = n.asked_by "
@@ -457,7 +467,7 @@ public class NotificationService {
         }
         query.query((rs, i) -> new Pending(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
                         rs.getString(5), rs.getString(6), rs.getLong(7), gardenOf(rs, 8), rs.getString(9),
-                        rs.getString(10), rs.getString(11), rs.getString(12))).list()
+                        rs.getString(10), rs.getString(11), rs.getString(12), rs.getString(13))).list()
                 .forEach(p -> byRecipient.computeIfAbsent(p.recipient(), k -> new java.util.ArrayList<>()).add(p));
         return byRecipient;
     }
@@ -620,7 +630,7 @@ public class NotificationService {
 
     private record Pending(long id, String recipient, String kind, String title, String body, String resolvedBy,
                            long spaceId, long gardenId, String spaceName, String gardenName, String askedBy,
-                           String event) {
+                           String event, String timeZone) {
 
         /**
          * A waiting question in the email, in Italian (#94): who asked and the question. A row stored before

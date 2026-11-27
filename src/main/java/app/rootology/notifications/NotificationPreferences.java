@@ -4,7 +4,8 @@ import java.time.LocalTime;
 
 /**
  * Where to reach a person and whether: email (waiting questions, weather alerts #37) and Telegram (#38), and
- * quiet hours in Italian time, shared by both channels (both null: none; from after to: overnight).
+ * quiet hours shared by both channels (both null: none; from after to: overnight). They are the local ones of
+ * the place a notification is about (#158: the garden's zone, the Clock bean's when it has no garden).
  */
 public record NotificationPreferences(String email, boolean emailEscalations, boolean emailWeather,
                                      boolean telegramEscalations, boolean telegramWeather, LocalTime quietFrom,

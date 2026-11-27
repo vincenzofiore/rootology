@@ -16,6 +16,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.FontSize;
 import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.notifications.NotificationService;
 import app.rootology.notifications.NotificationView;
@@ -23,6 +24,8 @@ import jakarta.annotation.security.PermitAll;
 
 import com.vaadin.flow.component.Component;
 
+import java.time.Clock;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     private final NotificationService notifications;
     private final GardenService gardens;
     private final CurrentUser currentUser;
+    private final Clock clock;
     private final Grid<NotificationView> grid = new Grid<>();
     /** The same rows as cards on a phone (#93), where a table's "What" column has no room. */
     private final Div cards = new Div();
@@ -52,13 +56,17 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
     /** The space and garden the bell was used from; only a hint, never used to read data (#56). */
     private long contextSpace;
     private long contextGarden;
+    /** Each garden's zone, read once per page instead of once per notification (#158). */
+    private final Map<Long, ZoneId> zones = new HashMap<>();
 
-    public NotificationsView(NotificationService notifications, GardenService gardens, CurrentUser currentUser) {
+    public NotificationsView(NotificationService notifications, GardenService gardens, CurrentUser currentUser,
+                             Clock clock) {
         this.notifications = notifications;
         this.gardens = gardens;
         this.currentUser = currentUser;
+        this.clock = clock;
 
-        grid.addComponentColumn(n -> DateText.dateTimeSpan(n.createdAt(), this))
+        grid.addComponentColumn(n -> DateText.dateTimeSpan(n.createdAt(), clock.withZone(zone(n)), this))
                 .setHeader(getTranslation("notifications.when")).setAutoWidth(true);
         grid.addColumn(n -> (n.unread() ? "● " : "") + what(n))
                 .setHeader(getTranslation("notifications.what")).setAutoWidth(true);
@@ -100,6 +108,20 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
         }
         contextSpace = spaceId;
         contextGarden = gardenId > 0 && gardens.garden(spaceId, currentUser.login(), gardenId).isPresent() ? gardenId : 0;
+    }
+
+    /**
+     * The zone of the hour a notification is shown in (#158): the zone of its garden, else the app's own (Italy)
+     * for a notification about a space, the app or a garden the person can no longer read.
+     */
+    private ZoneId zone(NotificationView n) {
+        if (n.gardenId() <= 0) {
+            return clock.getZone();
+        }
+        return zones.computeIfAbsent(n.gardenId(), id -> {
+            GardenSummary garden = gardens.garden(n.spaceId(), currentUser.login(), id).orElse(null);
+            return GardenTime.zone(garden, clock);
+        });
     }
 
     private static long number(BeforeEnterEvent event, String name) {
@@ -281,7 +303,7 @@ public class NotificationsView extends VerticalLayout implements HasDynamicTitle
             unread.setTitle(getTranslation("notifications.unread"));
             head.add(unread);
         }
-        head.add(DateText.dateTimeSpan(n.createdAt(), this));
+        head.add(DateText.dateTimeSpan(n.createdAt(), clock.withZone(zone(n)), this));
 
         Span happened = new Span(what(n));
         happened.addClassName("rootology-notification-card-what");

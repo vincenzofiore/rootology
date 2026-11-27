@@ -3,6 +3,7 @@ package app.rootology.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Span;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -17,7 +18,10 @@ import java.util.Locale;
  */
 final class DateText {
 
-    /** The days and the hours shown are Italian ones, as everywhere in the app (#19, #37). */
+    /**
+     * Italian time: what a date about the app or a person (account, members, invitations, curator, admin) is
+     * shown in. A date about a garden is shown in the garden's own zone (#158).
+     */
     static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 
     /** "3 mag", "3 mag 2025": the year is told only when it is not the current one. */
@@ -58,21 +62,47 @@ final class DateText {
         return DateTimeFormatter.ofPattern("d MMMM yyyy, HH:mm", locale).format(at.atZone(zone));
     }
 
+    /** A date with no garden at hand: the app's own, Italian time (#19, #37). */
     static String date(LocalDate day, Component in) {
         return date(day, LocalDate.now(ITALY), NoteText.locale(in));
     }
 
+    /** A date about a garden: the clock at the garden's zone gives "today" (#158). */
+    static String date(LocalDate day, Clock clock, Component in) {
+        return date(day, LocalDate.ofInstant(clock.instant(), clock.getZone()), NoteText.locale(in));
+    }
+
+    /** A date with no garden at hand: the app's own, Italian time (#19, #37). */
     static String relative(LocalDate day, Component in) {
         return relative(day, LocalDate.now(ITALY), in::getTranslation);
     }
 
+    /** A relative date about a garden: the clock at the garden's zone gives "today" (#158). */
+    static String relative(LocalDate day, Clock clock, Component in) {
+        return relative(day, LocalDate.ofInstant(clock.instant(), clock.getZone()), in::getTranslation);
+    }
+
+    /** An hour with no garden at hand: the app's own, Italian time (#19, #37). */
     static String dateTime(Instant at, Component in) {
         return dateTime(at, LocalDate.now(ITALY), ITALY, NoteText.locale(in));
+    }
+
+    /** An hour about a garden, in the garden's own zone (#158). */
+    static String dateTime(Instant at, Clock clock, Component in) {
+        return dateTime(at, LocalDate.ofInstant(clock.instant(), clock.getZone()), clock.getZone(),
+                NoteText.locale(in));
     }
 
     /** A short date that shows its full form on hover, for the places that take a component (a grid cell). */
     static Span dateSpan(LocalDate day, Component in) {
         Span span = new Span(date(day, in));
+        span.setTitle(fullDate(day, NoteText.locale(in)));
+        return span;
+    }
+
+    /** A short date about a garden (#158), its full form on hover. */
+    static Span dateSpan(LocalDate day, Clock clock, Component in) {
+        Span span = new Span(date(day, clock, in));
         span.setTitle(fullDate(day, NoteText.locale(in)));
         return span;
     }
@@ -84,10 +114,24 @@ final class DateText {
         return span;
     }
 
+    /** A relative date about a garden (#158), its full date on hover. */
+    static Span relativeSpan(LocalDate day, Clock clock, Component in) {
+        Span span = new Span(relative(day, clock, in));
+        span.setTitle(fullDate(day, NoteText.locale(in)));
+        return span;
+    }
+
     /** A short date and time that show their full form on hover. */
     static Span dateTimeSpan(Instant at, Component in) {
         Span span = new Span(dateTime(at, in));
         span.setTitle(fullDateTime(at, ITALY, NoteText.locale(in)));
+        return span;
+    }
+
+    /** A short date and time about a garden (#158), their full form on hover. */
+    static Span dateTimeSpan(Instant at, Clock clock, Component in) {
+        Span span = new Span(dateTime(at, clock, in));
+        span.setTitle(fullDateTime(at, clock.getZone(), NoteText.locale(in)));
         return span;
     }
 

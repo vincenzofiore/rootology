@@ -108,6 +108,8 @@ class HistoryPanel extends Div {
     private final java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf;
     private final app.rootology.garden.GardenService gardens;
     private final java.time.Clock clock;
+    /** Each garden's zone, read once per load instead of once per card (#158). */
+    private final java.util.Map<Long, java.time.ZoneId> zones = new java.util.HashMap<>();
     private java.util.Map<String, String> names = java.util.Map.of();
     /** Whether the panel lists every garden of the space (#109): true only at the space level. */
     private boolean spaceLevel;
@@ -151,6 +153,7 @@ class HistoryPanel extends Div {
     /** Reads the context's questions again: when the page opens, and after each question of the visit. */
     void load(long spaceId, long gardenId, String login) {
         this.login = login;
+        zones.clear();
         this.spaceLevel = gardenId == 0;
         if (spaceId == 0) {
             entries = List.of();
@@ -404,7 +407,7 @@ class HistoryPanel extends Div {
             garden.addClassName("rootology-history-card-garden");
             head.add(garden);
         }
-        head.add(DateText.dateTimeSpan(entry.at(), this));
+        head.add(DateText.dateTimeSpan(entry.at(), clock.withZone(zone(entry)), this));
         if (entry.outcome() != Outcome.ANSWERED) {
             head.add(outcome(entry.outcome(), this));
         }
@@ -457,14 +460,23 @@ class HistoryPanel extends Div {
     }
 
     /**
-     * The garden's own time zone (#158): the month of a calendar answer is read there. The app's own when the
-     * run belongs to no garden or the garden cannot be read.
+     * The garden's own time zone (#158): the month of a calendar answer and the date of a card are read there.
+     * The app's own when the question belongs to no garden or the garden cannot be read.
      */
-    private java.time.ZoneId zone(PipelineRunRecord run) {
-        app.rootology.garden.GardenViews.GardenSummary garden = run.getGardenId() == null
-                || run.getSpaceId() == null || login.isBlank() ? null
-                : gardens.garden(run.getSpaceId(), login, run.getGardenId()).orElse(null);
-        return app.rootology.garden.GardenTime.zone(garden, clock);
+    private java.time.ZoneId zone(Entry entry) {
+        if (entry.run() != null) {
+            return zone(entry.run().getSpaceId(), entry.run().getGardenId());
+        }
+        return entry.waiting() == null ? clock.getZone()
+                : zone((long) entry.waiting().context().spaceId(), entry.waiting().context().gardenId());
+    }
+
+    private java.time.ZoneId zone(Long spaceId, Long gardenId) {
+        if (gardenId == null || spaceId == null || login.isBlank()) {
+            return clock.getZone();
+        }
+        return zones.computeIfAbsent(gardenId, id -> app.rootology.garden.GardenTime.zone(
+                gardens.garden(spaceId, login, id).orElse(null), clock));
     }
 
     /**
@@ -481,7 +493,7 @@ class HistoryPanel extends Div {
         // its months are on opening.
         var answer = history.answerOf(run);
         var verdict = CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), run.getFinishedAt(),
-                zone(run), this);
+                zone(run.getSpaceId(), run.getGardenId()), this);
         if (verdict.isPresent()) {
             Icon icon = (verdict.get().now() ? VaadinIcon.CHECK_CIRCLE_O : VaadinIcon.CALENDAR_CLOCK).create();
             icon.addClassName("rootology-verdict-icon");

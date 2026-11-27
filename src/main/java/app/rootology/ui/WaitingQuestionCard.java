@@ -17,6 +17,7 @@ import app.rootology.pipeline.GardenPipeline.PendingReview;
 import app.rootology.pipeline.PipelineAnswer;
 import app.rootology.resilience.ServiceUnavailableException;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -45,6 +46,8 @@ class WaitingQuestionCard extends AnswerCard {
     private final Button answer = new Button();
     /** Who asked: the login until the page gives the display name (#106) through {@link #askedBy}. */
     private final Span asker = new Span();
+    /** The clock at the question's garden (#158), for the date of the card; null when the page gave none. */
+    private Clock when;
 
     WaitingQuestionCard(PendingReview review, boolean mayAnswer, List<String> suggestions,
                         Answerer answerer, Function<PipelineAnswer, Component> finished) {
@@ -160,6 +163,12 @@ class WaitingQuestionCard extends AnswerCard {
         return this;
     }
 
+    /** The zone of the date the card shows (#158): the page passes the clock at the question's garden. */
+    WaitingQuestionCard inZone(Clock clock) {
+        this.when = clock;
+        return this;
+    }
+
     /** Who asked and when, and how sure the decision layer was: the number, clearly labelled. */
     private Div meta(PendingReview review, boolean withDate) {
         Div meta = new Div();
@@ -170,7 +179,8 @@ class WaitingQuestionCard extends AnswerCard {
         }
         // On Ask the date is already on the item's line above the card (#113).
         if (withDate && review.askedAt() != null) {
-            meta.add(DateText.dateTimeSpan(review.askedAt(), this));
+            meta.add(when == null ? DateText.dateTimeSpan(review.askedAt(), this)
+                    : DateText.dateTimeSpan(review.askedAt(), when, this));
         }
         return meta;
     }
