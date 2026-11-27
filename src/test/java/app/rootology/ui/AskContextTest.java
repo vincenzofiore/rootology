@@ -89,7 +89,7 @@ class AskContextTest {
 
     private AskView view(String login) {
         return new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens, crops,
-                knowledge, geoNames, cells, runHistory);
+                knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
     }
 
     private static BeforeEnterEvent at(long spaceId, long gardenId) {

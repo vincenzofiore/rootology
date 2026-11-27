@@ -33,6 +33,7 @@ import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.FrostSuitabilityRule;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
@@ -51,6 +52,7 @@ import app.rootology.weather.DailyForecast;
 import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -71,7 +73,6 @@ import java.util.stream.Collectors;
 @PermitAll
 public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, BeforeEnterObserver {
 
-    static final ZoneId ITALY = ZoneId.of("Europe/Rome");
     /** How far back the home shows the weather alerts of #37. */
     static final int ALERT_DAYS = 3;
     /** How many waiting questions the card lists; the escalations page has them all. */
@@ -99,6 +100,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private final CurrentUser currentUser;
     /** The dialog a question of the home is answered in (#178). */
     private final QuestionDialogs questions;
+    private final Clock clock;
     private final PageHeader title = new PageHeader("");
     private final Span place = new Span();
     private final TextField question = new TextField();
@@ -120,13 +122,13 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
     private long gardenId;
     /** The garden's name, so an answer's card does not say it again (#121). */
     private String gardenName;
-    /** The day the page was opened, in Italian time: what grows is read for it, also after a question. */
+    /** The day the page was opened, at the garden (#158): what grows is read for it, also after a question. */
     private LocalDate today;
 
     public GardenHomeView(GardenService gardens, ClimateCells climateCells, ClimateWindows climateWindows,
                           CropCatalog crops, WeatherService weather, NotificationService notifications,
                           OfficialWarnings official, GardenPipeline pipeline, RunHistory history,
-                          CurrentUser currentUser, QuestionDialogs questions) {
+                          CurrentUser currentUser, QuestionDialogs questions, Clock clock) {
         this.gardens = gardens;
         this.climateCells = climateCells;
         this.climateWindows = climateWindows;
@@ -138,6 +140,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         this.history = history;
         this.currentUser = currentUser;
         this.questions = questions;
+        this.clock = clock;
         question.setMaxLength(Question.MAX_LENGTH);
         question.setPlaceholder(getTranslation("ask.placeholder"));
         question.setPrefixComponent(VaadinIcon.COMMENT_ELLIPSIS_O.create());
@@ -209,7 +212,6 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         }
         spaceId = where.get().spaceId();
         gardenId = where.get().gardenId();
-        today = LocalDate.now(ITALY);
         show();
     }
 
@@ -219,6 +221,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
         form.setVisible(contributor);
         GardenSummary garden = gardens.garden(spaceId, currentUser.login(), gardenId).orElseThrow();
         gardenName = garden.name();
+        today = GardenTime.today(garden, clock);
         title.setHeading(garden.name());
         // Where the garden is, beside its name (#132): town and country, as on the areas page.
         place.setText(garden.town() == null ? getTranslation("garden.notown")
@@ -259,10 +262,11 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
             return;
         }
         weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
-            List<DailyForecast> days = DailyForecast.of(forecast, ITALY, LocalDate.now(ITALY), 7);
+            ZoneId zone = GardenTime.zone(garden, clock);
+            List<DailyForecast> days = DailyForecast.of(forecast, zone, GardenTime.today(garden, clock), 7);
             if (!days.isEmpty()) {
-                weatherRow.add(new WeatherCard(days, WeatherCard.now(forecast.hours(), Instant.now()),
-                        forecast.fetchedAt(), forecast.stale()));
+                weatherRow.add(new WeatherCard(days, WeatherCard.now(forecast.hours(), clock.instant()),
+                        forecast.fetchedAt(), forecast.stale(), clock.withZone(zone)));
             }
         });
     }
@@ -649,7 +653,7 @@ public class GardenHomeView extends VerticalLayout implements HasDynamicTitle, B
 
     /** The sun icon of the area's level this month, with the same sentence as the area card (#89, #130). */
     private java.util.Optional<Icon> areaSun(PlotSummary area) {
-        app.rootology.garden.DirectSun sun = area.directSunIn(LocalDate.now(ITALY).getMonth());
+        app.rootology.garden.DirectSun sun = area.directSunIn(today.getMonth());
         if (sun == null) {
             return java.util.Optional.empty();
         }

@@ -258,9 +258,9 @@ class ChoiceCard extends Div {
 
     /** The garden dialog on the place, and a toast that leads to the garden once it is saved (#107). */
     private void createGardenAt(long spaceId, Choice.Place place) {
-        new GardenDialog(geoNames, cells, (name, town, latitude, longitude, countryCode, elevationM) ->
+        new GardenDialog(geoNames, cells, (name, town, latitude, longitude, countryCode, elevationM, timeZone) ->
                 gardens.saveGarden(spaceId, currentUser.login(), null, name, town, latitude, longitude,
-                        countryCode, elevationM))
+                        countryCode, elevationM, timeZone))
                 .open(null, saved -> Toasts.opening(getTranslation("ask.createhere.done", saved.name()),
                         getTranslation("ask.createhere.open"), () -> openGarden(spaceId, saved.id())), place);
     }

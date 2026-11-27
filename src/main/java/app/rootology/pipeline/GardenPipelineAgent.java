@@ -157,9 +157,6 @@ public class GardenPipelineAgent {
         this.claude = claude;
     }
 
-    /** Italy is where the knowledge base's windows apply; zones and the current month follow it. */
-    static final java.time.ZoneId ITALY = java.time.ZoneId.of("Europe/Rome");
-
     @Action(description = "Turn the question text into a structured intent")
     public Intent understand(Question question, RunContext run, OperationContext context) {
         // Without Claude the question cannot be understood: fail at once and clearly (#29).

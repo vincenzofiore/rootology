@@ -195,7 +195,7 @@ class AskChoiceTest {
 
     private AskView ask(GardenPipeline pipeline, GeoNames search, String login, long spaceId) {
         AskView view = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, search, cells, runHistory);
+                crops, knowledge, search, cells, runHistory, java.time.Clock.systemUTC());
         view.beforeEnter(spaceLevel(spaceId));
         return view;
     }

@@ -32,12 +32,15 @@ public class QuestionDialogs {
     final GardenService gardens;
     final GeoNames geoNames;
     final ClimateCells cells;
+    /** The Clock bean (#158): the garden's own day, read through its stored time zone. */
+    final java.time.Clock clock;
     /** Where a question runs while the page stays usable (#82): the app's own, never the common pool. */
     final Executor executor;
 
     QuestionDialogs(GardenPipeline pipeline, SourceCatalog sources, KnowledgeEnrichment enrichment,
                     CurrentUser currentUser, CropCatalog crops, KnowledgeGraph knowledge, GardenService gardens,
-                    GeoNames geoNames, ClimateCells cells, @Qualifier("applicationTaskExecutor") Executor executor) {
+                    GeoNames geoNames, ClimateCells cells, @Qualifier("applicationTaskExecutor") Executor executor,
+                    java.time.Clock clock) {
         this.pipeline = pipeline;
         this.sources = sources;
         this.enrichment = enrichment;
@@ -48,6 +51,7 @@ public class QuestionDialogs {
         this.geoNames = geoNames;
         this.cells = cells;
         this.executor = executor;
+        this.clock = clock;
     }
 
     /** A dialog that has started answering the question in this garden; the caller opens it. */

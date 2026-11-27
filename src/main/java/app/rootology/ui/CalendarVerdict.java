@@ -16,11 +16,10 @@ import java.util.stream.Collectors;
  * What a calendar answer means for the month it was asked in (#116), computed from its values and never from
  * Claude’s sentence: "Sì, adesso: trapianto" when that month is one of them, otherwise "Non adesso · da febbraio:
  * semina in semenzaio", the first of them after it. The month is the question’s, or the one it was asked in,
- * so a past answer keeps the verdict it had. Only an answer whose values are all months has one.
+ * so a past answer keeps the verdict it had. Only an answer whose values are all months has one. Its month is
+ * read at the garden's own time zone (#158), or the app's own when that is not known.
  */
 final class CalendarVerdict {
-
-    private static final ZoneId ITALY = ZoneId.of("Europe/Rome");
 
     /**
      * Whether the month of the question is one of the answer's months; the month the verdict names; the words
@@ -30,16 +29,17 @@ final class CalendarVerdict {
     }
 
     /**
-     * @param askedAt when the question was asked: its month, in Italy, when the context carries none (the
-     *                calendar questions store no month, #116)
+     * @param askedAt when the question was asked: its month, at the garden (#158), when the context carries
+     *                none (the calendar questions store no month, #116)
+     * @param zone    the garden's own time zone, or the app's own (Europe/Rome) when it is not known
      */
     static Optional<Verdict> of(List<String> values, Map<String, List<String>> activities, ContextSnapshot context,
-                                Instant askedAt, Component in) {
+                                Instant askedAt, ZoneId zone, Component in) {
         if (values.isEmpty() || !values.stream().allMatch(CalendarVerdict::isMonth)) {
             return Optional.empty();
         }
         boolean named = context != null && context.month() != null;
-        Month asked = named ? Month.valueOf(context.month()) : askedAt.atZone(ITALY).getMonth();
+        Month asked = named ? Month.valueOf(context.month()) : askedAt.atZone(zone).getMonth();
         boolean question = named && context.monthFrom() == ContextSnapshot.MonthFrom.QUESTION;
         String askedName = asked.getDisplayName(TextStyle.FULL, NoteText.locale(in));
         if (values.contains(asked.name())) {

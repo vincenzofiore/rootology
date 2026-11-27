@@ -29,26 +29,29 @@ class Garden {
     /** Metres above sea level from GeoNames GTOPO30 (#62); null when not known. */
     @jakarta.persistence.Column(name = "elevation_m")
     private Integer elevationM;
+    /** IANA time zone from GeoNames ("Europe/Paris", #158) for the garden's own day; null when not known. */
+    private String timeZone;
     private Instant createdAt;
 
     protected Garden() {
     }
 
     Garden(long spaceId, String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
-           Integer elevationM, Instant createdAt) {
+           Integer elevationM, String timeZone, Instant createdAt) {
         this.spaceId = spaceId;
         this.createdAt = createdAt;
-        update(name, town, latitude, longitude, countryCode, elevationM);
+        update(name, town, latitude, longitude, countryCode, elevationM, timeZone);
     }
 
     void update(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
-                Integer elevationM) {
+                Integer elevationM, String timeZone) {
         this.name = name;
         this.town = town;
         this.latitude = latitude;
         this.longitude = longitude;
         this.countryCode = countryCode;
         this.elevationM = elevationM;
+        this.timeZone = timeZone;
     }
 
     Long getId() { return id; }
@@ -61,4 +64,5 @@ class Garden {
     String getRegionCode() { return regionCode; }
     void setRegionCode(String regionCode) { this.regionCode = regionCode; }
     Integer getElevationM() { return elevationM; }
+    String getTimeZone() { return timeZone; }
 }

@@ -131,21 +131,20 @@ public class CropProposalService {
         this.clock = clock;
     }
 
-    /** The proposals for the current month in Italy. */
+    /** The proposals for the garden's current month (#158). */
     @Transactional(readOnly = true)
     public Proposals propose(long spaceId, String login, long gardenId, List<Goal> goals) {
-        return propose(spaceId, login, gardenId, today().getMonth(), goals);
+        return propose(spaceId, login, gardenId, today(garden(spaceId, login, gardenId)).getMonth(), goals);
     }
 
     /** The proposals for a month: at most three crops for each free area of the garden. */
     @Transactional(readOnly = true)
     public Proposals propose(long spaceId, String login, long gardenId, Month month, List<Goal> goals) {
         CropProposalRule.checkGoals(goals);
-        GardenSummary garden = gardens.garden(spaceId, login, gardenId)
-                .orElseThrow(() -> new IllegalArgumentException("No such garden in this space"));
+        GardenSummary garden = garden(spaceId, login, gardenId);
         Optional<SiteProfile> own = sites.profile(garden);
         SiteProfile site = own.orElseGet(sites::defaultProfile);
-        LocalDate day = firstDayOf(month, today());
+        LocalDate day = firstDayOf(month, today(garden));
         List<PlantingSummary> growing = gardens.growingOn(spaceId, login, gardenId, day);
         Set<Long> busy = growing.stream().map(PlantingSummary::plotId).collect(Collectors.toSet());
         Set<String> families = families(growing);
@@ -166,10 +165,10 @@ public class CropProposalService {
         return new Proposals(garden.id(), garden.name(), month, own.isPresent(), areas);
     }
 
-    /** The checks for the current month in Italy, as the planting dialog shows them (#185). */
+    /** The checks for the garden's current month (#158), as the planting dialog shows them (#185). */
     @Transactional(readOnly = true)
     public CropChecks checks(long spaceId, String login, long gardenId, long areaId, String cropId) {
-        return checks(spaceId, login, gardenId, areaId, cropId, today().getMonth());
+        return checks(spaceId, login, gardenId, areaId, cropId, today(garden(spaceId, login, gardenId)).getMonth());
     }
 
     /**
@@ -180,10 +179,9 @@ public class CropProposalService {
     @Transactional(readOnly = true)
     public CropChecks checks(long spaceId, String login, long gardenId, long areaId, String cropId, Month month) {
         crops.byId(cropId).orElseThrow(() -> new IllegalArgumentException("Unknown crop: " + cropId));
-        GardenSummary garden = gardens.garden(spaceId, login, gardenId)
-                .orElseThrow(() -> new IllegalArgumentException("No such garden in this space"));
+        GardenSummary garden = garden(spaceId, login, gardenId);
         SiteProfile site = sites.profile(garden).orElseGet(sites::defaultProfile);
-        LocalDate day = firstDayOf(month, today());
+        LocalDate day = firstDayOf(month, today(garden));
         PlotSummary plot = gardens.plots(spaceId, login, gardenId).stream()
                 .filter(p -> p.id() == areaId).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No such area in this garden"));
@@ -264,9 +262,15 @@ public class CropProposalService {
         return families;
     }
 
-    /** The current day in the clock's zone (Italy), never the machine's. */
-    private LocalDate today() {
-        return LocalDate.ofInstant(clock.instant(), clock.getZone());
+    /** The garden of the space, whose day the proposals are for; another space's garden is unknown. */
+    private GardenSummary garden(long spaceId, String login, long gardenId) {
+        return gardens.garden(spaceId, login, gardenId)
+                .orElseThrow(() -> new IllegalArgumentException("No such garden in this space"));
+    }
+
+    /** The current day at the garden (#158), never the machine's. */
+    private LocalDate today(GardenSummary garden) {
+        return GardenTime.today(garden, clock);
     }
 
     /**

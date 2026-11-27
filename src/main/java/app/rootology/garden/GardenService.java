@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -30,12 +29,14 @@ public class GardenService {
     private final PlotRepository plots;
     private final PlantingRepository plantings;
     private final RotationRule rotation;
+    private final java.time.Clock clock;
     private final org.springframework.context.ApplicationEventPublisher events;
 
     GardenService(SpaceService spaces, CropCatalog crops, GardenRepository gardens, PlotRepository plots,
-                  PlantingRepository plantings, RotationRule rotation,
+                  PlantingRepository plantings, RotationRule rotation, java.time.Clock clock,
                   org.springframework.context.ApplicationEventPublisher events) {
         this.events = events;
+        this.clock = clock;
         this.spaces = spaces;
         this.crops = crops;
         this.gardens = gardens;
@@ -73,32 +74,46 @@ public class GardenService {
         return saveGarden(spaceId, login, gardenId, name, town, latitude, longitude, countryCode, null);
     }
 
-    /**
-     * As above, with the elevation from GeoNames GTOPO30 (#62). Changing or clearing the coordinates
-     * clears an elevation not given: it belonged to the old place. Without new coordinates, a saved
-     * elevation is kept, so saving never depends on GeoNames.
-     */
+    /** As above, with the elevation from GeoNames GTOPO30 (#62). */
     @Transactional
     public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
                                     BigDecimal latitude, BigDecimal longitude, String countryCode,
                                     Integer elevationM) {
+        return saveGarden(spaceId, login, gardenId, name, town, latitude, longitude, countryCode, elevationM, null);
+    }
+
+    /**
+     * As above, with the elevation from GeoNames GTOPO30 (#62) and the garden's time zone from GeoNames
+     * (#158). Changing or clearing the coordinates clears an elevation or a zone not given: they belonged to
+     * the old place. Without new coordinates, a saved elevation and zone are kept, so saving never depends on
+     * GeoNames.
+     */
+    @Transactional
+    public GardenSummary saveGarden(long spaceId, String login, Long gardenId, String name, String town,
+                                    BigDecimal latitude, BigDecimal longitude, String countryCode,
+                                    Integer elevationM, String timeZoneId) {
         requireContributor(spaceId, login);
         String country = blankToNull(countryCode);
         if (country != null && !country.matches("[A-Z]{2}")) {
             throw new IllegalArgumentException("A country is a two-letter ISO code, not " + countryCode);
+        }
+        String zone = blankToNull(timeZoneId);
+        if (zone != null && !GardenTime.known(zone)) {
+            throw new IllegalArgumentException("A time zone is an IANA id such as Europe/Paris, not " + timeZoneId);
         }
         String cleanName = required(name, "A garden needs a name");
         BigDecimal lat = coarse(latitude, 90, "Latitude");
         BigDecimal lon = coarse(longitude, 180, "Longitude");
         Garden existing = gardenId == null ? null : garden(spaceId, gardenId);
         Integer elevation = elevation(lat, lon, elevationM, existing);
+        zone = timeZoneToStore(lat, lon, zone, existing);
         String region = region(lat, lon, existing);
         Garden garden = existing == null
-                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, Instant.now())
+                ? new Garden(spaceId, cleanName, blankToNull(town), lat, lon, country, elevation, zone, clock.instant())
                 : existing;
         boolean moved = lat != null && lon != null && (existing == null
                 || !lat.equals(existing.getLatitude()) || !lon.equals(existing.getLongitude()));
-        garden.update(cleanName, blankToNull(town), lat, lon, country, elevation);
+        garden.update(cleanName, blankToNull(town), lat, lon, country, elevation, zone);
         garden.setRegionCode(region);
         GardenSummary saved = summary(gardens.save(garden));
         if (moved) {
@@ -118,6 +133,19 @@ public class GardenService {
         }
         boolean samePlace = latitude.equals(existing.getLatitude()) && longitude.equals(existing.getLongitude());
         return samePlace ? existing.getRegionCode() : null;
+    }
+
+    /** The zone to store: none without coordinates; the old one kept only when the place did not change. */
+    private static String timeZoneToStore(BigDecimal latitude, BigDecimal longitude, String given, Garden existing) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        if (given != null) {
+            return given;
+        }
+        boolean samePlace = existing != null && latitude.equals(existing.getLatitude())
+                && longitude.equals(existing.getLongitude());
+        return samePlace ? existing.getTimeZone() : null;
     }
 
     /** The elevation to store: none without coordinates; the old one kept only when the place did not change. */
@@ -438,7 +466,7 @@ public class GardenService {
 
     private static GardenSummary summary(Garden g) {
         return new GardenSummary(g.getId(), g.getName(), g.getTown(), g.getLatitude(), g.getLongitude(),
-                g.getCountryCode(), g.getRegionCode(), g.getElevationM());
+                g.getCountryCode(), g.getRegionCode(), g.getElevationM(), g.getTimeZone());
     }
 
     private static PlotSummary summary(Plot p) {

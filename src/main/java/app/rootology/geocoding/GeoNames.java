@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -125,37 +126,11 @@ public class GeoNames {
                         .queryParam("style", "FULL").queryParam("username", username).build())
                 .retrieve().body(SearchResult.class))
                 .map(r -> r.geonames() == null ? List.<Place>of() : r.geonames().stream()
-                        .map(g -> new Place(displayName(g, lang), g.adminName1(), g.countryCode(), g.countryName(),
+                        .map(g -> new Place(ReplyValues.displayName(g, lang), g.adminName1(), g.countryCode(), g.countryName(),
                                 Double.parseDouble(g.lat()), Double.parseDouble(g.lng()),
                                 g.population() == null ? 0 : g.population(), g.adminCode1()))
                         .toList())
                 .orElse(null);
-    }
-
-    /**
-     * The place's name in the search language: its preferred alternate name there, else the first one that is
-     * not a short form, else its main name. Never the raw "name", which is what happened to match the text
-     * typed (#184).
-     */
-    static String displayName(Entry place, String lang) {
-        List<AlternateName> names = place.alternateNames() == null ? List.of() : place.alternateNames();
-        String first = null;
-        for (AlternateName alternate : names) {
-            if (alternate.name() == null || !lang.equalsIgnoreCase(alternate.lang())) {
-                continue;
-            }
-            if (Boolean.TRUE.equals(alternate.isPreferredName())) {
-                return alternate.name();
-            }
-            if (first == null && !Boolean.TRUE.equals(alternate.isShortName())) {
-                first = alternate.name();
-            }
-        }
-        if (first != null) {
-            return first;
-        }
-        // A FULL reply always has the main name; a reply without it is malformed and the raw name is the last resort.
-        return place.toponymName() == null || place.toponymName().isBlank() ? place.name() : place.toponymName();
     }
 
     /**
@@ -197,6 +172,25 @@ public class GeoNames {
                         .retrieve().body(ElevationResult.class))
                 .map(ElevationResult::gtopo30)
                 .filter(meters -> meters != null && meters != -9999);
+    }
+
+    /**
+     * The time zone of a position from GeoNames, an IANA id such as {@code Europe/Paris} (#158), for the
+     * garden's own day. Empty when GeoNames cannot be reached or answers no id this JVM knows; saving a
+     * garden never depends on it.
+     */
+    public Optional<ZoneId> timeZone(double latitude, double longitude) {
+        if (!enabled()) {
+            return Optional.empty();
+        }
+        return call(() -> restClient.get()
+                        .uri(u -> u.path("/timezoneJSON")
+                                .queryParam("lat", String.format(Locale.ROOT, "%.2f", latitude))
+                                .queryParam("lng", String.format(Locale.ROOT, "%.2f", longitude))
+                                .queryParam("username", username).build())
+                        .retrieve().body(TimeZoneResult.class))
+                .map(TimeZoneResult::timezoneId)
+                .flatMap(ReplyValues::zone);
     }
 
     /** One call through the breaker; GeoNames reports errors in the body with a "status". */
@@ -246,6 +240,9 @@ public class GeoNames {
     }
 
     record ElevationResult(Integer gtopo30, Status status) implements Reply {
+    }
+
+    record TimeZoneResult(String timezoneId, Status status) implements Reply {
     }
 
     record Entry(String name, String toponymName, List<AlternateName> alternateNames, String adminName1,

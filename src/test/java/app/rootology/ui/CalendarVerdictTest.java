@@ -19,6 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CalendarVerdictTest {
 
     private static final Instant NOVEMBER_15 = Instant.parse("2026-11-15T15:31:00Z");
+    /** The app's own zone, Europe/Rome, as a garden with no stored zone has. */
+    private static final java.time.ZoneId ROME = java.time.ZoneId.of("Europe/Rome");
+
     private static final List<String> TOMATO = List.of("FEBRUARY", "MARCH", "APRIL", "MAY");
     private static final Map<String, List<String>> TOMATO_WAYS = Map.of("FEBRUARY", List.of("SOW_SEEDBED"),
             "MARCH", List.of("SOW_SEEDBED"), "APRIL", List.of("TRANSPLANT"), "MAY", List.of("TRANSPLANT"));
@@ -26,7 +29,7 @@ class CalendarVerdictTest {
     @Test
     void inNovemberATomatoIsNotNowButFromFebruaryInASeedbed() {
         CalendarVerdict.Verdict verdict = CalendarVerdict.of(TOMATO, TOMATO_WAYS, asked("NOVEMBER", MonthFrom.DEFAULT),
-                NOVEMBER_15, new Div()).orElseThrow();
+                NOVEMBER_15, ROME, new Div()).orElseThrow();
 
         assertThat(verdict.now()).isFalse();
         assertThat(verdict.month()).isEqualTo(Month.FEBRUARY);
@@ -37,7 +40,7 @@ class CalendarVerdictTest {
     @Test
     void inAprilItIsNowAndSaysTheTransplant() {
         CalendarVerdict.Verdict verdict = CalendarVerdict.of(TOMATO, TOMATO_WAYS, asked("APRIL", MonthFrom.DEFAULT),
-                NOVEMBER_15, new Div()).orElseThrow();
+                NOVEMBER_15, ROME, new Div()).orElseThrow();
 
         assertThat(verdict.now()).isTrue();
         assertThat(verdict.month()).isEqualTo(Month.APRIL);
@@ -47,7 +50,7 @@ class CalendarVerdictTest {
     @Test
     void theNextMonthWrapsAroundTheYearAndAHarvestHasNoActivity() {
         CalendarVerdict.Verdict verdict = CalendarVerdict.of(List.of("JANUARY", "OCTOBER"), Map.of(),
-                asked("NOVEMBER", MonthFrom.DEFAULT), NOVEMBER_15, new Div()).orElseThrow();
+                asked("NOVEMBER", MonthFrom.DEFAULT), NOVEMBER_15, ROME, new Div()).orElseThrow();
 
         assertThat(verdict.month()).isEqualTo(Month.JANUARY);
         assertThat(verdict.words()).isEqualTo("!{verdict.now.no}!");
@@ -57,8 +60,8 @@ class CalendarVerdictTest {
     void aCalendarQuestionWithNoMonthInItsContextUsesTheMonthItWasAskedIn() {
         // The calendar questions store no month (#116): the row's date says November.
         CalendarVerdict.Verdict verdict = CalendarVerdict.of(TOMATO, TOMATO_WAYS, asked(null, null), NOVEMBER_15,
-                new Div()).orElseThrow();
-        CalendarVerdict.Verdict noContext = CalendarVerdict.of(TOMATO, TOMATO_WAYS, null, NOVEMBER_15, new Div())
+                ROME, new Div()).orElseThrow();
+        CalendarVerdict.Verdict noContext = CalendarVerdict.of(TOMATO, TOMATO_WAYS, null, NOVEMBER_15, ROME, new Div())
                 .orElseThrow();
 
         assertThat(verdict.month()).isEqualTo(Month.FEBRUARY);
@@ -66,9 +69,23 @@ class CalendarVerdictTest {
     }
 
     @Test
+    void nearMidnightTheMonthIsStillTheGardensOwn() {
+        // 03:00 in Rome on 1 December is 21:00 on 30 November in New York: the month of the question differs.
+        Instant askedAt = Instant.parse("2026-12-01T02:00:00Z");
+        List<String> values = List.of("NOVEMBER", "DECEMBER");
+        Month rome = CalendarVerdict.of(values, Map.of(), asked(null, null), askedAt, ROME, new Div())
+                .orElseThrow().month();
+        Month newYork = CalendarVerdict.of(values, Map.of(), asked(null, null), askedAt,
+                java.time.ZoneId.of("America/New_York"), new Div()).orElseThrow().month();
+
+        assertThat(rome).isEqualTo(Month.DECEMBER);
+        assertThat(newYork).as("still November there").isEqualTo(Month.NOVEMBER);
+    }
+
+    @Test
     void aMonthTheQuestionNamedIsSaidAsThatMonth() {
         CalendarVerdict.Verdict verdict = CalendarVerdict.of(TOMATO, Map.of(), asked("JUNE", MonthFrom.QUESTION),
-                NOVEMBER_15, new Div()).orElseThrow();
+                NOVEMBER_15, ROME, new Div()).orElseThrow();
 
         assertThat(verdict.words()).isEqualTo("!{verdict.month.no}!");
     }
@@ -76,8 +93,8 @@ class CalendarVerdictTest {
     @Test
     void noVerdictForCropsOrForAnAnswerWithNoValues() {
         assertThat(CalendarVerdict.of(List.of("Basilico", "MAY"), Map.of(), asked("MAY", MonthFrom.DEFAULT),
-                NOVEMBER_15, new Div())).isEmpty();
-        assertThat(CalendarVerdict.of(List.of(), Map.of(), asked("MAY", MonthFrom.DEFAULT), NOVEMBER_15, new Div())).isEmpty();
+                NOVEMBER_15, ROME, new Div())).isEmpty();
+        assertThat(CalendarVerdict.of(List.of(), Map.of(), asked("MAY", MonthFrom.DEFAULT), NOVEMBER_15, ROME, new Div())).isEmpty();
     }
 
     private static ContextSnapshot asked(String month, MonthFrom from) {

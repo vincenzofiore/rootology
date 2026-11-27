@@ -21,6 +21,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility.TextColor;
 import app.rootology.weather.DailyForecast;
 import app.rootology.weather.ForecastHour;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -48,6 +49,9 @@ class WeatherCard extends Div {
         return day.minimum() <= FROST;
     }
 
+    /** The clock at the garden's own zone, for the day of "today" and the hours of the forecast (#158). */
+    private final Clock clock;
+
     /** How far from now a forecast hour may be to be shown as the weather of now (as the gardens map's #67). */
     private static final java.time.Duration NOW_DISTANCE = java.time.Duration.ofMinutes(60);
 
@@ -58,10 +62,15 @@ class WeatherCard extends Div {
                 .min(java.util.Comparator.comparing(h -> java.time.Duration.between(h.time(), at).abs()));
     }
 
-    WeatherCard(List<DailyForecast> days, java.util.Optional<ForecastHour> now, Instant fetchedAt, boolean stale) {
+    /**
+     * @param clock the Clock bean in the garden's own zone (#158): what "today" means and the hours shown
+     */
+    WeatherCard(List<DailyForecast> days, java.util.Optional<ForecastHour> now, Instant fetchedAt, boolean stale,
+                Clock clock) {
         addClassNames("rootology-card", "rootology-weather", Display.FLEX, FlexDirection.COLUMN, Gap.SMALL, Padding.MEDIUM,
                 BorderRadius.LARGE, Background.CONTRAST_5);
         Locale locale = NoteText.locale(this);
+        this.clock = clock;
         Icon cloud = VaadinIcon.CLOUD_O.create();
         Span title = new Span(getTranslation("weather.title"));
         title.addClassNames(FontWeight.SEMIBOLD);
@@ -83,7 +92,7 @@ class WeatherCard extends Div {
         footer.addClassNames(FontSize.XSMALL, TextColor.SECONDARY);
         if (stale) {
             footer.add(new Span(" · " + getTranslation("note.stale", DateTimeFormatter.ofPattern("d MMMM HH:mm", locale)
-                    .format(fetchedAt.atZone(ZoneId.of("Europe/Rome"))))));
+                    .format(fetchedAt.atZone(clock.getZone())))));
         } else if (fetchedAt != null) {
             // How fresh the forecast is (#130).
             footer.add(new Span(" · " + when("weather.updated", fetchedAt)));
@@ -91,11 +100,11 @@ class WeatherCard extends Div {
         add(footer);
     }
 
-    /** "aggiornato alle 17:36" today, with the date otherwise (#130). */
+    /** "aggiornato alle 17:36" today at the garden, with the date otherwise (#130, #158). */
     private String when(String key, Instant at) {
-        ZoneId italy = ZoneId.of("Europe/Rome");
-        if (at.atZone(italy).toLocalDate().equals(java.time.LocalDate.now(italy))) {
-            return getTranslation(key + ".today", DateTimeFormatter.ofPattern("HH:mm").format(at.atZone(italy)));
+        ZoneId zone = clock.getZone();
+        if (at.atZone(zone).toLocalDate().equals(java.time.LocalDate.ofInstant(clock.instant(), zone))) {
+            return getTranslation(key + ".today", DateTimeFormatter.ofPattern("HH:mm").format(at.atZone(zone)));
         }
         return getTranslation(key, DateText.dateTime(at, this));
     }

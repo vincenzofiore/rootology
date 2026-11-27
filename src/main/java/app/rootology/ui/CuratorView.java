@@ -58,7 +58,7 @@ public class CuratorView extends VerticalLayout implements HasDynamicTitle {
                     .setHeader(getTranslation("knowledge.curator.unknown.name")).setFlexGrow(2);
             names.addColumn(app.rootology.history.RunHistory.UnknownName::questions)
                     .setHeader(getTranslation("knowledge.curator.unknown.count")).setAutoWidth(true);
-            names.addColumn(n -> DateText.date(n.last().atZone(GardenHomeView.ITALY).toLocalDate(), this))
+            names.addColumn(n -> DateText.date(n.last().atZone(DateText.ITALY).toLocalDate(), this))
                     .setHeader(getTranslation("knowledge.curator.unknown.last")).setAutoWidth(true);
             names.setItems(unknown);
             names.setAllRowsVisible(true);

@@ -44,8 +44,8 @@ class UnknownSubjectCardTest {
     private static AnswerCard card(boolean member) {
         CurrentUser user = mock(CurrentUser.class);
         when(user.canContribute(4)).thenReturn(member);
-        return AnswerCards.of(UNKNOWN, 4, user, null, mock(SourceCatalog.class), mock(KnowledgeEnrichment.class),
-                new Div());
+        return AnswerCards.of(UNKNOWN, java.time.Instant.now(), java.time.ZoneId.of("Europe/Rome"), 4, user, null, mock(SourceCatalog.class),
+                mock(KnowledgeEnrichment.class), new Div());
     }
 
     private static Stream<Component> all(Component component) {

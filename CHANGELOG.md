@@ -12,6 +12,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Changed
 
+- A garden's local time comes from its coordinates: the time zone is stored when the coordinates are saved (an IANA id from GeoNames, like the altitude), and the month of a question, the calendars, the proposals and the garden's pages follow the garden's own day; without a stored zone, Italian time as before (#158).
 - A question about a crop or an organism the knowledge base does not know (for example “aglione”) is answered at once with “I don’t know it yet” and no longer waits for a person; a member can propose it as another name of a known crop, and curators see the names asked and not found (#180).
 - A question asked on the garden home is answered there, in a dialog over the page, with "OK" to stay and "Go to questions" to open it on the Questions page; an off-topic refusal, the choice of a place or garden and a question waiting for a person are handled in the dialog too (#178).
 - A question asked on the gardens overview is answered there too, in the same dialog (#179).

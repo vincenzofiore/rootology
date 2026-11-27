@@ -34,7 +34,7 @@ class WeatherRefreshTest {
 
     private static GrowingGarden garden(long id, String latitude, String longitude, Integer elevationM) {
         return new GrowingGarden(1, new GardenSummary(id, "Orto " + id, null, new BigDecimal(latitude),
-                new BigDecimal(longitude), "IT", null, elevationM), List.of());
+                new BigDecimal(longitude), "IT", null, elevationM, null), List.of());
     }
 
     @Test

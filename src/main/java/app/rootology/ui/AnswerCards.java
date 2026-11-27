@@ -18,12 +18,15 @@ import java.util.List;
 final class AnswerCards {
 
     /**
+     * @param askedAt    when the question was asked, from the Clock bean (#158), the month of the verdict
+     * @param zone       the garden's own time zone (#158), for the verdict of a calendar answer
      * @param pageGarden the name of the garden the page is about, so the card does not say it again (#121);
      *                   null at the space level
      */
-    static AnswerCard of(PipelineAnswer answer, long spaceId, CurrentUser user, String pageGarden, SourceCatalog sources,
-                         KnowledgeEnrichment enrichment, Component in) {
-        return build(answer, Instant.now(), spaceId, user, pageGarden, sources, enrichment, in, false);
+    static AnswerCard of(PipelineAnswer answer, Instant askedAt, java.time.ZoneId zone, long spaceId,
+                         CurrentUser user, String pageGarden, SourceCatalog sources, KnowledgeEnrichment enrichment,
+                         Component in) {
+        return build(answer, askedAt, zone, spaceId, user, pageGarden, sources, enrichment, in, false);
     }
 
     /**
@@ -34,15 +37,15 @@ final class AnswerCards {
      * @param askedAt         when the question was asked, for the verdict of a calendar answer (#116)
      * @param sourcesRecorded whether the row was stored with its sources (Flyway V33)
      */
-    static AnswerCard ofPast(PipelineAnswer answer, Instant askedAt, boolean sourcesRecorded, long spaceId,
-                             CurrentUser user, String pageGarden, SourceCatalog sources, KnowledgeEnrichment enrichment,
-                             Component in) {
-        return build(answer, askedAt, spaceId, user, pageGarden, sources, enrichment, in, !sourcesRecorded);
+    static AnswerCard ofPast(PipelineAnswer answer, Instant askedAt, java.time.ZoneId zone, boolean sourcesRecorded,
+                             long spaceId, CurrentUser user, String pageGarden, SourceCatalog sources,
+                             KnowledgeEnrichment enrichment, Component in) {
+        return build(answer, askedAt, zone, spaceId, user, pageGarden, sources, enrichment, in, !sourcesRecorded);
     }
 
-    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, long spaceId, CurrentUser user, String pageGarden,
-                                   SourceCatalog sources, KnowledgeEnrichment enrichment, Component in,
-                                   boolean storedBeforeSources) {
+    private static AnswerCard build(PipelineAnswer answer, Instant askedAt, java.time.ZoneId zone, long spaceId,
+                                   CurrentUser user, String pageGarden, SourceCatalog sources,
+                                   KnowledgeEnrichment enrichment, Component in, boolean storedBeforeSources) {
         List<AnswerCard.SourceLine> lines = new ArrayList<>();
         for (String id : answer.sources()) {
             if (id.equals("garden")) {
@@ -73,7 +76,7 @@ final class AnswerCards {
             }
             return card;
         }
-        CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, in)
+        CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), askedAt, zone, in)
                 .ifPresent(card::verdict);
         if (answer.answeredByHuman()) {
             // The reviewer is stored by login; people read their display name (#106).

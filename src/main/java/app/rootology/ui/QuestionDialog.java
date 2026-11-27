@@ -173,18 +173,26 @@ class QuestionDialog extends Dialog {
             WaitingQuestionCard card = new WaitingQuestionCard(run.pending(), mayAsk, suggestions(),
                     (values, note) -> services.pipeline.respond(run.pending().processId(), context.spaceId(),
                             context.gardenId(), new HumanAnswer(values, note, login)),
-                    answer -> AnswerCards.of(answer, context.spaceId(), services.currentUser, gardenName,
-                            services.sources, services.enrichment, this),
+                    answer -> AnswerCards.of(answer, services.clock.instant(), zone(context.gardenId()),
+                            context.spaceId(), services.currentUser, gardenName, services.sources,
+                            services.enrichment, this),
                     false, true, gardenName);
             card.askedBy(services.currentUser.nameOf(run.pending().context().startedBy()));
             show(asked(asked), card);
             return;
         }
         processId = Optional.ofNullable(run.processId());
-        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), services.currentUser, gardenName,
-                services.sources, services.enrichment, this);
+        AnswerCard card = AnswerCards.of(run.answer(), services.clock.instant(), zone(context.gardenId()),
+                context.spaceId(), services.currentUser, gardenName, services.sources, services.enrichment, this);
         choice.gardenHere(run, spaceId).ifPresent(card::extra);
         show(asked(asked), card);
+    }
+
+    /** The garden's own time zone (#158), or the app's own when the garden cannot be read. */
+    private java.time.ZoneId zone(long gardenId) {
+        app.rootology.garden.GardenViews.GardenSummary garden = gardenId == 0 ? null
+                : services.gardens.garden(spaceId, services.currentUser.login(), gardenId).orElse(null);
+        return app.rootology.garden.GardenTime.zone(garden, services.clock);
     }
 
     private void show(Component... content) {

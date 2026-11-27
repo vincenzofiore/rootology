@@ -230,12 +230,13 @@ class OfficialWarningsCardTest {
     private static GardenHomeView view(OfficialWarnings official, NotificationService notifications) {
         return new GardenHomeView(mock(GardenService.class), mock(ClimateCells.class), mock(ClimateWindows.class),
                 mock(app.rootology.facts.CropCatalog.class), mock(WeatherService.class), notifications, official,
-                mock(GardenPipeline.class), mock(RunHistory.class), mock(CurrentUser.class), mock(QuestionDialogs.class));
+                mock(GardenPipeline.class), mock(RunHistory.class), mock(CurrentUser.class), mock(QuestionDialogs.class),
+                java.time.Clock.systemUTC());
     }
 
     private static GardenSummary garden(String country, String region) {
         return new GardenSummary(1, "Orto", "Pescara", new BigDecimal("42.46"), new BigDecimal("14.21"),
-                country, region, 20);
+                country, region, 20, null);
     }
 
     /** An orange wind warning of Abruzzo, as the feed and its CAP document give it. */

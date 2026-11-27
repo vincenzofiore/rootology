@@ -159,10 +159,10 @@ class GardenContextTest {
         CurrentUser session = new CurrentUser(spaces, login);
 
         // Opened guest-first: the session's space ends up being the shared one, then the own one.
-        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "");
+        GardensView guestOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "", java.time.Clock.systemUTC());
         guestOverview.beforeEnter(enteringSpace(shared));
         assertThat(guestOverview.showsGardenActions()).as("a guest changes nothing").isFalse();
-        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "");
+        GardensView ownOverview = new GardensView(gardens, null, session, cells, pipeline, weather, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "", java.time.Clock.systemUTC());
         ownOverview.beforeEnter(enteringSpace(own));
         assertThat(ownOverview.showsGardenActions()).as("the owner does").isTrue();
         assertThat(guestOverview.showsGardenActions()).as("the other page keeps its own answer").isFalse();
@@ -261,7 +261,7 @@ class GardenContextTest {
         long garden = gardens.saveGarden(space, login, null, "Balcony", null, null, null).id();
         CurrentUser session = new CurrentUser(spaces, login);
         Queued queued = new Queued();
-        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory, queued);
+        AskView view = new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory, queued, java.time.Clock.systemUTC());
 
         view.beforeEnter(asking(space, garden, "Cosa posso seminare adesso?"));
         assertThat(queued.queued).isEqualTo(1);
@@ -302,7 +302,7 @@ class GardenContextTest {
     }
 
     private AskView askView(CurrentUser session) {
-        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory);
+        return new AskView(pipeline, sources, session, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
     }
 
     /** The map's style: nothing is fetched here, the map is inspected as data (#66). */

@@ -175,13 +175,13 @@ class ViewsTest {
     void historySpaceAndCuratorViewsBuild() {
         assertThat(new MembersView(spaces, invitations, viewer()).getChildren()).isNotEmpty();
         assertThat(new AreasView(gardens, crops, proposals, geoNames, weatherService, cells, climateWindows, viewer(), clock).getChildren()).isNotEmpty();
-        assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "")
+        assertThat(new GardensView(gardens, geoNames, viewer(), cells, pipeline, weatherService, notificationService, org.mockito.Mockito.mock(QuestionDialogs.class), STYLE, "", clock)
                 .getChildren()).isNotEmpty();
-        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history).getChildren()).isNotEmpty();
+        assertThat(new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history, clock).getChildren()).isNotEmpty();
         assertThat(new SourcesView(sourceCatalog).getChildren()).isNotEmpty();
         assertThat(new GardenHomeView(gardens, cells, climateWindows, crops, weatherService, notificationService, officialWarnings,
                         pipeline, history, viewer(), new QuestionDialogs(pipeline, sourceCatalog, enrichment, viewer(),
-                        crops, knowledge, gardens, geoNames, cells, Runnable::run)).getChildren())
+                        crops, knowledge, gardens, geoNames, cells, Runnable::run, clock), clock).getChildren())
                 .isNotEmpty();
         assertThat(new StartView(viewer()).getChildren()).isEmpty();
         assertThat(new NotificationsView(notificationService, gardens, viewer()).getChildren()).isNotEmpty();
@@ -393,7 +393,7 @@ class ViewsTest {
     @Test
     void theHistoryIsBesideTheQuestion() {
         // #100: a button in Ask's header opens the history; closed until the browser says otherwise.
-        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history);
+        AskView ask = new AskView(pipeline, sourceCatalog, viewer(), enrichment, usage, gardens, crops, knowledge, geoNames, cells, history, clock);
         assertThat(ask.historyOpen()).isFalse();
         PageHeader header = ask.getChildren().filter(PageHeader.class::isInstance).map(PageHeader.class::cast)
                 .findFirst().orElseThrow();

@@ -23,6 +23,10 @@ import java.util.List;
  * show: a run that belongs to no space, a garden that no longer exists, and a run that only asks a choice.
  * domainUnjudged says the domain filter could not judge the question and let it through (#161, #165), so the
  * run's history can say it went on unscreened; it is false for a run the filter never saw.
+ *
+ * <p>zone is the garden's own time zone, resolved once with the Clock bean (#158), so the run's day and month
+ * are the garden's; null when the run has no garden or was rebuilt from the history, and the app's own zone
+ * (Europe/Rome) is then used.
  */
 public record QuestionContext(
         long spaceId,
@@ -36,7 +40,8 @@ public record QuestionContext(
         List<Note> notes,
         Choice choice,
         Choice.Place place,
-        boolean domainUnjudged) {
+        boolean domainUnjudged,
+        java.time.ZoneId zone) {
 
     /** What a SOW_IN_PLOT question asked for, and what the run's garden answered. */
     public record Plot(String askedName, Outcome outcome, PlotSummary found, List<String> matches) {
@@ -128,12 +133,12 @@ public record QuestionContext(
 
     /** For a run that belongs to no space: no garden, no notes, no context shown (the suite's runs). */
     static QuestionContext none(Intent intent) {
-        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null, null, false);
+        return new QuestionContext(0, 0, intent, null, null, null, null, null, List.of(), null, null, false, null);
     }
 
     /** The context of a question whose agent was lost: only what was stored, never recomputed. */
     static QuestionContext stored(ContextSnapshot snapshot) {
-        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null, null, false);
+        return new QuestionContext(0, 0, null, null, null, null, snapshot, null, List.of(), null, null, false, null);
     }
 
     boolean hasSpace() {
@@ -148,6 +153,6 @@ public record QuestionContext(
     /** The same context, saying the domain filter could not judge the question (#165). */
     QuestionContext markDomainUnjudged() {
         return new QuestionContext(spaceId, gardenId, intent, plot, weather, climate, snapshot, refusal, notes,
-                choice, place, true);
+                choice, place, true, zone);
     }
 }

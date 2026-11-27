@@ -122,7 +122,7 @@ class QuestionDialogTest {
         GeoNames noSearch = mock(GeoNames.class);
         return new QuestionDialogs(pipeline, mock(SourceCatalog.class),
                 mock(KnowledgeEnrichment.class), user, mock(CropCatalog.class), mock(KnowledgeGraph.class),
-                mock(GardenService.class), noSearch, mock(ClimateCells.class), Runnable::run);
+                mock(GardenService.class), noSearch, mock(ClimateCells.class), Runnable::run, java.time.Clock.systemUTC());
     }
 
     private static GardenPipeline.Run answered() {

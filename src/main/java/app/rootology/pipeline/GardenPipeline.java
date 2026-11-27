@@ -239,7 +239,10 @@ public class GardenPipeline {
                 .areas().stream().filter(a -> a.areaName().equals(intent.subject()))
                 .flatMap(a -> a.proposals().stream()).map(app.rootology.garden.CropProposalRule.Proposal::cropId)
                 .collect(java.util.stream.Collectors.joining(","));
-        String today = clock.instant().atZone(GardenPipelineAgent.ITALY).toLocalDate().toString();
+        // The garden's own day (#158): the same proposal, asked again, is answered from today's run.
+        String today = app.rootology.garden.GardenTime.today(
+                gardens.garden(context.spaceId(), context.startedBy(), context.gardenId()).orElse(null), clock)
+                .toString();
         String key = String.join("|", today, String.valueOf(context.spaceId()), String.valueOf(context.gardenId()),
                 intent.subject(), intent.month(), String.join(",", intent.goals()), crops);
         Run cached = proposalRuns.get(key);

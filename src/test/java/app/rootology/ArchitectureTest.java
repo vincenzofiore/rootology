@@ -59,7 +59,10 @@ class ArchitectureTest {
 
     @Test
     void theTimeZoneComesFromTheClock() {
+        // A garden's own zone (#158) is an IANA id stored or received from GeoNames: only those two places parse one.
         FreezingArchRule.freeze(noClasses().that().doNotHaveFullyQualifiedName(RootologyApplication.class.getName())
+                .and().doNotHaveFullyQualifiedName("app.rootology.garden.GardenTime")
+                .and().doNotHaveFullyQualifiedName("app.rootology.geocoding.ReplyValues")
                 .should().callMethod(ZoneId.class, "of", String.class)
                 .because("the app's time zone is the Clock bean's: use clock.getZone()")).check(APP);
     }

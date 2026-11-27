@@ -321,6 +321,34 @@ class GardenServiceTest {
     }
 
     @Test
+    void theTimeZoneFollowsThePlaceAndIsKeptWhenThePlaceDoesNotChange() {
+        long space = spaceOf("pia");
+        GardenSummary garden = gardens.saveGarden(space, "pia", null, "Orto", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT", 205, "Europe/Rome");
+        assertThat(garden.timeZone()).isEqualTo("Europe/Rome");
+
+        GardenSummary renamed = gardens.saveGarden(space, "pia", garden.id(), "Orto rinomato", "Torino",
+                new BigDecimal("45.07"), new BigDecimal("7.69"), "IT");
+        assertThat(renamed.timeZone()).as("the place did not change").isEqualTo("Europe/Rome");
+
+        GardenSummary moved = gardens.saveGarden(space, "pia", garden.id(), "Orto", "New York",
+                new BigDecimal("40.71"), new BigDecimal("-74.01"), "US");
+        assertThat(moved.timeZone()).as("a new place has no zone until it is looked up again").isNull();
+
+        GardenSummary looked = gardens.saveGarden(space, "pia", moved.id(), "Orto", "New York",
+                new BigDecimal("40.71"), new BigDecimal("-74.01"), "US", null, "America/New_York");
+        assertThat(looked.timeZone()).isEqualTo("America/New_York");
+
+        GardenSummary cleared = gardens.saveGarden(space, "pia", garden.id(), "Orto", "New York", null, null,
+                "US", null, "America/New_York");
+        assertThat(cleared.timeZone()).as("no coordinates, no zone").isNull();
+
+        assertThatThrownBy(() -> gardens.saveGarden(space, "pia", null, "Orto", "Roma",
+                new BigDecimal("41.90"), new BigDecimal("12.50"), "IT", null, "Italy"))
+                .as("an id this JVM does not know is refused").isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void aPlotIsLookedUpInOneGardenOnlyAndAmbiguityIsReported() {
         long space = spaceOf("olga");
         GardenSummary first = gardens.saveGarden(space, "olga", null, "Balcony", null, null, null);

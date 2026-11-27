@@ -7,12 +7,12 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.SourcedFact;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.LightRule;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +50,7 @@ class LightFacts {
 
     /**
      * The month the question is about: the one the context carries (the intent already resolved it, for
-     * example for SOW_IN_PLOT and SOW_NOW), the current one in Italy otherwise (#58).
+     * example for SOW_IN_PLOT and SOW_NOW), the garden's current one otherwise (#58, #158).
      */
     private Month monthOf(QuestionContext context) {
         String asked = context.intent() == null ? null : context.intent().month();
@@ -61,7 +61,7 @@ class LightFacts {
                 // An unknown month finds no facts and escalates anyway; the month of the run is a safe guess.
             }
         }
-        return LocalDate.now(clock).getMonth();
+        return GardenTime.today(context.zone(), clock).getMonth();
     }
 
     /** The named plot's declared exposure, and light-need-v1 on the crops that could be sown in it. */

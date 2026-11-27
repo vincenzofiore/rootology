@@ -113,7 +113,7 @@ class SpaceLevelQuestionsTest {
                 .thenReturn(new PipelineAnswer("ask", List.of("Basilico"), 0.8, true, true, login, "Fatto",
                         List.of(), List.of(), null));
         AskView view = new AskView(mocked, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
 
         // Questions with the waiting ones open (#132), where the old waiting questions page now leads.
         view.beforeEnter(spaceLevel(space, AskView.WAITING));
@@ -161,7 +161,7 @@ class SpaceLevelQuestionsTest {
         insertRun(space, 0, login, "Cosa seminare a novembre?", null);
 
         AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
         ask.beforeEnter(spaceLevel(space));
 
         HistoryPanel history = ask.historyPanel();

@@ -1,0 +1,2 @@
+Static Initializer <app.rootology.spaces.InvitationEmail.<clinit>()> calls method <java.time.ZoneId.of(java.lang.String)> in (InvitationEmail.java:15)
+Static Initializer <app.rootology.ui.DateText.<clinit>()> calls method <java.time.ZoneId.of(java.lang.String)> in (DateText.java:21)

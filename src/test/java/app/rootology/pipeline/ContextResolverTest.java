@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ContextResolverTest {
 
     /** "Today" is 4 November 2026, 10:00 in Italy, as for the quality suite. */
-    static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-04T09:00:00Z"), GardenPipelineAgent.ITALY);
+    static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-04T09:00:00Z"), java.time.ZoneId.of("Europe/Rome"));
 
     @Autowired
     SpaceService spaces;

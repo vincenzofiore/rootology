@@ -60,7 +60,7 @@ class WeatherFactsTest {
 
     private final WeatherService weather = mock(WeatherService.class);
 
-    static final Clock CLOCK = Clock.fixed(NOW, GardenPipelineAgent.ITALY);
+    static final Clock CLOCK = Clock.fixed(NOW, java.time.ZoneId.of("Europe/Rome"));
 
     private WeatherFacts facts() {
         return new WeatherFacts(gardens, weather, knowledge, crops, CLOCK);

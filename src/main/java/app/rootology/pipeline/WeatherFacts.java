@@ -7,6 +7,7 @@ import app.rootology.facts.Fact;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.SourcedFact;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.PlotKind;
 import app.rootology.weather.Forecast;
@@ -94,9 +95,9 @@ class WeatherFacts {
             }
         }
         List<Note> notes = new ArrayList<>();
-        LocalDate day = LocalDate.ofInstant(coldest.get().time(), GardenPipelineAgent.ITALY);
+        LocalDate day = LocalDate.ofInstant(coldest.get().time(), zone(context));
         notes.add(Note.of(Note.Kind.FORECAST_MINIMUM, String.format(Locale.ROOT, "%.1f", minimum), day.toString(),
-                staleSince(forecast)));
+                staleSince(forecast, zone(context))));
         if (inGreenhouse(context)) {
             notes.add(Note.of(Note.Kind.GREENHOUSE_OUTDOOR_MINIMUM, context.plot().found().name()));
         }
@@ -123,13 +124,13 @@ class WeatherFacts {
             return new Result(List.of(), List.of(Note.of(Note.Kind.FORECAST_UNAVAILABLE_RISK)));
         }
         Forecast forecast = found.get();
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = GardenTime.today(context.zone(), clock);
         Optional<LocalDate> period = SmithPeriodRule.firstPeriod(forecast, today.minusDays(2), today.plusDays(3),
-                GardenPipelineAgent.ITALY);
+                zone(context));
         List<String> hosts = gardens.growingOn(context.spaceId(), run.startedBy(), context.gardenId(), today).stream()
                 .map(PlantingSummary::cropId).filter(SmithPeriodRule.HOSTS::contains).distinct().toList();
         if (period.isEmpty() || hosts.isEmpty()) {
-            return new Result(List.of(), List.of(Note.of(Note.Kind.NO_SMITH_PERIOD, staleSince(forecast))));
+            return new Result(List.of(), List.of(Note.of(Note.Kind.NO_SMITH_PERIOD, staleSince(forecast, zone(context)))));
         }
         String blight = knowledge.organisms().stream().filter(o -> o.id().equals(SmithPeriodRule.LATE_BLIGHT))
                 .map(o -> "it".equals(language) ? o.italianName() : o.englishName()).findFirst().orElse("Late blight");
@@ -143,7 +144,7 @@ class WeatherFacts {
                     List.of(Forecast.SOURCE)));
         }
         return new Result(readings, List.of(Note.of(Note.Kind.SMITH_PERIOD, period.get().toString(),
-                String.join(", ", names), SmithPeriodRule.ID, staleSince(forecast))));
+                String.join(", ", names), SmithPeriodRule.ID, staleSince(forecast, zone(context)))));
     }
 
     /**
@@ -161,7 +162,7 @@ class WeatherFacts {
         if (!context.hasSpace() || context.intent() == null || context.intent().month() == null) {
             return false;
         }
-        return LocalDate.now(clock).getMonth().name().equals(context.intent().month());
+        return GardenTime.today(context.zone(), clock).getMonth().name().equals(context.intent().month());
     }
 
     /** The run's garden's forecast; empty when the weather service gives nothing usable. */
@@ -170,9 +171,17 @@ class WeatherFacts {
                 context.weather().elevationM());
     }
 
-    /** When the stored copy of a stale forecast was fetched, as an ISO local date-time in Italy; empty if fresh. */
-    private static String staleSince(Forecast forecast) {
-        return forecast.stale() ? java.time.LocalDateTime.ofInstant(forecast.fetchedAt(), GardenPipelineAgent.ITALY)
+    /**
+     * When the stored copy of a stale forecast was fetched, as an ISO local date-time at the garden (#158);
+     * empty if fresh.
+     */
+    private static String staleSince(Forecast forecast, java.time.ZoneId zone) {
+        return forecast.stale() ? java.time.LocalDateTime.ofInstant(forecast.fetchedAt(), zone)
                 .withNano(0).toString() : "";
+    }
+
+    /** The garden's own zone, or the app's own (Europe/Rome) when the run has none (#158). */
+    private java.time.ZoneId zone(QuestionContext context) {
+        return GardenTime.zone(context.zone(), clock);
     }
 }

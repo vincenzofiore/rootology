@@ -121,6 +121,24 @@ class GeoNamesTest {
     }
 
     @Test
+    void theTimeZoneOfAPositionAnUnknownIdAndAFailure() {
+        server.expect(requestTo("https://geo.test/timezoneJSON?lat=45.76&lng=4.84&username=rootology-test"))
+                .andRespond(withSuccess("""
+                        {"countryCode":"FR","gmtOffset":1,"rawOffset":1,"timezoneId":"Europe/Paris","dstOffset":2,
+                         "lat":45.76,"lng":4.84}
+                        """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://geo.test/timezoneJSON?lat=0.00&lng=0.00&username=rootology-test"))
+                .andRespond(withSuccess("{\"timezoneId\":\"Nowhere/Land\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://geo.test/timezoneJSON?lat=1.00&lng=1.00&username=rootology-test"))
+                .andRespond(withServerError());
+
+        assertThat(geoNames.timeZone(45.7612, 4.8357)).contains(java.time.ZoneId.of("Europe/Paris"));
+        assertThat(geoNames.timeZone(0.0, 0.0)).as("an id this JVM does not know is no zone").isEmpty();
+        assertThat(geoNames.timeZone(1.0, 1.0)).as("a failure is no zone and never an exception").isEmpty();
+        server.verify();
+    }
+
+    @Test
     void theNearestTownToAPositionAndNoneAtSea() {
         server.expect(requestTo("https://geo.test/findNearbyPlaceNameJSON?lat=45.46&lng=9.19&lang=it&style=MEDIUM"
                         + "&username=rootology-test"))

@@ -7,6 +7,8 @@ import app.rootology.garden.CropProposalService;
 import app.rootology.garden.CropProposalService.AreaProposals;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
+import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.garden.PlantingMethod;
 import app.rootology.decision.Intent;
@@ -341,8 +343,11 @@ public class ProposalsView extends VerticalLayout implements HasDynamicTitle, Be
         return crops.byId(cropId).map(c -> "it".equals(language) ? c.italianName() : c.englishName()).orElse(cropId);
     }
 
+    /** Today at the garden of the page (#158): the month the proposals are for. */
     private LocalDate today() {
-        return clock.instant().atZone(DateText.ITALY).toLocalDate();
+        GardenSummary garden = gardenId == 0 ? null
+                : gardens.garden(spaceId, currentUser.login(), gardenId).orElse(null);
+        return GardenTime.today(garden, clock);
     }
 
     private Locale locale() {

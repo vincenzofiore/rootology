@@ -61,7 +61,7 @@ class GardenRegionsTest {
     @Test
     void theNightlyRunFillsTheGardensWithoutRegion() {
         when(gardens.withoutRegion()).thenReturn(List.of(
-                new GardenSummary(1, "Orto", null, new BigDecimal("45.46"), new BigDecimal("9.19"), "IT", null, 120)));
+                new GardenSummary(1, "Orto", null, new BigDecimal("45.46"), new BigDecimal("9.19"), "IT", null, 120, null)));
         when(geoNames.nearestPlace(anyDouble(), anyDouble(), anyString()))
                 .thenReturn(Optional.of(place("IT", "09")));
 

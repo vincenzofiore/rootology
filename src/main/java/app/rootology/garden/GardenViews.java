@@ -12,9 +12,11 @@ public final class GardenViews {
      * regionCode: GeoNames first-level administrative code (for Italy the region, "01"…"20"), or null when
      * not known (#136); it belongs to the place, so it is cleared when the garden moves or loses coordinates.
      * elevationM: metres above sea level from GeoNames GTOPO30 (#62), or null when not known.
+     * timeZone: the garden's IANA time zone from GeoNames ("Europe/Paris", #158), or null when not known;
+     * {@link GardenTime} turns the Clock into the garden's day with it.
      */
     public record GardenSummary(long id, String name, String town, BigDecimal latitude, BigDecimal longitude,
-                                String countryCode, String regionCode, Integer elevationM) {
+                                String countryCode, String regionCode, Integer elevationM, String timeZone) {
     }
 
     /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */

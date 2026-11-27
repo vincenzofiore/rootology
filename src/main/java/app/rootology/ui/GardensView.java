@@ -22,6 +22,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import app.rootology.facts.ClimateCells;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.geocoding.GeoNames;
 import app.rootology.geocoding.Place;
@@ -34,7 +35,7 @@ import app.rootology.weather.WeatherService;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.time.LocalDate;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,6 +91,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     /** The page's own space (#56), read from its route. */
     /** The dialog a question of the overview is answered in (#179). */
     private final QuestionDialogs questions;
+    private final Clock clock;
     private long spaceId;
     /** The gardens on this page, in the list's order: the map and the list both read them. */
     private List<GardenSummary> shown = List.of();
@@ -98,7 +100,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
                        ClimateCells climateCells, GardenPipeline pipeline, WeatherService weather,
                        NotificationService notifications, QuestionDialogs questions,
                        @Value("${rootology.map.style-url}") String styleUrl,
-                       @Value("${rootology.map.dark-style-url:}") String darkStyleUrl) {
+                       @Value("${rootology.map.dark-style-url:}") String darkStyleUrl, Clock clock) {
         this.gardens = gardens;
         this.geoNames = geoNames;
         this.currentUser = currentUser;
@@ -107,6 +109,7 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
         this.weather = weather;
         this.notifications = notifications;
         this.questions = questions;
+        this.clock = clock;
         ask.setVisible(false);
         ask.setDefaultVerticalComponentAlignment(Alignment.END);
         ask.setWrap(true);
@@ -286,8 +289,8 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
 
     /** Creates a garden, or stores an existing one; the caller knows the space and the person. */
     private GardenDialog.Save save(Long gardenId) {
-        return (name, town, latitude, longitude, countryCode, elevationM) -> gardens.saveGarden(spaceId,
-                currentUser.login(), gardenId, name, town, latitude, longitude, countryCode, elevationM);
+        return (name, town, latitude, longitude, countryCode, elevationM, timeZone) -> gardens.saveGarden(spaceId,
+                currentUser.login(), gardenId, name, town, latitude, longitude, countryCode, elevationM, timeZone);
     }
 
     private void addGarden() {
@@ -359,12 +362,13 @@ public class GardensView extends VerticalLayout implements HasDynamicTitle, Befo
     /** The counts of every garden shown, read once per page: the alerts are the garden home's (#37, #132). */
     private Map<Long, Counts> counts(List<GardenSummary> all) {
         String login = currentUser.login();
-        LocalDate today = LocalDate.now(GardenHomeView.ITALY);
         List<NotificationView> alerts = all.isEmpty() ? List.of()
                 : notifications.weatherAlerts(login, spaceId, 0, GardenHomeView.ALERT_DAYS);
         Map<Long, Counts> counts = new LinkedHashMap<>();
         for (GardenSummary garden : all) {
-            counts.put(garden.id(), new Counts(gardens.growingOn(spaceId, login, garden.id(), today).size(),
+            // Each garden counts the crops of its own day (#158), not the app's.
+            counts.put(garden.id(), new Counts(gardens.growingOn(spaceId, login, garden.id(),
+                    GardenTime.today(garden, clock)).size(),
                     pipeline.pending(spaceId, garden.id(), login).size(),
                     alerts.stream().filter(n -> n.gardenId() == garden.id())
                             .map(n -> AlertSeverity.of(n.dedupKey())).sorted().toList()));

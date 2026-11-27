@@ -15,6 +15,7 @@ import app.rootology.facts.KnowledgeGraph;
 import app.rootology.facts.PestShiftRule;
 import app.rootology.facts.SourcedFact;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.PlantingSummary;
 import app.rootology.garden.RotationRule;
 import org.springframework.stereotype.Component;
@@ -132,7 +133,7 @@ class GardenFacts {
         List<SourcedFact> facts = new ArrayList<>();
         facts.add(new SourcedFact(new Fact(plotName, "hasSoil", context.plot().found().soil().name()),
                 List.of(SOURCE)));
-        LocalDate on = nextFirstDay(Month.valueOf(context.intent().month()), LocalDate.now(clock));
+        LocalDate on = nextFirstDay(Month.valueOf(context.intent().month()), GardenTime.today(context.zone(), clock));
         for (SourcedFact sowable : climate.sowingFacts(context.intent().month(), context.climate(), language)) {
             facts.add(sowable);
             knowledge.resolve(sowable.fact().subject(), context.spaceId()).ifPresent(crop -> gardens
@@ -227,7 +228,8 @@ class GardenFacts {
 
     private List<PlantingSummary> now(QuestionContext context, RunContext run) {
         return context.hasSpace() && context.gardenId() > 0
-                ? gardens.growingOn(context.spaceId(), run.startedBy(), context.gardenId(), LocalDate.now(clock))
+                ? gardens.growingOn(context.spaceId(), run.startedBy(), context.gardenId(),
+                        GardenTime.today(context.zone(), clock))
                 : List.of();
     }
 

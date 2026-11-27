@@ -10,6 +10,7 @@ import app.rootology.facts.ReferenceSite;
 import app.rootology.facts.SiteProfile;
 import app.rootology.garden.GardenClimate;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlotLookup;
 import app.rootology.geocoding.GeoNames;
@@ -21,6 +22,7 @@ import java.text.Normalizer;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -30,9 +32,9 @@ import java.util.Map;
 
 /**
  * Resolves the context of a question once per run (#55, #62, #107): the run's garden, the climate profile the
- * calendars read, the month with its precedence (what the question says, then the current month in Italy),
- * the plot a question names, the place the question names and the place of the forecast. Nothing else in the
- * pipeline chooses a garden any more.
+ * calendars read, the month with its precedence (what the question says, then the garden's current month,
+ * #158), the plot a question names, the place the question names and the place of the forecast. Nothing else
+ * in the pipeline chooses a garden any more.
  *
  * <p>A calendar question gets a climate profile: a place named in the question, otherwise the reference site
  * of a zone it names, otherwise the run's garden's own profile from its coordinates and altitude, otherwise
@@ -164,9 +166,10 @@ class ContextResolver {
      * (#107): the place is then never looked up again.
      */
     QuestionContext resolve(Intent intent, RunContext run, Choice.Place chosenPlace) {
-        Month current = LocalDate.now(clock).getMonth();
         if (!run.hasSpace()) {
-            // The suite's runs: no garden, no notes, nothing shown; only the defaults reach the facts.
+            // The suite's runs: no garden, no notes, nothing shown; only the defaults reach the facts, and the
+            // month is the app's own day, as recorded (#158).
+            Month current = GardenTime.today((GardenSummary) null, clock).getMonth();
             return QuestionContext.none(defaults(intent, current));
         }
         List<Note> notes = new ArrayList<>();
@@ -211,6 +214,9 @@ class ContextResolver {
             }
         }
 
+        // The garden's own day, from its stored zone (#158): the month of a question is the garden's.
+        ZoneId zone = GardenTime.zone(garden, clock);
+        Month current = GardenTime.today(garden, clock).getMonth();
         Intent effective = defaults(intent, current);
         boolean calendar = NEEDS_PLACE.contains(intent.kind());
         QuestionContext.Choice.Place place = null;
@@ -241,7 +247,8 @@ class ContextResolver {
             }
         }
         if (choice != null) {
-            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice, null, false);
+            return new QuestionContext(run.spaceId(), 0, effective, null, null, null, null, null, notes, choice,
+                    null, false, zone);
         }
         if (place != null && effective.zone() != null) {
             // The place wins over the zone the question also names: the zone plays no part (#107).
@@ -327,7 +334,7 @@ class ContextResolver {
         return new QuestionContext(run.spaceId(), garden == null ? 0 : garden.id(), effective, plot,
                 place != null ? new QuestionContext.Location(place.latitude(), place.longitude(), place.elevationM())
                         : location(garden),
-                climate, snapshot, refusal, notes, null, place, false);
+                climate, snapshot, refusal, notes, null, place, false, zone);
     }
 
     /**

@@ -349,7 +349,7 @@ class GardenPipelineAgentTest extends PipelineContext {
 
     @Test
     void pestRiskIsStillAnsweredWhenTheForecastIsMissing() {
-        String month = java.time.LocalDate.now(GardenPipelineAgent.ITALY).getMonth().name();
+        String month = java.time.LocalDate.now(java.time.ZoneId.of("Europe/Rome")).getMonth().name();
         whenCreateObject(prompt -> prompt.contains("Question: What threatens my garden now?"), Intent.class)
                 .thenReturn(new Intent(QueryKind.PEST_RISK, null, null, "en", null, month));
 

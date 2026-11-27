@@ -34,6 +34,7 @@ import app.rootology.facts.CropCatalog;
 import app.rootology.garden.CropProposalService;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
 import app.rootology.garden.LightRule;
 import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlantingSummary;
@@ -50,6 +51,7 @@ import jakarta.annotation.security.PermitAll;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -216,7 +218,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         Div facts = new Div();
         facts.addClassName("rootology-area-facts");
         facts.add(fact(VaadinIcon.FLASK, getTranslation("soil." + area.soil().name()), null));
-        DirectSun sun = area.directSunIn(LocalDate.now(DateText.ITALY).getMonth());
+        DirectSun sun = area.directSunIn(today().getMonth());
         if (sun != null) {
             // The level of the month of the visit, and the hours when the gardener gave them (#89).
             String label = getTranslation("directsun." + sun.name());
@@ -395,7 +397,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         chip.getElement().setAttribute("title", DateText.fullDate(planting.plantedOn(), NoteText.locale(this)));
         Span crop = new Span(cropName(planting.cropId(), planting.cropName()));
         Span days = new Span(getTranslation("area.days",
-                ChronoUnit.DAYS.between(planting.plantedOn(), LocalDate.now(DateText.ITALY))));
+                ChronoUnit.DAYS.between(planting.plantedOn(), today())));
         days.addClassName("rootology-grow-days");
         chip.add(crop, days);
         // When it is usually harvested here (#131): the months, with the sentence as tooltip.
@@ -420,7 +422,8 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             return;
         }
         weather.around(garden.latitude(), garden.longitude(), garden.elevationM()).ifPresent(forecast -> {
-            var days = DailyForecast.of(forecast, GardenHomeView.ITALY, LocalDate.now(GardenHomeView.ITALY), 7);
+            ZoneId zone = GardenTime.zone(garden, clock);
+            var days = DailyForecast.of(forecast, zone, GardenTime.today(garden, clock), 7);
             WeatherCard.firstFrost(days).ifPresent(frost -> {
                 RouterLink link = frostLink(frost);
                 Span credit = new Span(getTranslation("weather.credit"));
@@ -448,9 +451,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
 
     /** Creates or edits this garden: the overview adds new ones, this page edits the one it works in. */
     private void gardenDialog() {
-        new GardenDialog(geoNames, climateCells, (name, town, latitude, longitude, countryCode, elevationM) ->
+        new GardenDialog(geoNames, climateCells, (name, town, latitude, longitude, countryCode, elevationM, timeZone) ->
                 gardens.saveGarden(spaceId, login, garden == null ? null : garden.id(), name, town, latitude,
-                        longitude, countryCode, elevationM)).open(garden, this::showGarden);
+                        longitude, countryCode, elevationM, timeZone)).open(garden, this::showGarden);
     }
 
     /**
@@ -534,9 +537,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         return dialog;
     }
 
-    /** The level the hours give for the current month in Italy (#89), out of range hours clamped for the view. */
-    private static DirectSun seasonLevel(int summerHours, int winterHours) {
-        boolean summer = LightRule.isSummer(LocalDate.now(DateText.ITALY).getMonth());
+    /** The level the hours give for the garden's current month (#89, #158), out of range hours clamped. */
+    private DirectSun seasonLevel(int summerHours, int winterHours) {
+        boolean summer = LightRule.isSummer(today().getMonth());
         return LightRule.fromHours(Math.max(0, summer ? summerHours : winterHours));
     }
 
@@ -551,6 +554,11 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         return field;
     }
 
+    /** Today at the garden (#158), what the areas' season, the plantings' age and a harvest are read against. */
+    private LocalDate today() {
+        return GardenTime.today(garden, clock);
+    }
+
     /** Today at the latest, and never before the day it was sown or planted (#85). */
     static boolean harvestDateValid(LocalDate day, LocalDate plantedOn, LocalDate today) {
         return day != null && !day.isAfter(today) && !day.isBefore(plantedOn);
@@ -558,7 +566,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
 
     /** Harvested on a day the person chooses (#85), with a toast that can undo it while it is shown. */
     private void harvestDialog(PlantingSummary planting) {
-        LocalDate today = LocalDate.now(DateText.ITALY);
+        LocalDate today = today();
         DatePicker date = new DatePicker(getTranslation("harvest.date"), today);
         date.setMin(planting.plantedOn());
         date.setMax(today);

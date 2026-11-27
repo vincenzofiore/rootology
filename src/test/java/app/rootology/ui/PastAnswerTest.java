@@ -71,7 +71,7 @@ class PastAnswerTest {
                         Timestamp.from(Instant.now()))
                 .update();
         AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
 
         ask.beforeEnter(opening(space, processId));
 
@@ -96,7 +96,7 @@ class PastAnswerTest {
                 .params(processId, space, login, Timestamp.from(Instant.now()))
                 .update();
         AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
 
         ask.beforeEnter(opening(space, processId));
 
@@ -128,7 +128,7 @@ class PastAnswerTest {
                         Timestamp.from(Instant.parse("2026-11-15T10:00:00Z")))
                 .update();
         AskView ask = new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
 
         ask.beforeEnter(opening(space, "none"));
 
@@ -217,7 +217,7 @@ class PastAnswerTest {
 
     private AskView askView(String login) {
         return new AskView(pipeline, sources, new CurrentUser(spaces, login), enrichment, usage, gardens,
-                crops, knowledge, geoNames, cells, runHistory);
+                crops, knowledge, geoNames, cells, runHistory, java.time.Clock.systemUTC());
     }
 
     /** A finished run as the pipeline stores it, with the garden's name in its stored context (#55). */

@@ -26,7 +26,7 @@ final class GardenDialog {
     /** Stores the garden and returns it as saved: the caller knows the space and the person. */
     interface Save {
         GardenSummary save(String name, String town, BigDecimal latitude, BigDecimal longitude, String countryCode,
-                           Integer elevationM);
+                           Integer elevationM, String timeZone);
     }
 
     private final GeoNames geoNames;
@@ -185,7 +185,8 @@ final class GardenDialog {
                 }
                 GardenSummary garden = save.save(name.getValue(), town.getValue(), latitude.getValue(),
                         longitude.getValue(), countryCode, elevation(existing, latitude.getValue(), longitude.getValue(),
-                        prefilledLatitude, prefilledLongitude, prefilledElevationM));
+                        prefilledLatitude, prefilledLongitude, prefilledElevationM),
+                        timeZone(existing, latitude.getValue(), longitude.getValue()));
                 dialog.close();
                 saved.accept(garden);
             } catch (RuntimeException ex) {
@@ -217,6 +218,23 @@ final class GardenDialog {
             return prefilledElevationM;
         }
         return geoNames.elevation(latitude.doubleValue(), longitude.doubleValue()).orElse(null);
+    }
+
+    /**
+     * The IANA time zone for the garden's own day (#158): the old one when the place did not change,
+     * otherwise GeoNames' for the new place. A failed lookup leaves it null and never blocks saving.
+     */
+    private String timeZone(GardenSummary existing, BigDecimal latitude, BigDecimal longitude) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        boolean same = existing != null && existing.latitude() != null && existing.longitude() != null
+                && latitude.compareTo(existing.latitude()) == 0 && longitude.compareTo(existing.longitude()) == 0;
+        if (same && existing.timeZone() != null) {
+            return existing.timeZone();
+        }
+        return geoNames.timeZone(latitude.doubleValue(), longitude.doubleValue()).map(java.time.ZoneId::getId)
+                .orElse(null);
     }
 
     static BigDecimal coarse(double degrees) {

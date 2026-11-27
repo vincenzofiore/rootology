@@ -106,14 +106,19 @@ class HistoryPanel extends Div {
     private String login = "";
     /** The display names of the askers (#106), read once per load; the entries keep the logins. */
     private final java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf;
+    private final app.rootology.garden.GardenService gardens;
+    private final java.time.Clock clock;
     private java.util.Map<String, String> names = java.util.Map.of();
     /** Whether the panel lists every garden of the space (#109): true only at the space level. */
     private boolean spaceLevel;
 
     HistoryPanel(RunHistory history, GardenPipeline pipeline, Consumer<PipelineRunRecord> open,
                  Consumer<PendingReview> openWaiting,
-                 java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf) {
+                 java.util.function.Function<java.util.Collection<String>, java.util.Map<String, String>> namesOf,
+                 app.rootology.garden.GardenService gardens, java.time.Clock clock) {
         this.namesOf = namesOf;
+        this.gardens = gardens;
+        this.clock = clock;
         this.history = history;
         this.pipeline = pipeline;
         this.open = open;
@@ -452,6 +457,17 @@ class HistoryPanel extends Div {
     }
 
     /**
+     * The garden's own time zone (#158): the month of a calendar answer is read there. The app's own when the
+     * run belongs to no garden or the garden cannot be read.
+     */
+    private java.time.ZoneId zone(PipelineRunRecord run) {
+        app.rootology.garden.GardenViews.GardenSummary garden = run.getGardenId() == null
+                || run.getSpaceId() == null || login.isBlank() ? null
+                : gardens.garden(run.getSpaceId(), login, run.getGardenId()).orElse(null);
+        return app.rootology.garden.GardenTime.zone(garden, clock);
+    }
+
+    /**
      * The answer's values as small badges (#110: in the page's language, all of them, since a card is the
      * scannable summary of a question), without the control methods its sentence already says (#183), and
      * nothing when the question was refused (#53).
@@ -465,7 +481,7 @@ class HistoryPanel extends Div {
         // its months are on opening.
         var answer = history.answerOf(run);
         var verdict = CalendarVerdict.of(answer.answer(), answer.activities(), answer.context(), run.getFinishedAt(),
-                this);
+                zone(run), this);
         if (verdict.isPresent()) {
             Icon icon = (verdict.get().now() ? VaadinIcon.CHECK_CIRCLE_O : VaadinIcon.CALENDAR_CLOCK).create();
             icon.addClassName("rootology-verdict-icon");

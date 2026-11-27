@@ -27,6 +27,8 @@ import app.rootology.facts.FrostSeasonRule;
 import app.rootology.facts.CropCatalog;
 import app.rootology.facts.KnowledgeGraph;
 import app.rootology.garden.GardenService;
+import app.rootology.garden.GardenTime;
+import app.rootology.garden.GardenViews.GardenSummary;
 import app.rootology.garden.GardenViews.PlotSummary;
 import app.rootology.geocoding.GeoNames;
 import app.rootology.history.PipelineRunRecord;
@@ -46,8 +48,10 @@ import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,6 +116,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     private final Div split = new Div();
     /** Where a question runs while the page stays usable (#82): the app's own, never the common pool. */
     private final Executor executor;
+    private final Clock clock;
     private final Span questionsToday = new Span();
     /** The answers of this visit, the newest on top (#82): the thinking card during a run, then the answer. */
     private final Div answers = new Div();
@@ -146,7 +151,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     public AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
                    KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens,
                    CropCatalog crops, KnowledgeGraph knowledge, GeoNames geoNames, ClimateCells cells,
-                   RunHistory runs, @Qualifier("applicationTaskExecutor") Executor executor) {
+                   RunHistory runs, @Qualifier("applicationTaskExecutor") Executor executor, Clock clock) {
         this.gardens = gardens;
         this.crops = crops;
         this.knowledge = knowledge;
@@ -158,7 +163,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         this.sources = sources;
         this.currentUser = currentUser;
         this.executor = executor;
-        this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting, currentUser::namesOf);
+        this.clock = clock;
+        this.history = new HistoryPanel(runs, pipeline, this::showPast, this::showWaiting, currentUser::namesOf,
+                gardens, clock);
         this.choice = new ChoiceCard(gardens, geoNames, cells, currentUser, () -> asking, () -> contributor,
                 this::continueQuestion);
 
@@ -237,9 +244,9 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     AskView(GardenPipeline pipeline, SourceCatalog sources, CurrentUser currentUser,
             KnowledgeEnrichment enrichment, UsageService usage, GardenService gardens,
             CropCatalog crops, KnowledgeGraph knowledge, GeoNames geoNames, ClimateCells cells,
-            RunHistory runs) {
+            RunHistory runs, Clock clock) {
         this(pipeline, sources, currentUser, enrichment, usage, gardens, crops, knowledge, geoNames, cells, runs,
-                Runnable::run);
+                Runnable::run, clock);
     }
 
     @Override
@@ -361,7 +368,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             // A stored answer with no sources says none was recorded (#111).
             PipelineAnswer answer = history.answerOf(run);
             copyText = answer.text();
-            card = AnswerCards.ofPast(answer, run.getFinishedAt(), run.getSources() != null, spaceId, currentUser, pageGarden, sources, enrichment, this);
+            card = AnswerCards.ofPast(answer, run.getFinishedAt(), zone(run.getGardenId()),
+                    run.getSources() != null, spaceId, currentUser, pageGarden, sources, enrichment, this);
         }
         Div item = item(run.getQuestion(), run.getFinishedAt(), contributor, copyText, card);
         item.setId(key);
@@ -386,7 +394,8 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                     loadHistory();
                     return answer;
                 },
-                answer -> AnswerCards.of(answer, spaceId, currentUser, pageGarden, sources, enrichment, this),
+                answer -> AnswerCards.of(answer, clock.instant(), zone(gardenId), spaceId, currentUser, pageGarden, sources,
+                        enrichment, this),
                 // At the space level the question may be another garden's: the card says which (#109).
                 gardenId == 0, true, pageGarden);
         card.askedBy(currentUser.nameOf(review.context().startedBy()));
@@ -443,7 +452,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
      */
     private void showContext() {
         Locale locale = NoteText.locale(this);
-        String month = LocalDate.now(GardenHomeView.ITALY).getMonth().getDisplayName(TextStyle.FULL, locale);
+        String month = today().getMonth().getDisplayName(TextStyle.FULL, locale);
         if (gardenId == 0) {
             context.setText(getTranslation("ask.context.nogarden", month));
             return;
@@ -467,7 +476,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
     /** Chips instead of a paragraph (#82): the month, what grows here now, and never for a guest (#33). */
     private void showSuggestions() {
         suggested.removeAll();
-        int month = LocalDate.now(GardenHomeView.ITALY).getMonthValue();
+        int month = today().getMonthValue();
         List<SuggestedQuestions.Suggestion> chips = contributor
                 ? SuggestedQuestions.of(month, gardenId > 0, growingCropNames(), onePlotName())
                 : List.of();
@@ -511,6 +520,18 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
                 && items.indexOf(suggestions) == items.size() - 1;
     }
 
+    /** Today at the page's garden (#158), or the app's own day at the space level. */
+    private LocalDate today() {
+        return LocalDate.ofInstant(clock.instant(), zone(gardenId));
+    }
+
+    /** The zone of one of the space's gardens by id (#158), or the app's own when it is unknown. */
+    private ZoneId zone(Long id) {
+        GardenSummary garden = id == null || id == 0 ? null
+                : gardens.garden(spaceId, currentUser.login(), id).orElse(null);
+        return GardenTime.zone(garden, clock);
+    }
+
     /** What grows in this garden now, named in the page's language, each crop once (#82). */
     private List<String> growingCropNames() {
         if (gardenId <= 0) {
@@ -519,7 +540,7 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
         boolean english = NoteText.locale(this).getLanguage().equals("en");
         List<String> names = new ArrayList<>();
         try {
-            gardens.growingOn(spaceId, currentUser.login(), gardenId, LocalDate.now(GardenHomeView.ITALY))
+            gardens.growingOn(spaceId, currentUser.login(), gardenId, today())
                     .forEach(p -> {
                         String name = crops.byId(p.cropId())
                                 // A sentence names the crop with its article (#111): "la fragola", "l’aglio".
@@ -628,14 +649,16 @@ public class AskView extends VerticalLayout implements HasDynamicTitle, BeforeEn
             WaitingQuestionCard card = new WaitingQuestionCard(run.pending(), mayAsk, suggestions(),
                     (values, note) -> pipeline.respond(run.pending().processId(), context.spaceId(), context.gardenId(),
                             new HumanAnswer(values, note, login)),
-                    answer -> AnswerCards.of(answer, context.spaceId(), currentUser, pageGarden, sources, enrichment, this),
+                    answer -> AnswerCards.of(answer, clock.instant(), zone(context.gardenId()), context.spaceId(),
+                            currentUser, pageGarden, sources, enrichment, this),
                     false, true, pageGarden);
             card.askedBy(currentUser.nameOf(run.pending().context().startedBy()));
             card.extra(propose(asked));
             stack(item(asked, run.pending().askedAt(), mayAsk, null, card));
             return;
         }
-        AnswerCard card = AnswerCards.of(run.answer(), context.spaceId(), currentUser, pageGarden, sources, enrichment, this);
+        AnswerCard card = AnswerCards.of(run.answer(), clock.instant(), zone(context.gardenId()), context.spaceId(),
+                currentUser, pageGarden, sources, enrichment, this);
         // A place's answer can become a garden there, with every field already filled in (#107).
         choice.gardenHere(run, spaceId).ifPresent(card::extra);
         stack(item(asked, Instant.now(), mayAsk, run.answer().text(), card));
