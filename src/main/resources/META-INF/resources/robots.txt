@@ -1,5 +1,7 @@
 # Rootology (https://rootology.app): the public pages only, everything else needs a sign-in.
 User-agent: *
+# The root only answers a 301 to /welcome: a crawler must read it, or it indexes / as an empty page (#125).
+Allow: /$
 Allow: /welcome
 Allow: /sources
 Allow: /privacy
