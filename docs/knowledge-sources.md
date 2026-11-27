@@ -80,3 +80,17 @@ frost dates do not justify it (temperature would be needed, in a later issue).
 | EU Pesticides Database | Approval status of substances | Legal notice not found | Not used: nothing is imported. |
 
 Each page is a separate source in `sources.csv`, so a method points to the page it comes from.
+
+## Container depths (#186), checked 2026-11-26
+
+| Source | What it gives | License (as found) | Notes |
+|---|---|---|---|
+| [CSU Extension GardenNotes #724, Vegetable Gardening in Containers](https://cmg.extension.colostate.edu/wp-content/uploads/sites/2/2023/01/GardenNotes-724-Vegetable-Gardening-in-Containers.pdf) (2014, reviewed 2023) | The minimum container depth of 23 vegetables (green onion 6", lettuce, spinach and bean 8", the cabbage family 10", tomato and carrot 12") | None stated, only "© Colorado State University" | **Pending:** the owner is asking CSU for permission to record the values with attribution. Until it arrives, `container-depths.csv` holds only its header and the rule `container-depth-v1` says every crop's depth is unknown. |
+| Weaver & Bruner, *Root development of vegetable crops* (1927) | Field roots of about 31 of our crops in deep loess | Public domain in the US, protected in Italy until 2036 (Weaver died 1966); facts citable | Not used: field depth does not predict what a container needs (cabbage roots to 1.5 m in the field, 10" is enough in a pot). |
+| Purdue HO-200 | One general rule (10-12" for most plants) | — | Not used: no per-crop values. |
+
+The three classes `container-depth-v1` reads come from CSU's values: `SHALLOW` (at least 15 cm), `MEDIUM`
+(25 cm) and `DEEP` (30 cm). A crop CSU does not cover (herbs, fennel, rocket, fruit trees…) has no row, so the
+rule says it does not know instead of guessing a class. The file's `source` column is not looked up in
+`sources.csv`, which needs a licence that allows commercial use: the source's permission is the condition for
+the rows to exist.

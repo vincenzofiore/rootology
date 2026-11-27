@@ -76,14 +76,21 @@ public class CropProposalService {
      *
      * <p>rotation is the `family-rotation-v1` warning, or null when the rule says nothing; frost is what
      * `frost-suitability-v1` says, or null when it says nothing; inWindow is false when the crop has no
-     * SOW, TRANSPLANT or PLANT window at the site this month.
+     * SOW, TRANSPLANT or PLANT window at the site this month; depth is what `container-depth-v1` says (#186).
      */
     public record CropChecks(CropFacts facts, List<String> companionsInArea, List<String> antagonistsInArea,
-                             RotationRule.RotationWarning rotation, Light light) {
+                             RotationRule.RotationWarning rotation, Light light, ContainerDepthRule.Check depth) {
 
         public CropChecks {
             companionsInArea = List.copyOf(companionsInArea);
             antagonistsInArea = List.copyOf(antagonistsInArea);
+            depth = depth == null ? ContainerDepthRule.Check.UNKNOWN : depth;
+        }
+
+        /** Without the container depth of #186, as before it. */
+        public CropChecks(CropFacts facts, List<String> companionsInArea, List<String> antagonistsInArea,
+                          RotationRule.RotationWarning rotation, Light light) {
+            this(facts, companionsInArea, antagonistsInArea, rotation, light, ContainerDepthRule.Check.UNKNOWN);
         }
 
         public String cropId() {
@@ -232,8 +239,10 @@ public class CropProposalService {
         Optional<DirectSun> lightNeed = traits.lightOptimum(cropId).flatMap(LightRule::needs);
         Light light = sun == null || lightNeed.isEmpty() ? Light.UNKNOWN
                 : LightRule.tooDark(sun, lightNeed.get()) ? Light.TOO_DARK : Light.ENOUGH;
+        ContainerDepthRule.Check depth = ContainerDepthRule.check(plot.kind(), plot.depthCm(),
+                traits.depthClass(cropId).orElse(null));
         return new CropChecks(cropFacts(crop, windows, rotationWarning.isPresent(), !antagonistsInArea.isEmpty(),
-                site, plot), companionsInArea, antagonistsInArea, rotationWarning.orElse(null), light);
+                site, plot), companionsInArea, antagonistsInArea, rotationWarning.orElse(null), light, depth);
     }
 
     private CropFacts cropFacts(Crop crop, List<Window> windows, boolean rotationWarning, boolean antagonistInArea,

@@ -8,6 +8,7 @@ What each version of Rootology brings, for the people who use it and run it. The
 
 ### Added
 
+- A pot, a planter and a raised bed can declare how deep their soil is, in centimetres from 5 to 200, in the area dialog and on the area's card; the rule `container-depth-v1` reads a crop's class from a curated file (which holds no values yet, waiting for its source's permission) and the planting dialog warns "Vaso basso" when the soil is too shallow, saying nothing when the depth is not known (#186).
 - The dialog that adds a planting to an area shows, under the crop field, the crop's family and use and one icon per check the garden's rules give: a companion or an antagonist already growing there, the same family as the crop before it, too little light (or an unknown one), a month outside its sowing or planting window and a winter it does not stand in open ground; each is a warning with its sentence as tooltip, never a block, and it comes from the same code as the proposals for the free areas (#185).
 
 ### Changed

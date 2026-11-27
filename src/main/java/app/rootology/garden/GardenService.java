@@ -30,11 +30,13 @@ public class GardenService {
     private final PlotRepository plots;
     private final PlantingRepository plantings;
     private final RotationRule rotation;
+    private final java.time.Clock clock;
     private final org.springframework.context.ApplicationEventPublisher events;
 
     GardenService(SpaceService spaces, CropCatalog crops, GardenRepository gardens, PlotRepository plots,
-                  PlantingRepository plantings, RotationRule rotation,
+                  PlantingRepository plantings, RotationRule rotation, java.time.Clock clock,
                   org.springframework.context.ApplicationEventPublisher events) {
+        this.clock = clock;
         this.events = events;
         this.spaces = spaces;
         this.crops = crops;
@@ -191,19 +193,29 @@ public class GardenService {
 
     /**
      * With the hours of direct sun in summer and in winter (#89), each optional, whole hours from 0 to 16. A
-     * change of the level or of the hours records who declared it and when.
+     * change of the level or of the hours records who declared it and when. The depth is unchanged.
      */
     @Transactional
     public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
                                 PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
                                 DirectSun directSun, Wind wind, Integer floor, Integer sunHoursSummer,
                                 Integer sunHoursWinter) {
+        Plot existing = plotId == null ? null : plot(spaceId, plotId);
+        return savePlot(spaceId, login, gardenId, plotId, name, kind, soil, areaM2, orientation, directSun, wind,
+                floor, sunHoursSummer, sunHoursWinter, existing == null ? null : existing.getDepthCm());
+    }
+
+    /**
+     * With the area's soil depth in whole centimetres, 5 to 200 (#186), declared only for a pot, a planter and a
+     * raised bed: in open ground and under a greenhouse the value is cleared, since a depth means nothing there.
+     */
+    @Transactional
+    public PlotSummary savePlot(long spaceId, String login, long gardenId, Long plotId, String name,
+                                PlotKind kind, Soil soil, BigDecimal areaM2, Orientation orientation,
+                                DirectSun directSun, Wind wind, Integer floor, Integer sunHoursSummer,
+                                Integer sunHoursWinter, Integer depthCm) {
         requireContributor(spaceId, login);
-        for (Integer hours : new Integer[] {sunHoursSummer, sunHoursWinter}) {
-            if (hours != null && (hours < 0 || hours > MAX_SUN_HOURS)) {
-                throw new IllegalArgumentException("Hours of direct sun are between 0 and " + MAX_SUN_HOURS);
-            }
-        }
+        checkDeclaredValues(sunHoursSummer, sunHoursWinter, depthCm);
         String cleanName = required(name, "A plot needs a name");
         if (kind == null || soil == null) {
             throw new IllegalArgumentException("A plot needs a kind and a soil");
@@ -217,14 +229,30 @@ public class GardenService {
         Garden garden = garden(spaceId, gardenId);
         Plot plot = plotId == null ? new Plot(garden, cleanName, kind, soil, areaM2) : plot(spaceId, plotId);
         // Postgres keeps microseconds: the same instant in memory and stored, also where the clock has nanoseconds.
-        java.time.Instant now = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        java.time.Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         String who = SpaceService.normalizeLogin(login);
         if (directSun != plot.getDirectSun()) {
             plot.sunLevelDeclared(who, now);
         }
         plot.update(cleanName, kind, soil, areaM2, orientation, directSun, wind, floor);
         plot.declareSun(sunHoursSummer, sunHoursWinter, who, now);
+        // The depth of a container only (#186): open ground and a greenhouse keep none, whatever the dialog sent.
+        plot.declareDepth(ContainerDepthRule.isContainer(kind) ? depthCm : null);
         return summary(plots.save(plot));
+    }
+
+    /** The declared whole numbers of an area: hours of sun from 0 to 16 (#89), depth from 5 to 200 cm (#186). */
+    private static void checkDeclaredValues(Integer sunHoursSummer, Integer sunHoursWinter, Integer depthCm) {
+        for (Integer hours : new Integer[] {sunHoursSummer, sunHoursWinter}) {
+            if (hours != null && (hours < 0 || hours > MAX_SUN_HOURS)) {
+                throw new IllegalArgumentException("Hours of direct sun are between 0 and " + MAX_SUN_HOURS);
+            }
+        }
+        if (depthCm != null && (depthCm < ContainerDepthRule.MIN_DEPTH_CM
+                || depthCm > ContainerDepthRule.MAX_DEPTH_CM)) {
+            throw new IllegalArgumentException("The soil depth is between " + ContainerDepthRule.MIN_DEPTH_CM
+                    + " and " + ContainerDepthRule.MAX_DEPTH_CM + " cm");
+        }
     }
 
     /** The most hours of direct sun a day an area can have (#89): a long June day. */
@@ -444,7 +472,7 @@ public class GardenService {
     private static PlotSummary summary(Plot p) {
         return new PlotSummary(p.getId(), p.getGarden().getId(), p.getName(), p.getKind(), p.getSoil(), p.getAreaM2(),
                 p.getOrientation(), p.getDirectSun(), p.getWind(), p.getFloor(), p.getSunHoursSummer(),
-                p.getSunHoursWinter(), p.getSunDeclaredBy(), p.getSunDeclaredAt());
+                p.getSunHoursWinter(), p.getSunDeclaredBy(), p.getSunDeclaredAt(), p.getDepthCm());
     }
 
     private PlantingSummary summary(Planting p) {

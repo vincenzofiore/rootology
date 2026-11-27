@@ -130,6 +130,49 @@ class GardenServiceTest {
     }
 
     @Test
+    void theSoilDepthIsKeptOnlyInAContainerAndBetweenFiveAndTwoHundredCentimetres() {
+        long space = spaceOf("nino-depth");
+        GardenSummary garden = gardens.saveGarden(space, "nino-depth", null, "Terrace", "Torino", null, null);
+
+        PlotSummary pot = gardens.savePlot(space, "nino-depth", garden.id(), null, "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2, 30);
+        assertThat(pot.depthCm()).isEqualTo(30);
+        assertThat(gardens.plots(space, "nino-depth", garden.id())).singleElement()
+                .satisfies(p -> assertThat(p.depthCm()).isEqualTo(30));
+
+        // The bounds themselves are values: 5 and 200 cm.
+        PlotSummary extremes = gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2, 5);
+        assertThat(extremes.depthCm()).isEqualTo(5);
+        assertThat(gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2, 200).depthCm()).isEqualTo(200);
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2, 4))
+                .as("less than 5 cm is refused").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Pot", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2, 201))
+                .as("more than 200 cm is refused").isInstanceOf(IllegalArgumentException.class);
+
+        // A planter and a raised bed are containers too; open ground and a greenhouse are not.
+        assertThat(gardens.savePlot(space, "nino-depth", garden.id(), null, "Cassone", PlotKind.PLANTER,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, null, null, 40).depthCm()).isEqualTo(40);
+        assertThat(gardens.savePlot(space, "nino-depth", garden.id(), null, "Aiuola", PlotKind.RAISED_BED,
+                Soil.LOAMY, null, Orientation.S, null, null, null, null, null, 25).depthCm()).isEqualTo(25);
+
+        // The 12-argument save keeps the depth, and a kind without a depth clears it.
+        assertThat(gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Vaso", PlotKind.POT,
+                Soil.POTTING_MIX, null, Orientation.S, null, null, null, 7, 2).depthCm())
+                .as("a rename keeps the declared depth").isEqualTo(200);
+        PlotSummary ground = gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Vaso", PlotKind.GROUND,
+                Soil.LOAMY, null, Orientation.S, null, null, null, 7, 2, 30);
+        assertThat(ground.depthCm()).as("open ground has no soil depth").isNull();
+        PlotSummary greenhouse = gardens.savePlot(space, "nino-depth", garden.id(), pot.id(), "Vaso",
+                PlotKind.GREENHOUSE, Soil.LOAMY, null, Orientation.S, null, null, null, 7, 2, 30);
+        assertThat(greenhouse.depthCm()).as("a greenhouse has no soil depth either").isNull();
+        assertThat(greenhouse.sunHoursSummer()).as("the hours of sun are still the gardener's").isEqualTo(7);
+    }
+
+    @Test
     void whoDeclaredTheSunAndWhenFollowTheValueAndNotAMereRename() {
         long space = spaceOf("olmo");
         spaces.signedIn("pino");

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import app.rootology.facts.DepthClass;
+import app.rootology.garden.ContainerDepthRule;
 import app.rootology.garden.CropProposalRule.CropFacts;
 import app.rootology.garden.CropProposalRule.Window;
 import app.rootology.garden.CropProposalService.CropChecks;
@@ -162,6 +164,41 @@ class AreasViewTest {
                         "Stessa famiglia di patata, la coltura precedente (Solanaceae).",
                         "Sole diretto insufficiente: pomodoro ne chiede più di quanto prenda l’area.");
         assertThat(check(row, "rootology-planting-check-unknown")).isEmpty();
+    }
+
+    @Test
+    void aContainerTooShallowShowsTheWarningWithItsAriaLabel() {
+        // #186: container-depth-v1 says the crop asks for more soil than this pot has.
+        CropChecks shallow = new CropChecks(facts("tomato", "Solanaceae", false,
+                List.of(new Window("TRANSPLANT", 4, true, true, List.of("rootology-editorial"))), false, false),
+                List.of(), List.of(), null, Light.ENOUGH,
+                new ContainerDepthRule.Check(ContainerDepthRule.Verdict.TOO_SHALLOW, DepthClass.DEEP, 20));
+
+        Div row = PlantingChecks.of(shallow, italian(), AreasViewTest::cropName);
+
+        assertThat(check(row, "rootology-planting-check-warning"))
+                .containsExactly("Terriccio troppo basso: pomodoro chiede almeno 30 cm, qui ce ne sono 20.");
+        Span warning = row.getChildren().filter(Span.class::isInstance).map(Span.class::cast)
+                .filter(span -> span.getClassNames().contains("rootology-planting-check-warning"))
+                .findFirst().orElseThrow();
+        assertThat(warning.getChildren().filter(Span.class::isInstance).map(Span.class::cast)
+                .map(Span::getText).toList()).as("the short word, visible on a phone")
+                .containsExactly("Vaso basso");
+    }
+
+    @Test
+    void aDepthTheRulesDoNotKnowKeepsTheDialogQuiet() {
+        // #186: unknown shows nothing in the planting dialog, unlike the light's "?".
+        CropChecks unknown = new CropChecks(facts("carrot", "Apiaceae", false,
+                List.of(new Window("SOW", 4, true, true, List.of("rootology-editorial"))), false, false),
+                List.of(), List.of(), null, Light.ENOUGH);
+        assertThat(unknown.depth().verdict()).isEqualTo(ContainerDepthRule.Verdict.UNKNOWN);
+
+        Div row = PlantingChecks.of(unknown, italian(), AreasViewTest::cropName);
+
+        assertThat(row.getChildren().map(Component::getElement).map(e -> e.getText()).toList())
+                .containsExactly("Apiaceae · commestibile");
+        assertThat(check(row, "rootology-planting-check")).isEmpty();
     }
 
     @Test

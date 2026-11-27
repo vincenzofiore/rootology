@@ -1,6 +1,7 @@
 package app.rootology.facts;
 
 import app.rootology.facts.CuratedKnowledge.ControlRow;
+import app.rootology.facts.CuratedKnowledge.DepthRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.NeedRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
@@ -49,7 +50,9 @@ final class CuratedKnowledgeReader {
                         "yes".equals(r.get("verified")))).toList(),
                 rows("pest-controls.csv").stream().map(r -> new ControlRow(r.get("pest_id"), r.get("method"),
                         r.get("kind"), r.get("agent"), r.get("evidence"),
-                        Arrays.asList(r.get("sources").split(";")))).toList());
+                        Arrays.asList(r.get("sources").split(";")))).toList(),
+                rows("container-depths.csv").stream().map(r -> new DepthRow(r.get("crop_id"),
+                        r.get("depth_class"), r.get("source"))).toList());
     }
 
     /** Rows as column -> trimmed value. A row with the wrong number of cells is an error. */

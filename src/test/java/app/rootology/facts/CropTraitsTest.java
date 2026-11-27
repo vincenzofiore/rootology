@@ -24,6 +24,14 @@ class CropTraitsTest {
     }
 
     @Test
+    void noCropHasAContainerDepthYet() {
+        // #186: container-depths.csv has only its header and a comment until CSU allows its values.
+        assertThat(traits.depthClass("tomato")).isEmpty();
+        assertThat(traits.depthClass("lettuce")).isEmpty();
+        assertThat(traits.depthClass("no-such-crop")).isEmpty();
+    }
+
+    @Test
     void antagonistsAreReadInEitherDirection() {
         assertThat(traits.antagonists("tomato", "potato")).isTrue();
         assertThat(traits.antagonists("potato", "tomato")).isTrue();

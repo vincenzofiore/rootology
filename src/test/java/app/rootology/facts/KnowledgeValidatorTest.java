@@ -1,6 +1,7 @@
 package app.rootology.facts;
 
 import app.rootology.facts.CuratedKnowledge.ControlRow;
+import app.rootology.facts.CuratedKnowledge.DepthRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
 import app.rootology.facts.CuratedKnowledge.PairRow;
@@ -36,6 +37,25 @@ class KnowledgeValidatorTest {
         assertThat(real.controls()).hasSize(92);
         assertThat(real.controls()).extracting(ControlRow::organismId).containsAll(
                 real.organisms().stream().map(OrganismRow::id).toList());
+        assertThat(real.depths()).as("no container depth is recorded yet: the source's permission is pending")
+                .isEmpty();
+    }
+
+    @Test
+    void refusesAContainerDepthOfAnUnknownCropOrInAnUnknownClass() {
+        var k = new CuratedKnowledge(real.sources(), real.crops(), real.needs(), real.windows(), real.pairs(),
+                real.organisms(), real.hosts(), real.controls(),
+                java.util.List.of(
+                        new DepthRow("papaya", "SHALLOW", "csu-gardennotes-724"),
+                        new DepthRow("tomato", "TALL", "csu-gardennotes-724"),
+                        new DepthRow("basil", "DEEP", " "),
+                        new DepthRow("tomato", "DEEP", "csu-gardennotes-724")));
+
+        assertThat(KnowledgeValidator.validate(k)).contains(
+                "container depth of papaya: unknown crop papaya",
+                "container depth of tomato: depth_class must be one of " + DepthClass.names() + ", not TALL",
+                "container depth of basil: no source",
+                "container depth of tomato: duplicate");
     }
 
     @Test

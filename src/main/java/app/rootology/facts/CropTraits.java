@@ -37,6 +37,7 @@ public class CropTraits {
     private final Set<String> antagonists;
     private final Map<String, Set<String>> companions;
     private final Map<String, Beneficial> beneficials;
+    private final Map<String, DepthClass> depths;
 
     public CropTraits(CropCatalog crops) {
         CuratedKnowledge knowledge = CuratedKnowledgeReader.read(crops);
@@ -46,6 +47,12 @@ public class CropTraits {
         this.antagonists = antagonists(knowledge.pairs());
         this.companions = companions(knowledge.pairs());
         this.beneficials = beneficials(knowledge.controls());
+        this.depths = depths(knowledge.depths());
+    }
+
+    /** The least soil depth the crop needs in a container (#186), empty when the curated file says nothing. */
+    public Optional<DepthClass> depthClass(String cropId) {
+        return Optional.ofNullable(depths.get(cropId));
     }
 
     /** ECOCROP's shortest cycle in days, empty when the crop has no ECOCROP record or no value. */
@@ -120,6 +127,15 @@ public class CropTraits {
         Map<String, Beneficial> result = new HashMap<>();
         sources.forEach((cropId, ids) -> result.put(cropId,
                 new Beneficial(new ArrayList<>(ids), traditional.contains(cropId) && !withEvidence.contains(cropId))));
+        return Map.copyOf(result);
+    }
+
+    /** The class of each crop the depths file names; a class we do not know is refused by the validator at startup. */
+    private static Map<String, DepthClass> depths(List<CuratedKnowledge.DepthRow> rows) {
+        Map<String, DepthClass> result = new HashMap<>();
+        for (CuratedKnowledge.DepthRow row : rows) {
+            DepthClass.parse(row.depthClass()).ifPresent(value -> result.put(row.cropId(), value));
+        }
         return Map.copyOf(result);
     }
 

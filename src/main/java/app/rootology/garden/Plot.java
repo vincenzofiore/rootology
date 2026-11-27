@@ -50,6 +50,10 @@ class Plot {
 
     private Integer floor;
 
+    /** Soil depth of a container area, in whole centimetres, declared by the gardener (#186). */
+    @jakarta.persistence.Column(name = "depth_cm")
+    private Integer depthCm;
+
     /** Hours of direct sun in summer (April-September) and in winter (October-March), declared (#89). */
     @jakarta.persistence.Column(name = "sun_hours_summer")
     private Integer sunHoursSummer;
@@ -91,6 +95,7 @@ class Plot {
     DirectSun getDirectSun() { return directSun; }
     Wind getWind() { return wind; }
     Integer getFloor() { return floor; }
+    Integer getDepthCm() { return depthCm; }
     Integer getSunHoursSummer() { return sunHoursSummer; }
     Integer getSunHoursWinter() { return sunHoursWinter; }
     String getSunDeclaredBy() { return sunDeclaredBy; }
@@ -109,6 +114,14 @@ class Plot {
             this.sunDeclaredBy = by;
             this.sunDeclaredAt = at;
         }
+    }
+
+    /**
+     * The soil depth of a container area (#186), declared with the area; null in open ground and under a
+     * greenhouse, where a depth means nothing, so the dialog's field is hidden and the value cleared there.
+     */
+    void declareDepth(Integer depthCm) {
+        this.depthCm = depthCm;
     }
 
     /** The declared level changed (#89): it is a declaration of the area's sun too. */

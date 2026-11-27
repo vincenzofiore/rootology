@@ -31,6 +31,7 @@ import app.rootology.facts.ClimateWindows;
 import app.rootology.facts.ClimateWindows.ClimateWindow;
 import app.rootology.facts.Crop;
 import app.rootology.facts.CropCatalog;
+import app.rootology.garden.ContainerDepthRule;
 import app.rootology.garden.CropProposalService;
 import app.rootology.garden.DirectSun;
 import app.rootology.garden.GardenService;
@@ -225,6 +226,11 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             seasonHours(row, "summer", area.sunHoursSummer());
             seasonHours(row, "winter", area.sunHoursWinter());
             facts.add(row);
+        }
+        if (area.depthCm() != null && ContainerDepthRule.isContainer(area.kind())) {
+            // The declared depth of a container (#186), beside the sun hours of the same area.
+            facts.add(fact(VaadinIcon.ARROW_DOWN, getTranslation("area.depth.tooltip", area.depthCm()),
+                    getTranslation("area.depth", area.depthCm())));
         }
         if (area.areaM2() != null) {
             facts.add(fact(VaadinIcon.RESIZE_H, getTranslation("garden.area"), squareMetres(area.areaM2()) + " m²"));
@@ -454,8 +460,9 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     }
 
     /**
-     * The area in two steps (#85): name, kind and soil first; the declared exposure (#54) behind Details,
-     * with the direct sun as three icon buttons and, since #89, the hours of direct sun by season.
+     * The area in two steps (#85): name, kind, soil and, for a container, its soil depth (#186) first; the
+     * declared exposure (#54) behind Details, with the direct sun as three icon buttons and, since #89, the
+     * hours of direct sun by season.
      */
     private void areaDialog(PlotSummary existing) {
         Dialog dialog = areaDialogOf(existing);
@@ -492,6 +499,8 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
         floor.setMin(0);
         floor.setMax(200);
         floor.setClearButtonVisible(true);
+        // The soil depth of a container (#186): its field follows the kind, which is set just below.
+        IntegerField depth = depthField(kind);
         kind.setValue(PlotKind.GROUND);
         soil.setValue(Soil.UNKNOWN);
         if (existing != null) {
@@ -505,6 +514,7 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
             winterHours.setValue(existing.sunHoursWinter());
             wind.setValue(existing.wind());
             floor.setValue(existing.floor());
+            depth.setValue(existing.depthCm());
         }
         // With both seasons' hours the level is no longer chosen: the buttons show, greyed, the one the hours
         // give for this month (#89). With one season only, the level still counts for the other one.
@@ -517,14 +527,14 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
                 new FormLayout(orientation, sun, summerHours, winterHours, wind, floor));
         details.addClassName("rootology-area-details");
         Dialog dialog = new Dialog(getTranslation(existing == null ? "garden.addplot" : "garden.editplot"));
-        dialog.add(new FormLayout(name, kind, soil, area), details);
+        dialog.add(new FormLayout(name, kind, soil, area, depth), details);
         dialog.getFooter().add(new Button(getTranslation("common.cancel"), e -> dialog.close()),
                 new Button(getTranslation("common.save"), e -> {
             try {
                 gardens.savePlot(spaceId, login, garden.id(), existing == null ? null : existing.id(),
                         name.getValue(), kind.getValue(), soil.getValue(), area.getValue(),
                         orientation.getValue(), sun.getValue(), wind.getValue(), floor.getValue(),
-                        summerHours.getValue(), winterHours.getValue());
+                        summerHours.getValue(), winterHours.getValue(), depth.getValue());
                 dialog.close();
                 showAreas();
             } catch (RuntimeException ex) {
@@ -538,6 +548,28 @@ public class AreasView extends VerticalLayout implements HasDynamicTitle, Before
     private static DirectSun seasonLevel(int summerHours, int winterHours) {
         boolean summer = LightRule.isSummer(LocalDate.now(DateText.ITALY).getMonth());
         return LightRule.fromHours(Math.max(0, summer ? summerHours : winterHours));
+    }
+
+    /**
+     * The soil depth of a container area (#186): a whole number of centimetres from 5 to 200, shown only for a
+     * pot, a planter and a raised bed, and cleared when the area becomes open ground or a greenhouse, where a
+     * depth means nothing.
+     */
+    private IntegerField depthField(ComboBox<PlotKind> kind) {
+        IntegerField depth = new IntegerField(getTranslation("area.depth.label"));
+        depth.setHelperText(getTranslation("area.depth.help"));
+        depth.setMin(ContainerDepthRule.MIN_DEPTH_CM);
+        depth.setMax(ContainerDepthRule.MAX_DEPTH_CM);
+        depth.setStepButtonsVisible(true);
+        depth.setClearButtonVisible(true);
+        kind.addValueChangeListener(e -> {
+            boolean container = ContainerDepthRule.isContainer(e.getValue());
+            depth.setVisible(container);
+            if (!container) {
+                depth.clear();
+            }
+        });
+        return depth;
     }
 
     /** An optional whole number of hours of direct sun, 0 to the longest June day (#89). */

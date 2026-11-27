@@ -8,7 +8,14 @@ import java.util.List;
  */
 public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<NeedRow> needs,
                                List<WindowRow> windows, List<PairRow> pairs, List<OrganismRow> organisms,
-                               List<HostRow> hosts, List<ControlRow> controls) {
+                               List<HostRow> hosts, List<ControlRow> controls, List<DepthRow> depths) {
+
+    /** Without the container depths of #186, as before them. */
+    public CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<NeedRow> needs,
+                            List<WindowRow> windows, List<PairRow> pairs, List<OrganismRow> organisms,
+                            List<HostRow> hosts, List<ControlRow> controls) {
+        this(sources, crops, needs, windows, pairs, organisms, hosts, controls, List.of());
+    }
 
     public record SourceRow(String id, String title, String url, String license, boolean commercial,
                             String retrievedOn) {
@@ -53,5 +60,13 @@ public record CuratedKnowledge(List<SourceRow> sources, List<Crop> crops, List<N
 
     public record HostRow(String organismId, String cropId, int fromMonth, int toMonth, String note, String source,
                           boolean verified) {
+    }
+
+    /**
+     * The least soil depth a crop needs in a container (#186): depthClass is SHALLOW, MEDIUM or DEEP as written,
+     * kept as the file has it so the validator can report a wrong one. No row exists yet: the source's
+     * permission is pending, so every crop's depth is unknown.
+     */
+    public record DepthRow(String cropId, String depthClass, String source) {
     }
 }

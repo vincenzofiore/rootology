@@ -1,6 +1,7 @@
 package app.rootology.ui;
 
 import app.rootology.facts.FrostSuitabilityRule;
+import app.rootology.garden.ContainerDepthRule;
 import app.rootology.garden.CropProposalService.CropChecks;
 import app.rootology.garden.RotationRule;
 import com.vaadin.flow.component.Component;
@@ -33,7 +34,8 @@ final class PlantingChecks {
         row.addClassName("rootology-planting-checks");
         Stream.of(companions(checks, texts, cropName), antagonists(checks, texts, cropName),
                         rotation(checks, texts, cropName), light(checks, texts, cropName),
-                        window(checks, texts, cropName), frost(checks, texts, cropName))
+                        depth(checks, texts, cropName), window(checks, texts, cropName),
+                        frost(checks, texts, cropName))
                 .flatMap(Optional::stream).forEach(row::add);
         return row;
     }
@@ -82,6 +84,21 @@ final class PlantingChecks {
                     texts.get("garden.check.light.unknown", cropName.apply(checks.cropId())), "unknown",
                     texts.get("garden.check.short.light.unknown")));
         };
+    }
+
+    /**
+     * A container too shallow for the crop (`container-depth-v1`, #186): only the warning shows, since a depth
+     * we do not know would make the dialog say "?" on every pot, and the save is never blocked.
+     */
+    private static Optional<Component> depth(CropChecks checks, NoteText.Texts texts,
+                                             Function<String, String> cropName) {
+        ContainerDepthRule.Check depth = checks.depth();
+        if (depth.verdict() != ContainerDepthRule.Verdict.TOO_SHALLOW || depth.needed() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(check(VaadinIcon.ARROW_DOWN.create(), texts.get("garden.check.shallow",
+                cropName.apply(checks.cropId()), depth.needed().minimumCm(), depth.depthCm()), "warning",
+                texts.get("garden.check.short.shallow")));
     }
 
     /** A month outside the crop's sowing or planting window in the area. */

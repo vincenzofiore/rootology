@@ -1,0 +1,8 @@
+# How deep the soil of a container (pot, planter, raised bed) must be for a crop (#186), rule
+# container-depth-v1. depth_class is SHALLOW (at least 15 cm), MEDIUM (25) or DEEP (30).
+#
+# No value is recorded yet: the source (CSU Extension GardenNotes #724, Vegetable Gardening in Containers)
+# states no licence, and the owner is asking CSU for permission to record its values with attribution (#186).
+# Until that permission arrives this file holds no rows, so every crop's depth is unknown and the rule says so
+# instead of guessing. The rule itself is complete and reads whatever this file gives.
+crop_id,depth_class,source

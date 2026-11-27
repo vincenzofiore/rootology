@@ -1,6 +1,7 @@
 package app.rootology.facts;
 
 import app.rootology.facts.CuratedKnowledge.ControlRow;
+import app.rootology.facts.CuratedKnowledge.DepthRow;
 import app.rootology.facts.CuratedKnowledge.HostRow;
 import app.rootology.facts.CuratedKnowledge.NeedRow;
 import app.rootology.facts.CuratedKnowledge.OrganismRow;
@@ -134,7 +135,28 @@ public final class KnowledgeValidator {
         organisms.keySet().stream().filter(id -> !withHosts.contains(id))
                 .forEach(id -> problems.add("organism " + id + " affects no crop"));
         controls(k.controls(), sources, crops, organisms, problems);
+        depths(k.depths(), crops, problems);
         return problems;
+    }
+
+    /**
+     * The container depths of #186: every row names a crop of the knowledge base and one of the three classes.
+     * Its source is not looked up in `sources.csv`, which needs a licence that allows commercial use: the
+     * source of the depths (CSU GardenNotes #724) is waiting for its permission, so no row exists yet.
+     */
+    private static void depths(List<DepthRow> depths, Map<String, Crop> crops, List<String> problems) {
+        Set<String> seen = new HashSet<>();
+        for (DepthRow d : depths) {
+            String where = "container depth of " + d.cropId();
+            crop(crops, d.cropId(), where, problems);
+            oneOf(d.depthClass(), DepthClass.names(), where + ": depth_class", problems);
+            if (d.source() == null || d.source().isBlank()) {
+                problems.add(where + ": no source");
+            }
+            if (!seen.add(d.cropId())) {
+                problems.add(where + ": duplicate");
+            }
+        }
     }
 
     private static void controls(List<ControlRow> controls, Map<String, SourceRow> sources, Map<String, Crop> crops,

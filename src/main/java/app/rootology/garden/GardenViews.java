@@ -17,16 +17,29 @@ public final class GardenViews {
                                 String countryCode, String regionCode, Integer elevationM) {
     }
 
-    /** orientation, directSun, wind and floor are declared by the gardener and all optional (#54). */
+    /**
+     * orientation, directSun, wind and floor are declared by the gardener and all optional (#54); depthCm is the
+     * soil depth of a container area, in whole centimetres, declared the same way (#186).
+     */
     public record PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
                               Orientation orientation, DirectSun directSun, Wind wind, Integer floor,
                               Integer sunHoursSummer, Integer sunHoursWinter, String sunDeclaredBy,
-                              java.time.Instant sunDeclaredAt) {
+                              java.time.Instant sunDeclaredAt, Integer depthCm) {
 
         /** Without the sun hours of #89, as before them. */
         public PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
                            Orientation orientation, DirectSun directSun, Wind wind, Integer floor) {
-            this(id, gardenId, name, kind, soil, areaM2, orientation, directSun, wind, floor, null, null, null, null);
+            this(id, gardenId, name, kind, soil, areaM2, orientation, directSun, wind, floor, null, null, null, null,
+                    null);
+        }
+
+        /** Without the container depth of #186, as before it. */
+        public PlotSummary(long id, long gardenId, String name, PlotKind kind, Soil soil, BigDecimal areaM2,
+                           Orientation orientation, DirectSun directSun, Wind wind, Integer floor,
+                           Integer sunHoursSummer, Integer sunHoursWinter, String sunDeclaredBy,
+                           java.time.Instant sunDeclaredAt) {
+            this(id, gardenId, name, kind, soil, areaM2, orientation, directSun, wind, floor, sunHoursSummer,
+                    sunHoursWinter, sunDeclaredBy, sunDeclaredAt, null);
         }
 
         /**
