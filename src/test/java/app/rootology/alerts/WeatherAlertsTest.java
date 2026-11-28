@@ -318,6 +318,7 @@ class WeatherAlertsTest {
         notifications.save("pino", new NotificationPreferences("pino@example.org", true, false, true, true, null, null));
         when(weather.around(eq(new BigDecimal("43.77")), eq(new BigDecimal("11.25")), any()))
                 .thenReturn(steady(-3.0, 80.0));
+        notifications.digest(); // the outbox is shared: send what other tests left pending, so only ours is counted
 
         alerts.check();
 
